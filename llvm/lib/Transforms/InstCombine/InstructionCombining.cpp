@@ -101,6 +101,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
 #include "llvm/Transforms/InstCombine/InstCombineWorklist.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Local.h"
 #include <algorithm>
 #include <cassert>
@@ -4125,6 +4126,11 @@ static bool combineInstructionsOverFunction(
 
     if (!IC.run())
       break;
+
+    // In some cases InstCombine may create a large number of redundant debug
+    // intrinsics; remove them here.
+    for (auto &BB : F)
+      RemoveRedundantDbgInstrs(&BB);
 
     MadeIRChange = true;
   }
