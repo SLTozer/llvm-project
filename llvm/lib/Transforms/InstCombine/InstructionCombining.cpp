@@ -4127,12 +4127,14 @@ static bool combineInstructionsOverFunction(
     if (!IC.run())
       break;
 
+    MadeIRChange = true;
+  }
+
+  if (MadeIRChange) {
     // In some cases InstCombine may create a large number of redundant debug
     // intrinsics; remove them here.
     for (auto &BB : F)
       RemoveRedundantDbgInstrs(&BB);
-
-    MadeIRChange = true;
   }
 
   return MadeIRChange;
