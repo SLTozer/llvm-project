@@ -1737,7 +1737,7 @@ void llvm::salvageDebugInfoForDbgValues(
   // maximum size of a debug expression we can salvage up to, used for
   // performance reasons.
   const unsigned MaxDebugArgs = 16;
-  const unsigned MaxExpressionSize = 256;
+  const unsigned MaxExpressionSize = 64;
   bool Salvaged = false;
 
   for (auto *DII : DbgUsers) {
