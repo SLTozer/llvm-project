@@ -27,9 +27,8 @@ class TransferTracker;
 // Forward dec of unit test class, so that we can peer into the LDV object.
 class InstrRefLDVTest;
 
-namespace LiveDebugValues {
 
-class MLocTracker;
+namespace LiveDebugValues {
 
 using namespace llvm;
 
@@ -39,41 +38,157 @@ using namespace llvm;
 /// treat the state of the machine at a particular point as an array of values,
 /// rather than a map of values.
 class LocIdx {
-  unsigned Location;
+    unsigned Location;
 
-  // Default constructor is private, initializing to an illegal location number.
-  // Use only for "not an entry" elements in IndexedMaps.
-  LocIdx() : Location(UINT_MAX) {}
 
 public:
+    // Default constructor is private, initializing to an illegal location number.
+    // Use only for "not an entry" elements in IndexedMaps.
+    LocIdx() : Location(UINT_MAX) {}
+
 #define NUM_LOC_BITS 24
-  LocIdx(unsigned L) : Location(L) {
-    assert(L < (1 << NUM_LOC_BITS) && "Machine locations must fit in 24 bits");
-  }
+    LocIdx(unsigned L) : Location(L) {
+        assert(L < (1 << NUM_LOC_BITS) && "Machine locations must fit in 24 bits");
+    }
 
-  static LocIdx MakeIllegalLoc() { return LocIdx(); }
-  static LocIdx MakeTombstoneLoc() {
-    LocIdx L = LocIdx();
-    --L.Location;
-    return L;
-  }
+    static LocIdx MakeIllegalLoc() { return LocIdx(); }
+    static LocIdx MakeTombstoneLoc() {
+        LocIdx L = LocIdx();
+        --L.Location;
+        return L;
+    }
 
-  bool isIllegal() const { return Location == UINT_MAX; }
+    bool isIllegal() const { return Location == UINT_MAX; }
 
-  uint64_t asU64() const { return Location; }
+    uint64_t asU64() const { return Location; }
 
-  bool operator==(unsigned L) const { return Location == L; }
+    bool operator==(unsigned L) const { return Location == L; }
 
-  bool operator==(const LocIdx &L) const { return Location == L.Location; }
+    bool operator==(const LocIdx& L) const { return Location == L.Location; }
 
-  bool operator!=(unsigned L) const { return !(*this == L); }
+    bool operator!=(unsigned L) const { return !(*this == L); }
 
-  bool operator!=(const LocIdx &L) const { return !(*this == L); }
+    bool operator!=(const LocIdx& L) const { return !(*this == L); }
 
-  bool operator<(const LocIdx &Other) const {
-    return Location < Other.Location;
-  }
+    bool operator<(const LocIdx& Other) const {
+        return Location < Other.Location;
+    }
 };
+
+/// Unique identifier for a value defined by an instruction, as a value type.
+/// Casts back and forth to a uint64_t. Probably replacable with something less
+/// bit-constrained. Each value identifies the instruction and machine location
+/// where the value is defined, although there may be no corresponding machine
+/// operand for it (ex: regmasks clobbering values). The instructions are
+/// one-based, and definitions that are PHIs have instruction number zero.
+///
+/// The obvious limits of a 1M block function or 1M instruction blocks are
+/// problematic; but by that point we should probably have bailed out of
+/// trying to analyse the function.
+class ValueIDNum {
+    union {
+        struct {
+            uint64_t BlockNo : 20; /// The block where the def happens.
+            uint64_t InstNo : 20;  /// The Instruction where the def happens.
+                                    /// One based, is distance from start of block.
+            uint64_t LocNo
+                : NUM_LOC_BITS; /// The machine location where the def happens.
+        } s;
+        uint64_t Value;
+    } u;
+
+    static_assert(sizeof(u) == 8, "Badly packed ValueIDNum?");
+
+public:
+    // Default-initialize to EmptyValue. This is necessary to make IndexedMaps
+    // of values to work.
+    ValueIDNum() { u.Value = EmptyValue.asU64(); }
+
+    ValueIDNum(uint64_t Block, uint64_t Inst, uint64_t Loc) {
+        u.s = { Block, Inst, Loc };
+    }
+
+    ValueIDNum(uint64_t Block, uint64_t Inst, LocIdx Loc) {
+        u.s = { Block, Inst, Loc.asU64() };
+    }
+
+    uint64_t getBlock() const { return u.s.BlockNo; }
+    uint64_t getInst() const { return u.s.InstNo; }
+    uint64_t getLoc() const { return u.s.LocNo; }
+    bool isPHI() const { return u.s.InstNo == 0; }
+
+    uint64_t asU64() const { return u.Value; }
+
+    static ValueIDNum fromU64(uint64_t v) {
+        ValueIDNum Val;
+        Val.u.Value = v;
+        return Val;
+    }
+
+    bool operator<(const ValueIDNum& Other) const {
+        return asU64() < Other.asU64();
+    }
+
+    bool operator==(const ValueIDNum& Other) const {
+        return u.Value == Other.u.Value;
+    }
+
+    bool operator!=(const ValueIDNum& Other) const { return !(*this == Other); }
+
+    std::string asString(const std::string& mlocname) const {
+        return Twine("Value{bb: ")
+            .concat(Twine(u.s.BlockNo)
+                .concat(Twine(", inst: ")
+                    .concat((u.s.InstNo ? Twine(u.s.InstNo)
+                        : Twine("live-in"))
+                        .concat(Twine(", loc: ").concat(
+                            Twine(u.s.LocNo)))
+                        .concat(Twine("}")))))
+            .str();
+    }
+
+    static ValueIDNum EmptyValue;
+    static ValueIDNum TombstoneValue;
+};
+
+} // end namespace LiveDebugValues
+
+namespace llvm {
+    using namespace LiveDebugValues;
+
+    template <> struct DenseMapInfo<LocIdx> {
+        static inline LocIdx getEmptyKey() { return LocIdx::MakeIllegalLoc(); }
+        static inline LocIdx getTombstoneKey() { return LocIdx::MakeTombstoneLoc(); }
+
+        static unsigned getHashValue(const LocIdx& Loc) { return Loc.asU64(); }
+
+        static bool isEqual(const LocIdx& A, const LocIdx& B) { return A == B; }
+    };
+
+    template <> struct DenseMapInfo<ValueIDNum> {
+        static inline ValueIDNum getEmptyKey() { return ValueIDNum::EmptyValue; }
+        static inline ValueIDNum getTombstoneKey() {
+            return ValueIDNum::TombstoneValue;
+        }
+
+        static unsigned getHashValue(const ValueIDNum& Val) {
+            return hash_value(Val.asU64());
+        }
+
+        static bool isEqual(const ValueIDNum& A, const ValueIDNum& B) {
+            return A == B;
+        }
+    };
+
+} // end namespace llvm
+
+
+namespace LiveDebugValues {
+
+class MLocTracker;
+class DbgOpIDMap;
+
+using namespace llvm;
 
 // The location at which a spilled value resides. It consists of a register and
 // an offset.
@@ -91,83 +206,6 @@ struct SpillLoc {
                            Other.SpillOffset.getScalable());
   }
 };
-
-/// Unique identifier for a value defined by an instruction, as a value type.
-/// Casts back and forth to a uint64_t. Probably replacable with something less
-/// bit-constrained. Each value identifies the instruction and machine location
-/// where the value is defined, although there may be no corresponding machine
-/// operand for it (ex: regmasks clobbering values). The instructions are
-/// one-based, and definitions that are PHIs have instruction number zero.
-///
-/// The obvious limits of a 1M block function or 1M instruction blocks are
-/// problematic; but by that point we should probably have bailed out of
-/// trying to analyse the function.
-class ValueIDNum {
-  union {
-    struct {
-      uint64_t BlockNo : 20; /// The block where the def happens.
-      uint64_t InstNo : 20;  /// The Instruction where the def happens.
-                             /// One based, is distance from start of block.
-      uint64_t LocNo
-          : NUM_LOC_BITS; /// The machine location where the def happens.
-    } s;
-    uint64_t Value;
-  } u;
-
-  static_assert(sizeof(u) == 8, "Badly packed ValueIDNum?");
-
-public:
-  // Default-initialize to EmptyValue. This is necessary to make IndexedMaps
-  // of values to work.
-  ValueIDNum() { u.Value = EmptyValue.asU64(); }
-
-  ValueIDNum(uint64_t Block, uint64_t Inst, uint64_t Loc) {
-    u.s = {Block, Inst, Loc};
-  }
-
-  ValueIDNum(uint64_t Block, uint64_t Inst, LocIdx Loc) {
-    u.s = {Block, Inst, Loc.asU64()};
-  }
-
-  uint64_t getBlock() const { return u.s.BlockNo; }
-  uint64_t getInst() const { return u.s.InstNo; }
-  uint64_t getLoc() const { return u.s.LocNo; }
-  bool isPHI() const { return u.s.InstNo == 0; }
-
-  uint64_t asU64() const { return u.Value; }
-
-  static ValueIDNum fromU64(uint64_t v) {
-    ValueIDNum Val;
-    Val.u.Value = v;
-    return Val;
-  }
-
-  bool operator<(const ValueIDNum &Other) const {
-    return asU64() < Other.asU64();
-  }
-
-  bool operator==(const ValueIDNum &Other) const {
-    return u.Value == Other.u.Value;
-  }
-
-  bool operator!=(const ValueIDNum &Other) const { return !(*this == Other); }
-
-  std::string asString(const std::string &mlocname) const {
-    return Twine("Value{bb: ")
-        .concat(Twine(u.s.BlockNo)
-                    .concat(Twine(", inst: ")
-                                .concat((u.s.InstNo ? Twine(u.s.InstNo)
-                                                    : Twine("live-in"))
-                                            .concat(Twine(", loc: ").concat(
-                                                Twine(mlocname)))
-                                            .concat(Twine("}")))))
-        .str();
-  }
-
-  static ValueIDNum EmptyValue;
-  static ValueIDNum TombstoneValue;
-};
-
 /// Type for a table of values in a block.
 using ValueTable = std::unique_ptr<ValueIDNum[]>;
 
@@ -199,41 +237,191 @@ public:
 /// the value, and Boolean of whether or not it's indirect.
 class DbgValueProperties {
 public:
-  DbgValueProperties(const DIExpression *DIExpr, bool Indirect)
-      : DIExpr(DIExpr), Indirect(Indirect) {}
+  DbgValueProperties(const DIExpression *DIExpr, bool Indirect, bool IsVariadic)
+      : DIExpr(DIExpr), Indirect(Indirect), IsVariadic(IsVariadic) {}
 
   /// Extract properties from an existing DBG_VALUE instruction.
   DbgValueProperties(const MachineInstr &MI) {
     assert(MI.isDebugValue());
+    assert(MI.getDebugExpression()->getNumLocationOperands() == 0 || MI.isDebugValueList() || MI.isUndefDebugValue());
+    IsVariadic = MI.isDebugValueList();
     DIExpr = MI.getDebugExpression();
-    Indirect = MI.getOperand(1).isImm();
+    Indirect = MI.isDebugOffsetImm();
   }
 
   bool operator==(const DbgValueProperties &Other) const {
-    return std::tie(DIExpr, Indirect) == std::tie(Other.DIExpr, Other.Indirect);
+    return std::tie(DIExpr, Indirect, IsVariadic) ==
+      std::tie(Other.DIExpr, Other.Indirect, Other.IsVariadic);
   }
 
   bool operator!=(const DbgValueProperties &Other) const {
     return !(*this == Other);
   }
 
+  unsigned getLocationOpCount() const {
+    return IsVariadic ? DIExpr->getNumLocationOperands() : 1;
+  }
+
   const DIExpression *DIExpr;
   bool Indirect;
+  bool IsVariadic;
 };
 
-/// Class recording the (high level) _value_ of a variable. Identifies either
-/// the value of the variable as a ValueIDNum, or a constant MachineOperand.
+
+/// TODO: Might pack better if we changed this to a Struct of Arrays, since
+/// MachineOperand is width 32, making this struct width 33. We could also
+/// potentially avoid storing the whole MachineOperand (sizeof=32), instead
+/// choosing to store just the contents portion (sizeof=8) and a Kind enum,
+/// since we already know it is some type of immediate value.
+struct DbgOp {
+  union {
+    ValueIDNum ID;
+    MachineOperand MO;
+  };
+  bool IsConst;
+
+  DbgOp() : ID(ValueIDNum::EmptyValue), IsConst(false) {}
+  DbgOp(ValueIDNum ID) : ID(ID), IsConst(false) {}
+  DbgOp(MachineOperand MO) : MO(MO), IsConst(true) {}
+
+  bool isUndef() const {
+    return !IsConst && ID == ValueIDNum::EmptyValue;
+  }
+
+#ifndef NDEBUG
+  void dump(const MLocTracker *MTrack = nullptr) const;
+#endif
+};
+
+// TODO: Is there any way we can shrink this? We might not need the whole
+// MachineOperand, just a shorthand Kind and a union of Imm/CImm/FP pointers.
+// Identical to a DbgOp, but with LocIdx instead of ValueIDNum. This seems
+// like a needless duplication, but I don't want to use ValueIDNum to
+// represent just a normal LocIdx.
+struct ResolvedDbgOp {
+    union {
+        LocIdx Loc;
+        MachineOperand MO;
+    };
+    bool IsConst;
+
+    ResolvedDbgOp(LocIdx Loc) : Loc(Loc), IsConst(false) {}
+    ResolvedDbgOp(MachineOperand MO) : MO(MO), IsConst(true) {}
+};
+
+struct DbgOpID {
+    union {
+        struct {
+            uint32_t IsConst : 1;
+            uint32_t Index : 31;
+        } ID;
+        uint32_t RawID;
+    };
+  DbgOpID() : RawID(UndefID.RawID) {}
+  DbgOpID(uint32_t RawID) : RawID(RawID) {}
+  DbgOpID(bool IsConst, uint32_t Index) : ID({ IsConst, Index }) {}
+
+  static DbgOpID UndefID;
+
+  bool operator==(const DbgOpID &Other) const {
+    return RawID == Other.RawID;
+  }
+  bool operator!=(const DbgOpID &Other) const { return !(*this == Other); }
+
+  uint32_t asU32() const {
+    return RawID;
+  }
+
+  bool isUndef() const {
+    return *this == UndefID;
+  }
+  bool isConst() const {
+    return ID.IsConst && !isUndef();
+  }
+  uint32_t getIndex() const {
+    return ID.Index;
+  }
+
+#ifndef NDEBUG
+  void dump(const MLocTracker *MTrack = nullptr, const DbgOpIDMap *OpStore = nullptr) const;
+#endif
+};
+
+
+/// Class storing the complete set of values that are observed by DbgValues
+/// within the current function.
+/// Currently will store lists of up to length 8 only; any list with more
+/// elements will return an ID=0 (undef).
+class DbgOpIDMap {
+
+  SmallVector<ValueIDNum, 0> ValueOps;
+  SmallVector<MachineOperand, 0> ConstOps;
+
+  DenseMap<ValueIDNum, DbgOpID> ValueOpToID;
+  DenseMap<MachineOperand, DbgOpID> ConstOpToID;
+public:
+
+  DbgOpID insert(DbgOp Op) {
+    if (Op.isUndef())
+      return DbgOpID::UndefID;
+    if (Op.IsConst)
+      return insertConstOp(Op.MO);
+    return insertValueOp(Op.ID);
+  }
+  DbgOp find(DbgOpID ID) const {
+    if (ID == DbgOpID::UndefID)
+      return DbgOp();
+    if (ID.isConst())
+      return DbgOp(ConstOps[ID.getIndex()]);
+    return DbgOp(ValueOps[ID.getIndex()]);
+  }
+
+  void clear() {
+    ValueOps.clear();
+    ConstOps.clear();
+    ValueOpToID.clear();
+    ConstOpToID.clear();
+  }
+private:
+
+  DbgOpID insertConstOp(MachineOperand &MO) {
+    auto ExistingIt = ConstOpToID.find(MO);
+    if (ExistingIt != ConstOpToID.end())
+      return ExistingIt->second;
+    DbgOpID ID(true, ConstOps.size());
+    ConstOpToID.insert(std::make_pair(MO, ID));
+    ConstOps.push_back(MO);
+    return ID;
+  }
+  DbgOpID insertValueOp(ValueIDNum VID) {
+    auto ExistingIt = ValueOpToID.find(VID);
+    if (ExistingIt != ValueOpToID.end())
+      return ExistingIt->second;
+    DbgOpID ID(false, ValueOps.size());
+    ValueOpToID.insert(std::make_pair(VID, ID));
+    ValueOps.push_back(VID);
+    return ID;
+  }
+};
+
+#define MAX_DBG_OPS 8
+
+/// Class recording the (high level) _value_ of a variable. Identifies the value
+/// of the variable as a list of ValueIDNums and constant MachineOperands, or as
+/// an empty list for undef debug values or VPHI values which we have not found
+/// valid locations for.
 /// This class also stores meta-information about how the value is qualified.
 /// Used to reason about variable values when performing the second
 /// (DebugVariable specific) dataflow analysis.
 class DbgValue {
+private:
+  /// If Kind is Def or VPHI, the set of IDs corresponding to the DbgOps that
+  /// are used. VPHIs set every ID to EmptyID when we have not found a valid
+  /// machine-value for every operand, and sets them to the corresponding
+  /// machine-values when we have found all of them.
+  DbgOpID DbgOps[MAX_DBG_OPS];
+  unsigned OpCount;
 public:
-  /// If Kind is Def, the value number that this value is based on. VPHIs set
-  /// this field to EmptyValue if there is no machine-value for this VPHI, or
-  /// the corresponding machine-value if there is one.
-  ValueIDNum ID;
-  /// If Kind is Const, the MachineOperand defining this value.
-  Optional<MachineOperand> MO;
   /// For a NoVal or VPHI DbgValue, which block it was generated in.
   int BlockNo;
 
@@ -242,8 +430,8 @@ public:
 
   typedef enum {
     Undef, // Represents a DBG_VALUE $noreg in the transfer function only.
-    Def,   // This value is defined by an inst, or is a PHI value.
-    Const, // A constant value contained in the MachineOperand field.
+    Def,   // This value is defined by at least one inst or PHI value.
+    // Const, // This value is defined entirely by constant values.
     VPHI,  // Incoming values to BlockNo differ, those values must be joined by
            // a PHI in this block.
     NoVal, // Empty DbgValue indicating an unknown value. Used as initializer,
@@ -252,52 +440,117 @@ public:
   /// Discriminator for whether this is a constant or an in-program value.
   KindT Kind;
 
-  DbgValue(const ValueIDNum &Val, const DbgValueProperties &Prop, KindT Kind)
-      : ID(Val), MO(None), BlockNo(0), Properties(Prop), Kind(Kind) {
-    assert(Kind == Def);
+  DbgValue(ArrayRef<DbgOpID> DbgOps, const DbgValueProperties &Prop)
+      : OpCount(DbgOps.size()), BlockNo(0), Properties(Prop), Kind(Def) {
+    assert(DbgOps.size() == Prop.getLocationOpCount());
+    if (DbgOps.size() > MAX_DBG_OPS || any_of(DbgOps,
+        [](DbgOpID ID) { return ID.isUndef(); })) {
+      Kind = Undef;
+      OpCount = 0;
+      #define DEBUG_TYPE "LiveDebugValues"
+      if (DbgOps.size() > MAX_DBG_OPS) {
+        LLVM_DEBUG(dbgs() << "Found DbgValue with more than maximum allowed "
+                             "operands.\n");
+      }
+      #undef DEBUG_TYPE
+    }
+    else {
+      for (unsigned Idx = 0; Idx < DbgOps.size(); ++Idx)
+          this->DbgOps[Idx] = DbgOps[Idx];
+      //if (all_of(DbgOps, [](DbgOpID ID) { return ID.isConst(); }))
+      //  Kind = Const;
+    }
   }
 
   DbgValue(unsigned BlockNo, const DbgValueProperties &Prop, KindT Kind)
-      : ID(ValueIDNum::EmptyValue), MO(None), BlockNo(BlockNo),
-        Properties(Prop), Kind(Kind) {
+      : OpCount(0), BlockNo(BlockNo), Properties(Prop), Kind(Kind) {
     assert(Kind == NoVal || Kind == VPHI);
   }
 
-  DbgValue(const MachineOperand &MO, const DbgValueProperties &Prop, KindT Kind)
-      : ID(ValueIDNum::EmptyValue), MO(MO), BlockNo(0), Properties(Prop),
-        Kind(Kind) {
-    assert(Kind == Const);
-  }
-
   DbgValue(const DbgValueProperties &Prop, KindT Kind)
-    : ID(ValueIDNum::EmptyValue), MO(None), BlockNo(0), Properties(Prop),
-      Kind(Kind) {
+    : OpCount(0), BlockNo(0), Properties(Prop), Kind(Kind) {
     assert(Kind == Undef &&
            "Empty DbgValue constructor must pass in Undef kind");
   }
 
 #ifndef NDEBUG
-  void dump(const MLocTracker *MTrack) const;
+  void dump(const MLocTracker *MTrack = nullptr, const DbgOpIDMap *OpStore = nullptr) const;
 #endif
 
   bool operator==(const DbgValue &Other) const {
     if (std::tie(Kind, Properties) != std::tie(Other.Kind, Other.Properties))
       return false;
-    else if (Kind == Def && ID != Other.ID)
+    else if (Kind == Def && !equal(getDbgOpIDs(), Other.getDbgOpIDs()))
       return false;
     else if (Kind == NoVal && BlockNo != Other.BlockNo)
       return false;
-    else if (Kind == Const)
-      return MO->isIdenticalTo(*Other.MO);
     else if (Kind == VPHI && BlockNo != Other.BlockNo)
       return false;
-    else if (Kind == VPHI && ID != Other.ID)
+    else if (Kind == VPHI && !equal(getDbgOpIDs(), Other.getDbgOpIDs()))
       return false;
 
     return true;
   }
 
   bool operator!=(const DbgValue &Other) const { return !(*this == Other); }
+
+  // Returns an array of all the machine values used to calculate this variable
+  // value, or an empty list for an Undef or unjoined VPHI.
+  ArrayRef<DbgOpID> getDbgOpIDs() const {
+    return {DbgOps, OpCount};
+  }
+
+  // Returns either DbgOps[Index] if this DbgValue has Debug Operands, or
+  // the ID for ValueIDNum::EmptyValue otherwise (i.e. if this is an Undef,
+  // NoVal, or an unjoined VPHI).
+  DbgOpID getDbgOpID(unsigned Index) const {
+    if (!OpCount)
+      return DbgOpID::UndefID;
+    assert(Index < OpCount);
+    return DbgOps[Index];
+  }
+  // Replaces this DbgValue's existing DbgOpIDs (if any) with the contents of
+  // \p NewIDs. The number of DbgOpIDs passed must be equal to the number of
+  // arguments expected by this DbgValue's properties (the return value of
+  // `getLocationOpCount()`).
+  void setDbgOpIDs(ArrayRef<DbgOpID> NewIDs) {
+    // We can go from no ops to some ops, but not from some ops to no ops.
+    assert(NewIDs.size() == getLocationOpCount() &&
+           "Incorrect number of Debug Operands for this DbgValue.");
+    OpCount = NewIDs.size();
+    for (unsigned Idx = 0; Idx < NewIDs.size(); ++Idx)
+      DbgOps[Idx] = NewIDs[Idx];
+  }
+
+  // The number of debug operands expected by this DbgValue's expression.
+  // getDbgOpIDs() should return an array of this length, unless this is an
+  // Undef or an unjoined VPHI.
+  unsigned getLocationOpCount() const {
+    return Properties.getLocationOpCount();
+  }
+
+  // Returns true if this or Other are unjoined PHIs, which do not have defined
+  // Loc Ops, or if the `n`th Loc Op for this has a different constness to the
+  // `n`th Loc Op for Other.
+  bool hasJoinableLocOps(const DbgValue &Other) const {
+    if (isUnjoinedPHI() || Other.isUnjoinedPHI())
+      return true;
+    for (unsigned Idx = 0; Idx < getLocationOpCount(); ++Idx) {
+      if (getDbgOpID(Idx).isConst() != Other.getDbgOpID(Idx).isConst())
+        return false;
+    }
+    return true;
+  }
+
+  bool isUnjoinedPHI() const {
+      return Kind == VPHI && OpCount == 0;
+  }
+
+  bool hasIdenticalValidLocOps(const DbgValue &Other) const {
+    if (!OpCount)
+      return false;
+    return equal(getDbgOpIDs(), Other.getDbgOpIDs());
+  }
 };
 
 class LocIdxToIndexFunctor {
@@ -667,11 +920,12 @@ public:
   LLVM_DUMP_METHOD void dump_mloc_map();
 #endif
 
-  /// Create a DBG_VALUE based on  machine location \p MLoc. Qualify it with the
+  /// Create a DBG_VALUE based on debug operands \p DbgOps. Qualify it with the
   /// information in \pProperties, for variable Var. Don't insert it anywhere,
   /// just return the builder for it.
-  MachineInstrBuilder emitLoc(Optional<LocIdx> MLoc, const DebugVariable &Var,
-                              const DbgValueProperties &Properties);
+  MachineInstrBuilder emitLoc(const SmallVectorImpl<ResolvedDbgOp>& DbgOps,
+                              const DebugVariable& Var,
+                              const DbgValueProperties& Properties);
 };
 
 /// Types for recording sets of variable fragments that overlap. For a given
@@ -704,32 +958,16 @@ public:
 
 public:
   VLocTracker(const OverlapMap &O, const DIExpression *EmptyExpr)
-      : OverlappingFragments(O), EmptyProperties(EmptyExpr, false) {}
+      : OverlappingFragments(O), EmptyProperties(EmptyExpr, false, false) {}
 
   void defVar(const MachineInstr &MI, const DbgValueProperties &Properties,
-              Optional<ValueIDNum> ID) {
+              const SmallVectorImpl<DbgOpID> &DebugOps) {
     assert(MI.isDebugValue() || MI.isDebugRef());
     DebugVariable Var(MI.getDebugVariable(), MI.getDebugExpression(),
                       MI.getDebugLoc()->getInlinedAt());
-    DbgValue Rec = (ID) ? DbgValue(*ID, Properties, DbgValue::Def)
-                        : DbgValue(Properties, DbgValue::Undef);
-
-    // Attempt insertion; overwrite if it's already mapped.
-    auto Result = Vars.insert(std::make_pair(Var, Rec));
-    if (!Result.second)
-      Result.first->second = Rec;
-    Scopes[Var] = MI.getDebugLoc().get();
-
-    considerOverlaps(Var, MI.getDebugLoc().get());
-  }
-
-  void defVar(const MachineInstr &MI, const MachineOperand &MO) {
-    // Only DBG_VALUEs can define constant-valued variables.
-    assert(MI.isDebugValue());
-    DebugVariable Var(MI.getDebugVariable(), MI.getDebugExpression(),
-                      MI.getDebugLoc()->getInlinedAt());
-    DbgValueProperties Properties(MI);
-    DbgValue Rec = DbgValue(MO, Properties, DbgValue::Const);
+    DbgValue Rec = (DebugOps.size() > 0)
+      ? DbgValue(DebugOps, Properties)
+      : DbgValue(Properties, DbgValue::Undef);
 
     // Attempt insertion; overwrite if it's already mapped.
     auto Result = Vars.insert(std::make_pair(Var, Rec));
@@ -897,6 +1135,8 @@ private:
   /// a mini SSA problem caused by DBG_PHIs being cloned, this collection caches
   /// the result.
   DenseMap<MachineInstr *, Optional<ValueIDNum>> SeenDbgPHIs;
+
+  DbgOpIDMap DbgOpStore;
 
   /// True if we need to examine call instructions for stack clobbers. We
   /// normally assume that they don't clobber SP, but stack probes on Windows
@@ -1086,13 +1326,20 @@ private:
                 SmallPtrSet<const MachineBasicBlock *, 8> &BlocksToExplore,
                 DbgValue &LiveIn);
 
-  /// For the given block and live-outs feeding into it, try to find a
-  /// machine location where all the variable values join together.
-  /// \returns Value ID of a machine PHI if an appropriate one is available.
+  /// For the given block and live-outs feeding into it, try to find
+  /// machine locations for every debug operand where all the values feeding
+  /// into that operand join together.
+  /// \returns true if a joined location was found for every value that needed
+  ///          to be joined.
+  bool pickVPHILoc(
+      SmallVectorImpl<DbgOpID> &OutValues, const MachineBasicBlock &MBB,
+      const LiveIdxT &LiveOuts, FuncValueTable &MOutLocs,
+      const SmallVectorImpl<const MachineBasicBlock *> &BlockOrders);
+
   Optional<ValueIDNum>
-  pickVPHILoc(const MachineBasicBlock &MBB, const DebugVariable &Var,
-              const LiveIdxT &LiveOuts, FuncValueTable &MOutLocs,
-              const SmallVectorImpl<const MachineBasicBlock *> &BlockOrders);
+  pickValuePHILoc(unsigned DbgOpIdx, const MachineBasicBlock &MBB,
+                  const LiveIdxT &LiveOuts, FuncValueTable &MOutLocs,
+                  const SmallVectorImpl<const MachineBasicBlock *> &BlockOrders);
 
   /// Take collections of DBG_VALUE instructions stored in TTracker, and
   /// install them into their output blocks. Preserves a stable order of
@@ -1156,34 +1403,5 @@ public:
 };
 
 } // namespace LiveDebugValues
-
-namespace llvm {
-using namespace LiveDebugValues;
-
-template <> struct DenseMapInfo<LocIdx> {
-  static inline LocIdx getEmptyKey() { return LocIdx::MakeIllegalLoc(); }
-  static inline LocIdx getTombstoneKey() { return LocIdx::MakeTombstoneLoc(); }
-
-  static unsigned getHashValue(const LocIdx &Loc) { return Loc.asU64(); }
-
-  static bool isEqual(const LocIdx &A, const LocIdx &B) { return A == B; }
-};
-
-template <> struct DenseMapInfo<ValueIDNum> {
-  static inline ValueIDNum getEmptyKey() { return ValueIDNum::EmptyValue; }
-  static inline ValueIDNum getTombstoneKey() {
-    return ValueIDNum::TombstoneValue;
-  }
-
-  static unsigned getHashValue(const ValueIDNum &Val) {
-    return hash_value(Val.asU64());
-  }
-
-  static bool isEqual(const ValueIDNum &A, const ValueIDNum &B) {
-    return A == B;
-  }
-};
-
-} // end namespace llvm
 
 #endif /* LLVM_LIB_CODEGEN_LIVEDEBUGVALUES_INSTRREFBASEDLDV_H */
