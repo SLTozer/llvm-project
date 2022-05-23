@@ -1663,7 +1663,7 @@ template <typename R, typename OutputIt, typename UnaryPredicate, typename T>
 OutputIt replace_copy_if(R &&Range, OutputIt Out, UnaryPredicate P,
                          const T& NewValue) {
   return std::replace_copy_if(adl_begin(Range), adl_end(Range), Out, P,
-                              Newvalue);
+                              NewValue);
 }
 
 /// Provide wrappers to std::replace_copy which take ranges instead of having to

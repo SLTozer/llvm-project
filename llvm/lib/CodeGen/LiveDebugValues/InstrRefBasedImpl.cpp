@@ -732,7 +732,7 @@ public:
       // otherwise.
       SmallVector<ResolvedDbgOp> DbgOps;
       if (NewLoc) {
-        replace_copy_if(ActiveVLocIt->second.Locs, DbgOps,
+        replace_copy_if(ActiveVLocIt->second.Locs, DbgOps.begin(),
           [MLoc](const ResolvedDbgOp &Op) {
             return !Op.IsConst && Op.Loc == MLoc;
           }, *NewLoc);
@@ -1077,7 +1077,7 @@ MachineInstrBuilder MLocTracker::emitLoc(const SmallVectorImpl<ResolvedDbgOp> &D
     }) && "Did not expect illegal ops in DbgOps.");
   assert((DbgOps.size() == 0 || DbgOps.size() == Properties.getLocationOpCount())
          && "Expected to have either one DbgOp per MI LocationOp, or none.");
-#ifndef
+#endif
 
   SmallVector<MachineOperand> MOs;
 
