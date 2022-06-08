@@ -732,10 +732,12 @@ public:
       // otherwise.
       SmallVector<ResolvedDbgOp> DbgOps;
       if (NewLoc) {
-        replace_copy_if(ActiveVLocIt->second.Locs, DbgOps.begin(),
-          [MLoc](const ResolvedDbgOp &Op) {
-            return !Op.IsConst && Op.Loc == MLoc;
-          }, *NewLoc);
+        ResolvedDbgOp OldOp(MLoc);
+        ResolvedDbgOp NewOp(*NewLoc);
+        // Insert illegal ops to overwrite afterwards.
+        DbgOps.insert(DbgOps.begin(), ActiveVLocIt->second.Locs.size(),
+                      ResolvedDbgOp(LocIdx::MakeIllegalLoc()));
+        replace_copy(ActiveVLocIt->second.Locs, DbgOps.begin(), OldOp, NewOp);
       }
 
       PendingDbgValues.push_back(MTracker->emitLoc(DbgOps, Var, Properties));
