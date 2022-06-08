@@ -307,6 +307,15 @@ struct ResolvedDbgOp {
 
     ResolvedDbgOp(LocIdx Loc) : Loc(Loc), IsConst(false) {}
     ResolvedDbgOp(MachineOperand MO) : MO(MO), IsConst(true) {}
+
+    bool operator==(const ResolvedDbgOp &Other) const {
+      if (IsConst != Other.IsConst)
+        return false;
+      if (IsConst)
+        return MO.isIdenticalTo(Other.MO);
+      return Loc == Other.Loc;
+    }
+
 };
 
 struct DbgOpID {
