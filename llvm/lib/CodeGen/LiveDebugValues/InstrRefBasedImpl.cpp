@@ -642,16 +642,24 @@ public:
     // Any use-before-defs no longer apply.
     UseBeforeDefVariables.erase(Var);
 
+    SmallVector<ResolvedDbgOp> OldOps;
+
     // Erase any previous location,
     auto It = ActiveVLocs.find(Var);
-    if (It != ActiveVLocs.end())
+    if (It != ActiveVLocs.end()) {
+      OldOps = It->second.Locs;
       for (ResolvedDbgOp& Op : It->second.Locs)
-        if (!Op.IsConst)
+        if (!Op.IsConst) {
           ActiveMLocs[Op.Loc].erase(Var);
+        }
+    }
 
     // If there _is_ no new location, all we had to do was erase.
-    if (NewLocs.empty())
+    if (NewLocs.empty()) {
+      if (It != ActiveVLocs.end())
+        ActiveVLocs.erase(It);
       return;
+    }
 
     for (ResolvedDbgOp &Op : NewLocs) {
       if (Op.IsConst)
@@ -663,9 +671,22 @@ public:
       // date. Wipe old tracking data for the location if it's been clobbered in
       // the meantime.
       if (MTracker->readMLoc(NewLoc) != VarLocs[NewLoc.asU64()]) {
+        DenseMap<LocIdx, SmallSet<DebugVariable, 4>> LostMLocs;
         for (auto &P : ActiveMLocs[NewLoc]) {
+          auto LostVLocIt = ActiveVLocs.find(P);
+          if (LostVLocIt != ActiveVLocs.end()) {
+            for (auto Op : LostVLocIt->second.Locs) {
+              if (!Op.IsConst && Op.Loc != NewLoc)
+                LostMLocs[Op.Loc].insert(P);
+            }
+          }
           ActiveVLocs.erase(P);
         }
+        for (auto LostMLoc : LostMLocs) {
+          for (auto Var : LostMLoc.second)
+            ActiveMLocs[LostMLoc.first].erase(Var);
+        }
+        It = ActiveVLocs.find(Var);
         ActiveMLocs[NewLoc.asU64()].clear();
         VarLocs[NewLoc.asU64()] = MTracker->readMLoc(NewLoc);
       }
@@ -694,6 +715,17 @@ public:
 
     // What was the old variable value?
     ValueIDNum OldValue = VarLocs[MLoc.asU64()];
+    clobberMloc(MLoc, OldValue, Pos, MakeUndef);
+  }
+  /// Overload that takes an explicit value \p OldValue for when the value in
+  /// \p MLoc has changed and the TransferTracker's locations have not been
+  /// updated yet.
+  void clobberMloc(LocIdx MLoc, ValueIDNum OldValue,
+                   MachineBasicBlock::iterator Pos, bool MakeUndef = true) {
+    auto ActiveMLocIt = ActiveMLocs.find(MLoc);
+    if (ActiveMLocIt == ActiveMLocs.end())
+      return;
+
     VarLocs[MLoc.asU64()] = ValueIDNum::EmptyValue;
 
     // Examine the remaining variable locations: if we can find the same value
@@ -756,11 +788,6 @@ public:
       }
     }
 
-    // Commit any deferred ActiveMLoc changes.
-    if (!NewMLocs.empty())
-      for (auto &Var : NewMLocs)
-        ActiveMLocs[*NewLoc].insert(Var);
-
     // Remove variables from ActiveMLocs if they no longer use any other MLocs
     // due to being killed by this clobber.
     for (auto &LocVarIt : LostMLocs) {
@@ -784,9 +811,11 @@ public:
 
     flushDbgValues(Pos, nullptr);
 
-    // Re-find ActiveMLocIt, iterator could have been invalidated.
-    ActiveMLocIt = ActiveMLocs.find(MLoc);
+    // Commit ActiveMLoc changes.
     ActiveMLocIt->second.clear();
+    if (!NewMLocs.empty())
+      for (auto &Var : NewMLocs)
+        ActiveMLocs[*NewLoc].insert(Var);
   }
 
   /// Transfer variables based on \p Src to be based on \p Dst. This handles
@@ -803,18 +832,21 @@ public:
 
     // Move set of active variables from one location to another.
     auto MovingVars = ActiveMLocs[Src];
-    ActiveMLocs[Dst] = MovingVars;
+    for(auto Var : MovingVars)
+      ActiveMLocs[Dst].insert(Var);
     VarLocs[Dst.asU64()] = VarLocs[Src.asU64()];
 
     // For each variable based on Src; create a location at Dst.
+    ResolvedDbgOp SrcOp(Src);
+    ResolvedDbgOp DstOp(Dst);
     for (auto &Var : MovingVars) {
       auto ActiveVLocIt = ActiveVLocs.find(Var);
       assert(ActiveVLocIt != ActiveVLocs.end());
 
       // Update all instances of Src in the variable's tracked values to Dst.
       for (ResolvedDbgOp &Op : ActiveVLocIt->second.Locs) {
-        if (!Op.IsConst && Op.Loc == Src)
-          Op = Dst;
+        if (Op == SrcOp)
+          Op = DstOp;
       }
 
       MachineInstr *MI = MTracker->emitLoc(ActiveVLocIt->second.Locs,
@@ -856,6 +888,13 @@ ValueIDNum ValueIDNum::EmptyValue = {UINT_MAX, UINT_MAX, UINT_MAX};
 ValueIDNum ValueIDNum::TombstoneValue = {UINT_MAX, UINT_MAX, UINT_MAX - 1};
 
 #ifndef NDEBUG
+void ResolvedDbgOp::dump(const MLocTracker *MTrack) const {
+  if (IsConst) {
+    dbgs() << MO;
+  } else {
+    dbgs() << MTrack->LocIdxToName(Loc);
+  }
+}
 void DbgOp::dump(const MLocTracker *MTrack) const {
   if (IsConst) {
     dbgs() << MO;
@@ -1913,6 +1952,7 @@ bool InstrRefBasedLDV::transferSpillOrRestoreInst(MachineInstr &MI) {
     auto DoTransfer = [&](Register SrcReg, unsigned SpillID) {
       auto ReadValue = MTracker->readReg(SrcReg);
       LocIdx DstLoc = MTracker->getSpillMLoc(SpillID);
+      LocIdx SpillValue = MTracker->getSpillMLoc(SpillID);
       MTracker->setMLoc(DstLoc, ReadValue);
 
       if (TTracker) {
@@ -2009,8 +2049,34 @@ bool InstrRefBasedLDV::transferRegisterCopy(MachineInstr &MI) {
   if (EmulateOldLDV && !SrcRegOp->isKill())
     return false;
 
+  // Before we update MTracker, remember which values were present in each of
+  // the locations about to be overwritten, so that we can recover any
+  // potentially clobbered variables.
+  DenseMap<LocIdx, ValueIDNum> ClobberedLocs;
+  if (TTracker) {
+    for (MCRegAliasIterator RAI(DestReg, TRI, true); RAI.isValid(); ++RAI) {
+      LocIdx ClobberedLoc = MTracker->getRegMLoc(*RAI);
+      auto MLocIt = TTracker->ActiveMLocs.find(ClobberedLoc);
+      // If ActiveMLocs isn't tracking this location or there are no variables
+      // using it, don't bother remembering.
+      if (MLocIt == TTracker->ActiveMLocs.end() || MLocIt->second.empty())
+        continue;
+      ValueIDNum Value = MTracker->readReg(*RAI);
+      ClobberedLocs[ClobberedLoc] = Value;
+    }
+  }
+
   // Copy MTracker info, including subregs if available.
   InstrRefBasedLDV::performCopy(SrcReg, DestReg);
+
+  // The copy might have clobbered variables based on the destination register.
+  // Tell TTracker about it, passing the old ValueIDNum to search for
+  // alternative locations (or else terminating those variables).
+  if (TTracker) {
+    for (auto LocVal : ClobberedLocs) {
+      TTracker->clobberMloc(LocVal.first, LocVal.second, MI.getIterator());
+    }
+  }
 
   // Only produce a transfer of DBG_VALUE within a block where old LDV
   // would have. We might make use of the additional value tracking in some
@@ -2022,15 +2088,6 @@ bool InstrRefBasedLDV::transferRegisterCopy(MachineInstr &MI) {
   // VarLocBasedImpl would quit tracking the old location after copying.
   if (EmulateOldLDV && SrcReg != DestReg)
     MTracker->defReg(SrcReg, CurBB, CurInst);
-
-  // Finally, the copy might have clobbered variables based on the destination
-  // register. Tell TTracker about it, in case a backup location exists.
-  if (TTracker) {
-    for (MCRegAliasIterator RAI(DestReg, TRI, true); RAI.isValid(); ++RAI) {
-      LocIdx ClobberedLoc = MTracker->getRegMLoc(*RAI);
-      TTracker->clobberMloc(ClobberedLoc, MI.getIterator(), false);
-    }
-  }
 
   return true;
 }

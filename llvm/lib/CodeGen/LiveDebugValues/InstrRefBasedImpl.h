@@ -316,6 +316,9 @@ struct ResolvedDbgOp {
       return Loc == Other.Loc;
     }
 
+#ifndef NDEBUG
+  void dump(const MLocTracker *MTrack = nullptr) const;
+#endif
 };
 
 struct DbgOpID {
