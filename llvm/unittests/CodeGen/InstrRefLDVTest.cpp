@@ -2972,8 +2972,6 @@ TEST_F(InstrRefLDVTest, VLocSimpleLoop) {
 
   // Easy starter: a dominating assign should propagate to all blocks.
   VLocs[0].Vars.insert({Var, DbgValue(LiveInRspID, EmptyProps)});
-  DbgOpID Locs0[] = {LiveInRspID, LiveInRaxID};
-  VLocs[1].Vars.insert({Var, DbgValue(Locs0, VariadicProps)});
   buildVLocValueMap(OutermostLoc, AllVars, AssignBlocks, Output,
                     MOutLocs, MInLocs, VLocs);
   EXPECT_EQ(Output[0].size(), 0ul);
@@ -2989,7 +2987,7 @@ TEST_F(InstrRefLDVTest, VLocSimpleLoop) {
 
   // A variadic assignment should behave the same.
   DbgOpID Locs0[] = {LiveInRspID, LiveInRaxID};
-  VLocs[0].Vars.insert({Var, DbgValue(LiveInRspID, VariadicProps)});
+  VLocs[0].Vars.insert({Var, DbgValue(Locs0, VariadicProps)});
   buildVLocValueMap(OutermostLoc, AllVars, AssignBlocks, Output, MOutLocs,
                     MInLocs, VLocs);
   EXPECT_EQ(Output[0].size(), 0ul);
@@ -3000,7 +2998,7 @@ TEST_F(InstrRefLDVTest, VLocSimpleLoop) {
   EXPECT_EQ(Output[1][0].second.getDbgOpID(1), LiveInRaxID);
   EXPECT_EQ(Output[2][0].second.Kind, DbgValue::Def);
   EXPECT_EQ(Output[2][0].second.getDbgOpID(0), LiveInRspID);
-  EXPECT_EQ(Output[2][0].second.getDbgOpID(0), LiveInRaxID);
+  EXPECT_EQ(Output[2][0].second.getDbgOpID(1), LiveInRaxID);
   ClearOutputs();
   VLocs[0].Vars.clear();
   VLocs[1].Vars.clear();
