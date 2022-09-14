@@ -586,12 +586,19 @@ public:
     if (!ShouldEmitDebugEntryValues)
       return false;
 
+    const DIExpression *DIExpr = Prop.DIExpr;
+
     // We don't currently emit entry values for DBG_VALUE_LISTs.
-    if (Prop.IsVariadic)
-      return false;
+    if (Prop.IsVariadic) {
+      if (!DIExpr->isSingleLocationExpression())
+        return false;
+      SmallVector<uint64_t> NonVariadicOps(make_range(
+        DIExpr->expr_op_begin().getNext().getBase(), DIExpr->elements_end()));
+      DIExpr = DIExpression::get(DIExpr->getContext(), NonVariadicOps);
+    }
 
     // Is the variable appropriate for entry values (i.e., is a parameter).
-    if (!isEntryValueVariable(Var, Prop.DIExpr))
+    if (!isEntryValueVariable(Var, DIExpr))
       return false;
 
     // Is the value assigned to this variable still the entry value?
@@ -600,12 +607,12 @@ public:
 
     // Emit a variable location using an entry value expression.
     DIExpression *NewExpr =
-        DIExpression::prepend(Prop.DIExpr, DIExpression::EntryValue);
+        DIExpression::prepend(DIExpr, DIExpression::EntryValue);
     Register Reg = MTracker->LocIdxToLocID[Num.getLoc()];
     MachineOperand MO = MachineOperand::CreateReg(Reg, false);
 
     PendingDbgValues.push_back(
-        emitMOLoc(MO, Var, {NewExpr, Prop.Indirect, Prop.IsVariadic}));
+        emitMOLoc(MO, Var, {NewExpr, Prop.Indirect, false}));
     return true;
   }
 
@@ -1374,39 +1381,14 @@ bool InstrRefBasedLDV::transferDebugValue(const MachineInstr &MI) {
   return true;
 }
 
-bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
-                                             const ValueTable *MLiveOuts,
-                                             const ValueTable *MLiveIns) {
-  if (!MI.isDebugRef())
-    return false;
-
-  // Only handle this instruction when we are building the variable value
-  // transfer function.
-  if (!VTracker && !TTracker)
-    return false;
-
-  unsigned InstNo = MI.getDebugOperand(0).getInstrRefInstrIndex();
-  unsigned OpNo = MI.getDebugOperand(0).getInstrRefOpIndex();
-
-  const DILocalVariable *Var = MI.getDebugVariable();
-  const DIExpression *Expr = MI.getDebugExpression();
-  const DILocation *DebugLoc = MI.getDebugLoc();
-  const DILocation *InlinedAt = DebugLoc->getInlinedAt();
-  assert(Var->isValidLocationForIntrinsic(DebugLoc) &&
-         "Expected inlined-at fields to agree");
-
-  DebugVariable V(Var, Expr, InlinedAt);
-
-  auto *Scope = LS.findLexicalScope(MI.getDebugLoc().get());
-  if (Scope == nullptr)
-    return true; // Handled by doing nothing. This variable is never in scope.
-
-  const MachineFunction &MF = *MI.getParent()->getParent();
-
+Optional<ValueIDNum> InstrRefBasedLDV::getValueForInstrRef(
+    unsigned InstNo, unsigned OpNo, MachineInstr &MI,
+    const ValueTable *MLiveOuts, const ValueTable *MLiveIns) {
   // Various optimizations may have happened to the value during codegen,
   // recorded in the value substitution table. Apply any substitutions to
   // the instruction / operand number in this DBG_INSTR_REF, and collect
   // any subregister extractions performed during optimization.
+  const MachineFunction &MF = *MI.getParent()->getParent();
 
   // Create dummy substitution with Src set, for lookup.
   auto SoughtSub =
@@ -1542,14 +1524,64 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
     }
   }
 
-  // We, we have a value number or None. Tell the variable value tracker about
-  // it. The rest of this LiveDebugValues implementation acts exactly the same
-  // for DBG_INSTR_REFs as DBG_VALUEs (just, the former can refer to values that
-  // aren't immediately available).
-  DbgValueProperties Properties(Expr, false, true);
+  return NewID;
+}
+
+bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
+                                             const ValueTable *MLiveOuts,
+                                             const ValueTable *MLiveIns) {
+  if (!MI.isDebugRef())
+    return false;
+
+  // Only handle this instruction when we are building the variable value
+  // transfer function.
+  if (!VTracker && !TTracker)
+    return false;
+
+  const DILocalVariable *Var = MI.getDebugVariable();
+  const DIExpression *Expr = MI.getDebugExpression();
+  const DILocation *DebugLoc = MI.getDebugLoc();
+  const DILocation *InlinedAt = DebugLoc->getInlinedAt();
+  assert(Var->isValidLocationForIntrinsic(DebugLoc) &&
+         "Expected inlined-at fields to agree");
+
+  DebugVariable V(Var, Expr, InlinedAt);
+
+  auto *Scope = LS.findLexicalScope(MI.getDebugLoc().get());
+  if (Scope == nullptr)
+    return true; // Handled by doing nothing. This variable is never in scope.
+
   SmallVector<DbgOpID> DbgOpIDs;
-  if (NewID)
-    DbgOpIDs.push_back(DbgOpStore.insert(*NewID));
+  for (const MachineOperand &MO : MI.debug_operands()) {
+    if (!MO.isDbgInstrRef()) {
+      assert(!MO.isReg() && "DBG_INSTR_REF should not contain registers");
+      DbgOpID ConstOpID = DbgOpStore.insert(DbgOp(MO));
+      DbgOpIDs.push_back(ConstOpID);
+      continue;
+    }
+
+    unsigned InstNo = MO.getInstrRefInstrIndex();
+    unsigned OpNo = MO.getInstrRefOpIndex();
+
+    // Default machine value number is <None> -- if no instruction defines
+    // the corresponding value, it must have been optimized out.
+    Optional<ValueIDNum> NewID =
+        getValueForInstrRef(InstNo, OpNo, MI, MLiveOuts, MLiveIns);
+    // We have a value number or None. If the latter, then kill the entire debug
+    // value.
+    if (NewID) {
+      DbgOpIDs.push_back(DbgOpStore.insert(*NewID));
+    } else {
+      DbgOpIDs.clear();
+      break;
+    }
+  }
+
+  // We have a DbgOpID for every value or for none. Tell the variable value
+  // tracker about it. The rest of this LiveDebugValues implementation acts
+  // exactly the same for DBG_INSTR_REFs as DBG_VALUEs (just, the former can
+  // refer to values that aren't immediately available).
+  DbgValueProperties Properties(Expr, false, true);
   if (VTracker)
     VTracker->defVar(MI, Properties, DbgOpIDs);
 
@@ -1558,44 +1590,82 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
   if (!TTracker)
     return true;
 
+  // Fetch the concrete DbgOps now, as we will need them later.
+  SmallVector<DbgOp> DbgOps;
+  for (DbgOpID OpID : DbgOpIDs) {
+    DbgOps.push_back(DbgOpStore.find(OpID));
+  }
+
   // Pick a location for the machine value number, if such a location exists.
   // (This information could be stored in TransferTracker to make it faster).
-  Optional<LocIdx> FoundLoc;
+  SmallDenseMap<ValueIDNum, LocIdx> FoundLocs;
+  // Initialized the preferred-location map with illegal locations, to be
+  // filled in later.
+  for (DbgOp Op : DbgOps) {
+    if (!Op.IsConst)
+      FoundLocs.insert({Op.ID, LocIdx::MakeIllegalLoc()});
+  }
+
   for (auto Location : MTracker->locations()) {
     LocIdx CurL = Location.Idx;
     ValueIDNum ID = MTracker->readMLoc(CurL);
-    if (NewID && ID == NewID) {
-      // If this is the first location with that value, pick it. Otherwise,
-      // consider whether it's a "longer term" location.
-      if (!FoundLoc) {
-        FoundLoc = CurL;
-        continue;
-      }
-
-      if (MTracker->isSpill(CurL))
-        FoundLoc = CurL; // Spills are a longer term location.
-      else if (!MTracker->isSpill(*FoundLoc) &&
-               !MTracker->isSpill(CurL) &&
-               !isCalleeSaved(*FoundLoc) &&
-               isCalleeSaved(CurL))
-        FoundLoc = CurL; // Callee saved regs are longer term than normal.
+    if (!FoundLocs.count(ID))
+      continue;
+    auto FoundLocIt = FoundLocs.find(ID);
+    // If this is the first location with that value, pick it. Otherwise,
+    // consider whether it's a "longer term" location.
+    if (FoundLocIt->second.isIllegal()) {
+      FoundLocIt->second = CurL;
+      continue;
     }
+
+    if (MTracker->isSpill(CurL))
+      FoundLocIt->second = CurL; // Spills are a longer term location.
+    else if (!MTracker->isSpill(FoundLocIt->second) &&
+             !MTracker->isSpill(CurL) && !isCalleeSaved(FoundLocIt->second) &&
+             isCalleeSaved(CurL))
+      FoundLocIt->second =
+          CurL; // Callee saved regs are longer term than normal.
   }
 
   SmallVector<ResolvedDbgOp> NewLocs;
-  if (FoundLoc)
-    NewLocs.push_back(*FoundLoc);
+  for (DbgOp DbgOp : DbgOps) {
+    if (DbgOp.IsConst) {
+      NewLocs.push_back(DbgOp.MO);
+      continue;
+    }
+    LocIdx FoundLoc = FoundLocs.find(DbgOp.ID)->second;
+    if (FoundLoc.isIllegal()) {
+      NewLocs.clear();
+      break;
+    }
+    NewLocs.push_back(FoundLoc);
+  }
   // Tell transfer tracker that the variable value has changed.
   TTracker->redefVar(MI, Properties, NewLocs);
 
-  // If there was a value with no location; but the value is defined in a
-  // later instruction in this block, this is a block-local use-before-def.
-  if (!FoundLoc && NewID && NewID->getBlock() == CurBB &&
-      NewID->getInst() > CurInst) {
-    SmallVector<DbgOp> UseBeforeDefLocs;
-    UseBeforeDefLocs.push_back(*NewID);
-    TTracker->addUseBeforeDef(V, {MI.getDebugExpression(), false, true},
-                              UseBeforeDefLocs, NewID->getInst());
+  // If there were values with no location, but all such values are defined in
+  // later instructions in this block, this is a block-local use-before-def.
+  if (!DbgOps.empty() && NewLocs.empty()) {
+    bool IsValidUseBeforeDef = true;
+    uint64_t LastUseBeforeDef = 0;
+    for (auto ValueLoc : FoundLocs) {
+      ValueIDNum NewID = ValueLoc.first;
+      LocIdx FoundLoc = ValueLoc.second;
+      if (!FoundLoc.isIllegal())
+        continue;
+      // If we have an value with no location that is not defined in this block,
+      // then it has no location in this block, leaving this value undefined.
+      if (NewID.getBlock() != CurBB || NewID.getInst() <= CurInst) {
+        IsValidUseBeforeDef = false;
+        break;
+      }
+      LastUseBeforeDef = std::max(LastUseBeforeDef, NewID.getInst());
+    }
+    if (IsValidUseBeforeDef) {
+      TTracker->addUseBeforeDef(V, {MI.getDebugExpression(), false, true},
+                                DbgOps, LastUseBeforeDef);
+    }
   }
 
   // Produce a DBG_VALUE representing what this DBG_INSTR_REF meant.
@@ -3961,13 +4031,13 @@ Optional<ValueIDNum> InstrRefBasedLDV::resolveDbgPHIs(
 
   // This function will be called twice per DBG_INSTR_REF, and might end up
   // computing lots of SSA information: memoize it.
-  auto SeenDbgPHIIt = SeenDbgPHIs.find(&Here);
+  auto SeenDbgPHIIt = SeenDbgPHIs.find(std::make_pair(&Here, InstrNum));
   if (SeenDbgPHIIt != SeenDbgPHIs.end())
     return SeenDbgPHIIt->second;
 
   Optional<ValueIDNum> Result =
       resolveDbgPHIsImpl(MF, MLiveOuts, MLiveIns, Here, InstrNum);
-  SeenDbgPHIs.insert({&Here, Result});
+  SeenDbgPHIs.insert({std::make_pair(&Here, InstrNum), Result});
   return Result;
 }
 
