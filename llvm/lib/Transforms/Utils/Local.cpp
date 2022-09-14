@@ -1854,8 +1854,8 @@ void llvm::salvageDebugInfoForDbgValues(
                    MaxDebugArgs) {
       DII->addVariableLocationOps(AdditionalValues, SalvagedExpr);
     } else {
-      // Do not salvage using DIArgList for dbg.addr/dbg.declare, as it is
-      // currently only valid for stack value expressions.
+      // Do not salvage using DIArgList for dbg.addr/dbg.declare, as it is not
+      // currently supported in those instructions.
       // Also do not salvage if the resulting DIArgList would contain an
       // unreasonably large number of values.
       Value *Undef = UndefValue::get(I.getOperand(0)->getType());

@@ -2779,6 +2779,12 @@ public:
   /// it cannot be a simple register location.
   bool isComplex() const;
 
+  /// If \p Expr is a non-variadic expression (i.e. one that does not contain
+  /// DW_OP_LLVM_arg), returns \p Expr converted to variadic form by adding a
+  /// leading [DW_OP_LLVM_arg, 0] to the expression; otherwise returns \p Expr.
+  static const DIExpression *
+  convertToVariadicExpression(const DIExpression *Expr);
+
   /// Inserts the elements of \p Expr into \p Ops modified to a canonical form,
   /// which uses DW_OP_LLVM_arg (i.e. is a variadic expression) and folds the
   /// implied derefence from the \p IsIndirect flag into the expression. This
@@ -2803,6 +2809,11 @@ public:
                                 bool FirstIndirect,
                                 const DIExpression *SecondExpr,
                                 bool SecondIndirect);
+
+  /// Return whether the evaluated expression makes use of a single location at
+  /// the start of the expression, i.e. if it contains only a single
+  /// DW_OP_LLVM_arg op as its first operand, or if it contains none.
+  bool isSingleLocationExpression() const;
 
   /// Append \p Ops with operations to apply the \p Offset.
   static void appendOffset(SmallVectorImpl<uint64_t> &Ops, int64_t Offset);

@@ -19,6 +19,14 @@
 ; CHECK-SAME: (DW_OP_fbreg +8, DW_OP_deref, DW_OP_stack_value)
 ; CHECK-NEXT: DW_AT_name    ("Var2")
 
+;; Checks that when they have equivalent meanings, we can merge all of: a
+;; non-variadic indirect debug value, a non-variadic direct debug value, and
+;; a variadic direct debug value (variadic indirect debug values cannot exist,
+;; so we ignore them).
+; CHECK: DW_AT_location
+; CHECK-SAME: (DW_OP_fbreg +8)
+; CHECK-NEXT: DW_AT_name    ("Var3")
+
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 
@@ -30,14 +38,17 @@ entry:
   store i32 %CUID, ptr %CUID.addr, align 4
   call void @llvm.dbg.value(metadata ptr %CUID.addr, metadata !16, metadata !DIExpression(DW_OP_deref)), !dbg !17
   call void @llvm.dbg.value(metadata ptr %CUID.addr, metadata !26, metadata !DIExpression(DW_OP_deref, DW_OP_stack_value)), !dbg !17
+  call void @llvm.dbg.value(metadata ptr %CUID.addr, metadata !36, metadata !DIExpression(DW_OP_deref)), !dbg !17
   %0 = load ptr, ptr null, align 8, !dbg !18
   call void @llvm.dbg.value(metadata !DIArgList(ptr %CUID.addr), metadata !26, metadata !DIExpression(DW_OP_LLVM_arg, 0, DW_OP_deref, DW_OP_stack_value)), !dbg !18
+  call void @llvm.dbg.value(metadata !DIArgList(ptr %CUID.addr), metadata !36, metadata !DIExpression(DW_OP_LLVM_arg, 0, DW_OP_deref)), !dbg !18
   br label %while.body.i.i.i.i
 
 while.body.i.i.i.i:                               ; preds = %while.body.i.i.i.i, %entry
   %__x.addr.011.i.i.i.i = phi ptr [ %__x.addr.1.in.i.i.i.i, %while.body.i.i.i.i ], [ %0, %entry ]
   %_M_right.i.i.i.i.i = getelementptr inbounds %"struct.std::_Rb_tree_node_base", ptr %__x.addr.011.i.i.i.i, i64 0, i32 3, !dbg !20
   call void @llvm.dbg.addr(metadata ptr %CUID.addr, metadata !16, metadata !DIExpression()), !dbg !20
+  call void @llvm.dbg.addr(metadata ptr %CUID.addr, metadata !36, metadata !DIExpression()), !dbg !20
   %__x.addr.1.in.i.i.i.i = select i1 %cmp.i.i.i.i.i, ptr %__x.addr.011.i.i.i.i, ptr null, !dbg !20
   br label %while.body.i.i.i.i
 }
@@ -73,3 +84,4 @@ declare void @llvm.dbg.addr(metadata, metadata, metadata)
 !21 = !DILocation(line: 3, column: 9, scope: !10)
 !22 = !DILocation(line: 3, column: 2, scope: !10)
 !26 = !DILocalVariable(name: "Var2", scope: !10, file: !1, line: 1, type: !14)
+!36 = !DILocalVariable(name: "Var3", scope: !10, file: !1, line: 1, type: !14)
