@@ -795,12 +795,12 @@ InstrEmitter::EmitDbgInstrRef(SDDbgValue *SD,
   // i.e., point the instruction at the vreg, and patch it up later in
   // MachineFunction::finalizeDebugInstrRefs.
   auto EmitHalfDoneInstrRef = [&](unsigned VReg) -> MachineInstr * {
-    auto MIB = BuildMI(*MF, DL, RefII);
-    MIB.addReg(VReg);
-    MIB.addImm(0);
-    MIB.addMetadata(Var);
-    MIB.addMetadata(Expr);
-    return MIB;
+    SmallVector<MachineOperand, 1> MOs({MachineOperand::CreateReg(
+        /* Reg */ VReg, /* isDef */ false, /* isImp */ false,
+        /* isKill */ false, /* isDead */ false,
+        /* isUndef */ false, /* isEarlyClobber */ false,
+        /* SubReg */ 0, /* isDebug */ true)});
+    return BuildMI(*MF, DL, RefII, false, MOs, Var, Expr);
   };
 
   // Try to find both the defined register and the instruction defining it.
@@ -843,8 +843,6 @@ InstrEmitter::EmitDbgInstrRef(SDDbgValue *SD,
   if (DefMI->isCopyLike() || TII->isCopyInstr(*DefMI))
     return EmitHalfDoneInstrRef(VReg);
 
-  auto MIB = BuildMI(*MF, DL, RefII);
-
   // Find the operand number which defines the specified VReg.
   unsigned OperandIdx = 0;
   for (const auto &MO : DefMI->operands()) {
@@ -856,11 +854,9 @@ InstrEmitter::EmitDbgInstrRef(SDDbgValue *SD,
 
   // Make the DBG_INSTR_REF refer to that instruction, and that operand.
   unsigned InstrNum = DefMI->getDebugInstrNum();
-  MIB.addImm(InstrNum);
-  MIB.addImm(OperandIdx);
-  MIB.addMetadata(Var);
-  MIB.addMetadata(Expr);
-  return &*MIB;
+  SmallVector<MachineOperand, 1> MOs(
+      {MachineOperand::CreateDbgInstrRef(InstrNum, OperandIdx)});
+  return BuildMI(*MF, DL, RefII, false, MOs, Var, Expr);
 }
 
 MachineInstr *InstrEmitter::EmitDbgNoLocation(SDDbgValue *SD) {
