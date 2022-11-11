@@ -1155,7 +1155,7 @@ private:
   /// DBG_INSTR_REFs that call resolveDbgPHIs. These variable references solve
   /// a mini SSA problem caused by DBG_PHIs being cloned, this collection caches
   /// the result.
-  DenseMap<std::pair<MachineInstr *, unsigned>, Optional<ValueIDNum>> SeenDbgPHIs;
+  DenseMap<uint64_t, Optional<ValueIDNum>> SeenDbgPHIs;
 
   DbgOpIDMap DbgOpStore;
 

@@ -1395,6 +1395,7 @@ Optional<ValueIDNum> InstrRefBasedLDV::getValueForInstrRef(
       MachineFunction::DebugSubstitution({InstNo, OpNo}, {0, 0}, 0);
 
   SmallVector<unsigned, 4> SeenSubregs;
+  // PERF - O(log(MF.DebugValueSubstitutions))
   auto LowerBoundIt = llvm::lower_bound(MF.DebugValueSubstitutions, SoughtSub);
   while (LowerBoundIt != MF.DebugValueSubstitutions.end() &&
          LowerBoundIt->Src == SoughtSub.Src) {
@@ -1412,6 +1413,7 @@ Optional<ValueIDNum> InstrRefBasedLDV::getValueForInstrRef(
   // Try to lookup the instruction number, and find the machine value number
   // that it defines. It could be an instruction, or a PHI.
   auto InstrIt = DebugInstrNumToInstr.find(InstNo);
+  // PERF - O(log(DebugPHINumToValue))
   auto PHIIt = llvm::lower_bound(DebugPHINumToValue, InstNo);
   if (InstrIt != DebugInstrNumToInstr.end()) {
     const MachineInstr &TargetInstr = *InstrIt->second.first;
@@ -1581,7 +1583,14 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
   // tracker about it. The rest of this LiveDebugValues implementation acts
   // exactly the same for DBG_INSTR_REFs as DBG_VALUEs (just, the former can
   // refer to values that aren't immediately available).
-  DbgValueProperties Properties(Expr, false, true);
+  bool ShouldBeVariadic = true;
+  if (MI.getNumDebugOperands() == 1) {
+    SmallVector<uint64_t> NonVariadicOps(make_range(
+      Expr->expr_op_begin().getNext().getBase(), Expr->elements_end()));
+    Expr = DIExpression::get(Expr->getContext(), NonVariadicOps);
+    ShouldBeVariadic = false;
+  }
+  DbgValueProperties Properties(Expr, false, ShouldBeVariadic);
   if (VTracker)
     VTracker->defVar(MI, Properties, DbgOpIDs);
 
@@ -4031,13 +4040,19 @@ Optional<ValueIDNum> InstrRefBasedLDV::resolveDbgPHIs(
 
   // This function will be called twice per DBG_INSTR_REF, and might end up
   // computing lots of SSA information: memoize it.
-  auto SeenDbgPHIIt = SeenDbgPHIs.find(std::make_pair(&Here, InstrNum));
+  uint64_t HereBlockNo = CurBB;
+  uint64_t HereInstNo = CurInst;
+  assert(HereBlockNo < (1 << 20));
+  assert(HereInstNo < (1 << 20));
+  assert(InstrNum < 24);
+  uint64_t RefNo = (static_cast<uint64_t>(HereBlockNo) << 44) | (static_cast<uint64_t>(HereInstNo) << 24) | InstrNum;
+  auto SeenDbgPHIIt = SeenDbgPHIs.find(RefNo);
   if (SeenDbgPHIIt != SeenDbgPHIs.end())
     return SeenDbgPHIIt->second;
 
   Optional<ValueIDNum> Result =
       resolveDbgPHIsImpl(MF, MLiveOuts, MLiveIns, Here, InstrNum);
-  SeenDbgPHIs.insert({std::make_pair(&Here, InstrNum), Result});
+  SeenDbgPHIs.insert({RefNo, Result});
   return Result;
 }
 
