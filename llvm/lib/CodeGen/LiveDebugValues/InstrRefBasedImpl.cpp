@@ -274,7 +274,7 @@ public:
     ShouldEmitDebugEntryValues = TM.Options.ShouldEmitDebugEntryValues();
   }
 
-  bool isCalleeSaved(LocIdx L) {
+  bool isCalleeSaved(LocIdx L) const {
     unsigned Reg = MTracker->LocIdxToLocID[L];
     if (Reg >= MTracker->NumRegs)
       return false;
@@ -283,6 +283,33 @@ public:
         return true;
     return false;
   };
+
+  // An estimate of the "quality" of a location type, determined by expected
+  // lifespan. This is used to select locations for a value, such that when we
+  // Quality values:
+  //   0 - Illegal location
+  //   1 - Register
+  //   2 - Callee-saved register
+  //   3 - Spill slot
+  enum class LocationQuality {
+    Illegal = 0,
+    Register,
+    CalleeSavedRegister,
+    SpillSlot,
+    Best = SpillSlot
+  };
+
+  // Returns the quality of a location in terms of probable lifespan, such that
+  // higher quality means higher lifespan.
+  LocationQuality getLocQuality(LocIdx L) const {
+    if (L.isIllegal())
+      return LocationQuality::Illegal;
+    if (MTracker->isSpill(L))
+      return LocationQuality::SpillSlot;
+    if (isCalleeSaved(L))
+      return LocationQuality::CalleeSavedRegister;
+    return LocationQuality::Register;
+  }
 
   /// For a variable \p Var with the live-in value \p Value, attempts to resolve
   /// the DbgValue to a concrete DBG_VALUE, emitting that value and loading the
@@ -1606,33 +1633,38 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
   // Pick a location for the machine value number, if such a location exists.
   // (This information could be stored in TransferTracker to make it faster).
   SmallDenseMap<ValueIDNum, LocIdx> FoundLocs;
+  SmallVector<ValueIDNum> ValuesToFind;
   // Initialized the preferred-location map with illegal locations, to be
   // filled in later.
   for (DbgOp Op : DbgOps) {
-    if (!Op.IsConst)
-      FoundLocs.insert({Op.ID, LocIdx::MakeIllegalLoc()});
+    if (!Op.IsConst) {
+      if (FoundLocs.insert({Op.ID, LocIdx::MakeIllegalLoc()}).second)
+        ValuesToFind.push_back(Op.ID);
+    }
   }
 
   for (auto Location : MTracker->locations()) {
     LocIdx CurL = Location.Idx;
     ValueIDNum ID = MTracker->readMLoc(CurL);
-    if (!FoundLocs.count(ID))
+    auto ValueToFindIt = find(ValuesToFind, ID);
+    if (ValueToFindIt == ValuesToFind.end())
       continue;
     auto FoundLocIt = FoundLocs.find(ID);
-    // If this is the first location with that value, pick it. Otherwise,
-    // consider whether it's a "longer term" location.
-    if (FoundLocIt->second.isIllegal()) {
+    assert(FoundLocIt != FoundLocs.end());
+    // Replace the current location if the new location is better.
+    TransferTracker::LocationQuality CurrentQuality = TTracker->getLocQuality(FoundLocIt->second);
+    TransferTracker::LocationQuality NewQuality = TTracker->getLocQuality(CurL);
+    if (NewQuality > CurrentQuality) {
       FoundLocIt->second = CurL;
-      continue;
+      // If we've found the best location for this value, we have no need to
+      // find more locations for this value; and if we have no more values to
+      // find locations for, we can exit this loop.
+      if (NewQuality == TransferTracker::LocationQuality::Best) {
+        ValuesToFind.erase(ValueToFindIt);
+        if (ValuesToFind.empty())
+          break;
+      }
     }
-
-    if (MTracker->isSpill(CurL))
-      FoundLocIt->second = CurL; // Spills are a longer term location.
-    else if (!MTracker->isSpill(FoundLocIt->second) &&
-             !MTracker->isSpill(CurL) && !isCalleeSaved(FoundLocIt->second) &&
-             isCalleeSaved(CurL))
-      FoundLocIt->second =
-          CurL; // Callee saved regs are longer term than normal.
   }
 
   SmallVector<ResolvedDbgOp> NewLocs;
