@@ -1395,7 +1395,6 @@ Optional<ValueIDNum> InstrRefBasedLDV::getValueForInstrRef(
       MachineFunction::DebugSubstitution({InstNo, OpNo}, {0, 0}, 0);
 
   SmallVector<unsigned, 4> SeenSubregs;
-  // PERF - O(log(MF.DebugValueSubstitutions))
   auto LowerBoundIt = llvm::lower_bound(MF.DebugValueSubstitutions, SoughtSub);
   while (LowerBoundIt != MF.DebugValueSubstitutions.end() &&
          LowerBoundIt->Src == SoughtSub.Src) {
@@ -1413,7 +1412,6 @@ Optional<ValueIDNum> InstrRefBasedLDV::getValueForInstrRef(
   // Try to lookup the instruction number, and find the machine value number
   // that it defines. It could be an instruction, or a PHI.
   auto InstrIt = DebugInstrNumToInstr.find(InstNo);
-  // PERF - O(log(DebugPHINumToValue))
   auto PHIIt = llvm::lower_bound(DebugPHINumToValue, InstNo);
   if (InstrIt != DebugInstrNumToInstr.end()) {
     const MachineInstr &TargetInstr = *InstrIt->second.first;
@@ -1584,7 +1582,7 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
   // exactly the same for DBG_INSTR_REFs as DBG_VALUEs (just, the former can
   // refer to values that aren't immediately available).
   bool ShouldBeVariadic = true;
-  if (MI.getNumDebugOperands() == 1) {
+  if (Expr->isSingleLocationExpression()) {
     SmallVector<uint64_t> NonVariadicOps(make_range(
       Expr->expr_op_begin().getNext().getBase(), Expr->elements_end()));
     Expr = DIExpression::get(Expr->getContext(), NonVariadicOps);
@@ -4044,8 +4042,8 @@ Optional<ValueIDNum> InstrRefBasedLDV::resolveDbgPHIs(
   uint64_t HereInstNo = CurInst;
   assert(HereBlockNo < (1 << 20));
   assert(HereInstNo < (1 << 20));
-  assert(InstrNum < 24);
-  uint64_t RefNo = (static_cast<uint64_t>(HereBlockNo) << 44) | (static_cast<uint64_t>(HereInstNo) << 24) | InstrNum;
+  assert(InstrNum < (1 << 24));
+  uint64_t RefNo = (HereBlockNo << 44) | (HereInstNo << 24) | InstrNum;
   auto SeenDbgPHIIt = SeenDbgPHIs.find(RefNo);
   if (SeenDbgPHIIt != SeenDbgPHIs.end())
     return SeenDbgPHIIt->second;
