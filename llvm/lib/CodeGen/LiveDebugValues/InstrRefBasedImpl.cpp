@@ -291,12 +291,31 @@ public:
   //   1 - Register
   //   2 - Callee-saved register
   //   3 - Spill slot
-  enum class LocationQuality {
+  enum class LocationQuality : unsigned char {
     Illegal = 0,
     Register,
     CalleeSavedRegister,
     SpillSlot,
     Best = SpillSlot
+  };
+
+  class LocationAndQuality {
+    unsigned Location : 24;
+    unsigned Quality : 8;
+  public:
+    LocationAndQuality() : Location(0), Quality(0) {}
+    LocationAndQuality(LocIdx L, LocationQuality Q) : Location(L.asU64()), Quality(static_cast<unsigned>(Q)) {}
+    LocIdx getLoc() const {
+      if (!Quality)
+        return LocIdx::MakeIllegalLoc();
+      return LocIdx(Location);
+    }
+    LocationQuality getQuality() const {
+      return LocationQuality(Quality);
+    }
+    bool isIllegal() const {
+      return !Quality;
+    }
   };
 
   // Returns the quality of a location in terms of probable lifespan, such that
@@ -310,6 +329,23 @@ public:
       return LocationQuality::CalleeSavedRegister;
     return LocationQuality::Register;
   }
+  // Returns the quality of a location iff that location quality is better than
+  // Min.
+  Optional<LocationQuality> getLocQualityIfBetter(LocIdx L, LocationQuality Min) const {
+    if (L.isIllegal())
+      return None;
+    if (Min >= LocationQuality::SpillSlot)
+      return None;
+    if (MTracker->isSpill(L))
+      return LocationQuality::SpillSlot;
+    if (Min >= LocationQuality::CalleeSavedRegister)
+      return None;
+    if (isCalleeSaved(L))
+      return LocationQuality::CalleeSavedRegister;
+    if (Min >= LocationQuality::Register)
+      return None;
+    return LocationQuality::Register;
+  }
 
   /// For a variable \p Var with the live-in value \p Value, attempts to resolve
   /// the DbgValue to a concrete DBG_VALUE, emitting that value and loading the
@@ -320,7 +356,7 @@ public:
   /// \p DbgOpStore is the map containing the DbgOpID->DbgOp mapping needed to
   ///    determine the values used by Value.
   void loadVarInloc(MachineBasicBlock &MBB, DbgOpIDMap &DbgOpStore,
-                    const DenseMap<ValueIDNum, LocIdx> &ValueToLoc,
+                    const DenseMap<ValueIDNum, LocationAndQuality> &ValueToLoc,
                     DebugVariable Var, DbgValue Value) {
     SmallVector<DbgOp> DbgOps;
     SmallVector<ResolvedDbgOp> ResolvedDbgOps;
@@ -369,7 +405,7 @@ public:
 
       // Defer modifying ActiveVLocs until after we've confirmed we have a
       // live range.
-      LocIdx M = ValuesPreferredLoc->second;
+      LocIdx M = ValuesPreferredLoc->second.getLoc();
       ResolvedDbgOps.push_back(M);
     }
 
@@ -416,22 +452,15 @@ public:
     UseBeforeDefVariables.clear();
 
     // Map of the preferred location for each value.
-    DenseMap<ValueIDNum, LocIdx> ValueToLoc;
-    DenseSet<ValueIDNum> ValuesToFind;
+    DenseMap<ValueIDNum, LocationAndQuality> ValueToLoc;
 
     // Initialized the preferred-location map with illegal locations, to be
     // filled in later.
-    for (const auto &VLoc : VLocs) {
-      if (VLoc.second.Kind == DbgValue::Def) {
-        for (DbgOpID OpID : VLoc.second.getDbgOpIDs()) {
-          if (OpID.ID.IsConst)
-            continue;
-          ValueIDNum Value = DbgOpStore.find(OpID).ID;
-          if (ValuesToFind.insert(Value).second)
-            ValueToLoc.insert(std::make_pair(Value, LocIdx::MakeIllegalLoc()));
-        }
-      }
-    }
+    for (const auto &VLoc : VLocs)
+      if (VLoc.second.Kind == DbgValue::Def)
+        for (DbgOpID OpID : VLoc.second.getDbgOpIDs())
+          if (!OpID.ID.IsConst)
+            ValueToLoc.insert({DbgOpStore.find(OpID).ID, LocationAndQuality()});
 
     ActiveMLocs.reserve(VLocs.size());
     ActiveVLocs.reserve(VLocs.size());
@@ -442,26 +471,21 @@ public:
     for (auto Location : MTracker->locations()) {
       LocIdx Idx = Location.Idx;
       ValueIDNum &VNum = MLocs[Idx.asU64()];
-      auto ValueToFindIt = ValuesToFind.find(VNum);
-      if (ValueToFindIt == ValuesToFind.end())
+      if (VNum == ValueIDNum::EmptyValue)
         continue;
-      auto ValueLocIt = ValueToLoc.find(VNum);
-      assert(ValueLocIt != ValueToLoc.end());
+      VarLocs.push_back(VNum);
 
-      // Replace the current location if the new location is better.
-      TransferTracker::LocationQuality CurrentQuality = getLocQuality(ValueLocIt->second);
-      TransferTracker::LocationQuality NewQuality = getLocQuality(Idx);
-      if (NewQuality > CurrentQuality) {
-        ValueLocIt->second = Idx;
-        // If we've found the best location for this value, we have no need to
-        // find more locations for this value; and if we have no more values to
-        // find locations for, we can exit this loop.
-        if (NewQuality == TransferTracker::LocationQuality::Best) {
-          ValuesToFind.erase(ValueToFindIt);
-          if (ValuesToFind.empty())
-            break;
-        }
-      }
+      // Is there a variable that wants a location for this value? If not, skip.
+      auto VIt = ValueToLoc.find(VNum);
+      if (VIt == ValueToLoc.end())
+        continue;
+
+      auto& Previous = VIt->second;
+      // If this is the first location with that value, pick it. Otherwise,
+      // consider whether it's a "longer term" location.
+      Optional<LocationQuality> ReplacementQuality = getLocQualityIfBetter(Idx, Previous.getQuality());
+      if (ReplacementQuality)
+        Previous = LocationAndQuality(Idx, *ReplacementQuality);
     }
 
     // Now map variables to their picked LocIdxes.
@@ -491,8 +515,7 @@ public:
 
     // Map of values to the locations that store them for every value used by
     // the variables that may have become available.
-    SmallDenseMap<ValueIDNum, LocIdx> ValueToLoc;
-    SmallDenseSet<ValueIDNum> ValuesToFind;
+    SmallDenseMap<ValueIDNum, LocationAndQuality> ValueToLoc;
 
     // Populate ValueToLoc with illegal default mappings for every value used by
     // any UseBeforeDef variables for this instruction.
@@ -506,39 +529,30 @@ public:
         if (Op.IsConst)
           continue;
 
-        if (ValuesToFind.insert(Op.ID).second)
-          ValueToLoc.insert(std::make_pair(Op.ID, LocIdx::MakeIllegalLoc()));
+        ValueToLoc.insert({Op.ID, LocationAndQuality()});
       }
     }
 
     // Exit early if we have no DbgValues to produce.
-    if (ValuesToFind.empty())
+    if (ValueToLoc.empty())
       return;
 
     // Determine the best location for each desired value.
     for (auto Location : MTracker->locations()) {
       LocIdx Idx = Location.Idx;
       ValueIDNum &LocValueID = Location.Value;
-      auto ValueToFindIt = ValuesToFind.find(LocValueID);
-      if (ValueToFindIt == ValuesToFind.end())
-        continue;
-      auto ValueLocIt = ValueToLoc.find(LocValueID);
-      assert(ValueLocIt != ValueToLoc.end());
 
-      // Replace the current location if the new location is better.
-      TransferTracker::LocationQuality CurrentQuality = getLocQuality(ValueLocIt->second);
-      TransferTracker::LocationQuality NewQuality = getLocQuality(Idx);
-      if (NewQuality > CurrentQuality) {
-        ValueLocIt->second = Idx;
-        // If we've found the best location for this value, we have no need to
-        // find more locations for this value; and if we have no more values to
-        // find locations for, we can exit this loop.
-        if (NewQuality == TransferTracker::LocationQuality::Best) {
-          ValuesToFind.erase(ValueToFindIt);
-          if (ValuesToFind.empty())
-            break;
-        }
-      }
+      // Is there a variable that wants a location for this value? If not, skip.
+      auto VIt = ValueToLoc.find(LocValueID);
+      if (VIt == ValueToLoc.end())
+        continue;
+
+      auto& Previous = VIt->second;
+      // If this is the first location with that value, pick it. Otherwise,
+      // consider whether it's a "longer term" location.
+      Optional<LocationQuality> ReplacementQuality = getLocQualityIfBetter(Idx, Previous.getQuality());
+      if (ReplacementQuality)
+        Previous = LocationAndQuality(Idx, *ReplacementQuality);
     }
 
     // Using the map of values to locations, produce a final set of values for
@@ -554,7 +568,7 @@ public:
           DbgOps.push_back(Op.MO);
           continue;
         }
-        LocIdx NewLoc = ValueToLoc.find(Op.ID)->second;
+        LocIdx NewLoc = ValueToLoc.find(Op.ID)->second.getLoc();
         if (NewLoc.isIllegal())
           break;
         DbgOps.push_back(NewLoc);
@@ -1645,13 +1659,13 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
 
   // Pick a location for the machine value number, if such a location exists.
   // (This information could be stored in TransferTracker to make it faster).
-  SmallDenseMap<ValueIDNum, LocIdx> FoundLocs;
+  SmallDenseMap<ValueIDNum, TransferTracker::LocationAndQuality> FoundLocs;
   SmallVector<ValueIDNum> ValuesToFind;
   // Initialized the preferred-location map with illegal locations, to be
   // filled in later.
   for (DbgOp Op : DbgOps) {
     if (!Op.IsConst) {
-      if (FoundLocs.insert({Op.ID, LocIdx::MakeIllegalLoc()}).second)
+      if (FoundLocs.insert({Op.ID, TransferTracker::LocationAndQuality()}).second)
         ValuesToFind.push_back(Op.ID);
     }
   }
@@ -1662,17 +1676,13 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
     auto ValueToFindIt = find(ValuesToFind, ID);
     if (ValueToFindIt == ValuesToFind.end())
       continue;
-    auto FoundLocIt = FoundLocs.find(ID);
-    assert(FoundLocIt != FoundLocs.end());
-    // Replace the current location if the new location is better.
-    TransferTracker::LocationQuality CurrentQuality = TTracker->getLocQuality(FoundLocIt->second);
-    TransferTracker::LocationQuality NewQuality = TTracker->getLocQuality(CurL);
-    if (NewQuality > CurrentQuality) {
-      FoundLocIt->second = CurL;
-      // If we've found the best location for this value, we have no need to
-      // find more locations for this value; and if we have no more values to
-      // find locations for, we can exit this loop.
-      if (NewQuality == TransferTracker::LocationQuality::Best) {
+    auto& Previous = FoundLocs.find(ID)->second;
+    // If this is the first location with that value, pick it. Otherwise,
+    // consider whether it's a "longer term" location.
+    Optional<TransferTracker::LocationQuality> ReplacementQuality = TTracker->getLocQualityIfBetter(CurL, Previous.getQuality());
+    if (ReplacementQuality) {
+      Previous = TransferTracker::LocationAndQuality(CurL, *ReplacementQuality);
+      if (*ReplacementQuality == TransferTracker::LocationQuality::Best) {
         ValuesToFind.erase(ValueToFindIt);
         if (ValuesToFind.empty())
           break;
@@ -1686,7 +1696,7 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
       NewLocs.push_back(DbgOp.MO);
       continue;
     }
-    LocIdx FoundLoc = FoundLocs.find(DbgOp.ID)->second;
+    LocIdx FoundLoc = FoundLocs.find(DbgOp.ID)->second.getLoc();
     if (FoundLoc.isIllegal()) {
       NewLocs.clear();
       break;
@@ -1703,7 +1713,7 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
     uint64_t LastUseBeforeDef = 0;
     for (auto ValueLoc : FoundLocs) {
       ValueIDNum NewID = ValueLoc.first;
-      LocIdx FoundLoc = ValueLoc.second;
+      LocIdx FoundLoc = ValueLoc.second.getLoc();
       if (!FoundLoc.isIllegal())
         continue;
       // If we have an value with no location that is not defined in this block,
@@ -4083,19 +4093,13 @@ Optional<ValueIDNum> InstrRefBasedLDV::resolveDbgPHIs(
 
   // This function will be called twice per DBG_INSTR_REF, and might end up
   // computing lots of SSA information: memoize it.
-  uint64_t HereBlockNo = CurBB;
-  uint64_t HereInstNo = CurInst;
-  assert(HereBlockNo < (1 << 20));
-  assert(HereInstNo < (1 << 20));
-  assert(InstrNum < (1 << 24));
-  uint64_t RefNo = (HereBlockNo << 44) | (HereInstNo << 24) | InstrNum;
-  auto SeenDbgPHIIt = SeenDbgPHIs.find(RefNo);
+  auto SeenDbgPHIIt = SeenDbgPHIs.find(std::make_pair(&Here, InstrNum));
   if (SeenDbgPHIIt != SeenDbgPHIs.end())
     return SeenDbgPHIIt->second;
 
   Optional<ValueIDNum> Result =
       resolveDbgPHIsImpl(MF, MLiveOuts, MLiveIns, Here, InstrNum);
-  SeenDbgPHIs.insert({RefNo, Result});
+  SeenDbgPHIs.insert({std::make_pair(&Here, InstrNum), Result});
   return Result;
 }
 
