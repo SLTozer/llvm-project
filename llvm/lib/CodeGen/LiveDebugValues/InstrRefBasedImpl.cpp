@@ -417,15 +417,21 @@ public:
 
     // Map of the preferred location for each value.
     DenseMap<ValueIDNum, LocIdx> ValueToLoc;
+    DenseSet<ValueIDNum> ValuesToFind;
 
     // Initialized the preferred-location map with illegal locations, to be
     // filled in later.
-    for (const auto &VLoc : VLocs)
-      if (VLoc.second.Kind == DbgValue::Def)
-        for (DbgOpID OpID : VLoc.second.getDbgOpIDs())
-          if (!OpID.ID.IsConst)
-            ValueToLoc.insert(
-                {DbgOpStore.find(OpID).ID, LocIdx::MakeIllegalLoc()});
+    for (const auto &VLoc : VLocs) {
+      if (VLoc.second.Kind == DbgValue::Def) {
+        for (DbgOpID OpID : VLoc.second.getDbgOpIDs()) {
+          if (OpID.ID.IsConst)
+            continue;
+          ValueIDNum Value = DbgOpStore.find(OpID).ID;
+          if (ValuesToFind.insert(Value).second)
+            ValueToLoc.insert(std::make_pair(Value, LocIdx::MakeIllegalLoc()));
+        }
+      }
+    }
 
     ActiveMLocs.reserve(VLocs.size());
     ActiveVLocs.reserve(VLocs.size());
@@ -436,24 +442,25 @@ public:
     for (auto Location : MTracker->locations()) {
       LocIdx Idx = Location.Idx;
       ValueIDNum &VNum = MLocs[Idx.asU64()];
-      if (VNum == ValueIDNum::EmptyValue)
+      auto ValueToFindIt = ValuesToFind.find(VNum);
+      if (ValueToFindIt == ValuesToFind.end())
         continue;
-      VarLocs.push_back(VNum);
+      auto ValueLocIt = ValueToLoc.find(VNum);
+      assert(ValueLocIt != ValueToLoc.end());
 
-      // Is there a variable that wants a location for this value? If not, skip.
-      auto VIt = ValueToLoc.find(VNum);
-      if (VIt == ValueToLoc.end())
-        continue;
-
-      LocIdx CurLoc = VIt->second;
-      // In order of preference, pick:
-      //  * Callee saved registers,
-      //  * Other registers,
-      //  * Spill slots.
-      if (CurLoc.isIllegal() || MTracker->isSpill(CurLoc) ||
-          (!isCalleeSaved(CurLoc) && isCalleeSaved(Idx.asU64()))) {
-        // Insert, or overwrite if insertion failed.
-        VIt->second = Idx;
+      // Replace the current location if the new location is better.
+      TransferTracker::LocationQuality CurrentQuality = getLocQuality(ValueLocIt->second);
+      TransferTracker::LocationQuality NewQuality = getLocQuality(Idx);
+      if (NewQuality > CurrentQuality) {
+        ValueLocIt->second = Idx;
+        // If we've found the best location for this value, we have no need to
+        // find more locations for this value; and if we have no more values to
+        // find locations for, we can exit this loop.
+        if (NewQuality == TransferTracker::LocationQuality::Best) {
+          ValuesToFind.erase(ValueToFindIt);
+          if (ValuesToFind.empty())
+            break;
+        }
       }
     }
 
@@ -485,6 +492,7 @@ public:
     // Map of values to the locations that store them for every value used by
     // the variables that may have become available.
     SmallDenseMap<ValueIDNum, LocIdx> ValueToLoc;
+    SmallDenseSet<ValueIDNum> ValuesToFind;
 
     // Populate ValueToLoc with illegal default mappings for every value used by
     // any UseBeforeDef variables for this instruction.
@@ -498,33 +506,38 @@ public:
         if (Op.IsConst)
           continue;
 
-        ValueToLoc.insert(std::make_pair(Op.ID, LocIdx::MakeIllegalLoc()));
+        if (ValuesToFind.insert(Op.ID).second)
+          ValueToLoc.insert(std::make_pair(Op.ID, LocIdx::MakeIllegalLoc()));
       }
     }
 
     // Exit early if we have no DbgValues to produce.
-    if (ValueToLoc.empty())
+    if (ValuesToFind.empty())
       return;
 
     // Determine the best location for each desired value.
     for (auto Location : MTracker->locations()) {
       LocIdx Idx = Location.Idx;
       ValueIDNum &LocValueID = Location.Value;
-
-      // Is there a variable that wants a location for this value? If not, skip.
-      auto VIt = ValueToLoc.find(LocValueID);
-      if (VIt == ValueToLoc.end())
+      auto ValueToFindIt = ValuesToFind.find(LocValueID);
+      if (ValueToFindIt == ValuesToFind.end())
         continue;
+      auto ValueLocIt = ValueToLoc.find(LocValueID);
+      assert(ValueLocIt != ValueToLoc.end());
 
-      LocIdx CurLoc = VIt->second;
-      // In order of preference, pick:
-      //  * Callee saved registers,
-      //  * Other registers,
-      //  * Spill slots.
-      if (CurLoc.isIllegal() || MTracker->isSpill(CurLoc) ||
-          (!isCalleeSaved(CurLoc) && isCalleeSaved(Idx.asU64()))) {
-        // Insert, or overwrite if insertion failed.
-        VIt->second = Idx;
+      // Replace the current location if the new location is better.
+      TransferTracker::LocationQuality CurrentQuality = getLocQuality(ValueLocIt->second);
+      TransferTracker::LocationQuality NewQuality = getLocQuality(Idx);
+      if (NewQuality > CurrentQuality) {
+        ValueLocIt->second = Idx;
+        // If we've found the best location for this value, we have no need to
+        // find more locations for this value; and if we have no more values to
+        // find locations for, we can exit this loop.
+        if (NewQuality == TransferTracker::LocationQuality::Best) {
+          ValuesToFind.erase(ValueToFindIt);
+          if (ValuesToFind.empty())
+            break;
+        }
       }
     }
 
