@@ -18,6 +18,7 @@
 #include "llvm/Pass.h"
 #include "llvm/PassRegistry.h"
 #include "llvm/Support/CommandLine.h"
+#include <valgrind/callgrind.h>
 
 /// \file LiveDebugValues.cpp
 ///
@@ -114,14 +115,19 @@ bool LiveDebugValues::runOnMachineFunction(MachineFunction &MF) {
   LDVImpl *TheImpl = &*VarLocImpl;
 
   MachineDominatorTree *DomTree = nullptr;
+  CALLGRIND_START_INSTRUMENTATION;
+  CALLGRIND_TOGGLE_COLLECT;
   if (InstrRefBased) {
     DomTree = &MDT;
     MDT.calculate(MF);
     TheImpl = &*InstrRefImpl;
   }
 
-  return TheImpl->ExtendRanges(MF, DomTree, TPC, InputBBLimit,
+  bool R = TheImpl->ExtendRanges(MF, DomTree, TPC, InputBBLimit,
                                InputDbgValueLimit);
+  CALLGRIND_STOP_INSTRUMENTATION;
+  CALLGRIND_TOGGLE_COLLECT;
+  return R;
 }
 
 bool llvm::debuginfoShouldUseDebugInstrRef(const Triple &T) {
