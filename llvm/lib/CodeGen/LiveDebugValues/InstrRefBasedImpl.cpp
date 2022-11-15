@@ -417,16 +417,21 @@ public:
 
     // Map of the preferred location for each value.
     DenseMap<ValueIDNum, LocIdx> ValueToLoc;
+    DenseSet<ValueIDNum> ValuesToFind;
 
     // Initialized the preferred-location map with illegal locations, to be
     // filled in later.
-    for (const auto &VLoc : VLocs)
-      if (VLoc.second.Kind == DbgValue::Def)
-        for (DbgOpID OpID : VLoc.second.getDbgOpIDs())
-          if (!OpID.ID.IsConst)
-            ValueToLoc.insert(
-                {DbgOpStore.find(OpID).ID, LocIdx::MakeIllegalLoc()});
-
+    for (const auto &VLoc : VLocs) {
+      if (VLoc.second.Kind == DbgValue::Def) {
+        for (DbgOpID OpID : VLoc.second.getDbgOpIDs()) {
+          if (OpID.ID.IsConst)
+            continue;
+          ValueIDNum Value = DbgOpStore.find(OpID).ID;
+          if (ValuesToFind.insert(Value).second)
+            ValueToLoc.insert(std::make_pair(Value, LocIdx::MakeIllegalLoc()));
+        }
+      }
+    }
     ActiveMLocs.reserve(VLocs.size());
     ActiveVLocs.reserve(VLocs.size());
 
@@ -439,21 +444,23 @@ public:
       if (VNum == ValueIDNum::EmptyValue)
         continue;
       VarLocs.push_back(VNum);
-
-      // Is there a variable that wants a location for this value? If not, skip.
-      auto VIt = ValueToLoc.find(VNum);
-      if (VIt == ValueToLoc.end())
+      if (ValuesToFind.empty())
         continue;
 
-      LocIdx CurLoc = VIt->second;
-      // In order of preference, pick:
-      //  * Callee saved registers,
-      //  * Other registers,
-      //  * Spill slots.
-      if (CurLoc.isIllegal() || MTracker->isSpill(CurLoc) ||
-          (!isCalleeSaved(CurLoc) && isCalleeSaved(Idx.asU64()))) {
-        // Insert, or overwrite if insertion failed.
+      // Is there a variable that wants a location for this value? If not, skip.
+      auto ValueToFindIt = ValuesToFind.find(VNum);
+      if (ValueToFindIt == ValuesToFind.end())
+        continue;
+      auto VIt = ValueToLoc.find(VNum);
+      assert(VIt != ValueToLoc.end());
+
+      // Replace the current location if the new location is better.
+      LocationQuality CurrentQuality = getLocQuality(VIt->second);
+      LocationQuality NewQuality = getLocQuality(Idx);
+      if (NewQuality > CurrentQuality) {
         VIt->second = Idx;
+        if (NewQuality == LocationQuality::Best)
+          ValuesToFind.erase(ValueToFindIt);
       }
     }
 
@@ -485,6 +492,7 @@ public:
     // Map of values to the locations that store them for every value used by
     // the variables that may have become available.
     SmallDenseMap<ValueIDNum, LocIdx> ValueToLoc;
+    SmallVector<ValueIDNum> ValuesToFind;
 
     // Populate ValueToLoc with illegal default mappings for every value used by
     // any UseBeforeDef variables for this instruction.
@@ -498,7 +506,8 @@ public:
         if (Op.IsConst)
           continue;
 
-        ValueToLoc.insert(std::make_pair(Op.ID, LocIdx::MakeIllegalLoc()));
+        if (ValueToLoc.insert(std::make_pair(Op.ID, LocIdx::MakeIllegalLoc())).second)
+          ValuesToFind.push_back(Op.ID);
       }
     }
 
@@ -512,19 +521,21 @@ public:
       ValueIDNum &LocValueID = Location.Value;
 
       // Is there a variable that wants a location for this value? If not, skip.
-      auto VIt = ValueToLoc.find(LocValueID);
-      if (VIt == ValueToLoc.end())
+      auto ValueToFindIt = find(ValuesToFind, LocValueID);
+      if (ValueToFindIt == ValuesToFind.end())
         continue;
+      auto VIt = ValueToLoc.find(LocValueID);
+      assert(VIt != ValueToLoc.end());
 
-      LocIdx CurLoc = VIt->second;
-      // In order of preference, pick:
-      //  * Callee saved registers,
-      //  * Other registers,
-      //  * Spill slots.
-      if (CurLoc.isIllegal() || MTracker->isSpill(CurLoc) ||
-          (!isCalleeSaved(CurLoc) && isCalleeSaved(Idx.asU64()))) {
-        // Insert, or overwrite if insertion failed.
+      // Replace the current location if the new location is better.
+      LocationQuality CurrentQuality = getLocQuality(VIt->second);
+      LocationQuality NewQuality = getLocQuality(Idx);
+      if (NewQuality > CurrentQuality) {
         VIt->second = Idx;
+        if (NewQuality == LocationQuality::Best)
+          ValuesToFind.erase(ValueToFindIt);
+          if (ValuesToFind.empty())
+            break;
       }
     }
 
