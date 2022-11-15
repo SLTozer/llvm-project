@@ -417,7 +417,6 @@ public:
 
     // Map of the preferred location for each value.
     DenseMap<ValueIDNum, LocIdx> ValueToLoc;
-    DenseSet<ValueIDNum> ValuesToFind;
 
     // Initialized the preferred-location map with illegal locations, to be
     // filled in later.
@@ -427,8 +426,7 @@ public:
           if (OpID.ID.IsConst)
             continue;
           ValueIDNum Value = DbgOpStore.find(OpID).ID;
-          if (ValuesToFind.insert(Value).second)
-            ValueToLoc.insert(std::make_pair(Value, LocIdx::MakeIllegalLoc()));
+          ValueToLoc.insert(std::make_pair(Value, LocIdx::MakeIllegalLoc()));
         }
       }
     }
@@ -444,24 +442,17 @@ public:
       if (VNum == ValueIDNum::EmptyValue)
         continue;
       VarLocs.push_back(VNum);
-      if (ValuesToFind.empty())
-        continue;
 
       // Is there a variable that wants a location for this value? If not, skip.
-      auto ValueToFindIt = ValuesToFind.find(VNum);
-      if (ValueToFindIt == ValuesToFind.end())
-        continue;
       auto VIt = ValueToLoc.find(VNum);
-      assert(VIt != ValueToLoc.end());
+      if (VIt == ValueToLoc.end())
+        continue;
 
       // Replace the current location if the new location is better.
       LocationQuality CurrentQuality = getLocQuality(VIt->second);
       LocationQuality NewQuality = getLocQuality(Idx);
-      if (NewQuality > CurrentQuality) {
+      if (NewQuality > CurrentQuality)
         VIt->second = Idx;
-        if (NewQuality == LocationQuality::Best)
-          ValuesToFind.erase(ValueToFindIt);
-      }
     }
 
     // Now map variables to their picked LocIdxes.
@@ -492,7 +483,6 @@ public:
     // Map of values to the locations that store them for every value used by
     // the variables that may have become available.
     SmallDenseMap<ValueIDNum, LocIdx> ValueToLoc;
-    SmallVector<ValueIDNum> ValuesToFind;
 
     // Populate ValueToLoc with illegal default mappings for every value used by
     // any UseBeforeDef variables for this instruction.
@@ -506,8 +496,7 @@ public:
         if (Op.IsConst)
           continue;
 
-        if (ValueToLoc.insert(std::make_pair(Op.ID, LocIdx::MakeIllegalLoc())).second)
-          ValuesToFind.push_back(Op.ID);
+        ValueToLoc.insert(std::make_pair(Op.ID, LocIdx::MakeIllegalLoc()));
       }
     }
 
@@ -521,22 +510,15 @@ public:
       ValueIDNum &LocValueID = Location.Value;
 
       // Is there a variable that wants a location for this value? If not, skip.
-      auto ValueToFindIt = find(ValuesToFind, LocValueID);
-      if (ValueToFindIt == ValuesToFind.end())
-        continue;
       auto VIt = ValueToLoc.find(LocValueID);
-      assert(VIt != ValueToLoc.end());
+      if (VIt == ValueToLoc.end())
+        continue;
 
       // Replace the current location if the new location is better.
       LocationQuality CurrentQuality = getLocQuality(VIt->second);
       LocationQuality NewQuality = getLocQuality(Idx);
-      if (NewQuality > CurrentQuality) {
+      if (NewQuality > CurrentQuality)
         VIt->second = Idx;
-        if (NewQuality == LocationQuality::Best)
-          ValuesToFind.erase(ValueToFindIt);
-          if (ValuesToFind.empty())
-            break;
-      }
     }
 
     // Using the map of values to locations, produce a final set of values for
