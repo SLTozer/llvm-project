@@ -1625,14 +1625,32 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
 
   // Pick a location for the machine value number, if such a location exists.
   // (This information could be stored in TransferTracker to make it faster).
-  SmallDenseMap<ValueIDNum, LocIdx> FoundLocs;
+  SmallVector<std::pair<ValueIDNum, LocIdx>> FoundLocs;
   SmallVector<ValueIDNum> ValuesToFind;
   // Initialized the preferred-location map with illegal locations, to be
   // filled in later.
   for (DbgOp Op : DbgOps) {
     if (!Op.IsConst) {
-      if (FoundLocs.insert({Op.ID, LocIdx::MakeIllegalLoc()}).second)
+      // size_t Min = 0, Max = ValuesToFind.size(), Pivot = 0;
+      // while (Min != Max) {
+      //   Pivot = Min + Max / 2;
+      //   ValueIDNum &ID = ValuesToFind[Pivot];
+      //   if (ID == Op.ID) {
+      //     break;
+      //   }
+      //   if (ID < Op.ID) {
+      //     Max = Pivot;
+      //   } else {
+      //     Min = Pivot + 1;
+      //   }
+      // }
+      // if (Min != Max) {
+      //   ValuesToFind.insert(ValuesToFind.begin() + Max, Op.ID);
+      // }
+      if (!is_contained(ValuesToFind, Op.ID)) {
         ValuesToFind.push_back(Op.ID);
+        FoundLocs.push_back({Op.ID, LocIdx::MakeIllegalLoc()});
+      }
     }
   }
 
@@ -1642,22 +1660,36 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
     auto ValueToFindIt = find(ValuesToFind, ID);
     if (ValueToFindIt == ValuesToFind.end())
       continue;
-    auto FoundLocIt = FoundLocs.find(ID);
+    auto FoundLocIt = FoundLocs.begin();
+
+    while (FoundLocIt->first != ID)
+      ++FoundLocIt;
     assert(FoundLocIt != FoundLocs.end());
-    // Replace the current location if the new location is better.
-    TransferTracker::LocationQuality CurrentQuality = TTracker->getLocQuality(FoundLocIt->second);
-    TransferTracker::LocationQuality NewQuality = TTracker->getLocQuality(CurL);
-    if (NewQuality > CurrentQuality) {
+    // If this is the first location with that value, pick it. Otherwise,
+    // consider whether it's a "longer term" location.
+    if (FoundLocIt->second.isIllegal()) {
       FoundLocIt->second = CurL;
       // If we've found the best location for this value, we have no need to
       // find more locations for this value; and if we have no more values to
       // find locations for, we can exit this loop.
-      if (NewQuality == TransferTracker::LocationQuality::Best) {
+      if (MTracker->isSpill(CurL)) {
         ValuesToFind.erase(ValueToFindIt);
         if (ValuesToFind.empty())
           break;
       }
     }
+
+    if (MTracker->isSpill(CurL)) {
+      FoundLocIt->second = CurL; // Spills are a longer term location.
+      ValuesToFind.erase(ValueToFindIt);
+      if (ValuesToFind.empty())
+        break;
+    }
+    else if (!MTracker->isSpill(FoundLocIt->second) &&
+             !MTracker->isSpill(CurL) && !isCalleeSaved(FoundLocIt->second) &&
+             isCalleeSaved(CurL))
+      FoundLocIt->second =
+          CurL; // Callee saved regs are longer term than normal.
   }
 
   SmallVector<ResolvedDbgOp> NewLocs;
@@ -1666,7 +1698,14 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
       NewLocs.push_back(DbgOp.MO);
       continue;
     }
-    LocIdx FoundLoc = FoundLocs.find(DbgOp.ID)->second;
+    auto FoundLocIt = FoundLocs.begin();
+    while (FoundLocIt->first != DbgOp.ID)
+      ++FoundLocIt;
+    if (FoundLocIt == FoundLocs.end()) {
+      NewLocs.clear();
+      break;
+    }
+    LocIdx FoundLoc = FoundLocIt->second;
     if (FoundLoc.isIllegal()) {
       NewLocs.clear();
       break;
@@ -4069,13 +4108,13 @@ Optional<ValueIDNum> InstrRefBasedLDV::resolveDbgPHIs(
   assert(HereInstNo < (1 << 20));
   assert(InstrNum < (1 << 24));
   uint64_t RefNo = (HereBlockNo << 44) | (HereInstNo << 24) | InstrNum;
-  auto SeenDbgPHIIt = SeenDbgPHIs.find(RefNo);
+  auto SeenDbgPHIIt = SeenDbgPHIs.find(std::make_pair(&Here, InstrNum));
   if (SeenDbgPHIIt != SeenDbgPHIs.end())
     return SeenDbgPHIIt->second;
 
   Optional<ValueIDNum> Result =
       resolveDbgPHIsImpl(MF, MLiveOuts, MLiveIns, Here, InstrNum);
-  SeenDbgPHIs.insert({RefNo, Result});
+  SeenDbgPHIs.insert({std::make_pair(&Here, InstrNum), Result});
   return Result;
 }
 
