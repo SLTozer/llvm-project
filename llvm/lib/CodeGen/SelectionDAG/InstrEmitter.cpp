@@ -691,14 +691,14 @@ InstrEmitter::EmitDbgValue(SDDbgValue *SD,
   if (SD->isInvalidated())
     return EmitDbgNoLocation(SD);
 
+  // Emit variadic dbg_value nodes as DBG_VALUE_LIST.
+  if (SD->isVariadic())
+    return EmitDbgValueList(SD, VRBaseMap);
+
   // Attempt to produce a DBG_INSTR_REF if we've been asked to.
   if (EmitDebugInstrRefs)
     if (auto *InstrRef = EmitDbgInstrRef(SD, VRBaseMap))
       return InstrRef;
-
-  // Emit variadic dbg_value nodes as DBG_VALUE_LIST.
-  if (SD->isVariadic())
-    return EmitDbgValueList(SD, VRBaseMap);
 
   return EmitDbgValueFromSingleOp(SD, VRBaseMap);
 }
