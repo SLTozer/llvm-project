@@ -1660,31 +1660,32 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
   // Pick a location for the machine value number, if such a location exists.
   // (This information could be stored in TransferTracker to make it faster).
   SmallDenseMap<ValueIDNum, TransferTracker::LocationAndQuality> FoundLocs;
-  SmallVector<ValueIDNum> ValuesToFind;
+  unsigned NumValuesToFind = 0;
   // Initialized the preferred-location map with illegal locations, to be
   // filled in later.
   for (DbgOp Op : DbgOps) {
     if (!Op.IsConst) {
-      if (FoundLocs.insert({Op.ID, TransferTracker::LocationAndQuality()}).second)
-        ValuesToFind.push_back(Op.ID);
+      if (FoundLocs.insert({Op.ID, TransferTracker::LocationAndQuality()}).second) {
+        ++NumValuesToFind;
+      }
     }
   }
 
   for (auto Location : MTracker->locations()) {
     LocIdx CurL = Location.Idx;
     ValueIDNum ID = MTracker->readMLoc(CurL);
-    auto ValueToFindIt = find(ValuesToFind, ID);
-    if (ValueToFindIt == ValuesToFind.end())
+    auto FoundLocIt = FoundLocs.find(ID);
+    if (FoundLocIt == FoundLocs.end())
       continue;
-    auto& Previous = FoundLocs.find(ID)->second;
+    auto& Previous = FoundLocIt->second;
     // If this is the first location with that value, pick it. Otherwise,
     // consider whether it's a "longer term" location.
     Optional<TransferTracker::LocationQuality> ReplacementQuality = TTracker->getLocQualityIfBetter(CurL, Previous.getQuality());
     if (ReplacementQuality) {
       Previous = TransferTracker::LocationAndQuality(CurL, *ReplacementQuality);
       if (*ReplacementQuality == TransferTracker::LocationQuality::Best) {
-        ValuesToFind.erase(ValueToFindIt);
-        if (ValuesToFind.empty())
+        NumValuesToFind -= 1;
+        if (!NumValuesToFind)
           break;
       }
     }
