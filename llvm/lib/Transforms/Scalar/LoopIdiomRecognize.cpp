@@ -1872,7 +1872,7 @@ bool LoopIdiomRecognize::recognizePopcount() {
     return false;
 
   BasicBlock *LoopBody = *(CurLoop->block_begin());
-  if (LoopBody->size() >= 20) {
+  if (LoopBody->sizeWithoutDebug() >= 20) {
     // The loop is too big, bail out.
     return false;
   }
@@ -2413,7 +2413,7 @@ bool LoopIdiomRecognize::recognizeShiftUntilBitTest() {
     // it's use count.
     Instruction *InsertPt = nullptr;
     if (auto *BitPosI = dyn_cast<Instruction>(BitPos))
-      InsertPt = BitPosI->getInsertionPointAfterDef();
+      InsertPt = &**BitPosI->getInsertionPointAfterDef();
     else
       InsertPt = &*DT->getRoot()->getFirstNonPHIOrDbgOrAlloca();
     if (!InsertPt)

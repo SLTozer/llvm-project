@@ -81,6 +81,27 @@ static cl::opt<unsigned> NonGlobalValueMaxNameSize(
     "non-global-value-max-name-size", cl::Hidden, cl::init(1024),
     cl::desc("Maximum size for the name of non-global values."));
 
+void Function::convertToNewDbgValues() {
+  IsNewDbgInfoFormat = true;
+  for (auto &BB : *this) {
+    BB.convertToNewDbgValues();
+  }
+}
+
+void Function::convertFromNewDbgValues() {
+  IsNewDbgInfoFormat = false;
+  for (auto &BB : *this) {
+    BB.convertFromNewDbgValues();
+  }
+}
+
+void Function::setIsNewDbgInfoFormat(bool NewFlag) {
+  if (NewFlag && !IsNewDbgInfoFormat)
+    convertToNewDbgValues();
+  else if (!NewFlag && IsNewDbgInfoFormat)
+    convertFromNewDbgValues();
+}
+
 //===----------------------------------------------------------------------===//
 // Argument Implementation
 //===----------------------------------------------------------------------===//
@@ -402,7 +423,7 @@ Function::Function(FunctionType *Ty, LinkageTypes Linkage, unsigned AddrSpace,
     : GlobalObject(Ty, Value::FunctionVal,
                    OperandTraits<Function>::op_begin(this), 0, Linkage, name,
                    computeAddrSpace(AddrSpace, ParentModule)),
-      NumArgs(Ty->getNumParams()) {
+      NumArgs(Ty->getNumParams()), IsNewDbgInfoFormat(false) {
   assert(FunctionType::isValidReturnType(getReturnType()) &&
          "invalid return type");
   setGlobalObjectSubClassData(0);
@@ -415,8 +436,10 @@ Function::Function(FunctionType *Ty, LinkageTypes Linkage, unsigned AddrSpace,
   if (Ty->getNumParams())
     setValueSubclassData(1);   // Set the "has lazy arguments" bit.
 
-  if (ParentModule)
+  if (ParentModule) {
     ParentModule->getFunctionList().push_back(this);
+    IsNewDbgInfoFormat = ParentModule->IsNewDbgInfoFormat;
+  }
 
   HasLLVMReservedName = getName().startswith("llvm.");
   // Ensure intrinsics have the right parameter attributes.

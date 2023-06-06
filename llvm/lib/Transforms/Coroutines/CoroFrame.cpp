@@ -1953,9 +1953,12 @@ static void insertSpills(const FrameDataInfo &FrameData, coro::Shape &Shape) {
     G->setName(Alloca->getName() + Twine(".reload.addr"));
 
     SmallVector<DbgVariableIntrinsic *, 4> DIs;
-    findDbgUsers(DIs, Alloca);
+    SmallVector<DPValue *, 4> DPVs;
+    findDbgUsers(DIs, Alloca, &DPVs);
     for (auto *DVI : DIs)
       DVI->replaceUsesOfWith(Alloca, G);
+    for (auto *DPV : DPVs)
+      DPV->replaceVariableLocationOp(Alloca, G);
 
     for (Instruction *I : UsersToUpdate) {
       // It is meaningless to retain the lifetime intrinsics refer for the
@@ -2909,13 +2912,17 @@ void coro::salvageDebugInfo(
   // dbg.value since it does not have the same function wide guarantees that
   // dbg.declare does.
   if (isa<DbgDeclareInst>(DVI)) {
-    Instruction *InsertPt = nullptr;
-    if (auto *I = dyn_cast<Instruction>(Storage))
-      InsertPt = I->getInsertionPointAfterDef();
-    else if (isa<Argument>(Storage))
-      InsertPt = &*F->getEntryBlock().begin();
-    if (InsertPt)
-      DVI->moveBefore(InsertPt);
+    // jmorse: these are all Breaking because they're deliberately moving a
+    // dbg.declare, which is not a dbg.value. A future implemention will
+    // probably do dbg.declares differently.
+    BasicBlock::iterator InsertPt;
+    if (auto *I = dyn_cast<Instruction>(Storage)) {
+      InsertPt = *I->getInsertionPointAfterDef();
+      DVI->moveBefore(*InsertPt->getParent(), InsertPt);
+    } else if (isa<Argument>(Storage)) {
+      InsertPt = F->getEntryBlock().begin();
+      DVI->moveBefore(*InsertPt->getParent(), InsertPt);
+    }
   }
 }
 
@@ -3106,10 +3113,12 @@ void coro::buildCoroutineFrame(
   for (auto &Iter : FrameData.Spills) {
     auto *V = Iter.first;
     SmallVector<DbgValueInst *, 16> DVIs;
-    findDbgValues(DVIs, V);
+    SmallVector<DPValue *, 16> DPVs;
+    findDbgValues(DVIs, V, &DPVs);
     for (DbgValueInst *DVI : DVIs)
       if (Checker.isDefinitionAcrossSuspend(*V, DVI))
         FrameData.Spills[V].push_back(DVI);
+    // TODO: Handle DPValues correctly.
   }
 
   LLVM_DEBUG(dumpSpills("Spills", FrameData.Spills));

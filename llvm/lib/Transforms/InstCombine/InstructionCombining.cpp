@@ -2516,9 +2516,10 @@ Instruction *InstCombinerImpl::visitAllocSite(Instruction &MI) {
   // If we are removing an alloca with a dbg.declare, insert dbg.value calls
   // before each store.
   SmallVector<DbgVariableIntrinsic *, 8> DVIs;
+  SmallVector<DPValue *, 8> DPVs;
   std::unique_ptr<DIBuilder> DIB;
   if (isa<AllocaInst>(MI)) {
-    findDbgUsers(DVIs, &MI);
+    findDbgUsers(DVIs, &MI, &DPVs);
     DIB.reset(new DIBuilder(*MI.getModule(), /*AllowUnresolved=*/false));
   }
 
@@ -2558,6 +2559,9 @@ Instruction *InstCombinerImpl::visitAllocSite(Instruction &MI) {
         for (auto *DVI : DVIs)
           if (DVI->isAddressOfVariable())
             ConvertDebugDeclareToDebugValue(DVI, SI, *DIB);
+        for (auto *DPV : DPVs)
+          if (DPV->isAddressOfVariable())
+            ConvertDebugDeclareToDebugValue(DPV, SI, *DIB);
       } else {
         // Casts, GEP, or anything else: we're about to delete this instruction,
         // so it can not have any valid uses.
@@ -2596,9 +2600,15 @@ Instruction *InstCombinerImpl::visitAllocSite(Instruction &MI) {
     // If there is a dead store to `%a` in @trivially_inlinable_no_op, the
     // "arg0" dbg.value may be stale after the call. However, failing to remove
     // the DW_OP_deref dbg.value causes large gaps in location coverage.
+    //
+    // FIXME: the Assignment Tracking project has now likely made this
+    // redundant (and it's sometimes harmful).
     for (auto *DVI : DVIs)
       if (DVI->isAddressOfVariable() || DVI->getExpression()->startsWithDeref())
         DVI->eraseFromParent();
+    for (auto *DPV : DPVs)
+      if (DPV->isAddressOfVariable() || DPV->getExpression()->startsWithDeref())
+        DPV->eraseFromParent();
 
     return eraseInstFromFunction(MI);
   }
@@ -2842,9 +2852,15 @@ void InstCombinerImpl::handleUnreachableFrom(
     }
     if (Inst.isEHPad() || Inst.getType()->isTokenTy())
       continue;
+    // RemoveDIs: erase debug-info on this instruction manually.
+    Inst.dropDbgValues();
     eraseInstFromFunction(Inst);
     MadeIRChange = true;
   }
+
+  // RemoveDIs: to match behaviour in dbg.value mode, drop debug-info on
+  // terminator too.
+  BB->getTerminator()->dropDbgValues();
 
   // Handle potentially dead successors.
   for (BasicBlock *Succ : successors(BB))
@@ -3668,19 +3684,20 @@ bool InstCombinerImpl::freezeOtherUses(FreezeInst &FI) {
   // *all* uses if the operand is an invoke/callbr and the use is in a phi on
   // the normal/default destination. This is why the domination check in the
   // replacement below is still necessary.
-  Instruction *MoveBefore;
+  BasicBlock::iterator MoveBefore;
   if (isa<Argument>(Op)) {
     MoveBefore =
-        &*FI.getFunction()->getEntryBlock().getFirstNonPHIOrDbgOrAlloca();
+        FI.getFunction()->getEntryBlock().getFirstNonPHIOrDbgOrAlloca();
   } else {
-    MoveBefore = cast<Instruction>(Op)->getInsertionPointAfterDef();
-    if (!MoveBefore)
+    auto MoveBeforeOpt = cast<Instruction>(Op)->getInsertionPointAfterDef();
+    if (!MoveBeforeOpt)
       return false;
+    MoveBefore = *MoveBeforeOpt;
   }
 
   bool Changed = false;
-  if (&FI != MoveBefore) {
-    FI.moveBefore(*MoveBefore->getParent(), MoveBefore->getIterator());
+  if ((&FI != &*MoveBefore && !isa<DbgInfoIntrinsic>(MoveBefore)) || (isa<DbgInfoIntrinsic>(MoveBefore) && &FI != &*MoveBefore->getNextNonDebugInstruction())) {
+    FI.moveBefore(*MoveBefore->getParent(), MoveBefore);
     Changed = true;
   }
 
@@ -3892,14 +3909,22 @@ bool InstCombinerImpl::tryToSinkInstruction(Instruction *I,
   // mark the location undef: we know it was supposed to receive a new location
   // here, but that computation has been sunk.
   SmallVector<DbgVariableIntrinsic *, 2> DbgUsers;
-  findDbgUsers(DbgUsers, I);
+  SmallVector<DPValue *, 2> DPValues;
+  findDbgUsers(DbgUsers, I, &DPValues);
 
   // For all debug values in the destination block, the sunk instruction
   // will still be available, so they do not need to be dropped.
   SmallVector<DbgVariableIntrinsic *, 2> DbgUsersToSalvage;
+  SmallVector<DPValue *, 2> DPValuesToSalvage;
   for (auto &DbgUser : DbgUsers)
     if (DbgUser->getParent() != DestBlock)
       DbgUsersToSalvage.push_back(DbgUser);
+  for (auto &DPV : DPValues)
+    if (DPV->getParent() != DestBlock)
+      DPValuesToSalvage.push_back(DPV);
+  // XXX XXX XXX -- does any of this actually ever fire during the sinking?
+  // Also, this is a scenario where we should try to kill off avoidance of
+  // use-before-free.
 
   // Process the sinking DbgUsersToSalvage in reverse order, as we only want
   // to clone the last appearing debug intrinsic for each given variable.
@@ -3909,6 +3934,36 @@ bool InstCombinerImpl::tryToSinkInstruction(Instruction *I,
       DbgUsersToSink.push_back(DVI);
   llvm::sort(DbgUsersToSink,
              [](auto *A, auto *B) { return B->comesBefore(A); });
+
+  // Equivalent for DPValues.
+  SmallVector<std::pair<DPValue *, Instruction *>> DPValuesToSink;
+  for (DPValue *DPV : DPValuesToSalvage)
+    if (DPV->getParent() == SrcBlock)
+      DPValuesToSink.push_back({DPV, DPV->getMarker()->MarkedInstr}); // XXX APIs?
+  // Sort DPValues according to their position in the block.
+
+  // XXX how about sub-sections where the instruction is the same; that can happen.
+  // We have an absolute order on DPValues, it's just not connected to the rest of
+  // the Value hierachy.
+  // Find ranges where the instr is the same.
+
+  SmallDenseMap<Instruction *, DenseMap<DPValue*, unsigned>> LocalOrdering;
+
+  using foo = std::pair<DPValue *, Instruction *>;
+  auto Order = [&LocalOrdering](foo &a, foo &b) -> bool{
+    if (a.second != b.second)
+      return b.second->comesBefore(a.second);
+    // Otherwise, there are multiple DPValues using the same Value in one instr,
+    // we need to sort locally.
+    if (!LocalOrdering.count(a.second)) {
+      unsigned int Order = 0;
+      for (DPValue &foo : a.second->getDbgValueRange())
+        LocalOrdering[a.second][&foo] = Order++;
+    }
+
+    return LocalOrdering[a.second][b.first] < LocalOrdering[a.second][a.first];
+  };
+  llvm::sort(DPValuesToSink, Order);
 
   SmallVector<DbgVariableIntrinsic *, 2> DIIClones;
   SmallSet<DebugVariable, 4> SunkVariables;
@@ -3937,15 +3992,39 @@ bool InstCombinerImpl::tryToSinkInstruction(Instruction *I,
       DIIClones.back()->replaceVariableLocationOp(I, I->getOperand(0));
     LLVM_DEBUG(dbgs() << "CLONE: " << *DIIClones.back() << '\n');
   }
+  SmallVector<DPValue *, 2> DPVClones;
+  for (auto [DPV, Instr] : DPValuesToSink) {
+    // Not explored: dbg.declare, dbg.assign representations.
+    DebugVariable DbgUserVariable =
+        DebugVariable(DPV->getVariable(), DPV->getExpression(),
+                      DPV->getDebugLoc()->getInlinedAt());
+
+    if (!SunkVariables.insert(DbgUserVariable).second)
+      continue;
+
+    DPVClones.emplace_back(DPV->clone());
+    LLVM_DEBUG(dbgs() << "CLONE: " << *DPVClones.back() << '\n');
+  }
 
   // Perform salvaging without the clones, then sink the clones.
-  if (!DIIClones.empty()) {
-    salvageDebugInfoForDbgValues(*I, DbgUsersToSalvage);
+  if (!DIIClones.empty() || !DPVClones.empty()) {
+    salvageDebugInfoForDbgValues(*I, DbgUsersToSalvage, DPValuesToSalvage);
     // The clones are in reverse order of original appearance, reverse again to
     // maintain the original order.
     for (auto &DIIClone : llvm::reverse(DIIClones)) {
       DIIClone->insertBefore(&*InsertPos);
       LLVM_DEBUG(dbgs() << "SINK: " << *DIIClone << '\n');
+    }
+    if (!InsertPos.getHeadBit()) {
+      for (DPValue *DPVClone : llvm::reverse(DPVClones)) {
+        InsertPos->getParent()->insertDPValueBefore(DPVClone, InsertPos);
+        LLVM_DEBUG(dbgs() << "SINK: " << *DPVClone << '\n');
+      }
+    } else {
+      for (DPValue *DPVClone : DPVClones) {
+        InsertPos->getParent()->insertDPValueBefore(DPVClone, InsertPos);
+        LLVM_DEBUG(dbgs() << "SINK: " << *DPVClone << '\n');
+      }
     }
   }
 
@@ -4103,13 +4182,11 @@ bool InstCombinerImpl::run() {
         // Are we replace a PHI with something that isn't a PHI, or vice versa?
         if (isa<PHINode>(Result) != isa<PHINode>(I)) {
           // We need to fix up the insertion point.
-          if (isa<PHINode>(I)) // PHI -> Non-PHI
-            InsertPos = InstParent->getFirstInsertionPt();
-          else // Non-PHI -> PHI
-            InsertPos = InstParent->getFirstNonPHI()->getIterator();
+          InsertPos = InstParent->getFirstInsertionPt();
+          // XXX jmorse -- logic removed here looked redundant.
         }
 
-        Result->insertInto(InstParent, InsertPos);
+        Result->insertBefore(*InstParent, InsertPos);
 
         // Push the new instruction and any users onto the worklist.
         Worklist.pushUsersToWorkList(*Result);
