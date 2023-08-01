@@ -2497,6 +2497,12 @@ def ObjCBoxable : Attr {
   let Documentation = [ObjCBoxableDocs];
 }
 
+def ExtendLifetimesDisable : InheritableAttr {
+  let Spellings = [];
+  let Subjects = SubjectList<[Function]>;
+  let Documentation = [ExtendLifetimesDisableDocs];
+}
+
 def OptimizeNone : InheritableAttr {
   let Spellings = [Clang<"optnone">];
   let Subjects = SubjectList<[Function, ObjCMethod]>;
