@@ -575,7 +575,8 @@ PassBuilder::buildFunctionSimplificationPipeline(OptimizationLevel Level,
   FPM.addPass(SpeculativeExecutionPass(/* OnlyIfDivergentTarget =*/true));
 
   // Optimize based on known information about branches, and cleanup afterward.
-  FPM.addPass(JumpThreadingPass());
+  if (Level.getDebugLevel() == 0)
+    FPM.addPass(JumpThreadingPass());
   FPM.addPass(CorrelatedValuePropagationPass());
 
   // Jump table to switch conversion.

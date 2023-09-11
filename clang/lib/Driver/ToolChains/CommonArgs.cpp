@@ -851,7 +851,7 @@ void tools::addLTOOptions(const ToolChain &ToolChain, const ArgList &Args,
       OOpt = A->getValue();
       if (OOpt == "g")
         OOpt = "1";
-      else if (OOpt == "s" || OOpt == "z")
+      else if (OOpt == "s" || OOpt == "z" || OOpt == "2g")
         OOpt = "2";
     } else if (A->getOption().matches(options::OPT_O0))
       OOpt = "0";

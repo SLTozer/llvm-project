@@ -203,10 +203,10 @@ ENUM_CODEGENOPT(ObjCDispatchMethod, ObjCDispatchMethodKind, 2, Legacy)
 CODEGENOPT(ObjCConvertMessagesToRuntimeCalls , 1, 1)
 CODEGENOPT(ObjCAvoidHeapifyLocalBlocks, 1, 0)
 
-
 // The optimization options affect frontend options, whicn in turn do affect the AST.
 AFFECTING_VALUE_CODEGENOPT(OptimizationLevel, 2, 0) ///< The -O[0-3] option specified.
 AFFECTING_VALUE_CODEGENOPT(OptimizeSize, 2, 0) ///< If -Os (==1) or -Oz (==2) is specified.
+AFFECTING_VALUE_CODEGENOPT(OptimizeDebug, 1, 0) ///< If -Og or -O2g (==1) is specified.
 
 CODEGENOPT(AtomicProfileUpdate , 1, 0) ///< Set -fprofile-update=atomic
 /// Choose profile instrumenation kind or no instrumentation.

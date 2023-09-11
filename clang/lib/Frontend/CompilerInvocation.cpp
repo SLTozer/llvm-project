@@ -696,7 +696,7 @@ static unsigned getOptimizationLevel(ArgList &Args, InputKind IK,
     assert(A->getOption().matches(options::OPT_O));
 
     StringRef S(A->getValue());
-    if (S == "s" || S == "z")
+    if (S == "s" || S == "z" || S == "2g")
       return 2;
 
     if (S == "g")
@@ -719,6 +719,16 @@ static unsigned getOptimizationLevelSize(ArgList &Args) {
       case 'z':
         return 2;
       }
+    }
+  }
+  return 0;
+}
+
+static unsigned getOptimizationLevelDebug(ArgList &Args) {
+  if (Arg *A = Args.getLastArg(options::OPT_O_Group)) {
+    if (A->getOption().matches(options::OPT_O)) {
+      StringRef S(A->getValue());
+      return S == "g" || S == "2g" ? 1 : 0;
     }
   }
   return 0;
@@ -1818,6 +1828,7 @@ bool CompilerInvocation::ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args,
   Opts.NewStructPathTBAA = !Args.hasArg(OPT_no_struct_path_tbaa) &&
                            Args.hasArg(OPT_new_struct_path_tbaa);
   Opts.OptimizeSize = getOptimizationLevelSize(Args);
+  Opts.OptimizeDebug = getOptimizationLevelDebug(Args);
   Opts.SimplifyLibCalls = !LangOpts->NoBuiltin;
   if (Opts.SimplifyLibCalls)
     Opts.NoBuiltinFuncs = LangOpts->NoBuiltinFuncs;
@@ -2149,7 +2160,8 @@ bool CompilerInvocation::ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args,
   Opts.ExtendThisPtr =
       Opts.OptimizationLevel > 0 && Args.hasArg(OPT_fextend_this_ptr);
   Opts.ExtendLifetimes =
-      Opts.OptimizationLevel > 0 && Args.hasArg(OPT_fextend_lifetimes);
+      Opts.OptimizationLevel > 0 &&
+      (Args.hasArg(OPT_fextend_lifetimes) || Opts.OptimizeDebug > 0);
 
   Opts.EmitVersionIdentMetadata = Args.hasFlag(OPT_Qy, OPT_Qn, true);
 
@@ -3601,8 +3613,8 @@ void CompilerInvocationBase::GenerateLangArgs(const LangOptions &Opts,
                   Opts.OpenACCMacroOverride);
   }
 
-  // The arguments used to set Optimize, OptimizeSize and NoInlineDefine are
-  // generated from CodeGenOptions.
+  // The arguments used to set Optimize, OptimizeDebug, OptimizeSize and
+  // NoInlineDefine are generated from CodeGenOptions.
 
   if (Opts.DefaultFPContractMode == LangOptions::FPM_Fast)
     GenerateArg(Consumer, OPT_ffp_contract, "fast");

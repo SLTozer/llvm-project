@@ -1888,6 +1888,8 @@ static void getTrivialDefaultFunctionAttributes(
       FuncAttrs.addAttribute(llvm::Attribute::OptimizeForSize);
     if (CodeGenOpts.OptimizeSize == 2)
       FuncAttrs.addAttribute(llvm::Attribute::MinSize);
+    if (CodeGenOpts.OptimizeDebug)
+      FuncAttrs.addAttribute(llvm::Attribute::OptimizeForDebugging);
   }
 
   if (CodeGenOpts.DisableRedZone)

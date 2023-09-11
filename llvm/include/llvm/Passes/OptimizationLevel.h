@@ -22,13 +22,17 @@ namespace llvm {
 class OptimizationLevel final {
   unsigned SpeedLevel = 2;
   unsigned SizeLevel = 0;
-  OptimizationLevel(unsigned SpeedLevel, unsigned SizeLevel)
-      : SpeedLevel(SpeedLevel), SizeLevel(SizeLevel) {
+  unsigned DebugLevel = 0;
+  OptimizationLevel(unsigned SpeedLevel, unsigned SizeLevel,
+                    unsigned DebugLevel)
+      : SpeedLevel(SpeedLevel), SizeLevel(SizeLevel), DebugLevel(DebugLevel) {
     // Check that only valid combinations are passed.
     assert(SpeedLevel <= 3 &&
            "Optimization level for speed should be 0, 1, 2, or 3");
     assert(SizeLevel <= 2 &&
            "Optimization level for size should be 0, 1, or 2");
+    assert(DebugLevel <= 1 &&
+           "Optimization level for debugging should be 0 or 1");
     assert((SizeLevel == 0 || SpeedLevel == 2) &&
            "Optimize for size should be encoded with speedup level == 2");
   }
@@ -106,10 +110,25 @@ public:
   /// execution time impact. You should expect this level to produce rather
   /// slow, but very small, code.
   static const OptimizationLevel Oz;
+  /// Optimize for highly debuggable optimized code, with reasonable execution
+  /// speed and compile times.
+  ///
+  /// This optimization mode is similar to O1, but sacrifices some execution
+  /// speed in exchange for much better debug info quality.
+  static const OptimizationLevel Og;
+  /// Optimize primarily for fast execution while maintaining debuggability to a
+  /// reasonable extent.
+  ///
+  /// This optimization mode should result in greater execution speed and
+  /// debuggability than O1, while having compile times roughly equal to O2 and
+  /// execution speed below O2.
+  static const OptimizationLevel O2g;
 
   bool isOptimizingForSpeed() const { return SizeLevel == 0 && SpeedLevel > 0; }
 
   bool isOptimizingForSize() const { return SizeLevel > 0; }
+
+  bool isOptimizingForDebug() const { return DebugLevel > 0; }
 
   bool operator==(const OptimizationLevel &Other) const {
     return SizeLevel == Other.SizeLevel && SpeedLevel == Other.SpeedLevel;
@@ -121,6 +140,8 @@ public:
   unsigned getSpeedupLevel() const { return SpeedLevel; }
 
   unsigned getSizeLevel() const { return SizeLevel; }
+
+  unsigned getDebugLevel() const { return DebugLevel; }
 };
 } // namespace llvm
 

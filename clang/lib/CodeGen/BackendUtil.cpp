@@ -605,7 +605,16 @@ static OptimizationLevel mapToLevel(const CodeGenOptions &Opts) {
     return OptimizationLevel::O0;
 
   case 1:
-    return OptimizationLevel::O1;
+    switch (Opts.OptimizeDebug) {
+    default:
+      llvm_unreachable("Invalid optimization level for debugging!");
+
+    case 0:
+      return OptimizationLevel::O1;
+
+    case 1:
+      return OptimizationLevel::Og;
+    }
 
   case 2:
     switch (Opts.OptimizeSize) {
@@ -613,7 +622,16 @@ static OptimizationLevel mapToLevel(const CodeGenOptions &Opts) {
       llvm_unreachable("Invalid optimization level for size!");
 
     case 0:
-      return OptimizationLevel::O2;
+      switch (Opts.OptimizeDebug) {
+      default:
+        llvm_unreachable("Invalid optimization level for debugging!");
+
+      case 0:
+        return OptimizationLevel::O2;
+
+      case 1:
+        return OptimizationLevel::O2g;
+      }
 
     case 1:
       return OptimizationLevel::Os;
