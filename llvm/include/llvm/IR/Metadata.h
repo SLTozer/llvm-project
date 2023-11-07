@@ -212,32 +212,53 @@ private:
 /// lookup and callback handling.
 class DebugValueUser {
 protected:
-  TinyPtrVector<Metadata *> DebugValues;
+  std::unique_ptr<Metadata *[]> DebugValues;
+  size_t Length = 0; // Can we remove this somehow?
+
+  MutableArrayRef<Metadata *> getDebugValues() const {
+    return MutableArrayRef(DebugValues.get(), Length);
+  }
+
+  void resetArray(const ArrayRef<Metadata *> &NewMD) {
+    if (Length != NewMD.size()) {
+      DebugValues.reset(new Metadata *[NewMD.size()]);
+      Length = NewMD.size();
+    }
+
+    for (const auto &[NewMD, InitMD] : zip(getDebugValues(), NewMD))
+      NewMD = InitMD;
+  }
+
+  void takeArray(DebugValueUser &From) {
+    DebugValues = std::move(From.DebugValues);
+    Length = From.Length;
+  }
 
 public:
   DPValue *getUser();
   const DPValue *getUser() const;
   void handleChangedValue(Metadata *NewDebugValue);
   DebugValueUser() = default;
-  explicit DebugValueUser(const TinyPtrVector<Metadata *> &DebugValues)
-      : DebugValues(DebugValues) {
-    trackDebugValue();
+  explicit DebugValueUser(const ArrayRef<Metadata *> &MD) {
+    resetArray(MD);
+    trackDebugValues();
   }
-
-  DebugValueUser(DebugValueUser &&X) : DebugValues(std::move(X.DebugValues)) {
-    retrackDebugValue(X);
+  DebugValueUser(DebugValueUser &&X) {
+    resetArray(X.getDebugValues());
+    retrackDebugValues(X);
   }
-  DebugValueUser(const DebugValueUser &X) : DebugValues(X.DebugValues) {
-    trackDebugValue();
+  DebugValueUser(const DebugValueUser &X) {
+    resetArray(X.getDebugValues());
+    trackDebugValues();
   }
 
   DebugValueUser &operator=(DebugValueUser &&X) {
     if (&X == this)
       return *this;
 
-    untrackDebugValue();
-    DebugValues = std::move(X.DebugValues);
-    retrackDebugValue(X);
+    untrackDebugValues();
+    takeArray(X);
+    retrackDebugValues(X);
     return *this;
   }
 
@@ -245,38 +266,40 @@ public:
     if (&X == this)
       return *this;
 
-    untrackDebugValue();
-    DebugValues = std::move(X.DebugValues);
-    trackDebugValue();
+    untrackDebugValues();
+    resetArray(X.getDebugValues());
+    trackDebugValues();
     return *this;
   }
 
-  ~DebugValueUser() { untrackDebugValue(); }
+  ~DebugValueUser() { untrackDebugValues(); }
 
-  void resetDebugValue() {
-    untrackDebugValue();
-    DebugValues.clear();
+  void resetDebugValues() {
+    untrackDebugValues();
+    DebugValues.reset();
   }
-  void resetDebugValue(Metadata *DebugValue) {
-    untrackDebugValue();
-    // XXX TODO
-    // this->DebugValue = DebugValue;
-    trackDebugValue();
+
+  void resetDebugValue(int Idx, Metadata *DebugValue) {
+    untrackDebugValue(Idx);
+    DebugValues[Idx] = DebugValue;
+    trackDebugValue(Idx);
   }
 
   bool operator==(const DebugValueUser &X) const {
-    return std::equal(DebugValues.begin(), DebugValues.end(),
-                      X.DebugValues.begin());
+    return getDebugValues() == X.getDebugValues();
   }
   bool operator!=(const DebugValueUser &X) const {
-    return !std::equal(DebugValues.begin(), DebugValues.end(),
-                       X.DebugValues.begin());
+    return getDebugValues() != X.getDebugValues();
   }
 
 private:
-  void trackDebugValue();
-  void untrackDebugValue();
-  void retrackDebugValue(DebugValueUser &X);
+  void trackDebugValue(int Idx);
+  void trackDebugValues();
+
+  void untrackDebugValue(int Idx);
+  void untrackDebugValues();
+
+  void retrackDebugValues(DebugValueUser &X);
 };
 
 /// API for tracking metadata references through RAUW and deletion.

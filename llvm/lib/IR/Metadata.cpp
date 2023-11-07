@@ -156,22 +156,31 @@ void DebugValueUser::handleChangedValue(Metadata *NewDebugValue) {
   // getUser()->handleChangedLocation(NewMD);
 }
 
-void DebugValueUser::trackDebugValue() {
-  if (DebugValue)
-    MetadataTracking::track(&DebugValue, *DebugValue, *this);
+void DebugValueUser::trackDebugValue(int Idx) {
+  Metadata *&Operand = DebugValues[Idx];
+  MetadataTracking::track(Operand, *Operand, *this);
 }
 
-void DebugValueUser::untrackDebugValue() {
-  if (DebugValue)
-    MetadataTracking::untrack(DebugValue);
+void DebugValueUser::trackDebugValues() {
+  for (Metadata *&MD : getDebugValues())
+    MetadataTracking::track(MD, *MD, *this);
 }
 
-void DebugValueUser::retrackDebugValue(DebugValueUser &X) {
-  assert(DebugValue == X.DebugValue && "Expected values to match");
-  if (X.DebugValue) {
-    MetadataTracking::retrack(X.DebugValue, DebugValue);
-    X.DebugValue = nullptr;
-  }
+void DebugValueUser::untrackDebugValue(int Idx) {
+  Metadata *&Operand = DebugValues[Idx];
+  MetadataTracking::untrack(Operand);
+}
+
+void DebugValueUser::untrackDebugValues() {
+  for (Metadata *&MD : getDebugValues())
+    MetadataTracking::untrack(MD);
+}
+
+void DebugValueUser::retrackDebugValues(DebugValueUser &X) {
+  assert(DebugValueUser::operator==(X) && "Expected values to match");
+  for (const auto &[MD, XMD] : zip(getDebugValues(), X.getDebugValues()))
+    MetadataTracking::retrack(XMD, MD);
+  X.DebugValues.reset();
 }
 
 bool MetadataTracking::track(void *Ref, Metadata &MD, OwnerTy Owner) {

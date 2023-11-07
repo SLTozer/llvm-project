@@ -35,9 +35,8 @@ DPValue::DPValue(const DPValue &DPV)
 
 DPValue::DPValue(Metadata *Location, DILocalVariable *DV, DIExpression *Expr,
                  const DILocation *DI)
-    : DebugValueUser(Location), Variable(DV), Expression(Expr), DbgLoc(DI),
-      Type(LocationType::Value) {
-}
+    : DebugValueUser({Location}), Variable(DV), Expression(Expr), DbgLoc(DI),
+      Type(LocationType::Value) {}
 
 void DPValue::deleteInstr() { delete this; }
 
