@@ -13,7 +13,7 @@
 namespace llvm {
 
 DPValue::DPValue(const DbgVariableIntrinsic *DVI)
-    : DebugValueUser(DVI->getRawLocation()), Variable(DVI->getVariable()),
+    : DebugValueUser({DVI->getRawLocation()}), Variable(DVI->getVariable()),
       Expression(DVI->getExpression()), DbgLoc(DVI->getDebugLoc()) {
   switch (DVI->getIntrinsicID()) {
   case Intrinsic::dbg_value:
@@ -29,7 +29,7 @@ DPValue::DPValue(const DbgVariableIntrinsic *DVI)
 }
 
 DPValue::DPValue(const DPValue &DPV)
-    : DebugValueUser(DPV.getRawLocation()), Type(DPV.getType()),
+    : DebugValueUser({DPV.getRawLocation()}), Type(DPV.getType()),
       Variable(DPV.getVariable()), Expression(DPV.getExpression()),
       DbgLoc(DPV.getDebugLoc()) {}
 

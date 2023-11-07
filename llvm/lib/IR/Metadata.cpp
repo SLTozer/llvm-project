@@ -151,8 +151,9 @@ DPValue *DebugValueUser::getUser() { return static_cast<DPValue *>(this); }
 const DPValue *DebugValueUser::getUser() const {
   return static_cast<const DPValue *>(this);
 }
-void DebugValueUser::handleChangedValue(Metadata *NewMD) {
-  getUser()->handleChangedLocation(NewMD);
+void DebugValueUser::handleChangedValue(Metadata *NewDebugValue) {
+  // XXX todo:
+  // getUser()->handleChangedLocation(NewMD);
 }
 
 void DebugValueUser::trackDebugValue() {

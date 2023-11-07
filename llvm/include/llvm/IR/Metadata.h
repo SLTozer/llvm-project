@@ -21,6 +21,7 @@
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/TinyPtrVector.h"
 #include "llvm/ADT/ilist_node.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/IR/Constant.h"
@@ -211,21 +212,22 @@ private:
 /// lookup and callback handling.
 class DebugValueUser {
 protected:
-  Metadata *DebugValue;
+  TinyPtrVector<Metadata *> DebugValues;
 
 public:
   DPValue *getUser();
   const DPValue *getUser() const;
   void handleChangedValue(Metadata *NewDebugValue);
   DebugValueUser() = default;
-  explicit DebugValueUser(Metadata *DebugValue) : DebugValue(DebugValue) {
+  explicit DebugValueUser(const TinyPtrVector<Metadata *> &DebugValues)
+      : DebugValues(DebugValues) {
     trackDebugValue();
   }
 
-  DebugValueUser(DebugValueUser &&X) : DebugValue(X.DebugValue) {
+  DebugValueUser(DebugValueUser &&X) : DebugValues(std::move(X.DebugValues)) {
     retrackDebugValue(X);
   }
-  DebugValueUser(const DebugValueUser &X) : DebugValue(X.DebugValue) {
+  DebugValueUser(const DebugValueUser &X) : DebugValues(X.DebugValues) {
     trackDebugValue();
   }
 
@@ -234,7 +236,7 @@ public:
       return *this;
 
     untrackDebugValue();
-    DebugValue = X.DebugValue;
+    DebugValues = std::move(X.DebugValues);
     retrackDebugValue(X);
     return *this;
   }
@@ -244,7 +246,7 @@ public:
       return *this;
 
     untrackDebugValue();
-    DebugValue = X.DebugValue;
+    DebugValues = std::move(X.DebugValues);
     trackDebugValue();
     return *this;
   }
@@ -253,19 +255,22 @@ public:
 
   void resetDebugValue() {
     untrackDebugValue();
-    DebugValue = nullptr;
+    DebugValues.clear();
   }
   void resetDebugValue(Metadata *DebugValue) {
     untrackDebugValue();
-    this->DebugValue = DebugValue;
+    // XXX TODO
+    // this->DebugValue = DebugValue;
     trackDebugValue();
   }
 
   bool operator==(const DebugValueUser &X) const {
-    return DebugValue == X.DebugValue;
+    return std::equal(DebugValues.begin(), DebugValues.end(),
+                      X.DebugValues.begin());
   }
   bool operator!=(const DebugValueUser &X) const {
-    return DebugValue != X.DebugValue;
+    return !std::equal(DebugValues.begin(), DebugValues.end(),
+                       X.DebugValues.begin());
   }
 
 private:

@@ -232,7 +232,11 @@ public:
 
   DIExpression *getExpression() const { return Expression; }
 
-  Metadata *getRawLocation() const { return DebugValue; }
+  /// Returns the metadata operand for the first location description. i.e.,
+  /// dbg intrinsic dbg.value,declare operand and dbg.assign 1st location
+  /// operand (the "value componenet"). Note the operand (singular) may be
+  /// a DIArgList which is a list of values.
+  Metadata *getRawLocation() const { return DebugValues[0]; }
 
   /// Use of this should generally be avoided; instead,
   /// replaceVariableLocationOp and addVariableLocationOps should be used where
