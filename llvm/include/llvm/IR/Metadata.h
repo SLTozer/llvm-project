@@ -237,7 +237,7 @@ protected:
 public:
   DPValue *getUser();
   const DPValue *getUser() const;
-  void handleChangedValue(Metadata *NewDebugValue);
+  void handleChangedValue(void *Old, Metadata *NewDebugValue);
   DebugValueUser() = default;
   explicit DebugValueUser(const ArrayRef<Metadata *> &MD) {
     resetArray(MD);

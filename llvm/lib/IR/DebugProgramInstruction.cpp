@@ -13,8 +13,9 @@
 namespace llvm {
 
 DPValue::DPValue(const DbgVariableIntrinsic *DVI)
-    : DebugValueUser({DVI->getRawLocation()}), Variable(DVI->getVariable()),
-      Expression(DVI->getExpression()), DbgLoc(DVI->getDebugLoc()) {
+    : DebugValueUser(ArrayRef(DVI->getRawLocation())),
+      Variable(DVI->getVariable()), Expression(DVI->getExpression()),
+      DbgLoc(DVI->getDebugLoc()) {
   switch (DVI->getIntrinsicID()) {
   case Intrinsic::dbg_value:
     Type = LocationType::Value;
@@ -29,14 +30,14 @@ DPValue::DPValue(const DbgVariableIntrinsic *DVI)
 }
 
 DPValue::DPValue(const DPValue &DPV)
-    : DebugValueUser({DPV.getRawLocation()}), Type(DPV.getType()),
+    : DebugValueUser(DPV.getDebugValues()), Type(DPV.getType()),
       Variable(DPV.getVariable()), Expression(DPV.getExpression()),
       DbgLoc(DPV.getDebugLoc()) {}
 
 DPValue::DPValue(Metadata *Location, DILocalVariable *DV, DIExpression *Expr,
                  const DILocation *DI)
-    : DebugValueUser({Location}), Variable(DV), Expression(Expr), DbgLoc(DI),
-      Type(LocationType::Value) {}
+    : DebugValueUser(ArrayRef(Location)), Variable(DV), Expression(Expr),
+      DbgLoc(DI), Type(LocationType::Value) {}
 
 void DPValue::deleteInstr() { delete this; }
 
@@ -190,10 +191,6 @@ DPValue::createDebugIntrinsic(Module *M, Instruction *InsertBefore) const {
     DVI->insertBefore(InsertBefore);
 
   return DVI;
-}
-
-void DPValue::handleChangedLocation(Metadata *NewLocation) {
-  resetDebugValue(NewLocation);
 }
 
 const BasicBlock *DPValue::getParent() const {

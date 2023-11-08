@@ -246,7 +246,7 @@ public:
         (isa<ValueAsMetadata>(NewLocation) || isa<DIArgList>(NewLocation) ||
          isa<MDNode>(NewLocation)) &&
         "Location for a DPValue must be either ValueAsMetadata or DIArgList");
-    resetDebugValue(NewLocation);
+    resetDebugValue(0, NewLocation);
   }
 
   /// Get the size (in bits) of the variable, or fragment of the variable that
@@ -259,10 +259,6 @@ public:
   /// \returns A new dbg.value intrinsic representiung this DPValue.
   DbgVariableIntrinsic *createDebugIntrinsic(Module *M,
                                              Instruction *InsertBefore) const;
-  /// Handle changes to the location of the Value(s) that we refer to happening
-  /// "under our feet".
-  void handleChangedLocation(Metadata *NewLocation);
-
   void setMarker(DPMarker *M) { Marker = M; }
 
   DPMarker *getMarker() { return Marker; }

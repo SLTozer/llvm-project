@@ -682,7 +682,8 @@ void llvm::deleteDeadLoop(Loop *L, DominatorTree *DT, ScalarEvolution *SE,
         // Debug intrinsic will be created, then immediately converted to a
         // DPValue on insertion. Inefficient, but correct.
 // XXX XXX XXX jmorse rebasing, use kill location instead.
-        DPV->handleChangedLocation(ValueAsMetadata::get(UndefValue::get(Builder.getInt32Ty())));
+        DPV->setKillLocation();
+        // xxx xxx xxx jmorse I did it now, for reasons.
         ExitBlock->createMarker(&*InsertDbgValueBefore);
         ExitBlock->insertDPValueBefore(DPV, InsertDbgValueBefore);
       }

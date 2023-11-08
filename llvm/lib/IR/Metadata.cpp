@@ -151,9 +151,16 @@ DPValue *DebugValueUser::getUser() { return static_cast<DPValue *>(this); }
 const DPValue *DebugValueUser::getUser() const {
   return static_cast<const DPValue *>(this);
 }
-void DebugValueUser::handleChangedValue(Metadata *NewDebugValue) {
-  // XXX todo:
-  // getUser()->handleChangedLocation(NewMD);
+
+void DebugValueUser::handleChangedValue(void *Old, Metadata *New) {
+  // NOTE: We could inform the "owner" that a value has changed through
+  // getOwner, if needed.
+  auto Values = getDebugValues();
+  Metadata **It = std::find(Values.begin(), Values.end(), Old);
+  if (It == Values.end())
+    return;
+  ptrdiff_t Idx = std::distance(Values.begin(), It);
+  resetDebugValue(Idx, New);
 }
 
 void DebugValueUser::trackDebugValue(int Idx) {
@@ -366,7 +373,7 @@ void ReplaceableMetadataImpl::replaceAllUsesWith(Metadata *MD) {
     }
 
     if (Owner.is<DebugValueUser *>()) {
-      Owner.get<DebugValueUser *>()->getUser()->handleChangedLocation(MD);
+      Owner.get<DebugValueUser *>()->handleChangedValue(Pair.first, MD);
       continue;
     }
 
