@@ -13,9 +13,9 @@
 namespace llvm {
 
 DPValue::DPValue(const DbgVariableIntrinsic *DVI)
-    : DebugValueUser(ArrayRef(DVI->getRawLocation())),
+    : DebugValueUser({DVI->getRawLocation(), nullptr}),
       Variable(DVI->getVariable()), Expression(DVI->getExpression()),
-      DbgLoc(DVI->getDebugLoc()) {
+      DbgLoc(DVI->getDebugLoc()), AssignID(), AddressExpression(nullptr) {
   switch (DVI->getIntrinsicID()) {
   case Intrinsic::dbg_value:
     Type = LocationType::Value;
@@ -23,6 +23,14 @@ DPValue::DPValue(const DbgVariableIntrinsic *DVI)
   case Intrinsic::dbg_declare:
     Type = LocationType::Declare;
     break;
+  case Intrinsic::dbg_assign: {
+    Type = LocationType::Assign;
+    const DbgAssignIntrinsic* Assign = static_cast<const DbgAssignIntrinsic*>(DVI);
+    resetDebugValue(1, Assign->getRawAddress());
+    AddressExpression = Assign->getAddressExpression();
+    AssignID = TrackingDIAssignIDRef(Assign->getAssignID());
+    break;
+  }
   default:
     llvm_unreachable(
         "Trying to create a DPValue with an invalid intrinsic type!");
@@ -30,14 +38,14 @@ DPValue::DPValue(const DbgVariableIntrinsic *DVI)
 }
 
 DPValue::DPValue(const DPValue &DPV)
-    : DebugValueUser(DPV.getDebugValues()), Type(DPV.getType()),
+    : DebugValueUser(DPV.DebugValues), Type(DPV.getType()),
       Variable(DPV.getVariable()), Expression(DPV.getExpression()),
-      DbgLoc(DPV.getDebugLoc()) {}
+      DbgLoc(DPV.getDebugLoc()), AssignID(DPV.AssignID), AddressExpression(DPV.AddressExpression) {}
 
 DPValue::DPValue(Metadata *Location, DILocalVariable *DV, DIExpression *Expr,
                  const DILocation *DI)
-    : DebugValueUser(ArrayRef(Location)), Variable(DV), Expression(Expr),
-      DbgLoc(DI), Type(LocationType::Value) {}
+    : DebugValueUser({Location, nullptr}), Variable(DV), Expression(Expr),
+      DbgLoc(DI), Type(LocationType::Value), AssignID(), AddressExpression(nullptr) {}
 
 void DPValue::deleteInstr() { delete this; }
 
@@ -169,6 +177,13 @@ DPValue::createDebugIntrinsic(Module *M, Instruction *InsertBefore) const {
   Value *Args[] = {MetadataAsValue::get(Context, getRawLocation()),
                    MetadataAsValue::get(Context, getVariable()),
                    MetadataAsValue::get(Context, getExpression())};
+  Value *AssignArgs[] = {
+    MetadataAsValue::get(Context, getRawLocation()),
+    MetadataAsValue::get(Context, getVariable()),
+    MetadataAsValue::get(Context, getExpression()),
+    MetadataAsValue::get(Context, getAssignID()),
+    MetadataAsValue::get(Context, getRawAddress()),
+    MetadataAsValue::get(Context, getAddressExpression())};
   Function *IntrinsicFn;
 
   // Work out what sort of intrinsic we're going to produce.
@@ -178,6 +193,9 @@ DPValue::createDebugIntrinsic(Module *M, Instruction *InsertBefore) const {
     break;
   case DPValue::LocationType::Value:
     IntrinsicFn = Intrinsic::getDeclaration(M, Intrinsic::dbg_value);
+    break;
+  case DPValue::LocationType::Assign:
+    IntrinsicFn = Intrinsic::getDeclaration(M, Intrinsic::dbg_assign);
     break;
   }
 
@@ -192,6 +210,22 @@ DPValue::createDebugIntrinsic(Module *M, Instruction *InsertBefore) const {
 
   return DVI;
 }
+
+/////////////////////////////////////////////
+/// DbgAssign Methods
+
+
+  Value *DPValue::getAddress() const {
+    auto *MD = getRawAddress();
+    if (auto *V = dyn_cast<ValueAsMetadata>(MD))
+      return V->getValue();
+
+    // When the value goes to null, it gets replaced by an empty MDNode.
+    assert(!cast<MDNode>(MD)->getNumOperands() && "Expected an empty MDNode");
+    return nullptr;
+  }
+
+/////////////////////////////////////////////
 
 const BasicBlock *DPValue::getParent() const {
   return Marker->MarkedInstr->getParent();

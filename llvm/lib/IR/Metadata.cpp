@@ -155,23 +155,13 @@ const DPValue *DebugValueUser::getUser() const {
 void DebugValueUser::handleChangedValue(void *Old, Metadata *New) {
   // NOTE: We could inform the "owner" that a value has changed through
   // getOwner, if needed.
-  auto Values = getDebugValues();
-  Metadata **It = std::find(Values.begin(), Values.end(), Old);
-  if (It == Values.end())
-    return;
-  ptrdiff_t Idx = std::distance(Values.begin(), It);
+  auto OldMD = static_cast<Metadata **>(Old);
+  ptrdiff_t Idx = std::distance(DebugValues.begin(), OldMD);
   resetDebugValue(Idx, New);
 }
 
-template<size_t Idx>
-void DebugValueUser::trackDebugValue() {
-  static_assert(Idx < N && "Invalid debug value index.");
-  Metadata *&MD = DebugValues[Idx];
-  if (MD)
-    MetadataTracking::track(&MD, *MD, *this);
-}
 void DebugValueUser::trackDebugValue(size_t Idx) {
-  assert(Idx < N && "Invalid debug value index.");
+  assert(Idx < 2 && "Invalid debug value index.");
   Metadata *&MD = DebugValues[Idx];
   if (MD)
     MetadataTracking::track(&MD, *MD, *this);
@@ -183,15 +173,8 @@ void DebugValueUser::trackDebugValues() {
       MetadataTracking::track(&MD, *MD, *this);
 }
 
-template<size_t Idx>
-void DebugValueUser::untrackDebugValue() {
-  static_assert(Idx < N && "Invalid debug value index.");
-  Metadata *&MD = DebugValues[Idx];
-  if (MD)
-    MetadataTracking::untrack(MD);
-}
 void DebugValueUser::untrackDebugValue(size_t Idx) {
-  assert(Idx < N && "Invalid debug value index.");
+  assert(Idx < 2 && "Invalid debug value index.");
   Metadata *&MD = DebugValues[Idx];
   if (MD)
     MetadataTracking::untrack(MD);

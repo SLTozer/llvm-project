@@ -90,6 +90,7 @@ class DPValue : public ilist_node<DPValue>, private DebugValueUser {
   DILocalVariable *Variable;
   DIExpression *Expression;
   DebugLoc DbgLoc;
+  DIExpression *AddressExpression;
   TrackingDIAssignIDRef AssignID;
 
 public:
@@ -107,6 +108,7 @@ public:
   enum class LocationType {
     Declare,
     Value,
+    Assign,
   };
   /// Classification of the debug-info record that this DPValue represents.
   /// Essentially, "is this a dbg.value or dbg.declare?". dbg.declares are not
@@ -247,12 +249,56 @@ public:
         (isa<ValueAsMetadata>(NewLocation) || isa<DIArgList>(NewLocation) ||
          isa<MDNode>(NewLocation)) &&
         "Location for a DPValue must be either ValueAsMetadata or DIArgList");
-    resetDebugValue<0>(NewLocation);
+    resetDebugValue(0, NewLocation);
   }
 
   /// Get the size (in bits) of the variable, or fragment of the variable that
   /// is described.
   std::optional<uint64_t> getFragmentSizeInBits() const;
+
+
+  /////////////////////////////////////////////
+  /// DbgAssign Methods
+
+  bool isDbgAssign() const { return getType() == LocationType::Assign; }
+
+  Value *getAddress() const;
+  Metadata *getRawAddress() const {
+    return DebugValues[1];
+  }
+  Metadata *getRawAssignID() const {
+    return AssignID.get();
+  }
+  DIAssignID *getAssignID() const { return AssignID.get(); }
+  Metadata *getRawAddressExpression() const {
+    return AddressExpression;
+  }
+  DIExpression *getAddressExpression() const {
+    return AddressExpression;
+  }
+  void setAddressExpression(DIExpression *NewExpr) {
+    AddressExpression = NewExpr;
+  }
+  void setAssignId(DIAssignID *New) {
+    AssignID.reset(New);
+  }
+  void setAddress(Value *V) {
+    resetDebugValue(1, ValueAsMetadata::get(V));
+  }
+  /// Kill the address component.
+  void setKillAddress() {
+    resetDebugValue(1, ValueAsMetadata::get(UndefValue::get(getAddress()->getType())));
+  }
+  /// Check whether this kills the address component. This doesn't take into
+  /// account the position of the intrinsic, therefore a returned value of false
+  /// does not guarentee the address is a valid location for the variable at the
+  /// intrinsic's position in IR.
+  bool isKillAddress() const {
+    Value *Addr = getAddress();
+    return !Addr || isa<UndefValue>(Addr);
+  }
+
+  /////////////////////////////////////////////
 
   DPValue *clone() const;
   /// Convert this DPValue back into a dbg.value intrinsic.

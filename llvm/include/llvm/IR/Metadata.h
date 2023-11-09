@@ -210,11 +210,10 @@ private:
 /// a SubclassID will need to be added (either as a new field or by making
 /// DebugValue into a PointerIntUnion) to discriminate between the subclasses in
 /// lookup and callback handling.
-template<size_t N>
 class DebugValueUser {
 protected:
-  // Capacity to store N debug values.
-  std::array<Metadata *, N> DebugValues;
+  // Capacity to store 2 debug values.
+  std::array<Metadata *, 2> DebugValues;
 
   ArrayRef<Metadata *> getDebugValues() const {
     return DebugValues;
@@ -225,15 +224,15 @@ public:
   const DPValue *getUser() const;
   void handleChangedValue(void *Old, Metadata *NewDebugValue);
   DebugValueUser() = default;
-  explicit DebugValueUser(std::array<Metadata *, N> DebugValues) : DebugValues(DebugValues) {
+  explicit DebugValueUser(std::array<Metadata *, 2> DebugValues) : DebugValues(DebugValues) {
     trackDebugValues();
   }
   DebugValueUser(DebugValueUser &&X) {
-    DebugValues = X.DebugValues();
+    DebugValues = X.DebugValues;
     retrackDebugValues(X);
   }
   DebugValueUser(const DebugValueUser &X) {
-    DebugValues = X.getDebugValues();
+    DebugValues = X.DebugValues;
     trackDebugValues();
   }
 
@@ -264,35 +263,26 @@ public:
     DebugValues.fill(nullptr);
   }
 
-  template<size_t Idx>
-  void resetDebugValue(Metadata *DebugValue) {
-    static_assert(Idx < N && "Invalid debug value index.");
-    untrackDebugValue<Idx>();
-    DebugValues[Idx] = DebugValue;
-    trackDebugValue<Idx>();
-  }
-
   void resetDebugValue(size_t Idx, Metadata *DebugValue) {
-    assert(Idx < N && "Invalid debug value index.");
+    assert(Idx < 2 && "Invalid debug value index.");
     untrackDebugValue(Idx);
     DebugValues[Idx] = DebugValue;
     trackDebugValue(Idx);
   }
 
   bool operator==(const DebugValueUser &X) const {
-    return getDebugValues() == X.getDebugValues();
+    return DebugValues == X.DebugValues;
   }
   bool operator!=(const DebugValueUser &X) const {
-    return getDebugValues() != X.getDebugValues();
+    return DebugValues != X.DebugValues;
   }
 
 private:
-  template<size_t Idx> void trackDebugValue();
   void trackDebugValue(size_t Idx);
   void trackDebugValues();
 
-  template<size_t Idx> void untrackDebugValues();
   void untrackDebugValue(size_t Idx);
+  void untrackDebugValues();
 
   void retrackDebugValues(DebugValueUser &X);
 };
@@ -342,7 +332,6 @@ public:
   /// As \a track(Metadata*&), but with support for calling back to \c Owner to
   /// tell it that its operand changed.  This could trigger \c Owner being
   /// re-uniqued.
-  template<size_t N>
   static bool track(void *Ref, Metadata &MD, DebugValueUser &Owner) {
     return track(Ref, MD, &Owner);
   }

@@ -1774,12 +1774,7 @@ void at::deleteAssignmentMarkers(const Instruction *Inst) {
 }
 
 void at::RAUW(DIAssignID *Old, DIAssignID *New) {
-  // Replace MetadataAsValue uses.
-  if (auto *OldIDAsValue =
-          MetadataAsValue::getIfExists(Old->getContext(), Old)) {
-    auto *NewIDAsValue = MetadataAsValue::get(Old->getContext(), New);
-    OldIDAsValue->replaceAllUsesWith(NewIDAsValue);
-  }
+  Old->replaceAllUsesWith(New);
 
   // Replace attachments.
   AssignmentInstRange InstRange = getAssignmentInsts(Old);
