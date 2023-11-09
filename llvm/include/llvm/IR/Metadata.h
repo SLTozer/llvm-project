@@ -542,6 +542,46 @@ public:
   }
 };
 
+/// List of ValueAsMetadata, to be used as an argument to a dbg.value
+/// intrinsic.
+class DIArgList : public Metadata, ReplaceableMetadataImpl {
+  friend class ReplaceableMetadataImpl;
+  friend class LLVMContextImpl;
+  using iterator = SmallVectorImpl<ValueAsMetadata *>::iterator;
+
+  SmallVector<ValueAsMetadata *, 4> Args;
+
+  DIArgList(LLVMContext &Context, ArrayRef<ValueAsMetadata *> Args)
+      : Metadata(DIArgListKind, Uniqued), ReplaceableMetadataImpl(Context),
+        Args(Args.begin(), Args.end()) {
+    track();
+  }
+  ~DIArgList() { untrack(); }
+
+  void track();
+  void untrack();
+  void dropAllReferences();
+
+public:
+  static DIArgList *get(LLVMContext &Context,
+                        ArrayRef<ValueAsMetadata *> Args);
+
+  ArrayRef<ValueAsMetadata *> getArgs() const { return Args; }
+
+  iterator args_begin() { return Args.begin(); }
+  iterator args_end() { return Args.end(); }
+
+  static bool classof(const Metadata *MD) {
+    return MD->getMetadataID() == DIArgListKind;
+  }
+
+  SmallVector<DPValue *> getAllDPValueUsers() {
+    return ReplaceableMetadataImpl::getAllDPValueUsers();
+  }
+
+  void handleChangedOperand(void *Ref, Metadata *New);
+};
+
 /// Transitional API for extracting constants from Metadata.
 ///
 /// This namespace contains transitional functions for metadata that points to
@@ -1037,7 +1077,6 @@ struct TempMDNodeDeleter {
 class MDNode : public Metadata {
   friend class ReplaceableMetadataImpl;
   friend class LLVMContextImpl;
-  friend class DIArgList;
 
   /// The header that is coallocated with an MDNode along with its "small"
   /// operands. It is located immediately before the main body of the node.
@@ -1221,7 +1260,7 @@ public:
   bool isTemporary() const { return Storage == Temporary; }
 
   bool isReplaceable() const {
-    return isTemporary() || getMetadataID() == DIArgListKind;
+    return isTemporary();
   }
 
   /// RAUW a temporary.

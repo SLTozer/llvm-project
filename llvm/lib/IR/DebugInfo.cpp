@@ -109,12 +109,10 @@ static void findDbgIntrinsics(SmallVectorImpl<IntrinsicT *> &Result,
       if (!DPValues)
         continue;
       DIArgList *DI = cast<DIArgList>(AL);
-      if (auto *Replaceable = DI->getReplaceableUses()) {
-        for (DPValue *DPV : Replaceable->getAllDPValueUsers())
-          if (DPV->getType() == DPValue::LocationType::Value)
-            if (EncounteredDPValues.insert(DPV).second)
-              DPValues->push_back(DPV);
-      }
+      for (DPValue *DPV : DI->getAllDPValueUsers())
+        if (DPV->getType() == DPValue::LocationType::Value)
+          if (EncounteredDPValues.insert(DPV).second)
+            DPValues->push_back(DPV);
     }
   }
 }

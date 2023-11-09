@@ -409,28 +409,25 @@ void ReplaceableMetadataImpl::resolveAllUses(bool ResolveUsers) {
 }
 
 ReplaceableMetadataImpl *ReplaceableMetadataImpl::getOrCreate(Metadata &MD) {
-  if (auto ArgList = dyn_cast<DIArgList>(&MD))
-    return ArgList->Context.getOrCreateReplaceableUses();
   if (auto *N = dyn_cast<MDNode>(&MD))
     return N->isResolved() ? nullptr : N->Context.getOrCreateReplaceableUses();
+  if (auto ArgList = dyn_cast<DIArgList>(&MD))
+    return ArgList;
   return dyn_cast<ValueAsMetadata>(&MD);
 }
 
 ReplaceableMetadataImpl *ReplaceableMetadataImpl::getIfExists(Metadata &MD) {
-  if (auto ArgList = dyn_cast<DIArgList>(&MD)) {
-    return ArgList->Context.getOrCreateReplaceableUses();
-  }
   if (auto *N = dyn_cast<MDNode>(&MD))
     return N->isResolved() ? nullptr : N->Context.getReplaceableUses();
+  if (auto ArgList = dyn_cast<DIArgList>(&MD))
+    return ArgList;
   return dyn_cast<ValueAsMetadata>(&MD);
 }
 
 bool ReplaceableMetadataImpl::isReplaceable(const Metadata &MD) {
-  if (isa<DIArgList>(&MD))
-    return true;
   if (auto *N = dyn_cast<MDNode>(&MD))
     return !N->isResolved();
-  return isa<ValueAsMetadata>(&MD);
+  return isa<ValueAsMetadata>(&MD) || isa<DIArgList>(&MD);
 }
 
 static DISubprogram *getLocalFunctionMetadata(Value *V) {
@@ -549,6 +546,63 @@ void ValueAsMetadata::handleRAUW(Value *From, Value *To) {
   To->IsUsedByMD = true;
   MD->V = To;
   Entry = MD;
+}
+
+DIArgList *DIArgList::get(LLVMContext &Context,
+                                 ArrayRef<ValueAsMetadata *> Args) {
+  auto ExistingIt = Context.pImpl->DIArgLists.find_as(DIArgListKeyInfo(Args));
+  if (ExistingIt != Context.pImpl->DIArgLists.end())
+    return *ExistingIt;
+  DIArgList *NewArgList = new DIArgList(Context, Args);
+  Context.pImpl->DIArgLists.insert(NewArgList);
+  return NewArgList;
+}
+
+void DIArgList::handleChangedOperand(void *Ref, Metadata *New) {
+  ValueAsMetadata **OldVMPtr = static_cast<ValueAsMetadata **>(Ref);
+  assert((!New || isa<ValueAsMetadata>(New)) &&
+         "DIArgList must be passed a ValueAsMetadata");
+  untrack();
+  // We need to update the set storage once the Args are updated since they
+  // form the key to the DIArgLists store.
+  getContext().pImpl->DIArgLists.erase(this);
+  ValueAsMetadata *NewVM = cast_or_null<ValueAsMetadata>(New);
+  for (ValueAsMetadata *&VM : Args) {
+    if (&VM == OldVMPtr) {
+      if (NewVM)
+        VM = NewVM;
+      else
+        VM = ValueAsMetadata::get(PoisonValue::get(VM->getValue()->getType()));
+    }
+  }
+  // We've changed the contents of this DIArgList, and the set storage may
+  // already contain a DIArgList with our new set of args; if it does, then we
+  // must RAUW this with the existing DIArgList, otherwise we simply insert this
+  // back into the set storage.
+  DIArgList *ExistingArgList = getUniqued(getContext().pImpl->DIArgLists, this);
+  if (ExistingArgList) {
+    replaceAllUsesWith(ExistingArgList);
+    // Clear this here so we don't try to untrack in the destructor.
+    Args.clear();
+    delete this;
+    return;
+  }
+  track();
+}
+void DIArgList::track() {
+  for (ValueAsMetadata *&VAM : Args)
+    if (VAM)
+      MetadataTracking::track(&VAM, *VAM, *this);
+}
+void DIArgList::untrack() {
+  for (ValueAsMetadata *&VAM : Args)
+    if (VAM)
+      MetadataTracking::untrack(&VAM, *VAM);
+}
+void DIArgList::dropAllReferences() {
+  untrack();
+  Args.clear();
+  ReplaceableMetadataImpl::resolveAllUses(/* ResolveUsers */ false);
 }
 
 //===----------------------------------------------------------------------===//
