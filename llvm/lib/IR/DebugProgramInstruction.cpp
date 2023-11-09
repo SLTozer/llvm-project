@@ -174,16 +174,6 @@ DPValue::createDebugIntrinsic(Module *M, Instruction *InsertBefore) const {
          "Cannot clone from BasicBlock that is not part of a Module or "
          "DICompileUnit!");
   LLVMContext &Context = getDebugLoc()->getContext();
-  Value *Args[] = {MetadataAsValue::get(Context, getRawLocation()),
-                   MetadataAsValue::get(Context, getVariable()),
-                   MetadataAsValue::get(Context, getExpression())};
-  Value *AssignArgs[] = {
-    MetadataAsValue::get(Context, getRawLocation()),
-    MetadataAsValue::get(Context, getVariable()),
-    MetadataAsValue::get(Context, getExpression()),
-    MetadataAsValue::get(Context, getAssignID()),
-    MetadataAsValue::get(Context, getRawAddress()),
-    MetadataAsValue::get(Context, getAddressExpression())};
   Function *IntrinsicFn;
 
   // Work out what sort of intrinsic we're going to produce.
@@ -201,8 +191,24 @@ DPValue::createDebugIntrinsic(Module *M, Instruction *InsertBefore) const {
 
   // Create the intrinsic from this DPValue's information, optionally insert
   // into the target location.
-  DbgVariableIntrinsic *DVI = cast<DbgVariableIntrinsic>(
-      CallInst::Create(IntrinsicFn->getFunctionType(), IntrinsicFn, Args));
+  DbgVariableIntrinsic *DVI;
+  if (isDbgAssign()) {
+    Value *AssignArgs[] = {
+      MetadataAsValue::get(Context, getRawLocation()),
+      MetadataAsValue::get(Context, getVariable()),
+      MetadataAsValue::get(Context, getExpression()),
+      MetadataAsValue::get(Context, getAssignID()),
+      MetadataAsValue::get(Context, getRawAddress()),
+      MetadataAsValue::get(Context, getAddressExpression())};
+    DVI = cast<DbgVariableIntrinsic>(
+        CallInst::Create(IntrinsicFn->getFunctionType(), IntrinsicFn, AssignArgs));
+  } else {
+    Value *Args[] = {MetadataAsValue::get(Context, getRawLocation()),
+                    MetadataAsValue::get(Context, getVariable()),
+                    MetadataAsValue::get(Context, getExpression())};
+    DVI = cast<DbgVariableIntrinsic>(
+        CallInst::Create(IntrinsicFn->getFunctionType(), IntrinsicFn, Args));
+  }
   DVI->setTailCall();
   DVI->setDebugLoc(getDebugLoc());
   if (InsertBefore)
