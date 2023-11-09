@@ -586,6 +586,8 @@ void DIArgList::handleChangedOperand(void *Ref, Metadata *New) {
     Args.clear();
     delete this;
     return;
+  } else {
+    getContext().pImpl->DIArgLists.insert(this);
   }
   track();
 }
