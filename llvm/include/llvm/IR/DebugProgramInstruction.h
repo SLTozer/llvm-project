@@ -90,6 +90,7 @@ class DPValue : public ilist_node<DPValue>, private DebugValueUser {
   DILocalVariable *Variable;
   DIExpression *Expression;
   DebugLoc DbgLoc;
+  TrackingDIAssignIDRef AssignID;
 
 public:
   void deleteInstr();
@@ -246,7 +247,7 @@ public:
         (isa<ValueAsMetadata>(NewLocation) || isa<DIArgList>(NewLocation) ||
          isa<MDNode>(NewLocation)) &&
         "Location for a DPValue must be either ValueAsMetadata or DIArgList");
-    resetDebugValue(0, NewLocation);
+    resetDebugValue<0>(NewLocation);
   }
 
   /// Get the size (in bits) of the variable, or fragment of the variable that
