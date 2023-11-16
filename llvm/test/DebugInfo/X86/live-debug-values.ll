@@ -52,8 +52,8 @@ target triple = "x86_64-unknown-linux-gnu"
 ; Function Attrs: nounwind uwtable
 define dso_local i32 @main(i32 %argc, ptr nocapture readonly %argv) #0 !dbg !10 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %argc, metadata !17, metadata !20), !dbg !21
-  tail call void @llvm.dbg.value(metadata ptr %argv, metadata !18, metadata !20), !dbg !22
+  tail call void @llvm.dbg.value(metadata i32 %argc, metadata !17, metadata !DIExpression()), !dbg !21
+  tail call void @llvm.dbg.value(metadata ptr %argv, metadata !18, metadata !DIExpression()), !dbg !22
   %cmp = icmp eq i32 %argc, 2, !dbg !24
   br i1 %cmp, label %if.else, label %if.end, !dbg !26
 
@@ -61,13 +61,13 @@ if.else:                                          ; preds = %entry
   %arrayidx = getelementptr inbounds ptr, ptr %argv, i64 1, !dbg !27
   %0 = load ptr, ptr %arrayidx, align 8, !dbg !27, !tbaa !28
   %call = tail call i32 (ptr, ...) @atoi(ptr %0) #1, !dbg !32
-  tail call void @llvm.dbg.value(metadata i32 %call, metadata !19, metadata !20), !dbg !33
+  tail call void @llvm.dbg.value(metadata i32 %call, metadata !19, metadata !DIExpression()), !dbg !33
   br label %if.end
 
 if.end:                                           ; preds = %if.else, %entry
   %n.0 = phi i32 [ %call, %if.else ], [ 2, %entry ]
   %call1 = tail call i32 @change(i32 %n.0) #1, !dbg !34
-  tail call void @llvm.dbg.value(metadata i32 %call1, metadata !19, metadata !20), !dbg !33
+  tail call void @llvm.dbg.value(metadata i32 %call1, metadata !19, metadata !DIExpression()), !dbg !33
   %cmp2 = icmp sgt i32 %call1, 10, !dbg !35
   br i1 %cmp2, label %if.then.3, label %if.else.5, !dbg !37
 
@@ -133,7 +133,6 @@ attributes #2 = { nounwind readnone }
 !17 = !DILocalVariable(name: "argc", arg: 1, scope: !10, file: !3, line: 6, type: !6)
 !18 = !DILocalVariable(name: "argv", arg: 2, scope: !10, file: !3, line: 6, type: !13)
 !19 = !DILocalVariable(name: "n", scope: !10, file: !3, line: 7, type: !6)
-!20 = !DIExpression()
 !21 = !DILocation(line: 6, column: 14, scope: !10)
 !22 = !DILocation(line: 6, column: 27, scope: !23)
 !23 = !DILexicalBlockFile(scope: !10, file: !3, discriminator: 1)

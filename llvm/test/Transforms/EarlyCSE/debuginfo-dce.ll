@@ -6,12 +6,12 @@ define i32 @foo() !dbg !6 {
 entry:
   %0 = call i64 @llvm.ctpop.i64(i64 0), !dbg !14
   %1 = inttoptr i64 %0 to ptr, !dbg !14
-  call void @llvm.dbg.value(metadata ptr %1, i64 0, metadata !11, metadata !13), !dbg !14
-; CHECK: call void @llvm.dbg.value(metadata i64 0, metadata !11, metadata !DIExpression()), !dbg !13
+  call void @llvm.dbg.value(metadata ptr %1, i64 0, metadata !11, metadata !DIExpression()), !dbg !14
+; CHECK: call void @llvm.dbg.value(metadata i64 0, metadata !11, metadata !DIExpression()), !dbg !DIExpression()
   %call = call ptr (...) @baa(), !dbg !15
   %2 = ptrtoint ptr %call to i64, !dbg !16
   %3 = inttoptr i64 %2 to ptr, !dbg !16
-  call void @llvm.dbg.value(metadata ptr %3, i64 0, metadata !11, metadata !13), !dbg !14
+  call void @llvm.dbg.value(metadata ptr %3, i64 0, metadata !11, metadata !DIExpression()), !dbg !14
   %tobool = icmp ne ptr %3, null, !dbg !17
   br i1 %tobool, label %if.end, label %if.then, !dbg !19
 
@@ -52,7 +52,6 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !10 = !{!11}
 !11 = !DILocalVariable(name: "ptr", scope: !6, file: !1, line: 4, type: !12)
 !12 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !9, size: 64)
-!13 = !DIExpression()
 !14 = !DILocation(line: 4, column: 8, scope: !6)
 !15 = !DILocation(line: 5, column: 9, scope: !6)
 !16 = !DILocation(line: 5, column: 7, scope: !6)

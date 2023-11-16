@@ -772,12 +772,12 @@ entry:
   %c = alloca %class.Class, align 4
   %dc = alloca %struct.DerivedClass, align 8
   %n = alloca %"struct.Class::Nested", align 4
-  call void @llvm.dbg.declare(metadata %struct.Struct* %s, metadata !10, metadata !19), !dbg !20
-  call void @llvm.dbg.declare(metadata %union.Union* %u, metadata !21, metadata !19), !dbg !27
-  call void @llvm.dbg.declare(metadata %class.Class* %c, metadata !28, metadata !19), !dbg !34
-  call void @llvm.dbg.declare(metadata %struct.DerivedClass* %dc, metadata !35, metadata !19), !dbg !46
+  call void @llvm.dbg.declare(metadata %struct.Struct* %s, metadata !10, metadata !DIExpression()), !dbg !20
+  call void @llvm.dbg.declare(metadata %union.Union* %u, metadata !21, metadata !DIExpression()), !dbg !27
+  call void @llvm.dbg.declare(metadata %class.Class* %c, metadata !28, metadata !DIExpression()), !dbg !34
+  call void @llvm.dbg.declare(metadata %struct.DerivedClass* %dc, metadata !35, metadata !DIExpression()), !dbg !46
   %call = call %struct.DerivedClass* @"\01??0DerivedClass@@QEAA@XZ"(%struct.DerivedClass* %dc, i32 1) #3, !dbg !46
-  call void @llvm.dbg.declare(metadata %"struct.Class::Nested"* %n, metadata !47, metadata !19), !dbg !51
+  call void @llvm.dbg.declare(metadata %"struct.Class::Nested"* %n, metadata !47, metadata !DIExpression()), !dbg !51
   ret void, !dbg !52
 }
 
@@ -791,9 +791,9 @@ entry:
   %is_most_derived.addr = alloca i32, align 4
   %this.addr = alloca %struct.DerivedClass*, align 8
   store i32 %is_most_derived, i32* %is_most_derived.addr, align 4
-  call void @llvm.dbg.declare(metadata i32* %is_most_derived.addr, metadata !58, metadata !19), !dbg !59
+  call void @llvm.dbg.declare(metadata i32* %is_most_derived.addr, metadata !58, metadata !DIExpression()), !dbg !59
   store %struct.DerivedClass* %this, %struct.DerivedClass** %this.addr, align 8
-  call void @llvm.dbg.declare(metadata %struct.DerivedClass** %this.addr, metadata !60, metadata !19), !dbg !59
+  call void @llvm.dbg.declare(metadata %struct.DerivedClass** %this.addr, metadata !60, metadata !DIExpression()), !dbg !59
   %this1 = load %struct.DerivedClass*, %struct.DerivedClass** %this.addr, align 8
   store %struct.DerivedClass* %this1, %struct.DerivedClass** %retval, align 8
   %is_most_derived2 = load i32, i32* %is_most_derived.addr, align 4
@@ -844,7 +844,6 @@ attributes #3 = { nounwind }
 !16 = !DIDerivedType(tag: DW_TAG_member, name: "s3", scope: !11, file: !1, line: 4, baseType: !14, size: 32, align: 32, offset: 64)
 !17 = !DIDerivedType(tag: DW_TAG_member, name: "sdm", scope: !11, file: !1, line: 5, baseType: !18, flags: DIFlagStaticMember, extraData: i32 3)
 !18 = !DIDerivedType(tag: DW_TAG_const_type, baseType: !14)
-!19 = !DIExpression()
 !20 = !DILocation(line: 27, column: 10, scope: !7)
 !21 = !DILocalVariable(name: "u", scope: !7, file: !1, line: 28, type: !22)
 !22 = distinct !DICompositeType(tag: DW_TAG_union_type, name: "Union", file: !1, line: 7, size: 32, align: 32, elements: !23, identifier: ".?ATUnion@@")

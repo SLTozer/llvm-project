@@ -50,8 +50,8 @@ source_filename = "test/DebugInfo/X86/dbg-value-inlined-parameter.ll"
 ; Function Attrs: nounwind optsize ssp
 define i32 @foo(ptr nocapture %sp, i32 %nums) #0 !dbg !15 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %sp, metadata !19, metadata !22), !dbg !23
-  tail call void @llvm.dbg.value(metadata i32 %nums, metadata !21, metadata !22), !dbg !24
+  tail call void @llvm.dbg.value(metadata ptr %sp, metadata !19, metadata !DIExpression()), !dbg !23
+  tail call void @llvm.dbg.value(metadata i32 %nums, metadata !21, metadata !DIExpression()), !dbg !24
   %tmp2 = getelementptr inbounds %struct.S1, ptr %sp, i64 0, i32 1, !dbg !25
   store i32 %nums, ptr %tmp2, align 4, !dbg !25
   %call = tail call ptr @bar(i32 %nums) #3, !dbg !27
@@ -67,8 +67,8 @@ declare ptr @bar(i32) #1
 ; Function Attrs: nounwind optsize ssp
 define void @foobar() #0 !dbg !29 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr @p, metadata !19, metadata !22) #4, !dbg !32
-  tail call void @llvm.dbg.value(metadata i32 1, metadata !21, metadata !22) #4, !dbg !35
+  tail call void @llvm.dbg.value(metadata ptr @p, metadata !19, metadata !DIExpression()) #4, !dbg !32
+  tail call void @llvm.dbg.value(metadata i32 1, metadata !21, metadata !DIExpression()) #4, !dbg !35
   store i32 1, ptr getelementptr inbounds (%struct.S1, ptr @p, i64 0, i32 1), align 8, !dbg !36
   %call.i = tail call ptr @bar(i32 1) #3, !dbg !37
   store ptr %call.i, ptr @p, align 8, !dbg !37
@@ -110,7 +110,6 @@ attributes #4 = { nounwind }
 !19 = !DILocalVariable(name: "sp", arg: 1, scope: !15, file: !3, line: 7, type: !20)
 !20 = !DIDerivedType(tag: DW_TAG_pointer_type, scope: !2, baseType: !6, size: 64, align: 64)
 !21 = !DILocalVariable(name: "nums", arg: 2, scope: !15, file: !3, line: 7, type: !13)
-!22 = !DIExpression()
 !23 = !DILocation(line: 7, column: 13, scope: !15)
 !24 = !DILocation(line: 7, column: 21, scope: !15)
 !25 = !DILocation(line: 9, column: 3, scope: !26)

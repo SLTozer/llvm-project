@@ -32,9 +32,9 @@ entry:
   %sum = alloca i32, align 4
   %i = alloca i64, align 8
   store i32 0, ptr %retval, align 4
-  call void @llvm.dbg.declare(metadata ptr %sum, metadata !20, metadata !21), !dbg !22
+  call void @llvm.dbg.declare(metadata ptr %sum, metadata !20, metadata !DIExpression()), !dbg !22
   store i32 0, ptr %sum, align 4, !dbg !22
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !23, metadata !21), !dbg !25
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !23, metadata !DIExpression()), !dbg !25
   store i64 0, ptr %i, align 8, !dbg !25
   br label %for.cond, !dbg !26
 
@@ -112,7 +112,6 @@ attributes #1 = {"use-sample-profile"}
 !18 = !DISubroutineType(types: !19)
 !19 = !{!14}
 !20 = !DILocalVariable(name: "sum", scope: !17, file: !3, line: 8, type: !14)
-!21 = !DIExpression()
 !22 = !DILocation(line: 8, column: 7, scope: !17)
 !23 = !DILocalVariable(name: "i", scope: !24, file: !3, line: 9, type: !7)
 !24 = distinct !DILexicalBlock(scope: !17, file: !3, line: 9, column: 3)

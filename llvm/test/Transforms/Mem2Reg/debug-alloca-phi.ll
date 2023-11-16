@@ -6,7 +6,7 @@ target triple = "x86_64-apple-macosx10.12.0"
 define void @scan() #0 !dbg !12 {
 entry:
   %entry1 = alloca i8, align 8
-  call void @llvm.dbg.declare(metadata ptr %entry1, metadata !18, metadata !19), !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %entry1, metadata !18, metadata !DIExpression()), !dbg !20
   store i8 0, ptr %entry1, align 8, !dbg !20
   br label %for.cond, !dbg !20
 
@@ -42,5 +42,4 @@ attributes #1 = { nounwind readnone }
 !14 = !{null, !4, !4}
 !15 = !{!18}
 !18 = !DILocalVariable(name: "entry", scope: !12, file: !1, line: 6, type: !4)
-!19 = !DIExpression()
 !20 = !DILocation(line: 6, scope: !12)

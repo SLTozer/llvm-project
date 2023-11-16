@@ -36,7 +36,7 @@ entry:
   %vla = alloca i32, i32 %0, align 4, !dbg !42
   ;; This dbg.declare turns into a DBG_INSTR_REF, rather than an argument
   ;; DBG_VALUE. It needs to keep the extra indirectness.
-  call void @llvm.dbg.declare(metadata ptr %vla, metadata !43, metadata !47), !dbg !48
+  call void @llvm.dbg.declare(metadata ptr %vla, metadata !43, metadata !DIExpression(DW_OP_deref)), !dbg !48
   store i32 0, ptr %vla, align 4, !dbg !50
   %2 = load ptr, ptr %saved_stack, align 4, !dbg !51
   call void @llvm.stackrestore(ptr %2), !dbg !51
@@ -95,7 +95,6 @@ declare void @llvm.stackrestore(ptr)
 !36 = !DISubroutineType(types: !37)
 !37 = !{null, !13}
 !38 = !DILocalVariable(name: "x", arg: 1, scope: !35, file: !3, line: 8, type: !13)
-!39 = !DIExpression()
 !40 = !DILocation(line: 8, column: 14, scope: !35)
 !41 = !DILocation(line: 9, column: 21, scope: !35)
 !42 = !DILocation(line: 9, column: 4, scope: !35)
@@ -103,7 +102,6 @@ declare void @llvm.stackrestore(ptr)
 !44 = !DICompositeType(tag: DW_TAG_array_type, baseType: !13, align: 32, elements: !45)
 !45 = !{!46}
 !46 = !DISubrange(count: -1)
-!47 = !DIExpression(DW_OP_deref)
 !48 = !DILocation(line: 9, column: 8, scope: !35)
 !49 = !DILocation(line: 10, column: 4, scope: !35)
 !50 = !DILocation(line: 10, column: 20, scope: !35)

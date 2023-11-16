@@ -37,14 +37,14 @@ declare void @llvm.dbg.value(metadata, metadata, metadata) #0
 
 define void @fn1(i16 signext %p1) !dbg !16 {
 entry:
-  tail call void @llvm.dbg.value(metadata i16 %p1, metadata !20, metadata !23), !dbg !24
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !21, metadata !23), !dbg !25
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !22, metadata !23), !dbg !26
-  tail call void @llvm.dbg.value(metadata i32 3, metadata !22, metadata !27), !dbg !26
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !22, metadata !28), !dbg !26
-  tail call void @llvm.dbg.value(metadata i16 %p1, metadata !21, metadata !29), !dbg !25
-  tail call void @llvm.dbg.value(metadata i32 3, metadata !21, metadata !27), !dbg !25
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !21, metadata !28), !dbg !25
+  tail call void @llvm.dbg.value(metadata i16 %p1, metadata !20, metadata !DIExpression()), !dbg !24
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !21, metadata !DIExpression()), !dbg !25
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !22, metadata !DIExpression()), !dbg !26
+  tail call void @llvm.dbg.value(metadata i32 3, metadata !22, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !26
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !22, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !26
+  tail call void @llvm.dbg.value(metadata i16 %p1, metadata !21, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 16)), !dbg !25
+  tail call void @llvm.dbg.value(metadata i32 3, metadata !21, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !25
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !21, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !25
   store i32 3, ptr @a, align 4, !dbg !30
   store i32 0, ptr getelementptr inbounds (%struct.S0, ptr @a, i64 0, i32 1), align 4, !dbg !30
   ret void, !dbg !31
@@ -84,13 +84,9 @@ attributes #0 = { nounwind readnone }
 !20 = !DILocalVariable(name: "p1", arg: 1, scope: !16, file: !3, line: 5, type: !9)
 !21 = !DILocalVariable(name: "b", scope: !16, file: !3, line: 6, type: !6)
 !22 = !DILocalVariable(name: "c", scope: !16, file: !3, line: 6, type: !6)
-!23 = !DIExpression()
 !24 = !DILocation(line: 5, column: 16, scope: !16)
 !25 = !DILocation(line: 6, column: 13, scope: !16)
 !26 = !DILocation(line: 6, column: 16, scope: !16)
-!27 = !DIExpression(DW_OP_LLVM_fragment, 0, 32)
-!28 = !DIExpression(DW_OP_LLVM_fragment, 32, 32)
-!29 = !DIExpression(DW_OP_LLVM_fragment, 32, 16)
 !30 = !DILocation(line: 8, column: 9, scope: !16)
 !31 = !DILocation(line: 9, column: 1, scope: !16)
 !32 = distinct !DISubprogram(name: "main", scope: !3, file: !3, line: 11, type: !33, isLocal: false, isDefinition: true, scopeLine: 11, isOptimized: true, unit: !2, retainedNodes: !4)

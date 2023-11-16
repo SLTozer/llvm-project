@@ -31,10 +31,10 @@ target triple = "x86_64-apple-macosx10.12.0"
 define noalias nonnull ptr @_Z4getBv() local_unnamed_addr #0 !dbg !7 {
 entry:
   %call = tail call ptr @_Znwm(i64 12) #3, !dbg !20
-  tail call void @llvm.dbg.value(metadata ptr %call, metadata !21, metadata !28), !dbg !29
-  tail call void @llvm.dbg.value(metadata ptr %call, metadata !31, metadata !28), !dbg !34
-  tail call void @llvm.dbg.value(metadata ptr %call, metadata !36, metadata !44), !dbg !45
-  tail call void @llvm.dbg.value(metadata ptr %call, metadata !47, metadata !44), !dbg !50
+  tail call void @llvm.dbg.value(metadata ptr %call, metadata !21, metadata !DIExpression()), !dbg !29
+  tail call void @llvm.dbg.value(metadata ptr %call, metadata !31, metadata !DIExpression()), !dbg !34
+  tail call void @llvm.dbg.value(metadata ptr %call, metadata !36, metadata !DIExpression(DW_OP_stack_value)), !dbg !45
+  tail call void @llvm.dbg.value(metadata ptr %call, metadata !47, metadata !DIExpression(DW_OP_stack_value)), !dbg !50
   store i32 23, ptr %call, align 4, !dbg !52, !tbaa !53
   %a2.i.i.i.i = getelementptr inbounds i8, ptr %call, i64 4, !dbg !58
   store i32 42, ptr %a2.i.i.i.i, align 4, !dbg !58, !tbaa !59
@@ -81,7 +81,6 @@ attributes #3 = { builtin }
 !25 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !11, size: 64, flags: DIFlagArtificial | DIFlagObjectPointer)
 !26 = !DISubprogram(name: "B", scope: !11, type: !23, isLocal: false, isDefinition: false, flags: DIFlagArtificial | DIFlagPrototyped, isOptimized: true)
 !27 = !{!21}
-!28 = !DIExpression()
 !29 = !DILocation(line: 0, scope: !22, inlinedAt: !30)
 !30 = distinct !DILocation(line: 11, column: 24, scope: !7)
 !31 = !DILocalVariable(name: "this", arg: 1, scope: !32, type: !10, flags: DIFlagArtificial | DIFlagObjectPointer)
@@ -97,7 +96,6 @@ attributes #3 = { builtin }
 !41 = !DISubprogram(name: "A", scope: !14, type: !38, isLocal: false, isDefinition: false, flags: DIFlagPublic | DIFlagArtificial | DIFlagPrototyped, isOptimized: true)
 !42 = !{!36}
 !43 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !14, size: 64)
-!44 = !DIExpression(DW_OP_stack_value)
 !45 = !DILocation(line: 0, scope: !37, inlinedAt: !46)
 !46 = distinct !DILocation(line: 6, column: 8, scope: !32, inlinedAt: !35)
 !47 = !DILocalVariable(name: "this", arg: 1, scope: !48, type: !43, flags: DIFlagArtificial | DIFlagObjectPointer)

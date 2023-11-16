@@ -185,13 +185,13 @@ entry:
   %b = alloca %struct.B, align 8
   %c = alloca %struct.C, align 8
   %d = alloca %struct.D, align 8
-  call void @llvm.dbg.declare(metadata %struct.A* %a, metadata !10, metadata !23), !dbg !24
+  call void @llvm.dbg.declare(metadata %struct.A* %a, metadata !10, metadata !DIExpression()), !dbg !24
   %call = call %struct.A* @"\01??0A@@QEAA@XZ"(%struct.A* %a) #5, !dbg !24
-  call void @llvm.dbg.declare(metadata %struct.B* %b, metadata !25, metadata !23), !dbg !33
+  call void @llvm.dbg.declare(metadata %struct.B* %b, metadata !25, metadata !DIExpression()), !dbg !33
   %call1 = call %struct.B* @"\01??0B@@QEAA@XZ"(%struct.B* %b) #5, !dbg !33
-  call void @llvm.dbg.declare(metadata %struct.C* %c, metadata !34, metadata !23), !dbg !44
+  call void @llvm.dbg.declare(metadata %struct.C* %c, metadata !34, metadata !DIExpression()), !dbg !44
   %call2 = call %struct.C* @"\01??0C@@QEAA@XZ"(%struct.C* %c) #5, !dbg !44
-  call void @llvm.dbg.declare(metadata %struct.D* %d, metadata !45, metadata !23), !dbg !55
+  call void @llvm.dbg.declare(metadata %struct.D* %d, metadata !45, metadata !DIExpression()), !dbg !55
   %call3 = call %struct.D* @"\01??0D@@QEAA@XZ"(%struct.D* %d, i32 1) #5, !dbg !55
   %0 = bitcast %struct.C* %c to i8*, !dbg !56
   %1 = getelementptr i8, i8* %0, i64 8, !dbg !56
@@ -207,7 +207,7 @@ define linkonce_odr %struct.A* @"\01??0A@@QEAA@XZ"(%struct.A* returned %this) un
 entry:
   %this.addr = alloca %struct.A*, align 8
   store %struct.A* %this, %struct.A** %this.addr, align 8
-  call void @llvm.dbg.declare(metadata %struct.A** %this.addr, metadata !62, metadata !23), !dbg !64
+  call void @llvm.dbg.declare(metadata %struct.A** %this.addr, metadata !62, metadata !DIExpression()), !dbg !64
   %this1 = load %struct.A*, %struct.A** %this.addr, align 8
   %0 = bitcast %struct.A* %this1 to i32 (...)***, !dbg !65
   store i32 (...)** bitcast ([1 x i8*]* @"\01??_7A@@6B@" to i32 (...)**), i32 (...)*** %0, align 8, !dbg !65
@@ -219,7 +219,7 @@ define linkonce_odr %struct.B* @"\01??0B@@QEAA@XZ"(%struct.B* returned %this) un
 entry:
   %this.addr = alloca %struct.B*, align 8
   store %struct.B* %this, %struct.B** %this.addr, align 8
-  call void @llvm.dbg.declare(metadata %struct.B** %this.addr, metadata !70, metadata !23), !dbg !72
+  call void @llvm.dbg.declare(metadata %struct.B** %this.addr, metadata !70, metadata !DIExpression()), !dbg !72
   %this1 = load %struct.B*, %struct.B** %this.addr, align 8
   %0 = bitcast %struct.B* %this1 to i32 (...)***, !dbg !73
   store i32 (...)** bitcast ([1 x i8*]* @"\01??_7B@@6B@" to i32 (...)**), i32 (...)*** %0, align 8, !dbg !73
@@ -231,7 +231,7 @@ define linkonce_odr %struct.C* @"\01??0C@@QEAA@XZ"(%struct.C* returned %this) un
 entry:
   %this.addr = alloca %struct.C*, align 8
   store %struct.C* %this, %struct.C** %this.addr, align 8
-  call void @llvm.dbg.declare(metadata %struct.C** %this.addr, metadata !78, metadata !23), !dbg !80
+  call void @llvm.dbg.declare(metadata %struct.C** %this.addr, metadata !78, metadata !DIExpression()), !dbg !80
   %this1 = load %struct.C*, %struct.C** %this.addr, align 8
   %0 = bitcast %struct.C* %this1 to %struct.A*, !dbg !81
   %call = call %struct.A* @"\01??0A@@QEAA@XZ"(%struct.A* %0) #5, !dbg !81
@@ -257,9 +257,9 @@ entry:
   %is_most_derived.addr = alloca i32, align 4
   %this.addr = alloca %struct.D*, align 8
   store i32 %is_most_derived, i32* %is_most_derived.addr, align 4
-  call void @llvm.dbg.declare(metadata i32* %is_most_derived.addr, metadata !87, metadata !23), !dbg !88
+  call void @llvm.dbg.declare(metadata i32* %is_most_derived.addr, metadata !87, metadata !DIExpression()), !dbg !88
   store %struct.D* %this, %struct.D** %this.addr, align 8
-  call void @llvm.dbg.declare(metadata %struct.D** %this.addr, metadata !89, metadata !23), !dbg !88
+  call void @llvm.dbg.declare(metadata %struct.D** %this.addr, metadata !89, metadata !DIExpression()), !dbg !88
   %this1 = load %struct.D*, %struct.D** %this.addr, align 8
   store %struct.D* %this1, %struct.D** %retval, align 8
   %is_most_derived2 = load i32, i32* %is_most_derived.addr, align 4
@@ -303,7 +303,7 @@ entry:
   %1 = getelementptr inbounds i8, i8* %0, i32 -8
   %this = bitcast i8* %1 to %struct.C*
   store %struct.C* %this, %struct.C** %this.addr, align 8
-  call void @llvm.dbg.declare(metadata %struct.C** %this.addr, metadata !94, metadata !23), !dbg !95
+  call void @llvm.dbg.declare(metadata %struct.C** %this.addr, metadata !94, metadata !DIExpression()), !dbg !95
   %this1 = load %struct.C*, %struct.C** %this.addr, align 8
   %c = getelementptr inbounds %struct.C, %struct.C* %this1, i32 0, i32 2, !dbg !96
   %2 = load i32, i32* %c, align 8, !dbg !96
@@ -321,7 +321,7 @@ entry:
   %1 = getelementptr inbounds i8, i8* %0, i32 -16
   %this = bitcast i8* %1 to %struct.D*
   store %struct.D* %this, %struct.D** %this.addr, align 8
-  call void @llvm.dbg.declare(metadata %struct.D** %this.addr, metadata !99, metadata !23), !dbg !100
+  call void @llvm.dbg.declare(metadata %struct.D** %this.addr, metadata !99, metadata !DIExpression()), !dbg !100
   %this1 = load %struct.D*, %struct.D** %this.addr, align 8
   %d = getelementptr inbounds %struct.D, %struct.D* %this1, i32 0, i32 1, !dbg !101
   %2 = load i32, i32* %d, align 8, !dbg !101
@@ -362,7 +362,6 @@ attributes #5 = { nounwind }
 !20 = !DISubroutineType(types: !21)
 !21 = !{!18, !22}
 !22 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !11, size: 64, align: 64, flags: DIFlagArtificial | DIFlagObjectPointer)
-!23 = !DIExpression()
 !24 = !DILocation(line: 16, column: 5, scope: !7)
 !25 = !DILocalVariable(name: "b", scope: !7, file: !1, line: 17, type: !26)
 !26 = distinct !DICompositeType(tag: DW_TAG_structure_type, name: "B", file: !1, line: 4, size: 64, align: 64, elements: !27, vtableHolder: !26, identifier: ".?AUB@@")

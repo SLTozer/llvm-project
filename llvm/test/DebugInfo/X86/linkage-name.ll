@@ -17,9 +17,9 @@ entry:
   %this.addr = alloca %class.A*, align 8
   %b.addr = alloca i32, align 4
   store %class.A* %this, %class.A** %this.addr, align 8
-  call void @llvm.dbg.declare(metadata %class.A** %this.addr, metadata !15, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata %class.A** %this.addr, metadata !15, metadata !DIExpression()), !dbg !18
   store i32 %b, i32* %b.addr, align 4
-  call void @llvm.dbg.declare(metadata i32* %b.addr, metadata !19, metadata !17), !dbg !20
+  call void @llvm.dbg.declare(metadata i32* %b.addr, metadata !19, metadata !DIExpression()), !dbg !20
   %this1 = load %class.A*, %class.A** %this.addr
   %0 = load i32, i32* %b.addr, align 4, !dbg !21
   ret i32 %0, !dbg !21
@@ -52,7 +52,6 @@ attributes #1 = { nounwind readnone }
 !14 = distinct !DISubprogram(name: "a", linkageName: "_ZN1A1aEi", scope: null, file: !2, line: 5, type: !6, isLocal: false, isDefinition: true, scopeLine: 5, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !10, declaration: !5)
 !15 = !DILocalVariable(name: "this", arg: 1, scope: !14, file: !2, line: 5, type: !16, flags: DIFlagArtificial)
 !16 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !3, size: 64, align: 64)
-!17 = !DIExpression()
 !18 = !DILocation(line: 5, column: 8, scope: !14)
 !19 = !DILocalVariable(name: "b", arg: 2, scope: !14, file: !2, line: 5, type: !8)
 !20 = !DILocation(line: 5, column: 14, scope: !14)

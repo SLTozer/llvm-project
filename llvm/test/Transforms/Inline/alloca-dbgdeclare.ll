@@ -47,11 +47,11 @@ entry:
 ; CHECK-NEXT:   llvm.lifetime.start
 ; CHECK-NEXT:   call void @llvm.dbg.declare(metadata ptr %agg.tmp.sroa.3.i,
   %agg.tmp.sroa.3 = alloca [20 x i8], align 4
-  tail call void @llvm.dbg.declare(metadata ptr %agg.tmp.sroa.3, metadata !25, metadata !30), !dbg !31
+  tail call void @llvm.dbg.declare(metadata ptr %agg.tmp.sroa.3, metadata !25, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 160)), !dbg !31
   %agg.tmp.sroa.0.0.copyload = load i32, ptr @b, align 8, !dbg !33
-  tail call void @llvm.dbg.value(metadata i32 %agg.tmp.sroa.0.0.copyload, metadata !25, metadata !34), !dbg !31
+  tail call void @llvm.dbg.value(metadata i32 %agg.tmp.sroa.0.0.copyload, metadata !25, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !31
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %agg.tmp.sroa.3, ptr align 4 getelementptr (i8, ptr @b, i64 4), i64 20, i1 false), !dbg !33
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !25, metadata !35) #0, !dbg !31
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !25, metadata !DIExpression(DW_OP_deref)) #0, !dbg !31
   %tobool.i = icmp eq i32 %agg.tmp.sroa.0.0.copyload, 0, !dbg !36
   br i1 %tobool.i, label %_Z3fn31A.exit, label %if.then.i, !dbg !38
 
@@ -117,12 +117,9 @@ attributes #3 = { noreturn nounwind }
 !27 = !DISubroutineType(types: !28)
 !28 = !{null, !3}
 !29 = !{!25}
-!30 = !DIExpression(DW_OP_LLVM_fragment, 32, 160)
 !31 = !DILocation(line: 6, scope: !26, inlinedAt: !32)
 !32 = distinct !DILocation(line: 11, scope: !22)
 !33 = !DILocation(line: 11, scope: !22)
-!34 = !DIExpression(DW_OP_LLVM_fragment, 0, 32)
-!35 = !DIExpression(DW_OP_deref)
 !36 = !DILocation(line: 7, scope: !37, inlinedAt: !32)
 !37 = distinct !DILexicalBlock(scope: !26, file: !2, line: 7)
 !38 = !DILocation(line: 7, scope: !26, inlinedAt: !32)

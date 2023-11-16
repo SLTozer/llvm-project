@@ -18,8 +18,8 @@ target triple = "x86_64-unknown-linux-gnu"
 ; Function Attrs: nounwind uwtable
 define i32 @foo(i32 %x, i32 %y) !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !9, metadata !11), !dbg !12
-  tail call void @llvm.dbg.value(metadata i32 %y, i64 0, metadata !10, metadata !11), !dbg !13
+  tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !9, metadata !DIExpression()), !dbg !12
+  tail call void @llvm.dbg.value(metadata i32 %y, i64 0, metadata !10, metadata !DIExpression()), !dbg !13
   %cmp = icmp ne i32 %x, %y, !dbg !14
   br i1 %cmp, label %if.then, label %if.else, !dbg !16
 
@@ -56,7 +56,6 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !8 = !{!9, !10}
 !9 = !DILocalVariable(name: "x", arg: 1, scope: !4, file: !1, line: 4, type: !7)
 !10 = !DILocalVariable(name: "y", arg: 2, scope: !4, file: !1, line: 4, type: !7)
-!11 = !DIExpression()
 !12 = !DILocation(line: 4, column: 13, scope: !4)
 !13 = !DILocation(line: 4, column: 20, scope: !4)
 !14 = !DILocation(line: 5, column: 9, scope: !15)

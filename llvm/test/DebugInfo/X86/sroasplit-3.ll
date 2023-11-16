@@ -22,7 +22,7 @@ define float @foo(float %s.coerce) #0 !dbg !4 {
 entry:
   %s = alloca %struct.S, align 4
   store float %s.coerce, ptr %s, align 1
-  call void @llvm.dbg.declare(metadata ptr %s, metadata !16, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %s, metadata !16, metadata !DIExpression()), !dbg !18
   %0 = load float, ptr %s, align 4, !dbg !19
   ret float %0, !dbg !19
 }
@@ -53,6 +53,5 @@ attributes #1 = { nounwind readnone }
 !14 = !{i32 1, !"PIC Level", i32 2}
 !15 = !{!"clang version 3.6.0 "}
 !16 = !DILocalVariable(name: "s", line: 3, arg: 1, scope: !4, file: !5, type: !9)
-!17 = !DIExpression()
 !18 = !DILocation(line: 3, column: 20, scope: !4)
 !19 = !DILocation(line: 4, column: 2, scope: !4)

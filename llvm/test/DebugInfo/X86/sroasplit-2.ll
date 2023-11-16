@@ -42,8 +42,8 @@ define i32 @foo(i64 %outer.coerce0, i64 %outer.coerce1) #0 !dbg !4 {
   store i64 %outer.coerce0, ptr %1
   %2 = getelementptr { i64, i64 }, ptr %outer, i32 0, i32 1
   store i64 %outer.coerce1, ptr %2
-  call void @llvm.dbg.declare(metadata ptr %outer, metadata !24, metadata !2), !dbg !25
-  call void @llvm.dbg.declare(metadata ptr %i1, metadata !26, metadata !2), !dbg !27
+  call void @llvm.dbg.declare(metadata ptr %outer, metadata !24, metadata !DIExpression()), !dbg !25
+  call void @llvm.dbg.declare(metadata ptr %i1, metadata !26, metadata !DIExpression()), !dbg !27
   %3 = getelementptr inbounds [2 x %struct.Inner], ptr %outer, i32 0, i64 1, !dbg !27
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %i1, ptr align 4 %3, i64 8, i1 false), !dbg !27
   %4 = load i32, ptr %i1, align 4, !dbg !28
@@ -66,7 +66,6 @@ attributes #2 = { nounwind }
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, producer: "clang version 3.5.0 ", isOptimized: false, emissionKind: FullDebug, file: !1, enums: !{}, retainedTypes: !{}, globals: !{}, imports: !{})
 !1 = !DIFile(filename: "sroasplit-2.c", directory: "")
-!2 = !DIExpression()
 !4 = distinct !DISubprogram(name: "foo", line: 10, isLocal: false, isDefinition: true, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !0, scopeLine: 10, file: !1, scope: !5, type: !6, retainedNodes: !{})
 !5 = !DIFile(filename: "sroasplit-2.c", directory: "")
 !6 = !DISubroutineType(types: !7)

@@ -37,8 +37,8 @@ target triple = "x86_64-apple-macosx10.9.0"
 define i32 @foo(ptr byval(%struct.Outer) align 8 %outer) #0 !dbg !4 {
 entry:
   %i1 = alloca %struct.Inner, align 8
-  call void @llvm.dbg.declare(metadata ptr %outer, metadata !25, metadata !2), !dbg !26
-  call void @llvm.dbg.declare(metadata ptr %i1, metadata !27, metadata !2), !dbg !28
+  call void @llvm.dbg.declare(metadata ptr %outer, metadata !25, metadata !DIExpression()), !dbg !26
+  call void @llvm.dbg.declare(metadata ptr %i1, metadata !27, metadata !DIExpression()), !dbg !28
   %arrayidx = getelementptr inbounds [2 x %struct.Inner], ptr %outer, i32 0, i64 1, !dbg !28
   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %i1, ptr align 8 %arrayidx, i64 16, i1 false), !dbg !28
   %0 = load i32, ptr %i1, align 4, !dbg !29
@@ -61,7 +61,6 @@ attributes #2 = { nounwind }
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, producer: "clang version 3.5.0 ", isOptimized: false, emissionKind: FullDebug, file: !1, enums: !{}, retainedTypes: !{}, globals: !{}, imports: !{})
 !1 = !DIFile(filename: "sroasplit-1.c", directory: "")
-!2 = !DIExpression()
 !4 = distinct !DISubprogram(name: "foo", line: 10, isLocal: false, isDefinition: true, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !0, scopeLine: 10, file: !1, scope: !5, type: !6, retainedNodes: !{})
 !5 = !DIFile(filename: "sroasplit-1.c", directory: "")
 !6 = !DISubroutineType(types: !7)

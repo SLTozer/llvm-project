@@ -30,7 +30,7 @@ end:                                        ; preds = %body
 define i64 @simulateWithDebugIntrinsic(<2 x i32> %a) local_unnamed_addr  {
 entry:
   %rand = tail call i64 @lrand48() #3
-  tail call void @llvm.dbg.value(metadata i64 %rand, i64 0, metadata !6, metadata !7), !dbg !8
+  tail call void @llvm.dbg.value(metadata i64 %rand, i64 0, metadata !6, metadata !DIExpression()), !dbg !8
   br label %body
 
 body:                                        ; preds = %body, %entry
@@ -56,7 +56,7 @@ end:                                        ; preds = %body
 define i64 @simulateWithDbgDeclare(<2 x i32> %a) local_unnamed_addr  {
 entry:
   %rand = tail call i64 @lrand48() #3
-  tail call void @llvm.dbg.declare(metadata i64 %rand, metadata !6, metadata !7), !dbg !8
+  tail call void @llvm.dbg.declare(metadata i64 %rand, metadata !6, metadata !DIExpression()), !dbg !8
   br label %body
 
 body:                                        ; preds = %body, %entry
@@ -92,5 +92,4 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata)
 !4 = !{i32 2, !"Debug Info Version", i32 3}
 !5 = distinct !DISubprogram(name: "simulateWithDebugIntrinsic", scope: !2, file: !2, line: 64, isLocal: false, isDefinition: true, scopeLine: 65, unit: !1)
 !6 = !DILocalVariable(name: "randv", scope: !5, file: !2, line: 69)
-!7 = !DIExpression()
 !8 = !DILocation(line: 132, column: 2, scope: !5)

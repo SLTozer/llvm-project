@@ -11,7 +11,7 @@ declare i32 @foo0(ptr, i32, i64, i32, i8 zeroext, i8 zeroext, i32) local_unnamed
 ; Function Attrs: nounwind
 define i32 @foo1(ptr %a0, i32 %a1, i32 %a2, i32 %a3, i8 zeroext %a4, i8 zeroext %a5, i32 %a6) local_unnamed_addr #0 !dbg !33 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %a6, i64 0, metadata !51, metadata !52), !dbg !53
+  tail call void @llvm.dbg.value(metadata i32 %a6, i64 0, metadata !51, metadata !DIExpression()), !dbg !53
   ret i32 undef, !dbg !54
 }
 
@@ -77,6 +77,5 @@ attributes #1 = { nounwind readnone speculatable }
 !49 = !DILocalVariable(name: "a4", arg: 5, scope: !33, file: !34, line: 84, type: !42)
 !50 = !DILocalVariable(name: "a5", arg: 6, scope: !33, file: !34, line: 84, type: !43)
 !51 = !DILocalVariable(name: "a6", arg: 7, scope: !33, file: !34, line: 84, type: !37)
-!52 = !DIExpression()
 !53 = !DILocation(line: 84, column: 169, scope: !33)
 !54 = !DILocation(line: 86, column: 5, scope: !33)

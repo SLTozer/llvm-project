@@ -10,7 +10,7 @@ define void @f() #0 !dbg !4 {
 entry:
   tail call void @h(i16 0) #2, !dbg !14
   %call = tail call i16 (...) @g() #2, !dbg !15
-  tail call void @llvm.dbg.value(metadata i16 %call, metadata !8, metadata !16), !dbg !17
+  tail call void @llvm.dbg.value(metadata i16 %call, metadata !8, metadata !DIExpression()), !dbg !17
   tail call void @h(i16 %call) #2, !dbg !18
   ret void, !dbg !19
 }
@@ -45,7 +45,6 @@ attributes #2 = { nounwind }
 !13 = !{!"clang version 3.9.0 "}
 !14 = !DILocation(line: 4, column: 3, scope: !4)
 !15 = !DILocation(line: 5, column: 11, scope: !4)
-!16 = !DIExpression()
 !17 = !DILocation(line: 5, column: 7, scope: !4)
 !18 = !DILocation(line: 6, column: 3, scope: !4)
 !19 = !DILocation(line: 7, column: 1, scope: !4)

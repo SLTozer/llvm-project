@@ -14,7 +14,7 @@ define i64 @fn1NoDebug(i64 %a) {
 
 define i64 @fn1WithDebug(i64 %a) !dbg !4 {
   %call = call i64 @fn(i64 %a, i64 0)
-  tail call void @llvm.dbg.value(metadata i64 %call, i64 0, metadata !5, metadata !6), !dbg !7
+  tail call void @llvm.dbg.value(metadata i64 %call, i64 0, metadata !5, metadata !DIExpression()), !dbg !7
   ret i64 %call
 }
 
@@ -39,7 +39,7 @@ define void @fn2NoDebug(ptr byval(%struct.Buffer) align 64 %p1) {
 ; CHECK-NEXT: ret
 
 define void @fn2WithDebug(ptr byval(%struct.Buffer) align 64 %p1) !dbg !8 {
-  call void @llvm.dbg.declare(metadata ptr %p1, metadata !9, metadata !6), !dbg !10
+  call void @llvm.dbg.declare(metadata ptr %p1, metadata !9, metadata !DIExpression()), !dbg !10
   ret void
 }
 
@@ -66,7 +66,6 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata)
 !3 = !{i32 2, !"Debug Info Version", i32 3}
 !4 = distinct !DISubprogram(name: "withDebug", unit: !0)
 !5 = !DILocalVariable(name: "w", scope: !4)
-!6 = !DIExpression()
 !7 = !DILocation(line: 210, column: 12, scope: !4)
 !8 = distinct !DISubprogram(name: "withDebug", unit: !0)
 !9 = !DILocalVariable(name: "w", scope: !8)

@@ -28,14 +28,14 @@ target triple = "x86_64-unknown-linux-gnu"
 ; Function Attrs: nounwind readnone uwtable
 define i32 @_Z3fooi(i32 %bar) #0 !dbg !9 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %bar, metadata !13, metadata !14), !dbg !15
+  tail call void @llvm.dbg.value(metadata i32 %bar, metadata !13, metadata !DIExpression()), !dbg !15
   ret i32 %bar, !dbg !15
 }
 
 ; Function Attrs: nounwind readnone uwtable
 define i32 @_Z4foo2i(i32 %bar2) #0 !dbg !16 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %bar2, metadata !18, metadata !14), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 %bar2, metadata !18, metadata !DIExpression()), !dbg !19
   ret i32 %bar2, !dbg !19
 }
 
@@ -74,7 +74,6 @@ attributes #2 = { nounwind readnone }
 !11 = !{!3, !3}
 !12 = !{!13}
 !13 = !DILocalVariable(name: "bar", arg: 1, scope: !9, file: !2, line: 2, type: !3)
-!14 = !DIExpression()
 !15 = !DILocation(line: 2, scope: !9)
 !16 = distinct !DISubprogram(name: "foo2", linkageName: "_Z4foo2i", scope: !2, file: !2, line: 3, type: !10, isLocal: false, isDefinition: true, scopeLine: 3, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: true, unit: !4, retainedNodes: !17)
 !17 = !{!18}

@@ -17,12 +17,12 @@ entry:
   %1 = tail call i64 @llvm.coro.size.i64(), !dbg !26
   %call = tail call ptr @malloc(i64 %1), !dbg !26
   %2 = tail call ptr @llvm.coro.begin(token %0, ptr %call) #9, !dbg !26
-  tail call void @llvm.dbg.value(metadata ptr %2, metadata !21, metadata !12), !dbg !26
+  tail call void @llvm.dbg.value(metadata ptr %2, metadata !21, metadata !DIExpression()), !dbg !26
   br label %for.cond, !dbg !27
 
 for.cond:                                         ; preds = %for.cond, %entry
-  tail call void @llvm.dbg.value(metadata i32 undef, metadata !22, metadata !12), !dbg !28
-  tail call void @llvm.dbg.value(metadata i32 undef, metadata !11, metadata !12) #7, !dbg !29
+  tail call void @llvm.dbg.value(metadata i32 undef, metadata !22, metadata !DIExpression()), !dbg !28
+  tail call void @llvm.dbg.value(metadata i32 undef, metadata !11, metadata !DIExpression()) #7, !dbg !29
   tail call void (...) @bar() #7, !dbg !33
   %3 = tail call token @llvm.coro.save(ptr null), !dbg !34
   %4 = tail call i8 @llvm.coro.suspend(token %3, i1 false), !dbg !34
@@ -89,7 +89,6 @@ attributes #9 = { noduplicate }
 !9 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !10 = !{!11}
 !11 = !DILocalVariable(name: "v", arg: 1, scope: !6, file: !1, line: 6, type: !9)
-!12 = !DIExpression()
 !13 = !DILocation(line: 6, column: 16, scope: !6)
 !14 = !DILocation(line: 6, column: 19, scope: !6)
 !15 = !DILocation(line: 6, column: 25, scope: !6)

@@ -38,8 +38,8 @@ target triple = "x86_64-pc-windows-msvc18.0.0"
 ; Function Attrs: nounwind uwtable
 define i32 @main(i32 %argc, ptr nocapture readnone %argv) #0 !dbg !12 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %argv, metadata !19, metadata !21), !dbg !22
-  tail call void @llvm.dbg.value(metadata i32 %argc, metadata !20, metadata !21), !dbg !23
+  tail call void @llvm.dbg.value(metadata ptr %argv, metadata !19, metadata !DIExpression()), !dbg !22
+  tail call void @llvm.dbg.value(metadata i32 %argc, metadata !20, metadata !DIExpression()), !dbg !23
   store volatile i32 1, ptr @x, align 4, !dbg !24, !tbaa !25
   tail call void @clobber() #2, !dbg !29
   store volatile i32 2, ptr @x, align 4, !dbg !30, !tbaa !25
@@ -94,7 +94,6 @@ attributes #2 = { nounwind }
 !18 = !{!19, !20}
 !19 = !DILocalVariable(name: "argv", arg: 2, scope: !12, file: !3, line: 4, type: !15)
 !20 = !DILocalVariable(name: "argc", arg: 1, scope: !12, file: !3, line: 4, type: !7)
-!21 = !DIExpression()
 !22 = !DILocation(line: 4, column: 27, scope: !12)
 !23 = !DILocation(line: 4, column: 14, scope: !12)
 !24 = !DILocation(line: 5, column: 5, scope: !12)

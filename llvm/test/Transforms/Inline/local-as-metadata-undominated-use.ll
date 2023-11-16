@@ -10,7 +10,7 @@
 
 define i32 @foo(i32 %i) !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %add, metadata !8, metadata !10), !dbg !11
+  tail call void @llvm.dbg.value(metadata i32 %add, metadata !8, metadata !DIExpression()), !dbg !11
   %add = add nsw i32 1, %i, !dbg !12
   ret i32 %add, !dbg !13
 }
@@ -41,7 +41,6 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 !7 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !8 = !DILocalVariable(name: "add", arg: 1, scope: !4, file: !1, line: 2, type: !7)
 !9 = !{i32 2, !"Debug Info Version", i32 3}
-!10 = !DIExpression()
 !11 = !DILocation(line: 2, column: 13, scope: !4)
 !12 = !DILocation(line: 2, column: 27, scope: !4)
 !13 = !DILocation(line: 2, column: 18, scope: !4)

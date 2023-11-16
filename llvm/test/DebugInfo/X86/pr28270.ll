@@ -18,18 +18,18 @@ entry:
   br label %for.cond, !dbg !65
 
 for.cond:                                         ; preds = %for.cond, %entry
-  call void @llvm.dbg.value(metadata ptr %v, metadata !29, metadata !66), !dbg !67
+  call void @llvm.dbg.value(metadata ptr %v, metadata !29, metadata !DIExpression(DW_OP_deref)), !dbg !67
   %call = call double @_ZN1BixEj(ptr nonnull %v, i32 undef), !dbg !68
-  call void @llvm.dbg.value(metadata double %call, metadata !49, metadata !69), !dbg !70
-  call void @llvm.dbg.value(metadata ptr null, metadata !52, metadata !69), !dbg !71
-  call void @llvm.dbg.value(metadata ptr undef, metadata !54, metadata !69), !dbg !72
+  call void @llvm.dbg.value(metadata double %call, metadata !49, metadata !DIExpression()), !dbg !70
+  call void @llvm.dbg.value(metadata ptr null, metadata !52, metadata !DIExpression()), !dbg !71
+  call void @llvm.dbg.value(metadata ptr undef, metadata !54, metadata !DIExpression()), !dbg !72
   call void @llvm.lifetime.start(i64 1, ptr %text.i) #4, !dbg !41
   %tobool.i = fcmp une double %call, 0.000000e+00, !dbg !73
   %cond.i = select i1 %tobool.i, ptr @.str, ptr @.str.1, !dbg !73
-  call void @llvm.dbg.value(metadata ptr %text.i, metadata !55, metadata !66), !dbg !74
+  call void @llvm.dbg.value(metadata ptr %text.i, metadata !55, metadata !DIExpression(DW_OP_deref)), !dbg !74
   call void @llvm.lifetime.start(i64 1, ptr %agg.tmp.i.i), !dbg !59
-  call void @llvm.dbg.value(metadata ptr %text.i, metadata !62, metadata !69), !dbg !59
-  call void @llvm.dbg.value(metadata ptr %cond.i, metadata !63, metadata !69), !dbg !75
+  call void @llvm.dbg.value(metadata ptr %text.i, metadata !62, metadata !DIExpression()), !dbg !59
+  call void @llvm.dbg.value(metadata ptr %cond.i, metadata !63, metadata !DIExpression()), !dbg !75
   call void @_ZN1AC1EPKc(ptr nonnull %agg.tmp.i.i, ptr %cond.i), !dbg !76
   call void @_ZN1A5m_fn1ES_(ptr nonnull %text.i), !dbg !77
   call void @llvm.lifetime.end(i64 1, ptr %agg.tmp.i.i), !dbg !79
@@ -128,10 +128,8 @@ attributes #4 = { nounwind }
 !63 = !DILocalVariable(name: "p1", arg: 2, scope: !60, file: !1, line: 5, type: !18)
 !64 = distinct !DILocation(line: 15, column: 8, scope: !42, inlinedAt: !56)
 !65 = !DILocation(line: 22, column: 8, scope: !39)
-!66 = !DIExpression(DW_OP_deref)
 !67 = !DILocation(line: 21, column: 5, scope: !6)
 !68 = !DILocation(line: 23, column: 11, scope: !58)
-!69 = !DIExpression()
 !70 = !DILocation(line: 13, column: 36, scope: !42, inlinedAt: !56)
 !71 = !DILocation(line: 13, column: 55, scope: !42, inlinedAt: !56)
 !72 = !DILocation(line: 13, column: 65, scope: !42, inlinedAt: !56)

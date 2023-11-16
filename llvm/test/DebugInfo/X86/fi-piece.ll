@@ -28,7 +28,7 @@ entry:
   call void @llvm.dbg.declare(metadata ptr %a, metadata !11, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 16)), !dbg !14
   store i16 1, ptr %a, align 4, !dbg !14
   call void @llvm.dbg.declare(metadata ptr %b, metadata !11, metadata !DIExpression(DW_OP_LLVM_fragment, 16, 16)), !dbg !16
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !11, metadata !13), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !11, metadata !DIExpression()), !dbg !17
   store i16 2, ptr %b, align 4, !dbg !17
   ret void
 }
@@ -53,7 +53,6 @@ attributes #1 = { nounwind readnone speculatable }
 !10 = !{null}
 !11 = !DILocalVariable(name: "a", scope: !8, file: !1, line: 2, type: !12)
 !12 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
-!13 = !DIExpression()
 !14 = !DILocation(line: 2, column: 7, scope: !8)
 !15 = !DILocalVariable(name: "b", scope: !8, file: !1, line: 3, type: !12)
 !16 = !DILocation(line: 3, column: 7, scope: !8)

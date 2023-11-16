@@ -6,7 +6,7 @@ target triple = "i686-pc-windows-msvc18.0.0"
 define double @f(double %p1) !dbg !4 {
 entry:
   %sub = fsub double -0.000000e+00, %p1, !dbg !16
-  tail call void @llvm.dbg.value(metadata double %sub, metadata !10, metadata !14), !dbg !15
+  tail call void @llvm.dbg.value(metadata double %sub, metadata !10, metadata !DIExpression()), !dbg !15
   ret double %sub
 }
 
@@ -41,6 +41,5 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 !11 = !{i32 2, !"CodeView", i32 1}
 !12 = !{i32 2, !"Debug Info Version", i32 3}
 !13 = !{!"clang version 3.9.0 (trunk 261537) (llvm/trunk 261463)"}
-!14 = !DIExpression()
 !15 = !DILocation(line: 2, scope: !4)
 !16 = !DILocation(line: 3, scope: !4)

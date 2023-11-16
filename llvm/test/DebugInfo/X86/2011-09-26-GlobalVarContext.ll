@@ -10,7 +10,7 @@ source_filename = "test/DebugInfo/X86/2011-09-26-GlobalVarContext.ll"
 ; Function Attrs: nounwind
 define i32 @f() #0 !dbg !8 {
   %LOC = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %LOC, metadata !11, metadata !13), !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %LOC, metadata !11, metadata !DIExpression()), !dbg !14
   %1 = load i32, ptr @GLB, align 4, !dbg !15
   store i32 %1, ptr %LOC, align 4, !dbg !15
   %2 = load i32, ptr @GLB, align 4, !dbg !16
@@ -39,7 +39,6 @@ attributes #1 = { nounwind readnone }
 !10 = !{!3}
 !11 = !DILocalVariable(name: "LOC", scope: !12, file: !2, line: 4, type: !3)
 !12 = distinct !DILexicalBlock(scope: !8, file: !2, line: 3, column: 9)
-!13 = !DIExpression()
 !14 = !DILocation(line: 4, column: 9, scope: !12)
 !15 = !DILocation(line: 4, column: 23, scope: !12)
 !16 = !DILocation(line: 5, column: 5, scope: !12)

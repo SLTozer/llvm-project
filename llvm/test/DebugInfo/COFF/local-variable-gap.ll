@@ -100,7 +100,7 @@ entry:
 
 if.then:                                          ; preds = %entry
   %call1 = tail call i32 @vardef() #4, !dbg !17
-  tail call void @llvm.dbg.value(metadata i32 %call1, metadata !12, metadata !18), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 %call1, metadata !12, metadata !DIExpression()), !dbg !19
   %call2 = tail call i32 @barrier() #4, !dbg !20
   %tobool3 = icmp eq i32 %call2, 0, !dbg !20
   br i1 %tobool3, label %if.end, label %if.then4, !dbg !22
@@ -162,7 +162,6 @@ attributes #5 = { noreturn nounwind }
 !15 = !DILocation(line: 20, column: 7, scope: !14)
 !16 = !DILocation(line: 20, column: 7, scope: !7)
 !17 = !DILocation(line: 21, column: 13, scope: !13)
-!18 = !DIExpression()
 !19 = !DILocation(line: 21, column: 9, scope: !13)
 !20 = !DILocation(line: 22, column: 9, scope: !21)
 !21 = distinct !DILexicalBlock(scope: !13, file: !1, line: 22, column: 9)

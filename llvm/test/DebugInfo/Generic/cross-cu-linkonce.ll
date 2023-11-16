@@ -32,7 +32,7 @@ source_filename = "test/DebugInfo/Generic/cross-cu-linkonce.ll"
 define linkonce_odr i32 @_Z4funci(i32 %i) #0 !dbg !19 {
   %1 = alloca i32, align 4
   store i32 %i, ptr %1, align 4
-  call void @llvm.dbg.declare(metadata ptr %1, metadata !20, metadata !21), !dbg !22
+  call void @llvm.dbg.declare(metadata ptr %1, metadata !20, metadata !DIExpression()), !dbg !22
   %2 = load i32, ptr %1, align 4, !dbg !23
   %3 = mul nsw i32 %2, 2, !dbg !23
   ret i32 %3, !dbg !23
@@ -69,7 +69,6 @@ attributes #1 = { nounwind readnone }
 !18 = !{!"clang version 3.5.0 "}
 !19 = distinct !DISubprogram(name: "func", linkageName: "_Z4funci", scope: !2, file: !2, line: 1, type: !4, isLocal: false, isDefinition: true, scopeLine: 1, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !9, retainedNodes: !11)
 !20 = !DILocalVariable(name: "i", arg: 1, scope: !19, file: !2, line: 1, type: !6)
-!21 = !DIExpression()
 !22 = !DILocation(line: 1, scope: !19)
 !23 = !DILocation(line: 2, scope: !19)
 

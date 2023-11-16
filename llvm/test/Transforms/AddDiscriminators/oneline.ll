@@ -14,7 +14,7 @@ define i32 @_Z3fooi(i32 %i) #0 !dbg !4 {
   %1 = alloca i32, align 4
   %2 = alloca i32, align 4
   store i32 %i, ptr %2, align 4, !tbaa !13
-  call void @llvm.dbg.declare(metadata ptr %2, metadata !9, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %2, metadata !9, metadata !DIExpression()), !dbg !18
   %3 = load i32, ptr %2, align 4, !dbg !19, !tbaa !13
   %4 = icmp eq i32 %3, 3, !dbg !21
   br i1 %4, label %8, label %5, !dbg !22
@@ -74,7 +74,6 @@ attributes #1 = { nounwind readnone }
 !14 = !{!"int", !15, i64 0}
 !15 = !{!"omnipotent char", !16, i64 0}
 !16 = !{!"Simple C/C++ TBAA"}
-!17 = !DIExpression()
 !18 = !DILocation(line: 1, column: 13, scope: !4)
 !19 = !DILocation(line: 2, column: 7, scope: !20)
 !20 = distinct !DILexicalBlock(scope: !4, file: !1, line: 2, column: 7)

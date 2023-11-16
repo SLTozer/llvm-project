@@ -16,7 +16,7 @@ for.body.lr.ph:                                   ; preds = %entry
 for.body:                                         ; preds = %for.inc, %for.body.lr.ph
   %i.02 = phi i32 [ 0, %for.body.lr.ph ], [ %inc, %for.inc ]
   %add = add nsw i32 %i.02, 50, !dbg !16
-  call void @llvm.dbg.value(metadata i32 %add, i64 0, metadata !18, metadata !19), !dbg !20
+  call void @llvm.dbg.value(metadata i32 %add, i64 0, metadata !18, metadata !DIExpression()), !dbg !20
   %idxprom = sext i32 %add to i64, !dbg !21
 
 ; CHECK:  %idxprom = sext i32 %add to i64
@@ -64,7 +64,6 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !16 = !DILocation(line: 3, column: 14, scope: !17)
 !17 = distinct !DILexicalBlock(scope: !13, file: !1, line: 2, column: 34)
 !18 = !DILocalVariable(name: "k", scope: !17, file: !1, line: 3, type: !10)
-!19 = !DIExpression()
 !20 = !DILocation(line: 3, column: 8, scope: !17)
 !21 = !DILocation(line: 4, column: 4, scope: !17)
 !22 = !DILocation(line: 4, column: 11, scope: !17)

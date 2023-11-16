@@ -15,7 +15,7 @@
 define void @_Z3bazi(i32) #0 !dbg !6 {
   %2 = alloca i32, align 4
   store i32 %0, ptr %2, align 4
-  call void @llvm.dbg.declare(metadata ptr %2, metadata !10, metadata !11), !dbg !12
+  call void @llvm.dbg.declare(metadata ptr %2, metadata !10, metadata !DIExpression()), !dbg !12
   %3 = load i32, ptr %2, align 4, !dbg !13
   %4 = icmp ne i32 %3, 0, !dbg !13
   br i1 %4, label %5, label %8, !dbg !15
@@ -54,7 +54,6 @@ attributes #2 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "fra
 !8 = !{null, !9}
 !9 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !10 = !DILocalVariable(name: "i", arg: 1, scope: !6, file: !1, line: 2, type: !9)
-!11 = !DIExpression()
 !12 = !DILocation(line: 2, column: 14, scope: !6)
 !13 = !DILocation(line: 3, column: 7, scope: !14)
 !14 = distinct !DILexicalBlock(scope: !6, file: !1, line: 3, column: 7)

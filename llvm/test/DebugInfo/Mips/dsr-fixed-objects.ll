@@ -43,9 +43,9 @@ entry:
   %add3 = add nsw i32 %add2, %e, !dbg !36
   tail call void @llvm.dbg.value(metadata i32 %add3, metadata !14, metadata !DIExpression()), !dbg !37
   store i32 %add3, ptr %x, align 4, !dbg !37, !tbaa !38
-  tail call void @llvm.dbg.value(metadata ptr %x, metadata !14, metadata !26), !dbg !37
+  tail call void @llvm.dbg.value(metadata ptr %x, metadata !14, metadata !DIExpression(DW_OP_deref)), !dbg !37
   call void @foo(ptr nonnull %x) #4, !dbg !42
-  call void @llvm.dbg.value(metadata ptr %x, metadata !14, metadata !26), !dbg !37
+  call void @llvm.dbg.value(metadata ptr %x, metadata !14, metadata !DIExpression(DW_OP_deref)), !dbg !37
   %0 = load i32, ptr %x, align 4, !dbg !43, !tbaa !38
   call void @llvm.lifetime.end(i64 4, ptr %x) #4, !dbg !44
   ret i32 %0, !dbg !45
@@ -73,9 +73,9 @@ entry:
   %add3 = add nsw i32 %add2, %e, !dbg !55
   tail call void @llvm.dbg.value(metadata i32 %add3, metadata !22, metadata !DIExpression()), !dbg !56
   store i32 %add3, ptr %x, align 16, !dbg !56, !tbaa !38
-  tail call void @llvm.dbg.value(metadata ptr %x, metadata !22, metadata !26), !dbg !56
+  tail call void @llvm.dbg.value(metadata ptr %x, metadata !22, metadata !DIExpression(DW_OP_deref)), !dbg !56
   call void @foo(ptr nonnull %x) #4, !dbg !57
-  call void @llvm.dbg.value(metadata ptr %x, metadata !22, metadata !26), !dbg !56
+  call void @llvm.dbg.value(metadata ptr %x, metadata !22, metadata !DIExpression(DW_OP_deref)), !dbg !56
   %0 = load i32, ptr %x, align 16, !dbg !58, !tbaa !38
   call void @llvm.lifetime.end(i64 4, ptr %x) #4, !dbg !59
   ret i32 %0, !dbg !60
@@ -112,7 +112,6 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 !23 = !{i32 2, !"Dwarf Version", i32 4}
 !24 = !{i32 2, !"Debug Info Version", i32 3}
 !25 = !{!"clang version 3.8.0 (trunk 251783) (llvm/trunk 251781)"}
-!26 = !DIExpression(DW_OP_deref)
 !27 = !DILocation(line: 4, column: 12, scope: !4)
 !28 = !DILocation(line: 4, column: 19, scope: !4)
 !29 = !DILocation(line: 4, column: 26, scope: !4)

@@ -254,11 +254,11 @@ target triple = "x86_64-pc-windows-msvc19.0.24210"
 ; Function Attrs: nounwind uwtable
 define i32 @loop_csr() local_unnamed_addr #0 !dbg !7 {
 entry:
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !12, metadata !17), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !19), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !20), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !19), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !20), !dbg !18
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !12, metadata !DIExpression()), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !18
   store i32 0, ptr @i, align 4, !dbg !21, !tbaa !24
   %0 = load i32, ptr @n, align 4, !dbg !28, !tbaa !24
   %cmp9 = icmp sgt i32 %0, 0, !dbg !29
@@ -267,12 +267,12 @@ entry:
 for.body:                                         ; preds = %entry, %for.body
   %o.sroa.0.011 = phi i32 [ %call, %for.body ], [ 0, %entry ]
   %o.sroa.5.010 = phi i32 [ %call2, %for.body ], [ 0, %entry ]
-  tail call void @llvm.dbg.value(metadata i32 %o.sroa.0.011, metadata !12, metadata !19), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 %o.sroa.5.010, metadata !12, metadata !20), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 %o.sroa.0.011, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 %o.sroa.5.010, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !18
   %call = tail call i32 @g(i32 %o.sroa.0.011) #5, !dbg !31
-  tail call void @llvm.dbg.value(metadata i32 %call, metadata !12, metadata !19), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 %call, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !18
   %call2 = tail call i32 @g(i32 %o.sroa.5.010) #5, !dbg !33
-  tail call void @llvm.dbg.value(metadata i32 %call2, metadata !12, metadata !20), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 %call2, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !18
   %1 = load i32, ptr @i, align 4, !dbg !21, !tbaa !24
   %inc = add nsw i32 %1, 1, !dbg !21
   store i32 %inc, ptr @i, align 4, !dbg !21, !tbaa !24
@@ -297,8 +297,8 @@ define i32 @pad_right(i64 %o.coerce) local_unnamed_addr #3 !dbg !38 {
 entry:
   %o.sroa.1.0.extract.shift = lshr i64 %o.coerce, 32
   %o.sroa.1.0.extract.trunc = trunc i64 %o.sroa.1.0.extract.shift to i32
-  tail call void @llvm.dbg.value(metadata i32 %o.sroa.1.0.extract.trunc, metadata !47, metadata !20), !dbg !48
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !47, metadata !17), !dbg !48
+  tail call void @llvm.dbg.value(metadata i32 %o.sroa.1.0.extract.trunc, metadata !47, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !48
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !47, metadata !DIExpression()), !dbg !48
   ret i32 %o.sroa.1.0.extract.trunc, !dbg !49
 }
 
@@ -306,29 +306,29 @@ entry:
 define i32 @pad_left(i64 %o.coerce) local_unnamed_addr #3 !dbg !50 {
 entry:
   %o.sroa.0.0.extract.trunc = trunc i64 %o.coerce to i32
-  tail call void @llvm.dbg.value(metadata i32 %o.sroa.0.0.extract.trunc, metadata !58, metadata !19), !dbg !59
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !58, metadata !17), !dbg !59
+  tail call void @llvm.dbg.value(metadata i32 %o.sroa.0.0.extract.trunc, metadata !58, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !59
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !58, metadata !DIExpression()), !dbg !59
   ret i32 %o.sroa.0.0.extract.trunc, !dbg !60
 }
 
 ; Function Attrs: nounwind readonly uwtable
 define i32 @nested(ptr nocapture readonly %o) local_unnamed_addr #4 !dbg !61 {
 entry:
-  tail call void @llvm.dbg.declare(metadata ptr %o, metadata !71, metadata !73), !dbg !74
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !72, metadata !17), !dbg !75
+  tail call void @llvm.dbg.declare(metadata ptr %o, metadata !71, metadata !DIExpression(DW_OP_deref)), !dbg !74
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !72, metadata !DIExpression()), !dbg !75
   %p.sroa.3.0..sroa_idx2 = getelementptr inbounds %struct.Nested, ptr %o, i64 0, i32 0, i64 1, i32 1, !dbg !76
   %p.sroa.3.0.copyload = load i32, ptr %p.sroa.3.0..sroa_idx2, align 4, !dbg !76
-  tail call void @llvm.dbg.value(metadata i32 %p.sroa.3.0.copyload, metadata !72, metadata !20), !dbg !75
+  tail call void @llvm.dbg.value(metadata i32 %p.sroa.3.0.copyload, metadata !72, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !75
   ret i32 %p.sroa.3.0.copyload, !dbg !77
 }
 
 ; Function Attrs: nounwind uwtable
 define i32 @bitpiece_spill() local_unnamed_addr #0 !dbg !78 {
 entry:
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !80, metadata !17), !dbg !81
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !80, metadata !19), !dbg !81
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !80, metadata !DIExpression()), !dbg !81
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !80, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !81
   %call = tail call i32 @g(i32 0) #5, !dbg !82
-  tail call void @llvm.dbg.value(metadata i32 %call, metadata !80, metadata !20), !dbg !81
+  tail call void @llvm.dbg.value(metadata i32 %call, metadata !80, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !81
   tail call void asm sideeffect "", "~{rax},~{rbx},~{rcx},~{rdx},~{rsi},~{rdi},~{rbp},~{r8},~{r9},~{r10},~{r11},~{r12},~{r13},~{r14},~{r15},~{dirflag},~{fpsr},~{flags}"() #5, !dbg !83, !srcloc !84
   ret i32 %call, !dbg !85
 }
@@ -364,10 +364,7 @@ attributes #5 = { nounwind }
 !14 = !{!15, !16}
 !15 = !DIDerivedType(tag: DW_TAG_member, name: "x", scope: !13, file: !1, line: 1, baseType: !10, size: 32, align: 32)
 !16 = !DIDerivedType(tag: DW_TAG_member, name: "y", scope: !13, file: !1, line: 1, baseType: !10, size: 32, align: 32, offset: 32)
-!17 = !DIExpression()
 !18 = !DILocation(line: 11, column: 18, scope: !7)
-!19 = !DIExpression(DW_OP_LLVM_fragment, 0, 32)
-!20 = !DIExpression(DW_OP_LLVM_fragment, 32, 32)
 !21 = !DILocation(line: 12, column: 23, scope: !22)
 !22 = distinct !DILexicalBlock(scope: !23, file: !1, line: 12, column: 3)
 !23 = distinct !DILexicalBlock(scope: !7, file: !1, line: 12, column: 3)
@@ -420,7 +417,6 @@ attributes #5 = { nounwind }
 !70 = !{!71, !72}
 !71 = !DILocalVariable(name: "o", arg: 1, scope: !61, file: !1, line: 27, type: !64)
 !72 = !DILocalVariable(name: "p", scope: !61, file: !1, line: 28, type: !53)
-!73 = !DIExpression(DW_OP_deref)
 !74 = !DILocation(line: 27, column: 26, scope: !61)
 !75 = !DILocation(line: 28, column: 18, scope: !61)
 !76 = !DILocation(line: 28, column: 22, scope: !61)

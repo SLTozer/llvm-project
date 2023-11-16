@@ -12,8 +12,8 @@ target triple = "x86_64-apple-darwin10.2"
 define i32 @_ZN3foo3bazEi(ptr nocapture %this, i32 %x) #0 align 2 !dbg !4 {
 entry: 
   ; CHECK: DEBUG_VALUE: baz:this <- $rdi{{$}}
-  tail call void @llvm.dbg.value(metadata ptr %this, i64 0, metadata !13, metadata !16), !dbg !17
-  tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !18, metadata !16), !dbg !17
+  tail call void @llvm.dbg.value(metadata ptr %this, i64 0, metadata !13, metadata !DIExpression()), !dbg !17
+  tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !18, metadata !DIExpression()), !dbg !17
   %0 = mul nsw i32 %x, 7, !dbg !19
   %1 = add nsw i32 %0, 1, !dbg !19
   ret i32 %1, !dbg !19
@@ -44,7 +44,6 @@ attributes #1 = { nounwind readnone }
 !13 = !DILocalVariable(name: "this", arg: 1, scope: !4, file: !1, line: 15, type: !14)
 !14 = !DIDerivedType(tag: DW_TAG_const_type, scope: !1, file: !1, baseType: !15, size: 64, align: 64, flags: DIFlagArtificial)
 !15 = !DIDerivedType(tag: DW_TAG_pointer_type, scope: !1, file: !1, baseType: !5, size: 64, align: 64)
-!16 = !DIExpression()
 !17 = !DILocation(line: 0, scope: !4)
 !18 = !DILocalVariable(name: "x", arg: 2, scope: !4, file: !1, line: 15, type: !8)
 !19 = !DILocation(line: 16, scope: !20)

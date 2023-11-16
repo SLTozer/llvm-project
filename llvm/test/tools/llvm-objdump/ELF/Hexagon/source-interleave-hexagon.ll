@@ -22,7 +22,7 @@ entry:
   %retval = alloca i32, align 4
   %b = alloca ptr, align 4
   store i32 0, ptr %retval, align 4
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !15, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !15, metadata !DIExpression()), !dbg !18
   store ptr @a, ptr %b, align 4, !dbg !18
   %0 = load ptr, ptr %b, align 4, !dbg !19
   %1 = load i32, ptr %0, align 4, !dbg !20
@@ -58,7 +58,6 @@ attributes #1 = { nounwind readnone }
 !14 = distinct !DISubprogram(name: "main", scope: !1, file: !1, line: 6, type: !10, isLocal: false, isDefinition: true, scopeLine: 6, isOptimized: false, unit: !0, retainedNodes: !2)
 !15 = !DILocalVariable(name: "b", scope: !14, file: !1, line: 7, type: !16)
 !16 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !5, size: 32, align: 32)
-!17 = !DIExpression()
 !18 = !DILocation(line: 7, column: 8, scope: !14)
 !19 = !DILocation(line: 8, column: 11, scope: !14)
 !20 = !DILocation(line: 8, column: 10, scope: !14)

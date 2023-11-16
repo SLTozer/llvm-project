@@ -217,7 +217,7 @@ define amdgpu_kernel void @v_clamp_dbg_use_src_f32(ptr addrspace(1) %out, ptr ad
   %out.gep = getelementptr float, ptr addrspace(1) %out, i32 %tid
   %a = load float, ptr addrspace(1) %gep0
   %add = fadd float %a, 1.0
-  call void @llvm.dbg.value(metadata float %add, i64 0, metadata !4, metadata !9), !dbg !10
+  call void @llvm.dbg.value(metadata float %add, i64 0, metadata !4, metadata !DIExpression()), !dbg !10
   %max = call float @llvm.maxnum.f32(float %add, float 0.0)
   %clamp = call float @llvm.minnum.f32(float %max, float 1.0)
   store float %clamp, ptr addrspace(1) %out.gep
@@ -1641,5 +1641,4 @@ attributes #3 = { nounwind "denormal-fp-math-f32"="ieee,ieee" "denormal-fp-math"
 !6 = !DISubroutineType(types: !7)
 !7 = !{null, !8}
 !8 = !DIBasicType(name: "float", size: 32, align: 32)
-!9 = !DIExpression()
 !10 = !DILocation(line: 1, column: 42, scope: !5)

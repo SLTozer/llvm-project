@@ -30,7 +30,7 @@ entry:
   %retval = alloca i64, align 8
   %i.addr = alloca i64, align 8
   store i64 %i, ptr %i.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %i.addr, metadata !16, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %i.addr, metadata !16, metadata !DIExpression()), !dbg !18
   %call = call i32 @rand() #3, !dbg !19
 ; CHECK: !prof ![[PROF1:[0-9]+]]
   %cmp = icmp slt i32 %call, 500, !dbg !21
@@ -76,9 +76,9 @@ entry:
   %k = alloca i32, align 4
   %i = alloca i32, align 4
   store i32 0, ptr %retval, align 4
-  call void @llvm.dbg.declare(metadata ptr %sum, metadata !35, metadata !17), !dbg !36
+  call void @llvm.dbg.declare(metadata ptr %sum, metadata !35, metadata !DIExpression()), !dbg !36
   store i64 0, ptr %sum, align 8, !dbg !36
-  call void @llvm.dbg.declare(metadata ptr %k, metadata !37, metadata !17), !dbg !39
+  call void @llvm.dbg.declare(metadata ptr %k, metadata !37, metadata !DIExpression()), !dbg !39
   store i32 0, ptr %k, align 4, !dbg !39
   br label %for.cond, !dbg !40
 
@@ -89,7 +89,7 @@ for.cond:                                         ; preds = %for.inc.4, %entry
 ; CHECK: !prof ![[PROF6:[0-9]+]]
 
 for.body:                                         ; preds = %for.cond
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !47, metadata !17), !dbg !49
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !47, metadata !DIExpression()), !dbg !49
   store i32 0, ptr %i, align 4, !dbg !49
   br label %for.cond.1, !dbg !50
 
@@ -166,7 +166,6 @@ attributes #3 = { nounwind }
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !{!"clang version 3.8.0 (trunk 247554) (llvm/trunk 247557)"}
 !16 = !DILocalVariable(name: "i", arg: 1, scope: !4, file: !1, line: 3, type: !8)
-!17 = !DIExpression()
 !18 = !DILocation(line: 3, column: 24, scope: !4)
 !19 = !DILocation(line: 4, column: 7, scope: !20)
 !20 = distinct !DILexicalBlock(scope: !4, file: !1, line: 4, column: 7)

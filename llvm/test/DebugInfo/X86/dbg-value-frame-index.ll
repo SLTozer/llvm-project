@@ -8,7 +8,7 @@ entry:
   br label %while.cond
 
 while.cond:
-  call void @llvm.dbg.value(metadata ptr %end, metadata !5, metadata !6), !dbg !7
+  call void @llvm.dbg.value(metadata ptr %end, metadata !5, metadata !DIExpression(DW_OP_deref)), !dbg !7
   %call = call i1 @fn(ptr %end, ptr %end, ptr null, ptr null, i64 0, ptr null, ptr null, ptr null), !dbg !7
   br label %while.body
 
@@ -40,7 +40,6 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 !3 = !{i32 2, !"Debug Info Version", i32 3}
 !4 = distinct !DISubprogram(name: "test", type: !10, unit: !0)
 !5 = !DILocalVariable(name: "w", scope: !4, type: !9)
-!6 = !DIExpression(DW_OP_deref)
 !7 = !DILocation(line: 210, column: 12, scope: !4)
 !8 = !{!9}
 !9 = !DIBasicType(name: "bool", size: 8, encoding: DW_ATE_boolean)

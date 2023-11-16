@@ -21,8 +21,8 @@ target triple = "x86_64-unknown-linux-gnu"
 ; Function Attrs: norecurse nounwind optsize readnone uwtable
 define void @_Z3fn1v() #0 !dbg !4 {
 entry:
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !8, metadata !19), !dbg !20
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !8, metadata !21), !dbg !20
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !8, metadata !DIExpression()), !dbg !20
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !8, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !20
   ret void, !dbg !22
 }
 
@@ -57,7 +57,5 @@ attributes #1 = { nounwind readnone }
 !16 = !{i32 2, !"Dwarf Version", i32 4}
 !17 = !{i32 2, !"Debug Info Version", i32 3}
 !18 = !{!"clang version 3.8.0 (trunk 256088) (llvm/trunk 256097)"}
-!19 = !DIExpression()
 !20 = !DILocation(line: 4, column: 5, scope: !4)
-!21 = !DIExpression(DW_OP_LLVM_fragment, 32, 32)
 !22 = !DILocation(line: 6, column: 1, scope: !4)

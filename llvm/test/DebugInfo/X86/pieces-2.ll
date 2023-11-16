@@ -34,7 +34,7 @@ entry:
   call void @llvm.dbg.declare(metadata ptr %outer, metadata !25, metadata !DIExpression()), !dbg !26
   %i1.sroa.0.0..sroa_idx = getelementptr inbounds %struct.Outer, ptr %outer, i64 0, i32 0, i64 1, i32 0, !dbg !27
   %i1.sroa.0.0.copyload = load i32, ptr %i1.sroa.0.0..sroa_idx, align 8, !dbg !27
-  call void @llvm.dbg.value(metadata i32 %i1.sroa.0.0.copyload, metadata !28, metadata !29), !dbg !27
+  call void @llvm.dbg.value(metadata i32 %i1.sroa.0.0.copyload, metadata !28, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !27
   %i1.sroa.2.0..sroa_raw_idx = getelementptr inbounds i8, ptr %outer, i64 20, !dbg !27
   ret i32 %i1.sroa.0.0.copyload, !dbg !32
 }
@@ -84,6 +84,5 @@ attributes #2 = { nounwind }
 !26 = !DILocation(line: 10, scope: !4)
 !27 = !DILocation(line: 11, scope: !4)
 !28 = !DILocalVariable(name: "i1", line: 11, scope: !4, file: !5, type: !14)
-!29 = !DIExpression(DW_OP_LLVM_fragment, 0, 32)
 !31 = !{i32 3, i32 0, i32 12}
 !32 = !DILocation(line: 12, scope: !4)

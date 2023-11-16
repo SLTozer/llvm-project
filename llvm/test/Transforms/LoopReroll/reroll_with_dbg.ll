@@ -15,10 +15,10 @@ define void @foo(ptr noalias nocapture %a, ptr noalias nocapture readonly %b, i3
 entry:
 ;CHECK-LABEL: @foo
 
-  tail call void @llvm.dbg.value(metadata ptr %a, metadata !12, metadata !22), !dbg !23
-  tail call void @llvm.dbg.value(metadata ptr %b, metadata !13, metadata !22), !dbg !24
-  tail call void @llvm.dbg.value(metadata i32 %n, metadata !14, metadata !22), !dbg !25
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !15, metadata !22), !dbg !26
+  tail call void @llvm.dbg.value(metadata ptr %a, metadata !12, metadata !DIExpression()), !dbg !23
+  tail call void @llvm.dbg.value(metadata ptr %b, metadata !13, metadata !DIExpression()), !dbg !24
+  tail call void @llvm.dbg.value(metadata i32 %n, metadata !14, metadata !DIExpression()), !dbg !25
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !15, metadata !DIExpression()), !dbg !26
   %cmp.30 = icmp sgt i32 %n, 0, !dbg !27
   br i1 %cmp.30, label %for.body.preheader, label %for.cond.cleanup, !dbg !29
 
@@ -62,7 +62,7 @@ for.body:                                         ; preds = %for.body.preheader,
   %arrayidx12 = getelementptr inbounds float, ptr %a, i32 %add9, !dbg !49
   store i32 %3, ptr %arrayidx12, align 4, !dbg !50, !tbaa !33
   %add13 = add nuw nsw i32 %i.031, 4, !dbg !51
-  tail call void @llvm.dbg.value(metadata i32 %add13, metadata !15, metadata !22), !dbg !26
+  tail call void @llvm.dbg.value(metadata i32 %add13, metadata !15, metadata !DIExpression()), !dbg !26
   %cmp = icmp slt i32 %add13, %n, !dbg !27
   br i1 %cmp, label %for.body, label %for.cond.cleanup.loopexit, !dbg !29
 }
@@ -98,7 +98,6 @@ attributes #1 = { nounwind readnone }
 !19 = !{i32 1, !"wchar_size", i32 4}
 !20 = !{i32 1, !"min_enum_size", i32 4}
 !21 = !{!"clang version 3.8.0"}
-!22 = !DIExpression()
 !23 = !DILocation(line: 1, column: 27, scope: !4)
 !24 = !DILocation(line: 1, column: 47, scope: !4)
 !25 = !DILocation(line: 1, column: 54, scope: !4)

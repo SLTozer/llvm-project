@@ -30,7 +30,7 @@ entry:
 ; Function Attrs: nounwind uwtable
 define internal void @_ZL2f1iz(i32, ...) #1 !dbg !8 {
 entry:
-  call void @llvm.dbg.value(metadata i32 %0, metadata !17, metadata !18), !dbg !19
+  call void @llvm.dbg.value(metadata i32 %0, metadata !17, metadata !DIExpression()), !dbg !19
   ret void, !dbg !20
 }
 
@@ -65,6 +65,5 @@ attributes #2 = { nounwind readnone }
 !15 = !DILocation(line: 5, column: 3, scope: !4)
 !16 = !DILocation(line: 6, column: 1, scope: !4)
 !17 = !DILocalVariable(name: "", line: 1, arg: 1, scope: !8, file: !5, type: !11)
-!18 = !DIExpression()
 !19 = !DILocation(line: 1, column: 19, scope: !8)
 !20 = !DILocation(line: 2, column: 1, scope: !8)

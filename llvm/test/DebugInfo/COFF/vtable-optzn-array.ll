@@ -60,7 +60,7 @@ define linkonce_odr void @"\01??_DUseCompleteType@@QEAA@XZ"(ptr %this) unnamed_a
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !32, metadata !34), !dbg !35
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !32, metadata !DIExpression()), !dbg !35
   %this1 = load ptr, ptr %this.addr, align 8
   call void @"\01??1UseCompleteType@@QEAA@XZ"(ptr %this1), !dbg !36
   ret void, !dbg !36
@@ -132,7 +132,6 @@ attributes #3 = { nounwind readnone }
 !31 = distinct !DISubprogram(name: "~UseCompleteType", linkageName: "\01??_DUseCompleteType@@QEAA@XZ", scope: !9, file: !8, line: 12, type: !17, isLocal: false, isDefinition: true, scopeLine: 15, flags: DIFlagPrototyped, isOptimized: false, unit: !2, declaration: !20, retainedNodes: !4)
 !32 = !DILocalVariable(name: "this", arg: 1, scope: !31, type: !33, flags: DIFlagArtificial | DIFlagObjectPointer)
 !33 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !9, size: 64, align: 64)
-!34 = !DIExpression()
 !35 = !DILocation(line: 0, scope: !31)
 !36 = !DILocation(line: 15, scope: !31)
 !37 = distinct !DISubprogram(name: "??__Frequire_complete@@YAXXZ", scope: !3, file: !3, line: 15, type: !28, isLocal: true, isDefinition: true, scopeLine: 15, flags: DIFlagPrototyped, isOptimized: false, unit: !2, retainedNodes: !4)

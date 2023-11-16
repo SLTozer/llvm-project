@@ -27,7 +27,7 @@ define i32 @f() #0 !dbg !4 {
 entry:
   %x = alloca i32, align 4
   call void @llvm.lifetime.start(i64 4, ptr %x) #4, !dbg !14
-  tail call void @llvm.dbg.value(metadata i32 23, metadata !9, metadata !15), !dbg !16
+  tail call void @llvm.dbg.value(metadata i32 23, metadata !9, metadata !DIExpression()), !dbg !16
   store i32 23, ptr %x, align 4, !dbg !16, !tbaa !17
   tail call void @llvm.dbg.value(metadata ptr %x, metadata !9, metadata !DIExpression(DW_OP_deref)), !dbg !16
   call void @g(ptr nonnull %x) #4, !dbg !21
@@ -37,7 +37,7 @@ entry:
   br i1 %cmp, label %if.then, label %if.end, !dbg !25
 
 if.then:                                          ; preds = %entry
-  call void @llvm.dbg.value(metadata i32 43, metadata !9, metadata !15), !dbg !16
+  call void @llvm.dbg.value(metadata i32 43, metadata !9, metadata !DIExpression()), !dbg !16
   store i32 43, ptr %x, align 4, !dbg !26, !tbaa !17
   br label %if.end, !dbg !26
 
@@ -82,7 +82,6 @@ attributes #4 = { nounwind }
 !12 = !{i32 1, !"PIC Level", i32 2}
 !13 = !{!"clang version 3.8.0 (trunk 255890) (llvm/trunk 255919)"}
 !14 = !DILocation(line: 3, column: 3, scope: !4)
-!15 = !DIExpression()
 !16 = !DILocation(line: 3, column: 7, scope: !4)
 !17 = !{!18, !18, i64 0}
 !18 = !{!"int", !19, i64 0}

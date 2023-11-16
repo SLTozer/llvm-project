@@ -31,16 +31,16 @@
   define i32 @f(i32 %x, i32 %y, [4 x double] %s.coerce) local_unnamed_addr #0 !dbg !7 {
   entry:
     %x.addr = alloca i32, align 4
-    tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !19, metadata !22), !dbg !23
+    tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !19, metadata !DIExpression()), !dbg !23
     store i32 %x, i32* %x.addr, align 4, !tbaa !24
-    tail call void @llvm.dbg.value(metadata i32 %y, i64 0, metadata !20, metadata !22), !dbg !28
-    tail call void @llvm.dbg.declare(metadata %struct.Rect* undef, metadata !21, metadata !22), !dbg !29
+    tail call void @llvm.dbg.value(metadata i32 %y, i64 0, metadata !20, metadata !DIExpression()), !dbg !28
+    tail call void @llvm.dbg.declare(metadata %struct.Rect* undef, metadata !21, metadata !DIExpression()), !dbg !29
     tail call void @g([4 x double] %s.coerce) #4, !dbg !30
     %tobool = icmp eq i32 %y, 0, !dbg !31
     br i1 %tobool, label %if.end, label %if.then, !dbg !33
 
   if.then:                                          ; preds = %entry
-    tail call void @llvm.dbg.value(metadata i32* %x.addr, i64 0, metadata !19, metadata !22), !dbg !23
+    tail call void @llvm.dbg.value(metadata i32* %x.addr, i64 0, metadata !19, metadata !DIExpression()), !dbg !23
     call void @h(i32* nonnull %x.addr) #4, !dbg !34
     br label %if.end, !dbg !34
 
@@ -86,7 +86,6 @@
   !19 = !DILocalVariable(name: "x", arg: 1, scope: !7, file: !1, line: 7, type: !10)
   !20 = !DILocalVariable(name: "y", arg: 2, scope: !7, file: !1, line: 7, type: !10)
   !21 = !DILocalVariable(name: "s", arg: 3, scope: !7, file: !1, line: 7, type: !11)
-  !22 = !DIExpression()
   !23 = !DILocation(line: 7, column: 11, scope: !7)
   !24 = !{!25, !25, i64 0}
   !25 = !{!"int", !26, i64 0}
@@ -100,7 +99,6 @@
   !33 = !DILocation(line: 9, column: 7, scope: !7)
   !34 = !DILocation(line: 10, column: 5, scope: !32)
   !35 = !DILocation(line: 12, column: 3, scope: !7)
-  !36 = !DIExpression(DW_OP_constu, 8, DW_OP_plus)
 
 ...
 ---
@@ -145,11 +143,11 @@ body:             |
     $sp = frame-setup SUBXri $sp, 32, 0
     frame-setup STPXi killed $fp, killed $lr, $sp, 2 :: (store (s64) into %stack.3), (store (s64) into %stack.2)
     $fp = frame-setup ADDXri $sp, 16, 0
-    DBG_VALUE $w0, _, !19, !22, debug-location !23
+    DBG_VALUE $w0, _, !19, !DIExpression(), debug-location !23
     STURWi killed $w0, $fp, -4 :: (store (s32) into %stack.0.x.addr)
-    DBG_VALUE $w1, _, !20, !22, debug-location !28
+    DBG_VALUE $w1, _, !20, !DIExpression(), debug-location !28
     STRWui killed $w1, $sp, 2, debug-location !30 :: (store (s32) into %stack.1)
-    DBG_VALUE $sp, 0, !20, !36, debug-location !28
+    DBG_VALUE $sp, 0, !20, !DIExpression(DW_OP_constu, 8, DW_OP_plus), debug-location !28
     BL @g, csr_aarch64_aapcs, implicit-def dead $lr, implicit $sp, implicit killed $d0, implicit killed $d1, implicit killed $d2, implicit killed $d3, implicit-def $sp, debug-location !30
     $w0 = LDRWui $sp, 2, debug-location !33 :: (load (s32) from %stack.1)
     CBZW killed $w0, %bb.2.if.end, debug-location !33
@@ -157,13 +155,13 @@ body:             |
   bb.1.if.then:
     successors: %bb.2.if.end(0x80000000)
 
-    DBG_VALUE $sp, 0, !20, !36, debug-location !28
+    DBG_VALUE $sp, 0, !20, !DIExpression(DW_OP_constu, 8, DW_OP_plus), debug-location !28
     $x0 = SUBXri $fp, 4, 0
-    DBG_VALUE $x0, _, !19, !22, debug-location !23
+    DBG_VALUE $x0, _, !19, !DIExpression(), debug-location !23
     BL @h, csr_aarch64_aapcs, implicit-def dead $lr, implicit $sp, implicit killed $x0, debug-location !34
 
   bb.2.if.end:
-    DBG_VALUE $sp, 0, !20, !36, debug-location !28
+    DBG_VALUE $sp, 0, !20, !DIExpression(DW_OP_constu, 8, DW_OP_plus), debug-location !28
     $w8 = MOVZWi 0, 0
     $x0 = ORRXrs $xzr, undef $x8, 0, implicit killed $w8, debug-location !35
     $fp, $lr = LDPXi $sp, 2, debug-location !35 :: (load (s64) from %stack.3), (load (s64) from %stack.2)

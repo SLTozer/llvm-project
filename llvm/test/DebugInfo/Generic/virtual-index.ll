@@ -60,7 +60,6 @@ define void @_ZN1A1gEv(ptr %this) unnamed_addr !dbg !19 {
 !22 = !{!"clang version 3.9.0 (trunk 263469) (llvm/trunk 263156)"}
 !23 = !DILocalVariable(name: "this", arg: 1, scope: !18, type: !24, flags: DIFlagArtificial | DIFlagObjectPointer)
 !24 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !4, size: 64, align: 64)
-!25 = !DIExpression()
 !26 = !DILocation(line: 0, scope: !18)
 !27 = !DILocation(line: 6, column: 14, scope: !18)
 !28 = !DILocalVariable(name: "this", arg: 1, scope: !19, type: !24, flags: DIFlagArtificial | DIFlagObjectPointer)

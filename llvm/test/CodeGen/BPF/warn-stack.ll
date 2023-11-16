@@ -4,7 +4,7 @@
 define void @nowarn() local_unnamed_addr #0 !dbg !6 {
   %1 = alloca [504 x i8], align 1
   call void @llvm.lifetime.start.p0(i64 504, ptr nonnull %1) #4, !dbg !15
-  tail call void @llvm.dbg.declare(metadata ptr %1, metadata !10, metadata !16), !dbg !17
+  tail call void @llvm.dbg.declare(metadata ptr %1, metadata !10, metadata !DIExpression()), !dbg !17
   call void @doit(ptr nonnull %1) #4, !dbg !18
   call void @llvm.lifetime.end.p0(i64 504, ptr nonnull %1) #4, !dbg !19
   ret void, !dbg !19
@@ -26,7 +26,7 @@ declare void @llvm.lifetime.end.p0(i64, ptr nocapture) #1
 define void @warn() local_unnamed_addr #0 !dbg !20 {
   %1 = alloca [512 x i8], align 1
   call void @llvm.lifetime.start.p0(i64 512, ptr nonnull %1) #4, !dbg !26
-  tail call void @llvm.dbg.declare(metadata ptr %1, metadata !22, metadata !16), !dbg !27
+  tail call void @llvm.dbg.declare(metadata ptr %1, metadata !22, metadata !DIExpression()), !dbg !27
   call void @doit(ptr nonnull %1) #4, !dbg !28
   call void @llvm.lifetime.end.p0(i64 512, ptr nonnull %1) #4, !dbg !29
   ret void, !dbg !29
@@ -58,7 +58,6 @@ attributes #4 = { nounwind }
 !13 = !{!14}
 !14 = !DISubrange(count: 504)
 !15 = !DILocation(line: 4, column: 2, scope: !6)
-!16 = !DIExpression()
 !17 = !DILocation(line: 4, column: 7, scope: !6)
 !18 = !DILocation(line: 5, column: 2, scope: !6)
 !19 = !DILocation(line: 6, column: 1, scope: !6)

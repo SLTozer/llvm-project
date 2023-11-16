@@ -85,7 +85,7 @@ target triple = "x86_64-pc-windows-msvc19.0.23918"
 define void @"\01?baz@bar@foo@@YAXXZ"() #0 !dbg !20 {
 entry:
   %l = alloca %struct.LocalRecord, align 4
-  call void @llvm.dbg.declare(metadata ptr %l, metadata !23, metadata !27), !dbg !28
+  call void @llvm.dbg.declare(metadata ptr %l, metadata !23, metadata !DIExpression()), !dbg !28
   ret void, !dbg !29
 }
 
@@ -97,7 +97,7 @@ define void @"\01?method@GlobalRecord@bar@foo@@QEAAXXZ"(ptr %this) #0 align 2 !d
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !31, metadata !27), !dbg !33
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !31, metadata !DIExpression()), !dbg !33
   %this1 = load ptr, ptr %this.addr, align 8
   ret void, !dbg !34
 }
@@ -136,7 +136,6 @@ attributes #1 = { nounwind readnone }
 !24 = distinct !DICompositeType(tag: DW_TAG_structure_type, name: "LocalRecord", scope: !20, file: !3, line: 4, size: 32, align: 32, elements: !25)
 !25 = !{!26}
 !26 = !DIDerivedType(tag: DW_TAG_member, name: "x", scope: !24, file: !3, line: 5, baseType: !8, size: 32, align: 32)
-!27 = !DIExpression()
 !28 = !DILocation(line: 6, column: 5, scope: !20)
 !29 = !DILocation(line: 7, column: 1, scope: !20)
 !30 = distinct !DISubprogram(name: "method", linkageName: "\01?method@GlobalRecord@bar@foo@@QEAAXXZ", scope: !5, file: !3, line: 13, type: !10, isLocal: false, isDefinition: true, scopeLine: 13, flags: DIFlagPrototyped, isOptimized: false, unit: !13, declaration: !9, retainedNodes: !14)

@@ -34,8 +34,8 @@ entry:
   %3 = tail call { i64, i1 } @llvm.uadd.with.overflow.i64(i64 %0, i64 %1)
   %4 = extractvalue { i64, i1 } %3, 0
   %5 = tail call i64 @fn1(i64 %4, i64 %2)
-  tail call void @llvm.dbg.value(metadata i64 %4, i64 0, metadata !23, metadata !33), !dbg !34
-  tail call void @llvm.dbg.value(metadata i64 %5, i64 0, metadata !22, metadata !33), !dbg !35
+  tail call void @llvm.dbg.value(metadata i64 %4, i64 0, metadata !23, metadata !DIExpression()), !dbg !34
+  tail call void @llvm.dbg.value(metadata i64 %5, i64 0, metadata !22, metadata !DIExpression()), !dbg !35
   tail call void (...) @printf()
   tail call void (...) @printf(i64 1, i64 2, i64 3, i64 4, i32 0, i64 0, i64 %4, i64 %5)
   ret void
@@ -71,7 +71,6 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !18 = distinct !DISubprogram(name: "test", scope: !2, file: !2, line: 5, unit: !1)
 !22 = !DILocalVariable(name: "i", scope: !18, file: !2, line: 6, type: !11)
 !23 = !DILocalVariable(name: "j", scope: !18, file: !2, line: 7, type: !11)
-!33 = !DIExpression()
 !34 = !DILocation(line: 7, column: 17, scope: !18)
 !35 = !DILocation(line: 6, column: 8, scope: !18)
 !36 = !DILocation(line: 9, column: 3, scope: !18)

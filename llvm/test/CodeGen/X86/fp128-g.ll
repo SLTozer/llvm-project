@@ -17,7 +17,7 @@ target triple = "x86_64--linux-android"
 ; Function Attrs: nounwind readonly uwtable
 define fp128 @test_return1(ptr nocapture readonly %ptr) local_unnamed_addr #0 !dbg !12 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %ptr, i64 0, metadata !16, metadata !17), !dbg !18
+  tail call void @llvm.dbg.value(metadata ptr %ptr, i64 0, metadata !16, metadata !DIExpression()), !dbg !18
   %0 = load fp128, ptr %ptr, align 16, !dbg !19, !tbaa !20
   ret fp128 %0, !dbg !24
 ; X64-LABEL: test_return1:
@@ -30,9 +30,9 @@ entry:
 ; Function Attrs: nounwind readonly uwtable
 define fp128 @test_return2(ptr nocapture readonly %ptr) local_unnamed_addr #0 !dbg !25 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %ptr, i64 0, metadata !27, metadata !17), !dbg !29
+  tail call void @llvm.dbg.value(metadata ptr %ptr, i64 0, metadata !27, metadata !DIExpression()), !dbg !29
   %0 = load fp128, ptr %ptr, align 16, !dbg !30, !tbaa !20
-  tail call void @llvm.dbg.value(metadata fp128 %0, i64 0, metadata !28, metadata !17), !dbg !31
+  tail call void @llvm.dbg.value(metadata fp128 %0, i64 0, metadata !28, metadata !DIExpression()), !dbg !31
   ret fp128 %0, !dbg !32
 }
 
@@ -45,7 +45,7 @@ entry:
 
 define fp128 @test_return3(ptr nocapture readonly %ptr) local_unnamed_addr #0 !dbg !33 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %ptr, i64 0, metadata !35, metadata !17), !dbg !36
+  tail call void @llvm.dbg.value(metadata ptr %ptr, i64 0, metadata !35, metadata !DIExpression()), !dbg !36
   %0 = load fp128, ptr %ptr, align 16, !dbg !37, !tbaa !20
   %add = fadd fp128 %0, %0, !dbg !38
   ret fp128 %add, !dbg !39
@@ -77,7 +77,7 @@ define fp128 @test_return5() local_unnamed_addr #0 !dbg !48 {
 entry:
   %0 = load ptr, ptr @ld_ptr, align 8, !dbg !51, !tbaa !44
   %1 = load fp128, ptr %0, align 16, !dbg !52, !tbaa !20
-  tail call void @llvm.dbg.value(metadata fp128 %1, i64 0, metadata !50, metadata !17), !dbg !53
+  tail call void @llvm.dbg.value(metadata fp128 %1, i64 0, metadata !50, metadata !DIExpression()), !dbg !53
   ret fp128 %1, !dbg !54
 ; X64-LABEL: test_return5:
 ; X64:       .loc
@@ -131,7 +131,6 @@ attributes #2 = { nounwind readnone }
 !14 = !{!7, !6}
 !15 = !{!16}
 !16 = !DILocalVariable(name: "ptr", arg: 1, scope: !12, file: !3, line: 3, type: !6)
-!17 = !DIExpression()
 !18 = !DILocation(line: 3, column: 39, scope: !12)
 !19 = !DILocation(line: 4, column: 12, scope: !12)
 !20 = !{!21, !21, i64 0}

@@ -167,7 +167,7 @@ define linkonce_odr ptr @"\01??0C@@QEAA@XZ"(ptr returned %this) unnamed_addr #2 
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !47, metadata !48), !dbg !49
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !47, metadata !DIExpression()), !dbg !49
   %this1 = load ptr, ptr %this.addr, align 8
   %call = call ptr @"\01??0B@@QEAA@XZ"(ptr %this1) #6, !dbg !50
   store ptr @"\01??_7C@@6B@", ptr %this1, align 8, !dbg !50
@@ -182,7 +182,7 @@ define linkonce_odr ptr @"\01??0B@@QEAA@XZ"(ptr returned %this) unnamed_addr #2 
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !53, metadata !48), !dbg !55
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !53, metadata !DIExpression()), !dbg !55
   %this1 = load ptr, ptr %this.addr, align 8
   %call = call ptr @"\01??0A@@QEAA@XZ"(ptr %this1) #6, !dbg !56
   store ptr @"\01??_7B@@6B@", ptr %this1, align 8, !dbg !56
@@ -198,7 +198,7 @@ define linkonce_odr ptr @"\01??0A@@QEAA@XZ"(ptr returned %this) unnamed_addr #2 
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !59, metadata !48), !dbg !61
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !59, metadata !DIExpression()), !dbg !61
   %this1 = load ptr, ptr %this.addr, align 8
   store ptr @"\01??_7A@@6B@", ptr %this1, align 8, !dbg !62
   ret ptr %this1, !dbg !62
@@ -277,7 +277,6 @@ attributes #6 = { nounwind }
 !45 = distinct !DISubprogram(name: "C", linkageName: "\01??0C@@QEAA@XZ", scope: !7, file: !3, line: 9, type: !32, isLocal: false, isDefinition: true, scopeLine: 9, flags: DIFlagArtificial | DIFlagPrototyped, isOptimized: false, unit: !2, declaration: !46, retainedNodes: !4)
 !46 = !DISubprogram(name: "C", scope: !7, type: !32, isLocal: false, isDefinition: false, flags: DIFlagArtificial | DIFlagPrototyped, isOptimized: false)
 !47 = !DILocalVariable(name: "this", arg: 1, scope: !45, type: !6, flags: DIFlagArtificial | DIFlagObjectPointer)
-!48 = !DIExpression()
 !49 = !DILocation(line: 0, scope: !45)
 !50 = !DILocation(line: 9, column: 8, scope: !45)
 !51 = distinct !DISubprogram(name: "B", linkageName: "\01??0B@@QEAA@XZ", scope: !10, file: !3, line: 5, type: !27, isLocal: false, isDefinition: true, scopeLine: 5, flags: DIFlagArtificial | DIFlagPrototyped, isOptimized: false, unit: !2, declaration: !52, retainedNodes: !4)

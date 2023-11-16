@@ -10,7 +10,7 @@ entry:
   %dipsy.addr = alloca ptr
   store ptr %dipsy, ptr %dipsy.addr
   call void @llvm.dbg.declare(metadata ptr %dipsy.addr, metadata !12, metadata
-!13), !dbg !14
+!DIExpression()), !dbg !14
   ret void, !dbg !15
 }
 
@@ -35,6 +35,5 @@ DIFlagPrototyped, isOptimized: false, unit: !0, retainedNodes: !2)
 !10 = !DIDerivedType(tag: DW_TAG_const_type, baseType: !11)
 !11 = !DIBasicType(name: "char", size: 8, encoding: DW_ATE_signed_char)
 !12 = !DILocalVariable(name: "dipsy", arg: 1, scope: !6, file: !1, line: 1, type: !9)
-!13 = !DIExpression()
 !14 = !DILocation(line: 1, column: 29, scope: !6)
 !15 = !DILocation(line: 1, column: 37, scope: !6)

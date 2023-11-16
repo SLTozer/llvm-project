@@ -18,7 +18,7 @@ entry:
   %retval = alloca i32, align 4
   %i = alloca i32, align 4
   store i32 0, ptr %retval
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !20, metadata !16), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !20, metadata !DIExpression()), !dbg !21
   store i32 20, ptr %i, align 4, !dbg !21
   %0 = load i32, ptr %i, align 4, !dbg !22
   %call = call i32 @foo(i32 %0), !dbg !23
@@ -47,7 +47,6 @@ attributes #1 = { nounwind readnone }
 !13 = !{i32 2, !"Debug Info Version", i32 3}
 !14 = !{!"clang version 3.7.0"}
 !15 = !DILocalVariable(name: "i", line: 2, arg: 1, scope: !4, file: !5, type: !8)
-!16 = !DIExpression()
 !17 = !DILocation(line: 2, column: 10, scope: !4)
 !18 = !DILocation(line: 4, column: 10, scope: !4)
 !19 = !DILocation(line: 4, column: 3, scope: !4)

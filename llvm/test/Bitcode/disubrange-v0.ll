@@ -5,7 +5,7 @@
 define void @foo(i32 %n) {
 entry:
   %array = alloca i32, i64 42, align 16
-  call void @llvm.dbg.declare(metadata i32* %array, metadata !19, metadata !12), !dbg !18
+  call void @llvm.dbg.declare(metadata i32* %array, metadata !19, metadata !DIExpression()), !dbg !18
   ret void
 }
 
@@ -27,7 +27,6 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 !9 = !{null, !10}
 !10 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !11 = !{!16, !19}
-!12 = !DIExpression()
 !16 = !DILocalVariable(name: "vla_expr", scope: !7, file: !1, line: 21, type: !17)
 !17 = !DIBasicType(name: "long unsigned int", size: 64, encoding: DW_ATE_unsigned)
 !18 = !DILocation(line: 21, column: 7, scope: !7)

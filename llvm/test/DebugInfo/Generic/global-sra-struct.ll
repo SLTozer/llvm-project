@@ -46,8 +46,8 @@ entry:
 ; Function Attrs: nounwind optsize ssp uwtable
 define i32 @main(i32 %argc, ptr %argv) #0 !dbg !24 {
 entry:
-  call void @llvm.dbg.value(metadata i32 %argc, metadata !31, metadata !33), !dbg !34
-  call void @llvm.dbg.value(metadata ptr %argv, metadata !32, metadata !33), !dbg !35
+  call void @llvm.dbg.value(metadata i32 %argc, metadata !31, metadata !DIExpression()), !dbg !34
+  call void @llvm.dbg.value(metadata ptr %argv, metadata !32, metadata !DIExpression()), !dbg !35
   %0 = load ptr, ptr %argv, align 8, !dbg !36, !tbaa !37
   %arrayidx1 = getelementptr inbounds i8, ptr %0, i64 1, !dbg !36
   %1 = load i8, ptr %arrayidx1, align 1, !dbg !36, !tbaa !39
@@ -113,7 +113,6 @@ attributes #2 = { optsize }
 !30 = !{!31, !32}
 !31 = !DILocalVariable(name: "argc", arg: 1, scope: !24, file: !3, line: 7, type: !9)
 !32 = !DILocalVariable(name: "argv", arg: 2, scope: !24, file: !3, line: 7, type: !27)
-!33 = !DIExpression()
 !34 = !DILocation(line: 7, column: 14, scope: !24)
 !35 = !DILocation(line: 7, column: 27, scope: !24)
 !36 = !DILocation(line: 9, column: 9, scope: !24)

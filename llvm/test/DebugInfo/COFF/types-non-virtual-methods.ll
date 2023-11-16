@@ -257,8 +257,8 @@ define void @"\01?foo@@YAXXZ"() #0 !dbg !6 {
 entry:
   %a = alloca %struct.A, align 1
   %b = alloca %class.B, align 1
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !9, metadata !19), !dbg !20
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !21, metadata !19), !dbg !36
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !9, metadata !DIExpression()), !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !21, metadata !DIExpression()), !dbg !36
   ret void, !dbg !37
 }
 
@@ -291,7 +291,6 @@ attributes #1 = { nounwind readnone }
 !16 = !DISubprogram(name: "A::f_private", linkageName: "\01?f_private@A@@AAEXXZ", scope: !10, file: !1, line: 4, type: !13, isLocal: false, isDefinition: false, scopeLine: 4, flags: DIFlagPrivate | DIFlagPrototyped, isOptimized: false)
 !17 = !DISubprogram(name: "A::f_protected", linkageName: "\01?f_protected@A@@IAEXXZ", scope: !10, file: !1, line: 6, type: !13, isLocal: false, isDefinition: false, scopeLine: 6, flags: DIFlagProtected | DIFlagPrototyped, isOptimized: false)
 !18 = !DISubprogram(name: "A::f_public", linkageName: "\01?f_public@A@@QAEXXZ", scope: !10, file: !1, line: 8, type: !13, isLocal: false, isDefinition: false, scopeLine: 8, flags: DIFlagPrototyped, isOptimized: false)
-!19 = !DIExpression()
 !20 = !DILocation(line: 19, scope: !6)
 !21 = !DILocalVariable(name: "b", scope: !6, file: !1, line: 20, type: !22)
 !22 = distinct !DICompositeType(tag: DW_TAG_class_type, name: "B", file: !1, line: 11, size: 8, align: 8, elements: !23)

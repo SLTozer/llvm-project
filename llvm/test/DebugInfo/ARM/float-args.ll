@@ -14,7 +14,7 @@
 
 define float @foo(float %p) !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata float %p, metadata !9, metadata !15), !dbg !16
+  tail call void @llvm.dbg.value(metadata float %p, metadata !9, metadata !DIExpression()), !dbg !16
   ret float %p, !dbg !18
 }
 
@@ -34,7 +34,6 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 !9 = !DILocalVariable(name: "p", arg: 1, scope: !4, file: !1, line: 1, type: !7)
 !10 = !{i32 2, !"Dwarf Version", i32 4}
 !11 = !{i32 2, !"Debug Info Version", i32 3}
-!15 = !DIExpression()
 !16 = !DILocation(line: 1, column: 17, scope: !4)
 !17 = !DILocation(line: 2, column: 12, scope: !4)
 !18 = !DILocation(line: 2, column: 3, scope: !4)

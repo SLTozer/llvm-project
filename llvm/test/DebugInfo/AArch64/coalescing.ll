@@ -18,7 +18,7 @@ define void @_Z5startv() #0 !dbg !4 {
 entry:
   %size = alloca i32, align 4
   %call = call ptr @_Z3fooPv(ptr %size) #3, !dbg !15
-  call void @llvm.dbg.value(metadata ptr %size, metadata !10, metadata !16), !dbg !17
+  call void @llvm.dbg.value(metadata ptr %size, metadata !10, metadata !DIExpression(DW_OP_deref)), !dbg !17
 
   ; The *location* of the variable should be $sp+12. This tells the debugger to
   ; look up its value in [$sp+12].
@@ -60,6 +60,5 @@ attributes #3 = { nounwind optsize }
 !13 = !{i32 2, !"Debug Info Version", i32 3}
 !14 = !{!"clang version 3.6.0 (trunk 223149) (llvm/trunk 223115)"}
 !15 = !DILocation(line: 5, column: 3, scope: !4)
-!16 = !DIExpression(DW_OP_deref)
 !17 = !DILocation(line: 4, column: 12, scope: !4)
 !18 = !DILocation(line: 8, column: 1, scope: !4)

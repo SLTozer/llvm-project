@@ -27,18 +27,18 @@ target triple = "x86_64-unknown-linux-gnu"
 ; Function Attrs: nounwind readnone uwtable
 define i32 @func1(i32 %n) #0 !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %n, i64 0, metadata !9, metadata !17), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 5, i64 0, metadata !10, metadata !17), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 %n, i64 0, metadata !9, metadata !DIExpression()), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 5, i64 0, metadata !10, metadata !DIExpression()), !dbg !19
   %cmp = icmp sgt i32 %n, 10, !dbg !20
   %. = select i1 %cmp, i32 10, i32 5, !dbg !22
-  tail call void @llvm.dbg.value(metadata i32 %., i64 0, metadata !10, metadata !17), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 %., i64 0, metadata !10, metadata !DIExpression()), !dbg !19
   ret i32 %., !dbg !23
 }
 
 ; Function Attrs: nounwind readnone uwtable
 define i32 @func2(i32 %n) #0 !dbg !11 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %n, i64 0, metadata !13, metadata !17), !dbg !24
+  tail call void @llvm.dbg.value(metadata i32 %n, i64 0, metadata !13, metadata !DIExpression()), !dbg !24
   ret i32 %n, !dbg !25
 }
 
@@ -68,7 +68,6 @@ attributes #1 = { nounwind readnone }
 !14 = !{i32 2, !"Dwarf Version", i32 4}
 !15 = !{i32 2, !"Debug Info Version", i32 3}
 !16 = !{!"clang version 3.8.0 (trunk 251407) (llvm/trunk 251401)"}
-!17 = !DIExpression()
 !18 = !DILocation(line: 1, column: 15, scope: !4)
 !19 = !DILocation(line: 2, column: 7, scope: !4)
 !20 = !DILocation(line: 3, column: 9, scope: !21, inlinedAt: !26)

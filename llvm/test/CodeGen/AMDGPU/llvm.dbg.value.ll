@@ -11,7 +11,7 @@
 ; GCN: s_endpgm
 define amdgpu_kernel void @test_debug_value(ptr addrspace(1) nocapture %globalptr_arg) #0 !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr addrspace(1) %globalptr_arg, metadata !10, metadata !13), !dbg !14
+  tail call void @llvm.dbg.value(metadata ptr addrspace(1) %globalptr_arg, metadata !10, metadata !DIExpression()), !dbg !14
   store i32 123, ptr addrspace(1) %globalptr_arg, align 4, !dbg !14
   ret void, !dbg !14
 }
@@ -50,5 +50,4 @@ attributes #1 = { nounwind readnone }
 !10 = !DILocalVariable(name: "globalptr_arg", arg: 1, scope: !4, file: !1, line: 1, type: !7)
 !11 = !{i32 2, !"Dwarf Version", i32 4}
 !12 = !{i32 2, !"Debug Info Version", i32 3}
-!13 = !DIExpression()
 !14 = !DILocation(line: 1, column: 42, scope: !4)

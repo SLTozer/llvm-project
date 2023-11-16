@@ -20,14 +20,14 @@
 ; Function Attrs: nounwind readnone
 define i32 @goo(i32 %a, i32 %b) local_unnamed_addr #0 !dbg !8 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %a, i64 0, metadata !13, metadata !15), !dbg !16
-  tail call void @llvm.dbg.value(metadata i32 %b, i64 0, metadata !14, metadata !15), !dbg !17
-  tail call void @llvm.dbg.value(metadata i32 %a, i64 0, metadata !18, metadata !15), !dbg !26
-  tail call void @llvm.dbg.value(metadata i32 %b, i64 0, metadata !21, metadata !15), !dbg !28
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !22, metadata !15), !dbg !29
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !23, metadata !15), !dbg !30
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !23, metadata !15), !dbg !30
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !22, metadata !15), !dbg !29
+  tail call void @llvm.dbg.value(metadata i32 %a, i64 0, metadata !13, metadata !DIExpression()), !dbg !16
+  tail call void @llvm.dbg.value(metadata i32 %b, i64 0, metadata !14, metadata !DIExpression()), !dbg !17
+  tail call void @llvm.dbg.value(metadata i32 %a, i64 0, metadata !18, metadata !DIExpression()), !dbg !26
+  tail call void @llvm.dbg.value(metadata i32 %b, i64 0, metadata !21, metadata !DIExpression()), !dbg !28
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !22, metadata !DIExpression()), !dbg !29
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !23, metadata !DIExpression()), !dbg !30
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !23, metadata !DIExpression()), !dbg !30
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !22, metadata !DIExpression()), !dbg !29
   %cmp7.i = icmp eq i32 %b, 0, !dbg !31
   br i1 %cmp7.i, label %lee1.exit, label %for.body.i.preheader, !dbg !33
 
@@ -40,11 +40,11 @@ for.body.i:                                       ; preds = %for.body.i.preheade
   %div.i = sdiv i32 %t.08.i, 2, !dbg !34
   %add.i = add i32 %t.08.i, %a, !dbg !35
   %add1.i = add i32 %add.i, %div.i, !dbg !36
-  tail call void @llvm.dbg.value(metadata i32 %add1.i, i64 0, metadata !22, metadata !15), !dbg !29
+  tail call void @llvm.dbg.value(metadata i32 %add1.i, i64 0, metadata !22, metadata !DIExpression()), !dbg !29
   %inc.i = add nuw i32 %i.09.i, 1, !dbg !37
-  tail call void @llvm.dbg.value(metadata i32 %inc.i, i64 0, metadata !23, metadata !15), !dbg !30
-  tail call void @llvm.dbg.value(metadata i32 %inc.i, i64 0, metadata !23, metadata !15), !dbg !30
-  tail call void @llvm.dbg.value(metadata i32 %add1.i, i64 0, metadata !22, metadata !15), !dbg !29
+  tail call void @llvm.dbg.value(metadata i32 %inc.i, i64 0, metadata !23, metadata !DIExpression()), !dbg !30
+  tail call void @llvm.dbg.value(metadata i32 %inc.i, i64 0, metadata !23, metadata !DIExpression()), !dbg !30
+  tail call void @llvm.dbg.value(metadata i32 %add1.i, i64 0, metadata !22, metadata !DIExpression()), !dbg !29
   %exitcond.i = icmp eq i32 %inc.i, %b, !dbg !31
   br i1 %exitcond.i, label %lee1.exit.loopexit, label %for.body.i, !dbg !33, !llvm.loop !38
 
@@ -54,8 +54,8 @@ lee1.exit.loopexit:                               ; preds = %for.body.i
 
 lee1.exit:                                        ; preds = %lee1.exit.loopexit, %entry
   %t.0.lcssa.i = phi i32 [ 0, %entry ], [ %add1.i.lcssa, %lee1.exit.loopexit ]
-  tail call void @llvm.dbg.value(metadata i32 %a, i64 0, metadata !44, metadata !15), !dbg !47
-  tail call void @llvm.dbg.value(metadata i32 %b, i64 0, metadata !45, metadata !15), !dbg !48
+  tail call void @llvm.dbg.value(metadata i32 %a, i64 0, metadata !44, metadata !DIExpression()), !dbg !47
+  tail call void @llvm.dbg.value(metadata i32 %b, i64 0, metadata !45, metadata !DIExpression()), !dbg !48
   %add.i4 = add nsw i32 %b, %a, !dbg !41
   %sub.i = sub nsw i32 %a, %b, !dbg !49
   %mul.i = mul nsw i32 %add.i4, %sub.i, !dbg !50
@@ -88,7 +88,6 @@ attributes #1 = { nounwind readnone }
 !12 = !{!13, !14}
 !13 = !DILocalVariable(name: "a", arg: 1, scope: !8, file: !1, line: 23, type: !11)
 !14 = !DILocalVariable(name: "b", arg: 2, scope: !8, file: !1, line: 23, type: !11)
-!15 = !DIExpression()
 !16 = !DILocation(line: 23, column: 14, scope: !8)
 !17 = !DILocation(line: 23, column: 21, scope: !8)
 !18 = !DILocalVariable(name: "a", arg: 1, scope: !19, file: !1, line: 3, type: !11)

@@ -55,7 +55,6 @@ define i32 @foo(i32) !dbg !6 {
 !8 = !{!9, !9}
 !9 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !10 = !DILocalVariable(name: "x", arg: 1, scope: !6, file: !1, line: 1, type: !9)
-!11 = !DIExpression()
 !12 = !DILocation(line: 1, column: 13, scope: !6)
 !13 = !DILocalVariable(name: "ret", scope: !6, file: !1, line: 2, type: !9)
 !14 = !DILocation(line: 2, column: 7, scope: !6)

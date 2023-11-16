@@ -47,9 +47,9 @@ entry:
   store i32 0, ptr %retval
   %0 = load i32, ptr @i, align 4, !dbg !20
   store ptr %tmp, ptr %this.addr.i, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr.i, metadata !21, metadata !24), !dbg !25
+  call void @llvm.dbg.declare(metadata ptr %this.addr.i, metadata !21, metadata !DIExpression()), !dbg !25
   store i32 %0, ptr %x.addr.i, align 4
-  call void @llvm.dbg.declare(metadata ptr %x.addr.i, metadata !26, metadata !24), !dbg !27
+  call void @llvm.dbg.declare(metadata ptr %x.addr.i, metadata !26, metadata !DIExpression()), !dbg !27
   %this1.i = load ptr, ptr %this.addr.i
   %1 = load i32, ptr %x.addr.i, align 4, !dbg !27
   %add.i = add nsw i32 %1, 2, !dbg !27
@@ -91,7 +91,6 @@ attributes #1 = { nounwind readnone }
 !21 = !DILocalVariable(name: "this", arg: 1, scope: !22, type: !23, flags: DIFlagArtificial | DIFlagObjectPointer)
 !22 = distinct !DISubprogram(name: "func", linkageName: "_ZN3foo4funcEi", scope: !7, file: !2, line: 2, type: !10, isLocal: false, isDefinition: true, scopeLine: 2, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !4, declaration: !9, retainedNodes: !5)
 !23 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !7, size: 64, align: 64)
-!24 = !DIExpression()
 !25 = !DILocation(line: 0, scope: !22, inlinedAt: !20)
 !26 = !DILocalVariable(name: "x", arg: 2, scope: !22, file: !2, line: 2, type: !3)
 !27 = !DILocation(line: 2, scope: !22, inlinedAt: !20)

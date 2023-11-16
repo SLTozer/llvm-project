@@ -16,7 +16,7 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 define i32 @foo(ptr %a) !dbg !7 {
 entry:
   %gep = getelementptr i32, ptr %a, i32 1
-  call void @llvm.dbg.value(metadata ptr %gep, metadata !16, metadata !12), !dbg !15
+  call void @llvm.dbg.value(metadata ptr %gep, metadata !16, metadata !DIExpression()), !dbg !15
   br label %sink1
 
 sink1:
@@ -39,7 +39,7 @@ sink1:
 define i32 @bar(ptr %a, i32 %b) !dbg !70 {
 entry:
   %gep = getelementptr <vscale x 4 x i32>, ptr %a, i32 %b
-  call void @llvm.dbg.value(metadata ptr %gep, metadata !73, metadata !12), !dbg !74
+  call void @llvm.dbg.value(metadata ptr %gep, metadata !73, metadata !DIExpression()), !dbg !74
   br label %sink2
 
 sink2:
@@ -68,7 +68,7 @@ sink2:
 define i32 @baz(ptr %a) !dbg !80 {
 entry:
   %gep = getelementptr i32, ptr %a, i32 1
-  call void @llvm.dbg.value(metadata ptr %gep, metadata !83, metadata !12), !dbg !84
+  call void @llvm.dbg.value(metadata ptr %gep, metadata !83, metadata !DIExpression()), !dbg !84
   call void @llvm.dbg.value(metadata ptr %gep, metadata !83, metadata !DIExpression(DW_OP_plus_uconst, 5)), !dbg !85
   br label %sink1
 
@@ -97,7 +97,6 @@ sink1:
 !9 = !{!10, !10}
 !10 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !11 = !DILocalVariable(name: "j", scope: !7, file: !1, line: 2, type: !10)
-!12 = !DIExpression()
 !15 = !DILocation(line: 5, column: 3, scope: !7)
 !16 = !DILocalVariable(name: "h", scope: !7, file: !1, line: 4, type: !10)
 !70 = distinct !DISubprogram(name: "bar", scope: !1, file: !1, line: 2, type: !71, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: false, unit: !0, retainedNodes: !2)

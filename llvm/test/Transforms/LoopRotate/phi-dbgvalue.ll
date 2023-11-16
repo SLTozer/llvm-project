@@ -13,13 +13,13 @@
 ; Function Attrs: noinline nounwind
 define void @func(i32 %a) local_unnamed_addr #0 !dbg !6 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %a, metadata !10, metadata !11), !dbg !12
-  tail call void @llvm.dbg.value(metadata i32 1, metadata !13, metadata !11), !dbg !15
+  tail call void @llvm.dbg.value(metadata i32 %a, metadata !10, metadata !DIExpression()), !dbg !12
+  tail call void @llvm.dbg.value(metadata i32 1, metadata !13, metadata !DIExpression()), !dbg !15
   br label %for.cond, !dbg !16
 
 for.cond:                                         ; preds = %for.body, %entry
   %i.0 = phi i32 [ 1, %entry ], [ %inc, %for.body ]
-  tail call void @llvm.dbg.value(metadata i32 %i.0, metadata !13, metadata !11), !dbg !15
+  tail call void @llvm.dbg.value(metadata i32 %i.0, metadata !13, metadata !DIExpression()), !dbg !15
   %cmp = icmp slt i32 %i.0, 10, !dbg !17
   br i1 %cmp, label %for.body, label %for.end, !dbg !20
 
@@ -27,7 +27,7 @@ for.body:                                         ; preds = %for.cond
   %add = add nsw i32 %i.0, %a, !dbg !22
   %call = tail call i32 @func2(i32 %i.0, i32 %add) #3, !dbg !24
   %inc = add nsw i32 %i.0, 1, !dbg !25
-  tail call void @llvm.dbg.value(metadata i32 %inc, metadata !13, metadata !11), !dbg !15
+  tail call void @llvm.dbg.value(metadata i32 %inc, metadata !13, metadata !DIExpression()), !dbg !15
   br label %for.cond, !dbg !27, !llvm.loop !28
 
 for.end:                                          ; preds = %for.cond
@@ -58,7 +58,6 @@ attributes #3 = { nounwind }
 !8 = !{null, !9}
 !9 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !10 = !DILocalVariable(name: "a", arg: 1, scope: !6, file: !1, line: 2, type: !9)
-!11 = !DIExpression()
 !12 = !DILocation(line: 2, column: 15, scope: !6)
 !13 = !DILocalVariable(name: "i", scope: !14, file: !1, line: 3, type: !9)
 !14 = distinct !DILexicalBlock(scope: !6, file: !1, line: 3, column: 3)

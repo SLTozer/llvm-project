@@ -25,4 +25,3 @@ define ptr @func(i32 %a) !dbg !9 {
 !11 = !{null, !12}
 !12 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !13 = !DILocalVariable(name: "a", arg: 1, scope: !9, file: !1, line: 4, type: !12)
-!14 = !DIExpression()

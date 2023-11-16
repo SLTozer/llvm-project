@@ -30,27 +30,27 @@
 ; Function Attrs: nounwind ssp uwtable
 define i32 @foo(i32 %a) #0 !dbg !8 {
 entry:
-  call void @llvm.dbg.value(metadata i32 %a, metadata !16, metadata !17), !dbg !18
+  call void @llvm.dbg.value(metadata i32 %a, metadata !16, metadata !DIExpression()), !dbg !18
   %conv = trunc i32 %a to i16, !dbg !19
   %conv1 = sext i16 %conv to i32, !dbg !19
   %add = add nsw i32 %conv1, 8, !dbg !19
-  call void @llvm.dbg.value(metadata i32 %add, metadata !20, metadata !17), !dbg !21
+  call void @llvm.dbg.value(metadata i32 %add, metadata !20, metadata !DIExpression()), !dbg !21
   %conv2 = trunc i32 %add to i16, !dbg !22
   %conv3 = sext i16 %conv2 to i32, !dbg !22
   %add4 = add nsw i32 %conv3, 8, !dbg !22
-  call void @llvm.dbg.value(metadata i32 %add4, metadata !23, metadata !17), !dbg !24
+  call void @llvm.dbg.value(metadata i32 %add4, metadata !23, metadata !DIExpression()), !dbg !24
   %conv5 = trunc i32 %add4 to i16, !dbg !25
   %conv6 = sext i16 %conv5 to i32, !dbg !25
   %add7 = add nsw i32 %conv6, 8, !dbg !25
-  call void @llvm.dbg.value(metadata i32 %add7, metadata !26, metadata !17), !dbg !27
+  call void @llvm.dbg.value(metadata i32 %add7, metadata !26, metadata !DIExpression()), !dbg !27
   %conv8 = trunc i32 %add7 to i16, !dbg !28
   %conv9 = sext i16 %conv8 to i32, !dbg !28
   %add10 = add nsw i32 %conv9, 8, !dbg !28
-  call void @llvm.dbg.value(metadata i32 %add10, metadata !29, metadata !17), !dbg !30
+  call void @llvm.dbg.value(metadata i32 %add10, metadata !29, metadata !DIExpression()), !dbg !30
   %conv11 = trunc i32 %add10 to i16, !dbg !31
   %conv12 = sext i16 %conv11 to i32, !dbg !31
   %add13 = add nsw i32 %conv12, 8, !dbg !31
-  call void @llvm.dbg.value(metadata i32 %add13, metadata !32, metadata !17), !dbg !33
+  call void @llvm.dbg.value(metadata i32 %add13, metadata !32, metadata !DIExpression()), !dbg !33
   ret i32 %add13, !dbg !34
 }
 
@@ -83,7 +83,6 @@ attributes #1 = { nounwind readnone }
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !{!"clang version 3.6.0 "}
 !16 = !DILocalVariable(name: "a", line: 3, arg: 1, scope: !8, file: !9, type: !12)
-!17 = !DIExpression()
 !18 = !DILocation(line: 3, column: 13, scope: !8)
 !19 = !DILocation(line: 4, column: 5, scope: !8)
 !20 = !DILocalVariable(name: "b", line: 4, scope: !8, file: !9, type: !12)

@@ -35,14 +35,14 @@ source_filename = "test.c"
 ; Function Attrs: nounwind uwtable
 define <4 x float> @foo(<4 x float> %X) local_unnamed_addr #0 !dbg !6 {
 entry:
-  tail call void @llvm.dbg.value(metadata <4 x float> %X, metadata !15, metadata !21), !dbg !22
-  tail call void @llvm.dbg.value(metadata <4 x float> <float 5.000000e-01, float 5.000000e-01, float 5.000000e-01, float 5.000000e-01>, metadata !16, metadata !21), !dbg !23
+  tail call void @llvm.dbg.value(metadata <4 x float> %X, metadata !15, metadata !DIExpression()), !dbg !22
+  tail call void @llvm.dbg.value(metadata <4 x float> <float 5.000000e-01, float 5.000000e-01, float 5.000000e-01, float 5.000000e-01>, metadata !16, metadata !DIExpression()), !dbg !23
   %sub = fadd <4 x float> %X, <float -5.000000e-01, float -5.000000e-01, float -5.000000e-01, float -5.000000e-01>, !dbg !24
-  tail call void @llvm.dbg.value(metadata <4 x float> %sub, metadata !18, metadata !21), !dbg !25
+  tail call void @llvm.dbg.value(metadata <4 x float> %sub, metadata !18, metadata !DIExpression()), !dbg !25
   %add = fadd <4 x float> %X, <float 5.000000e-01, float 5.000000e-01, float 5.000000e-01, float 5.000000e-01>, !dbg !26
-  tail call void @llvm.dbg.value(metadata <4 x float> %add, metadata !19, metadata !21), !dbg !27
+  tail call void @llvm.dbg.value(metadata <4 x float> %add, metadata !19, metadata !DIExpression()), !dbg !27
   %call = tail call <4 x float> @doSomething(<4 x float> %add, <4 x float> %sub) #3, !dbg !28
-  tail call void @llvm.dbg.value(metadata <4 x float> %call, metadata !20, metadata !21), !dbg !29
+  tail call void @llvm.dbg.value(metadata <4 x float> %call, metadata !20, metadata !DIExpression()), !dbg !29
   %sub1 = fsub <4 x float> <float 5.000000e-01, float 5.000000e-01, float 5.000000e-01, float 5.000000e-01>, %call, !dbg !30
   ret <4 x float> %sub1, !dbg !31
 }
@@ -82,7 +82,6 @@ attributes #3 = { nounwind }
 !18 = !DILocalVariable(name: "Sub", scope: !6, file: !1, line: 8, type: !9)
 !19 = !DILocalVariable(name: "Add", scope: !6, file: !1, line: 9, type: !9)
 !20 = !DILocalVariable(name: "Result", scope: !6, file: !1, line: 11, type: !9)
-!21 = !DIExpression()
 !22 = !DILocation(line: 6, column: 19, scope: !6)
 !23 = !DILocation(line: 7, column: 16, scope: !6)
 !24 = !DILocation(line: 8, column: 18, scope: !6)

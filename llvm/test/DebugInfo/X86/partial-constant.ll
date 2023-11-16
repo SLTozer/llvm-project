@@ -33,7 +33,7 @@ entry:
 
 if.end:                                           ; preds = %entry
   tail call void @_Z1fv() #3, !dbg !17
-  tail call void @llvm.dbg.value(metadata i8 1, metadata !12, metadata !18), !dbg !19
+  tail call void @llvm.dbg.value(metadata i8 1, metadata !12, metadata !DIExpression()), !dbg !19
   br label %exit, !dbg !20
 
 exit:                                             ; preds = %entry, %if.end
@@ -77,7 +77,6 @@ attributes #3 = { nobuiltin noimplicitfloat noredzone nounwind optsize }
 !15 = distinct !DILexicalBlock(scope: !7, file: !1, line: 5, column: 7)
 !16 = !DILocation(line: 5, column: 7, scope: !7)
 !17 = !DILocation(line: 9, column: 3, scope: !7)
-!18 = !DIExpression()
 !19 = !DILocation(line: 4, column: 8, scope: !7)
 !20 = !DILocation(line: 10, column: 3, scope: !7)
 !21 = !DILocation(line: 12, column: 3, scope: !7)

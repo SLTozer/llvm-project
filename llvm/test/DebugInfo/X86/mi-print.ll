@@ -16,8 +16,8 @@ target triple = "x86_64-apple-macosx10.10.0"
 ; Function Attrs: nounwind readnone ssp uwtable
 define i32 @bar(i32 %x) #0 !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %x, metadata !9, metadata !17), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 %x, metadata !19, metadata !17), !dbg !21
+  tail call void @llvm.dbg.value(metadata i32 %x, metadata !9, metadata !DIExpression()), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 %x, metadata !19, metadata !DIExpression()), !dbg !21
   ret i32 %x, !dbg !22
 }
 
@@ -47,7 +47,6 @@ attributes #1 = { nounwind readnone }
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !{i32 1, !"PIC Level", i32 2}
 !16 = !{!"clang version 3.7.0 (trunk 233919) (llvm/trunk 233920)"}
-!17 = !DIExpression()
 !18 = !DILocation(line: 2, column: 13, scope: !4)
 !19 = !DILocalVariable(name: "x", arg: 1, scope: !10, file: !1, line: 1, type: !7)
 !20 = distinct !DILocation(line: 2, column: 25, scope: !4)

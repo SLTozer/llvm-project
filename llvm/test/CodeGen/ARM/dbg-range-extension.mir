@@ -63,21 +63,21 @@
   ; Function Attrs: minsize nounwind optsize
   define void @func(i32 %a) local_unnamed_addr #0 !dbg !8 {
   entry:
-    tail call void @llvm.dbg.value(metadata i32 %a, i64 0, metadata !13, metadata !20), !dbg !21
+    tail call void @llvm.dbg.value(metadata i32 %a, i64 0, metadata !13, metadata !DIExpression()), !dbg !21
     %call = tail call i32 @func2(i32 10, i32 11) #0, !dbg !22
-    tail call void @llvm.dbg.value(metadata i32 %call, i64 0, metadata !14, metadata !20), !dbg !23
+    tail call void @llvm.dbg.value(metadata i32 %call, i64 0, metadata !14, metadata !DIExpression()), !dbg !23
     %tobool = icmp eq i32 %a, 0, !dbg !24
     br i1 %tobool, label %if.end, label %if.then, !dbg !25
   
   if.then:                                          ; preds = %entry
     %call1 = tail call i32 @func2(i32 12, i32 13) #0, !dbg !26
-    tail call void @llvm.dbg.value(metadata i32 %call1, i64 0, metadata !15, metadata !20), !dbg !27
-    tail call void @llvm.dbg.value(metadata i32 1, i64 0, metadata !18, metadata !20), !dbg !28
+    tail call void @llvm.dbg.value(metadata i32 %call1, i64 0, metadata !15, metadata !DIExpression()), !dbg !27
+    tail call void @llvm.dbg.value(metadata i32 1, i64 0, metadata !18, metadata !DIExpression()), !dbg !28
     br label %for.cond, !dbg !29
   
   for.cond:                                         ; preds = %for.body, %if.then
     %i.0 = phi i32 [ 1, %if.then ], [ %inc, %for.body ]
-    tail call void @llvm.dbg.value(metadata i32 %i.0, i64 0, metadata !18, metadata !20), !dbg !28
+    tail call void @llvm.dbg.value(metadata i32 %i.0, i64 0, metadata !18, metadata !DIExpression()), !dbg !28
     %cmp = icmp slt i32 %i.0, %a, !dbg !30
     br i1 %cmp, label %for.body, label %for.cond.cleanup, !dbg !33
   
@@ -89,7 +89,7 @@
     %0 = add i32 %call, %i.0, !dbg !36
     %call2 = tail call i32 @func2(i32 %i.0, i32 %0) #0, !dbg !36
     %inc = add nuw nsw i32 %i.0, 1, !dbg !38
-    tail call void @llvm.dbg.value(metadata i32 %inc, i64 0, metadata !18, metadata !20), !dbg !28
+    tail call void @llvm.dbg.value(metadata i32 %inc, i64 0, metadata !18, metadata !DIExpression()), !dbg !28
     br label %for.cond, !dbg !40, !llvm.loop !41
   
   if.end:                                           ; preds = %for.cond.cleanup, %entry
@@ -135,7 +135,6 @@
   !17 = distinct !DILexicalBlock(scope: !8, file: !1, line: 4, column: 6)
   !18 = !DILocalVariable(name: "i", scope: !19, file: !1, line: 6, type: !11)
   !19 = distinct !DILexicalBlock(scope: !16, file: !1, line: 6, column: 3)
-  !20 = !DIExpression()
   !21 = !DILocation(line: 2, column: 15, scope: !8)
   !22 = !DILocation(line: 3, column: 17, scope: !8)
   !23 = !DILocation(line: 3, column: 13, scope: !8)
@@ -219,14 +218,14 @@ body:             |
     frame-setup CFI_INSTRUCTION offset $r6, -16
     frame-setup CFI_INSTRUCTION offset $r5, -20
     frame-setup CFI_INSTRUCTION offset $r4, -24
-    DBG_VALUE $r0, $noreg, !13, !20, debug-location !21
+    DBG_VALUE $r0, $noreg, !13, !DIExpression(), debug-location !21
     $r4 = MOVr killed $r0, 14, $noreg, $noreg
-    DBG_VALUE $r4, $noreg, !13, !20, debug-location !21
+    DBG_VALUE $r4, $noreg, !13, !DIExpression(), debug-location !21
     $r0 = MOVi 10, 14, $noreg, _, debug-location !22
     $r1 = MOVi 11, 14, $noreg, _, debug-location !22
     BL @func2, csr_aapcs, implicit-def dead $lr, implicit $sp, implicit killed $r0, implicit killed $r1, implicit-def $sp, implicit-def $r0, debug-location !22
     $r5 = MOVr killed $r0, 14, $noreg, _, debug-location !22
-    DBG_VALUE $r5, $noreg, !14, !20, debug-location !23
+    DBG_VALUE $r5, $noreg, !14, !DIExpression(), debug-location !23
     CMPri $r4, 0, 14, $noreg, implicit-def $cpsr, debug-location !25
     Bcc %bb.5.if.end, 0, killed $cpsr
   
@@ -237,9 +236,9 @@ body:             |
     $r1 = MOVi 13, 14, $noreg, _, debug-location !26
     BL @func2, csr_aapcs, implicit-def dead $lr, implicit $sp, implicit killed $r0, implicit killed $r1, implicit-def $sp, implicit-def $r0, debug-location !26
     $r6 = MOVr killed $r0, 14, $noreg, _, debug-location !26
-    DBG_VALUE $r6, $noreg, !15, !20, debug-location !27
+    DBG_VALUE $r6, $noreg, !15, !DIExpression(), debug-location !27
     $r7 = MOVi 1, 14, $noreg, $noreg
-    DBG_VALUE 1, 0, !18, !20, debug-location !28
+    DBG_VALUE 1, 0, !18, !DIExpression(), debug-location !28
     B %bb.3.for.cond
   
   bb.2.for.body:
@@ -249,12 +248,12 @@ body:             |
     $r0 = MOVr $r7, 14, $noreg, _, debug-location !36
     BL @func2, csr_aapcs, implicit-def dead $lr, implicit $sp, implicit killed $r0, implicit killed $r1, implicit-def $sp, implicit-def dead $r0, debug-location !36
     $r7 = ADDri killed $r7, 1, 14, $noreg, _, debug-location !38
-    DBG_VALUE $r7, $noreg, !18, !20, debug-location !28
+    DBG_VALUE $r7, $noreg, !18, !DIExpression(), debug-location !28
   
   bb.3.for.cond:
     liveins: $r4, $r5, $r6, $r7
   
-    DBG_VALUE $r7, $noreg, !18, !20, debug-location !28
+    DBG_VALUE $r7, $noreg, !18, !DIExpression(), debug-location !28
     CMPrr $r7, $r4, 14, $noreg, implicit-def $cpsr, debug-location !33
     Bcc %bb.2.for.body, 11, killed $cpsr, debug-location !33
   

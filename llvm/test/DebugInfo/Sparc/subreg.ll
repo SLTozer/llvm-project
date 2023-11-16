@@ -8,8 +8,8 @@ target triple = "sparc64"
 ; Function Attrs: nounwind readnone
 define void @fn1(fp128 %b) local_unnamed_addr !dbg !7 {
 entry:
-  tail call void @llvm.dbg.value(metadata fp128 %b, i64 0, metadata !13, metadata !18), !dbg !17
-  tail call void @llvm.dbg.value(metadata fp128 0xL00000000000000000000000000000000, i64 0, metadata !13, metadata !19), !dbg !17
+  tail call void @llvm.dbg.value(metadata fp128 %b, i64 0, metadata !13, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 128)), !dbg !17
+  tail call void @llvm.dbg.value(metadata fp128 0xL00000000000000000000000000000000, i64 0, metadata !13, metadata !DIExpression(DW_OP_LLVM_fragment, 128, 128)), !dbg !17
   ret void, !dbg !20
 }
 
@@ -29,6 +29,4 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !13 = !DILocalVariable(name: "a", scope: !7, file: !1, line: 1, type: !14)
 !14 = !DIBasicType(name: "complex", size: 256, encoding: DW_ATE_complex_float)
 !17 = !DILocation(line: 1, column: 48, scope: !7)
-!18 = !DIExpression(DW_OP_LLVM_fragment, 0, 128)
-!19 = !DIExpression(DW_OP_LLVM_fragment, 128, 128)
 !20 = !DILocation(line: 1, column: 55, scope: !7)

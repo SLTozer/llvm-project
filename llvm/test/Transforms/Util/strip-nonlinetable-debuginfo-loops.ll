@@ -10,7 +10,7 @@ target triple = "x86_64-apple-macosx10.12.0"
 
 define void @f(ptr %i) local_unnamed_addr #0 !dbg !7 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %i, metadata !14, metadata !15), !dbg !16
+  tail call void @llvm.dbg.value(metadata ptr %i, metadata !14, metadata !DIExpression()), !dbg !16
   br label %while.cond, !dbg !17
 
 while.cond:                                       ; preds = %while.cond, %entry
@@ -55,7 +55,6 @@ attributes #1 = { nounwind readnone }
 !12 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !13 = !{!14}
 !14 = !DILocalVariable(name: "i", arg: 1, scope: !7, file: !1, line: 1, type: !10)
-!15 = !DIExpression()
 !16 = !DILocation(line: 1, column: 22, scope: !7)
 ; CHECK: ![[BEGIN:[0-9]+]] = !DILocation(line: 2, column: 3, scope: ![[F]])
 !17 = !DILocation(line: 2, column: 3, scope: !7)

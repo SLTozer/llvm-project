@@ -52,11 +52,11 @@ entry:
   %ArgA.addr = alloca ptr addrspace(1), align 4, addrspace(5)
   %ArgB.addr = alloca ptr addrspace(1), align 4, addrspace(5)
   store i32 %ArgN, ptr addrspace(5) %ArgN.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %ArgN.addr, metadata !22, metadata !23), !dbg !24
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %ArgN.addr, metadata !22, metadata !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)), !dbg !24
   store ptr addrspace(1) %ArgA, ptr addrspace(5) %ArgA.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %ArgA.addr, metadata !25, metadata !23), !dbg !26
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %ArgA.addr, metadata !25, metadata !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)), !dbg !26
   store ptr addrspace(1) %ArgB, ptr addrspace(5) %ArgB.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %ArgB.addr, metadata !27, metadata !23), !dbg !28
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %ArgB.addr, metadata !27, metadata !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)), !dbg !28
   %0 = load ptr addrspace(1), ptr addrspace(5) %ArgB.addr, align 4, !dbg !29
   %1 = load i32, ptr addrspace(5) %ArgN.addr, align 4, !dbg !30
   %idxprom = zext i32 %1 to i64, !dbg !29
@@ -100,7 +100,6 @@ entry:
 !20 = !{!"uint", !"int addrspace(5)*", !"int addrspace(5)*"}
 !21 = !{!"", !"", !""}
 !22 = !DILocalVariable(name: "ArgN", arg: 1, scope: !13, file: !3, line: 4, type: !16)
-!23 = !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)
 !24 = !DILocation(line: 4, column: 34, scope: !13)
 !25 = !DILocalVariable(name: "ArgA", arg: 2, scope: !13, file: !3, line: 4, type: !17)
 !26 = !DILocation(line: 4, column: 52, scope: !13)

@@ -29,14 +29,14 @@ entry:
   %elems = alloca i32, align 4
   %saved_stack = alloca ptr
   %cleanup.dest.slot = alloca i32
-  call void @llvm.dbg.declare(metadata ptr %elems, metadata !12, metadata !13), !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %elems, metadata !12, metadata !DIExpression()), !dbg !14
   store i32 3, ptr %elems, align 4, !dbg !14
   %0 = load i32, ptr %elems, align 4, !dbg !15
   %1 = zext i32 %0 to i64, !dbg !16
   %2 = call ptr @llvm.stacksave(), !dbg !16
   store ptr %2, ptr %saved_stack, !dbg !16
   %vla = alloca i32, i64 %1, align 16, !dbg !16
-  call void @llvm.dbg.declare(metadata ptr %vla, metadata !17, metadata !21), !dbg !22
+  call void @llvm.dbg.declare(metadata ptr %vla, metadata !17, metadata !DIExpression(DW_OP_deref)), !dbg !22
   store i32 0, ptr %vla, align 4, !dbg !24
   %arrayidx1 = getelementptr inbounds i32, ptr %vla, i64 1, !dbg !25
   store i32 1, ptr %arrayidx1, align 4, !dbg !26
@@ -45,7 +45,7 @@ entry:
   %3 = load i32, ptr %elems, align 4, !dbg !29
   %4 = zext i32 %3 to i64, !dbg !30
   %vla3 = alloca i32, i64 %4, align 16, !dbg !30
-  call void @llvm.dbg.declare(metadata ptr %vla3, metadata !31, metadata !21), !dbg !32
+  call void @llvm.dbg.declare(metadata ptr %vla3, metadata !31, metadata !DIExpression(DW_OP_deref)), !dbg !32
   store i32 1, ptr %vla3, align 4, !dbg !34
   %5 = load i32, ptr %vla3, align 4, !dbg !35
   store i32 1, ptr %cleanup.dest.slot
@@ -83,7 +83,6 @@ attributes #2 = { nounwind }
 !10 = !{i32 2, !"Debug Info Version", i32 3}
 !11 = !{!"clang version 3.7.0 (trunk 227074)"}
 !12 = !DILocalVariable(name: "elems", line: 3, scope: !4, file: !5, type: !8)
-!13 = !DIExpression()
 !14 = !DILocation(line: 3, column: 8, scope: !4)
 !15 = !DILocation(line: 4, column: 15, scope: !4)
 !16 = !DILocation(line: 4, column: 4, scope: !4)
@@ -91,7 +90,6 @@ attributes #2 = { nounwind }
 !18 = !DICompositeType(tag: DW_TAG_array_type, align: 32, baseType: !8, elements: !19)
 !19 = !{!20}
 !20 = !DISubrange(count: -1)
-!21 = !DIExpression(DW_OP_deref)
 !22 = !DILocation(line: 4, column: 8, scope: !4)
 !23 = !DILocation(line: 5, column: 4, scope: !4)
 !24 = !DILocation(line: 5, column: 13, scope: !4)

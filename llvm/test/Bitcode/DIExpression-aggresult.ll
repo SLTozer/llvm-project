@@ -3,7 +3,7 @@
 
 define void @_Z3fooi(%class.A* sret(%class.A) %agg.result) #0 !dbg !3 {
   ; CHECK: call void @llvm.dbg.declare({{.*}}, metadata !DIExpression()), !dbg
-  call void @llvm.dbg.declare(metadata %class.A* %agg.result, metadata !13, metadata !16), !dbg !17
+  call void @llvm.dbg.declare(metadata %class.A* %agg.result, metadata !13, metadata !DIExpression(DW_OP_deref)), !dbg !17
   ret void, !dbg !17
 }
 
@@ -31,5 +31,4 @@ attributes #1 = { nounwind readnone }
 !13 = !DILocalVariable(name: "my_a", scope: !14, file: !1, line: 9, type: !15)
 !14 = distinct !DILexicalBlock(scope: !3, file: !1, line: 4, column: 14)
 !15 = !DIDerivedType(tag: DW_TAG_reference_type, file: !1, baseType: !6)
-!16 = !DIExpression(DW_OP_deref)
 !17 = !DILocation(line: 9, column: 5, scope: !3)

@@ -38,11 +38,11 @@ entry:
   store i64 %g.coerce1, ptr %1, align 8
   %frombool = zext i1 %b to i8
   store i8 %frombool, ptr %b.addr, align 1
-  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !15, metadata !16), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !15, metadata !DIExpression()), !dbg !17
   %frombool1 = sext i1 %frag to i8
   store i8 %frombool1, ptr %frag.addr, align 1
-  call void @llvm.dbg.declare(metadata ptr %frag.addr, metadata !18, metadata !23), !dbg !19
-  call void @llvm.dbg.declare(metadata ptr %g, metadata !20, metadata !16), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %frag.addr, metadata !18, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 4)), !dbg !19
+  call void @llvm.dbg.declare(metadata ptr %g, metadata !20, metadata !DIExpression()), !dbg !21
   ret void, !dbg !22
 }
 
@@ -76,11 +76,9 @@ attributes #1 = { nounwind readnone speculatable }
 !13 = !DIDerivedType(tag: DW_TAG_member, name: "i", scope: !10, file: !1, line: 1, baseType: !14, size: 64, offset: 64)
 !14 = !DIBasicType(name: "long int", size: 64, encoding: DW_ATE_signed)
 !15 = !DILocalVariable(name: "b", arg: 1, scope: !6, file: !1, line: 2, type: !9)
-!16 = !DIExpression()
 !17 = !DILocation(line: 2, column: 13, scope: !6)
 !18 = !DILocalVariable(name: "frag", arg: 2, scope: !6, file: !1, line: 2, type: !9)
 !19 = !DILocation(line: 2, column: 21, scope: !6)
 !20 = !DILocalVariable(name: "g", arg: 3, scope: !6, file: !1, line: 2, type: !10)
 !21 = !DILocation(line: 2, column: 31, scope: !6)
 !22 = !DILocation(line: 3, column: 1, scope: !6)
-!23 = !DIExpression(DW_OP_LLVM_fragment, 0, 4)

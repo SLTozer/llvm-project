@@ -61,10 +61,10 @@ declare void @foo()
 
 define i32 @parse_config_file() !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !15, metadata !26), !dbg !27
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !16, metadata !26), !dbg !29
-  tail call void @llvm.dbg.value(metadata i64 0, metadata !16, metadata !30), !dbg !29
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !16, metadata !31), !dbg !29
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !15, metadata !DIExpression()), !dbg !27
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !16, metadata !DIExpression()), !dbg !29
+  tail call void @llvm.dbg.value(metadata i64 0, metadata !16, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 64)), !dbg !29
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !16, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !29
   tail call void @foo() #3, !dbg !32
   ret i32 0, !dbg !33
 }
@@ -99,11 +99,8 @@ entry:
 !23 = !{i32 1, !"wchar_size", i32 4}
 !24 = !{i32 1, !"min_enum_size", i32 4}
 !25 = !{!"clang version 3.9.0"}
-!26 = !DIExpression()
 !27 = !DILocation(line: 11, scope: !11, inlinedAt: !28)
 !28 = distinct !DILocation(line: 26, scope: !4)
 !29 = !DILocation(line: 13, scope: !11, inlinedAt: !28)
-!30 = !DIExpression(DW_OP_LLVM_fragment, 0, 64)
-!31 = !DIExpression(DW_OP_LLVM_fragment, 0, 32)
 !32 = !DILocation(line: 18, scope: !11, inlinedAt: !28)
 !33 = !DILocation(line: 27, scope: !4)

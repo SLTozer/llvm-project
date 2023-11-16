@@ -54,7 +54,7 @@ define i32 @foo(i32 %a) #0 !dbg !4 {
 entry:
   %a.addr = alloca i32, align 4
   store i32 %a, i32* %a.addr, align 4
-  call void @llvm.dbg.declare(metadata i32* %a.addr, metadata !15, metadata !16), !dbg !17
+  call void @llvm.dbg.declare(metadata i32* %a.addr, metadata !15, metadata !DIExpression()), !dbg !17
   %0 = load i32, i32* %a.addr, align 4, !dbg !18
   ret i32 %0, !dbg !19
 }
@@ -68,7 +68,7 @@ entry:
   %retval = alloca i32, align 4
   %a.addr = alloca i32, align 4
   store i32 %a, i32* %a.addr, align 4
-  call void @llvm.dbg.declare(metadata i32* %a.addr, metadata !20, metadata !16), !dbg !21
+  call void @llvm.dbg.declare(metadata i32* %a.addr, metadata !20, metadata !DIExpression()), !dbg !21
   %0 = load i32, i32* %a.addr, align 4, !dbg !22
   %cmp = icmp eq i32 %0, 0, !dbg !22
   br i1 %cmp, label %if.then, label %if.end, !dbg !24
@@ -94,7 +94,7 @@ entry:
   %retval = alloca i32, align 4
   %a.addr = alloca i32, align 4
   store i32 %a, i32* %a.addr, align 4
-  call void @llvm.dbg.declare(metadata i32* %a.addr, metadata !31, metadata !16), !dbg !32
+  call void @llvm.dbg.declare(metadata i32* %a.addr, metadata !31, metadata !DIExpression()), !dbg !32
   %0 = load i32, i32* %a.addr, align 4, !dbg !33
   switch i32 %0, label %sw.default [
     i32 0, label %sw.bb
@@ -140,7 +140,6 @@ attributes #1 = { nounwind readnone }
 !13 = !{i32 1, !"PIC Level", i32 2}
 !14 = !{!"clang version 3.6.0 (trunk)"}
 !15 = !DILocalVariable(name: "a", line: 1, arg: 1, scope: !4, file: !5, type: !8)
-!16 = !DIExpression()
 !17 = !DILocation(line: 1, column: 13, scope: !4)
 !18 = !DILocation(line: 2, column: 10, scope: !4)
 !19 = !DILocation(line: 2, column: 3, scope: !4)

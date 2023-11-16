@@ -53,7 +53,7 @@ entry:
   %19 = inttoptr i64 %18 to ptr
   %20 = load i8, ptr %19
   %21 = icmp ne i8 %20, 0
-  call void @llvm.dbg.declare(metadata ptr %3, metadata !23, metadata !28), !dbg !DILocation(scope: !4)
+  call void @llvm.dbg.declare(metadata ptr %3, metadata !23, metadata !DIExpression(DW_OP_deref)), !dbg !DILocation(scope: !4)
   br i1 %21, label %22, label %28
 
 ; <label>:22                                      ; preds = %entry
@@ -172,4 +172,3 @@ attributes #2 = { "less-precise-fpmad"="false" "frame-pointer"="all" "no-infs-fp
 !25 = !DILocation(line: 7, scope: !4)
 !26 = !DILocation(line: 8, scope: !4)
 !27 = !{i32 1, !"Debug Info Version", i32 3}
-!28 = !DIExpression(DW_OP_deref)

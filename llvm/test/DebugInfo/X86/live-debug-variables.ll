@@ -35,7 +35,7 @@ declare i32 @foobar(i32, i32, i32, i32, i32)
 
 define i32 @foo(i32 %a, i32 %b, i32 %c, i32 %d, i32 %e) !dbg !25 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %d, i64 0, metadata !15, metadata !17) #3, !dbg !41
+  tail call void @llvm.dbg.value(metadata i32 %d, i64 0, metadata !15, metadata !DIExpression()) #3, !dbg !41
   %call.i = tail call i32 @foobar(i32 %a, i32 %b, i32 %c, i32 %d, i32 %e) #3, !dbg !43
   %call.i21 = tail call i32 @foobar(i32 %a, i32 %b, i32 %c, i32 %d, i32 %e) #3, !dbg !50
   %add = add nsw i32 %call.i21, %call.i, !dbg !51
@@ -65,7 +65,6 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !10 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !11 = !{!15}
 !15 = !DILocalVariable(name: "i4", arg: 4, scope: !7, file: !1, line: 3, type: !10)
-!17 = !DIExpression()
 !25 = distinct !DISubprogram(name: "foo", scope: !1, file: !1, line: 7, type: !8, isLocal: false, isDefinition: true, scopeLine: 7, flags: DIFlagPrototyped, isOptimized: true, unit: !0, retainedNodes: !26)
 !26 = !{}
 !38 = distinct !DILocation(line: 8, column: 10, scope: !25)

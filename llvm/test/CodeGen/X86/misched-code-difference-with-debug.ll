@@ -48,12 +48,12 @@ define void @test_with_debug() !dbg !17 {
 entry:
   %c = alloca %class.C, align 1
   %0 = load i8, ptr @argc, align 1
-  tail call void @llvm.dbg.value(metadata i8 %0, i64 0, metadata !22, metadata !23), !dbg !24
+  tail call void @llvm.dbg.value(metadata i8 %0, i64 0, metadata !22, metadata !DIExpression()), !dbg !24
   %conv = sext i8 %0 to i32
-  tail call void @llvm.dbg.value(metadata ptr %c, i64 0, metadata !21, metadata !25), !dbg !24
+  tail call void @llvm.dbg.value(metadata ptr %c, i64 0, metadata !21, metadata !DIExpression(DW_OP_deref)), !dbg !24
   %call = call i32 (ptr, i8, i8, i8, ...) @test_function(ptr %c, i8 signext 0, i8 signext %0, i8 signext 0, i32 %conv)
   %1 = load i8, ptr @argc, align 1
-  call void @llvm.dbg.value(metadata ptr %c, i64 0, metadata !21, metadata !25), !dbg !24
+  call void @llvm.dbg.value(metadata ptr %c, i64 0, metadata !21, metadata !DIExpression(DW_OP_deref)), !dbg !24
   %call2 = call i32 (ptr, i8, i8, i8, ...) @test_function(ptr %c, i8 signext 0, i8 signext %1, i8 signext 0, i32 %conv)
   ret void
 }
@@ -90,7 +90,5 @@ attributes #0 = { nounwind readnone }
 !20 = !{!21, !22}
 !21 = !DILocalVariable(name: "c", scope: !17, file: !2, line: 7, type: !7)
 !22 = !DILocalVariable(name: "lc", scope: !17, file: !2, line: 8, type: !3)
-!23 = !DIExpression()
 !24 = !DILocation(line: 0, scope: !17)
-!25 = !DIExpression(DW_OP_deref)
 

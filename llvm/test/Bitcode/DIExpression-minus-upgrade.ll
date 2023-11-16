@@ -10,7 +10,6 @@
 !4 = !{!7}
 !5 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 ; CHECK: !DIExpression(DW_OP_constu, 42, DW_OP_minus)
-!6 = !DIExpression(DW_OP_minus, 42)
-!7 = !DIGlobalVariableExpression(var: !0, expr: !6)
+!7 = !DIGlobalVariableExpression(var: !0, expr: !DIExpression(DW_OP_minus, 42))
 !8 = !{i32 2, !"Dwarf Version", i32 4}
 !9 = !{i32 2, !"Debug Info Version", i32 3}

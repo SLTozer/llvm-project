@@ -32,9 +32,9 @@ entry:
   %retval = alloca %struct.prog_src_register, align 4
   %a = alloca %struct.prog_src_register, align 4
   %local = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !16, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !16, metadata !DIExpression()), !dbg !18
   call void @llvm.memset.p0.i64(ptr align 4 %a, i8 0, i64 8, i1 false), !dbg !19
-  call void @llvm.dbg.declare(metadata ptr %local, metadata !20, metadata !17), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %local, metadata !20, metadata !DIExpression()), !dbg !21
   %bf.load = load i32, ptr %a, align 4, !dbg !21
   %bf.shl = shl i32 %bf.load, 15, !dbg !21
   %bf.ashr = ashr i32 %bf.shl, 19, !dbg !21
@@ -77,7 +77,6 @@ attributes #2 = { nounwind }
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !{!"clang version 3.7.0 "}
 !16 = !DILocalVariable(name: "a", line: 8, scope: !4, file: !6, type: !9)
-!17 = !DIExpression()
 !18 = !DILocation(line: 8, scope: !4)
 !19 = !DILocation(line: 9, scope: !4)
 !20 = !DILocalVariable(name: "local", line: 10, scope: !4, file: !6, type: !12)

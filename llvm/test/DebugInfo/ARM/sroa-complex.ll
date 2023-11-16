@@ -10,7 +10,7 @@ define arm_aapcscc void @f([2 x i64] %c.coerce) #0 !dbg !4 {
 entry:
   %c = alloca { double, double }, align 8
   store [2 x i64] %c.coerce, ptr %c, align 8
-  call void @llvm.dbg.declare(metadata ptr %c, metadata !14, metadata !15), !dbg !16
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !14, metadata !DIExpression()), !dbg !16
   %c.realp = getelementptr inbounds { double, double }, ptr %c, i32 0, i32 0, !dbg !17
   %c.imagp = getelementptr inbounds { double, double }, ptr %c, i32 0, i32 1, !dbg !17
   store double 0.000000e+00, ptr %c.realp, align 8, !dbg !17
@@ -50,7 +50,6 @@ attributes #1 = { nounwind readnone }
 !12 = !{i32 1, !"min_enum_size", i32 4}
 !13 = !{!"clang version 3.9.0 (trunk 259998) (llvm/trunk 259999)"}
 !14 = !DILocalVariable(name: "c", arg: 1, scope: !4, file: !5, line: 1, type: !8)
-!15 = !DIExpression()
 !16 = !DILocation(line: 1, column: 24, scope: !4)
 !17 = !DILocation(line: 1, column: 31, scope: !4)
 !18 = !DILocation(line: 1, column: 36, scope: !4)

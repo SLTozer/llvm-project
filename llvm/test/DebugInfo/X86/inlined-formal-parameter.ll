@@ -28,9 +28,9 @@ target triple = "x86_64-apple-darwin"
 ; Function Attrs: nounwind ssp uwtable
 define void @foo() #0 !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !17) #3, !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !DIExpression()) #3, !dbg !18
   tail call void @sink() #3, !dbg !20
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !17) #3, !dbg !21
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !DIExpression()) #3, !dbg !21
   tail call void @sink() #3, !dbg !23
   ret void, !dbg !24
 }
@@ -64,7 +64,6 @@ attributes #3 = { nounwind }
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !{i32 1, !"PIC Level", i32 2}
 !16 = !{!"clang version 3.7.0 (trunk 235110) (llvm/trunk 235108)"}
-!17 = !DIExpression()
 !18 = !DILocation(line: 2, column: 52, scope: !7, inlinedAt: !19)
 !19 = distinct !DILocation(line: 4, column: 3, scope: !4)
 !20 = !DILocation(line: 2, column: 57, scope: !7, inlinedAt: !19)

@@ -20,8 +20,8 @@ declare void @_Assert(ptr, ptr) #0
 ; Function Attrs: nounwind
 define void @fred(ptr %pA, ptr %p) #0 !dbg !6 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %pA, i64 0, metadata !26, metadata !28), !dbg !29
-  tail call void @llvm.dbg.value(metadata ptr %p, i64 0, metadata !27, metadata !28), !dbg !30
+  tail call void @llvm.dbg.value(metadata ptr %pA, i64 0, metadata !26, metadata !DIExpression()), !dbg !29
+  tail call void @llvm.dbg.value(metadata ptr %p, i64 0, metadata !27, metadata !DIExpression()), !dbg !30
   %cmp = icmp eq ptr %p, null, !dbg !31
   br i1 %cmp, label %cond.false, label %cond.end, !dbg !31
 
@@ -105,7 +105,6 @@ attributes #1 = { nounwind readnone }
 !25 = !{!26, !27}
 !26 = !DILocalVariable(name: "pA", arg: 1, scope: !6, file: !1, line: 138, type: !9)
 !27 = !DILocalVariable(name: "p", arg: 2, scope: !6, file: !1, line: 138, type: !15)
-!28 = !DIExpression()
 !29 = !DILocation(line: 138, column: 34, scope: !6)
 !30 = !DILocation(line: 138, column: 57, scope: !6)
 !31 = !DILocation(line: 140, column: 5, scope: !6)

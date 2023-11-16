@@ -14,9 +14,9 @@ declare i32 @sink(i32) local_unnamed_addr
 define i32 @nodebug(i32 %k) local_unnamed_addr #2 {
 entry:
 ; This should not set off the FnArg Verifier. The two variables are in differrent scopes.
-  tail call void @llvm.dbg.value(metadata i32 %k, i64 0, metadata !12, metadata !13) #4, !dbg !14
+  tail call void @llvm.dbg.value(metadata i32 %k, i64 0, metadata !12, metadata !DIExpression()) #4, !dbg !14
   %call.k = tail call i32 @sink(i32 %k) #4, !dbg !15
-  tail call void @llvm.dbg.value(metadata i32 %k, i64 0, metadata !19, metadata !13) #4, !dbg !20
+  tail call void @llvm.dbg.value(metadata i32 %k, i64 0, metadata !19, metadata !DIExpression()) #4, !dbg !20
   %call.k3 = tail call i32 @sink(i32 %k) #4, !dbg !21
   %add = add nsw i32 %call.k3, %call.k
   ret i32 %add
@@ -46,7 +46,6 @@ attributes #3 = { nounwind readnone }
 !11 = !{!12}
 ; CHECK: !DILocalVariable(name: "i", arg: 1
 !12 = !DILocalVariable(name: "i", arg: 1, scope: !7, file: !1, line: 2, type: !10)
-!13 = !DIExpression()
 !14 = !DILocation(line: 2, column: 42, scope: !7)
 !15 = !DILocation(line: 2, column: 54, scope: !7)
 !16 = !DILocation(line: 2, column: 47, scope: !7)

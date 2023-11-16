@@ -15,7 +15,7 @@
 define void @_Z3fooi(i32 %i) #0 !dbg !4 {
   %1 = alloca i32, align 4
   store i32 %i, ptr %1, align 4
-  call void @llvm.dbg.declare(metadata ptr %1, metadata !11, metadata !12), !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %1, metadata !11, metadata !DIExpression()), !dbg !13
   %2 = load i32, ptr %1, align 4, !dbg !14
   %3 = icmp sgt i32 %2, 10, !dbg !16
   br i1 %3, label %4, label %5, !dbg !17
@@ -57,7 +57,6 @@ attributes #2 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "fra
 !9 = !{i32 2, !"Debug Info Version", i32 3}
 !10 = !{!"clang version 3.8.0 (trunk 253273)"}
 !11 = !DILocalVariable(name: "i", arg: 1, scope: !4, file: !1, line: 3, type: !7)
-!12 = !DIExpression()
 !13 = !DILocation(line: 3, column: 14, scope: !4)
 !14 = !DILocation(line: 4, column: 7, scope: !15)
 !15 = distinct !DILexicalBlock(scope: !4, file: !1, line: 4, column: 7)

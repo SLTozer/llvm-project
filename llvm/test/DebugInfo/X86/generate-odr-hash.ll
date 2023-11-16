@@ -186,7 +186,7 @@ source_filename = "test/DebugInfo/X86/generate-odr-hash.ll"
 define void @_Z3foov() #0 !dbg !40 {
 entry:
   %b = alloca %struct.baz, align 1
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !43, metadata !45), !dbg !46
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !43, metadata !DIExpression()), !dbg !46
   ret void, !dbg !47
 }
 
@@ -204,7 +204,7 @@ define internal void @_ZN12_GLOBAL__N_16walrusC2Ev(ptr %this) unnamed_addr #0 al
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !51, metadata !45), !dbg !53
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !51, metadata !DIExpression()), !dbg !53
   %this1 = load ptr, ptr %this.addr
   ret void, !dbg !54
 }
@@ -267,7 +267,6 @@ attributes #1 = { nounwind readnone }
 !42 = !{null}
 !43 = !DILocalVariable(name: "b", scope: !40, file: !2, line: 7, type: !44)
 !44 = !DICompositeType(tag: DW_TAG_structure_type, name: "baz", scope: !40, file: !2, line: 6, size: 8, align: 8, elements: !5)
-!45 = !DIExpression()
 !46 = !DILocation(line: 7, scope: !40)
 !47 = !DILocation(line: 8, scope: !40)
 !48 = distinct !DISubprogram(name: "__cxx_global_var_init", scope: !2, file: !2, line: 29, type: !41, isLocal: true, isDefinition: true, scopeLine: 29, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !34, retainedNodes: !5)

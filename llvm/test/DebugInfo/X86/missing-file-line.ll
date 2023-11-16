@@ -25,7 +25,7 @@ define void @f() !dbg !4 {
   ; CHECK-NOT: DW_AT_decl_line
 
   ; CHECK: {{DW_TAG|NULL}}
-  call void @llvm.dbg.declare(metadata ptr %x, metadata !10, metadata !16), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %x, metadata !10, metadata !DIExpression()), !dbg !17
   ret void, !dbg !18
 }
 
@@ -50,6 +50,5 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 !13 = !{!14}
 !14 = !DIDerivedType(tag: DW_TAG_member, name: "s", scope: !12, baseType: !15, size: 64, align: 64)
 !15 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !12, size: 64, align: 64)
-!16 = !DIExpression()
 !17 = !DILocation(line: 8, column: 6, scope: !4)
 !18 = !DILocation(line: 9, column: 1, scope: !4)

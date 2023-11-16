@@ -18,6 +18,5 @@
 !8 = !{null}
 !9 = !DILocalVariable(name: "i", scope: !6, file: !1, line: 1, type: !10)
 !10 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!11 = !DIExpression()
 !12 = !DILocation(line: 1, column: 16, scope: !6)
 !13 = !DILocation(line: 1, column: 19, scope: !6)

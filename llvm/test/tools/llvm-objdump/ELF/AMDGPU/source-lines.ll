@@ -49,12 +49,12 @@ entry:
   %var1 = alloca i32, align 4, addrspace(5)
   %var2 = alloca i32, align 4, addrspace(5)
   store ptr addrspace(1) %Out, ptr addrspace(5) %Out.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %Out.addr, metadata !16, metadata !17), !dbg !18
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %var0, metadata !19, metadata !17), !dbg !20
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %Out.addr, metadata !16, metadata !DIExpression()), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %var0, metadata !19, metadata !DIExpression()), !dbg !20
   store i32 1911, ptr addrspace(5) %var0, align 4, !dbg !20
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %var1, metadata !21, metadata !17), !dbg !22
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %var1, metadata !21, metadata !DIExpression()), !dbg !22
   store i32 2184, ptr addrspace(5) %var1, align 4, !dbg !22
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %var2, metadata !23, metadata !17), !dbg !24
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %var2, metadata !23, metadata !DIExpression()), !dbg !24
   %0 = load i32, ptr addrspace(5) %var0, align 4, !dbg !25
   %1 = load i32, ptr addrspace(5) %var1, align 4, !dbg !26
   %add = add nsw i32 %0, %1, !dbg !27
@@ -93,7 +93,6 @@ attributes #1 = { nounwind readnone }
 !14 = !{!"int*"}
 !15 = !{!""}
 !16 = !DILocalVariable(name: "Out", arg: 1, scope: !7, file: !1, line: 1, type: !10)
-!17 = !DIExpression()
 !18 = !DILocation(line: 1, column: 43, scope: !7)
 !19 = !DILocalVariable(name: "var0", scope: !7, file: !1, line: 2, type: !11)
 !20 = !DILocation(line: 2, column: 7, scope: !7)

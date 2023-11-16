@@ -30,18 +30,18 @@ target triple = "x86_64-apple-macosx10.9.0"
 
 ; Function Attrs: nounwind ssp uwtable
 define i32 @foo(i64 %outer.coerce0, i64 %outer.coerce1) #0 !dbg !4 {
-  call void @llvm.dbg.value(metadata i64 %outer.coerce0, metadata !24, metadata !25), !dbg !26
-  call void @llvm.dbg.declare(metadata !{null}, metadata !27, metadata !28), !dbg !26
-  call void @llvm.dbg.value(metadata i64 %outer.coerce1, metadata !29, metadata !30), !dbg !26
-  call void @llvm.dbg.declare(metadata !{null}, metadata !31, metadata !32), !dbg !26
+  call void @llvm.dbg.value(metadata i64 %outer.coerce0, metadata !24, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 64)), !dbg !26
+  call void @llvm.dbg.declare(metadata !{null}, metadata !27, metadata !DIExpression(DW_OP_LLVM_fragment, 64, 64)), !dbg !26
+  call void @llvm.dbg.value(metadata i64 %outer.coerce1, metadata !29, metadata !DIExpression(DW_OP_LLVM_fragment, 96, 32)), !dbg !26
+  call void @llvm.dbg.declare(metadata !{null}, metadata !31, metadata !DIExpression(DW_OP_LLVM_fragment, 64, 32)), !dbg !26
   ; The 'trunc' generates no extra code, thus i1 is visible throughout its scope.
   %outer.sroa.1.8.extract.trunc = trunc i64 %outer.coerce1 to i32, !dbg !33
-  call void @llvm.dbg.value(metadata i32 %outer.sroa.1.8.extract.trunc, metadata !34, metadata !35), !dbg !33
+  call void @llvm.dbg.value(metadata i32 %outer.sroa.1.8.extract.trunc, metadata !34, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !33
   %outer.sroa.1.12.extract.shift = lshr i64 %outer.coerce1, 32, !dbg !33
   %outer.sroa.1.12.extract.trunc = trunc i64 %outer.sroa.1.12.extract.shift to i32, !dbg !33
-  call void @llvm.dbg.value(metadata i64 %outer.sroa.1.12.extract.shift, metadata !34, metadata !37), !dbg !33
-  call void @llvm.dbg.value(metadata i32 %outer.sroa.1.12.extract.trunc, metadata !34, metadata !37), !dbg !33
-  call void @llvm.dbg.declare(metadata !{null}, metadata !34, metadata !35), !dbg !33
+  call void @llvm.dbg.value(metadata i64 %outer.sroa.1.12.extract.shift, metadata !34, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !33
+  call void @llvm.dbg.value(metadata i32 %outer.sroa.1.12.extract.trunc, metadata !34, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !33
+  call void @llvm.dbg.declare(metadata !{null}, metadata !34, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !33
   ret i32 %outer.sroa.1.8.extract.trunc, !dbg !36
 }
 
@@ -86,16 +86,10 @@ attributes #2 = { nounwind }
 !22 = !{i32 1, !"Debug Info Version", i32 3}
 !23 = !{!"clang version 3.5.0 "}
 !24 = !DILocalVariable(name: "outer", line: 10, arg: 1, scope: !4, file: !5, type: !9)
-!25 = !DIExpression(DW_OP_LLVM_fragment, 0, 64)
 !26 = !DILocation(line: 10, scope: !4)
 !27 = !DILocalVariable(name: "outer", line: 10, arg: 1, scope: !4, file: !5, type: !9)
-!28 = !DIExpression(DW_OP_LLVM_fragment, 64, 64)
 !29 = !DILocalVariable(name: "outer", line: 10, arg: 1, scope: !4, file: !5, type: !9)
-!30 = !DIExpression(DW_OP_LLVM_fragment, 96, 32)
 !31 = !DILocalVariable(name: "outer", line: 10, arg: 1, scope: !4, file: !5, type: !9)
-!32 = !DIExpression(DW_OP_LLVM_fragment, 64, 32)
 !33 = !DILocation(line: 11, scope: !4)
 !34 = !DILocalVariable(name: "i1", line: 11, scope: !4, file: !5, type: !14)
-!35 = !DIExpression(DW_OP_LLVM_fragment, 0, 32)
 !36 = !DILocation(line: 12, scope: !4)
-!37 = !DIExpression(DW_OP_LLVM_fragment, 32, 32)

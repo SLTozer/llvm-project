@@ -177,7 +177,7 @@ target triple = "i386-pc-windows-msvc19.0.23918"
 ; Function Attrs: nounwind readnone
 define x86_thiscallcc void @"\01?thiscallcc@A@@QAEXXZ"(ptr nocapture %this) #0 align 2 !dbg !6 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %this, metadata !14, metadata !16), !dbg !17
+  tail call void @llvm.dbg.value(metadata ptr %this, metadata !14, metadata !DIExpression()), !dbg !17
   ret void, !dbg !18
 }
 
@@ -232,7 +232,6 @@ attributes #2 = { nounwind readnone }
 !13 = !{!14}
 !14 = !DILocalVariable(name: "this", arg: 1, scope: !6, type: !15, flags: DIFlagArtificial | DIFlagObjectPointer)
 !15 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !7, size: 32, align: 32)
-!16 = !DIExpression()
 !17 = !DILocation(line: 0, scope: !6)
 !18 = !DILocation(line: 4, column: 23, scope: !6)
 !19 = distinct !DISubprogram(name: "cdeclcc", linkageName: "\01?cdeclcc@@YAXXZ", scope: !1, file: !1, line: 5, type: !20, isLocal: false, isDefinition: true, scopeLine: 5, flags: DIFlagPrototyped, isOptimized: true, unit: !0, retainedNodes: !2)

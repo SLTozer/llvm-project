@@ -11,7 +11,7 @@ entry:
 ; is changed to emit such, a more specific check should be added to make sure that any llvm.dbg.value
 ; is correct.
 ; CHECK-NOT: @llvm.dbg.value(metadata ptr %getU
-  call void @llvm.dbg.declare(metadata ptr %getU, metadata !3, metadata !6), !dbg !7
+  call void @llvm.dbg.declare(metadata ptr %getU, metadata !3, metadata !DIExpression()), !dbg !7
   store ptr %getU, ptr undef, align 8, !tbaa !8
   unreachable
 }
@@ -30,7 +30,6 @@ attributes #1 = { nounwind readnone }
 !3 = !DILocalVariable(name: "getU", scope: !4, file: !1, line: 25, type: !5)
 !4 = distinct !DISubprogram(name: "multiply64", linkageName: "_ZN4llvm13ScaledNumbers10multiply64Emm", scope: null, file: !1, line: 22, isLocal: false, isDefinition: true, scopeLine: 23, flags: DIFlagPrototyped, isOptimized: true, unit: !0)
 !5 = !DICompositeType(tag: DW_TAG_class_type, scope: !4, file: !1, line: 25, size: 8, align: 8)
-!6 = !DIExpression()
 !7 = !DILocation(line: 25, column: 8, scope: !4)
 !8 = !{!10, !10, i64 0}
 !9 = !{i64 0}

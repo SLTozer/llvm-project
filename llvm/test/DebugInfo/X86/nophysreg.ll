@@ -55,9 +55,9 @@ target triple = "x86_64-apple-macosx10.10.0"
 ; Function Attrs: alwaysinline ssp uwtable
 define void @_Z2f21A(ptr %p5.coerce0, i32 %p5.coerce1) #0 !dbg !11 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %p5.coerce0, metadata !16, metadata !33), !dbg !34
-  tail call void @llvm.dbg.value(metadata i32 %p5.coerce1, metadata !16, metadata !35), !dbg !34
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !16, metadata !36), !dbg !34
+  tail call void @llvm.dbg.value(metadata ptr %p5.coerce0, metadata !16, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 8)), !dbg !34
+  tail call void @llvm.dbg.value(metadata i32 %p5.coerce1, metadata !16, metadata !DIExpression(DW_OP_LLVM_fragment, 8, 4)), !dbg !34
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !16, metadata !DIExpression()), !dbg !34
   tail call void @_Z2f1Pii(ptr %p5.coerce0, i32 %p5.coerce1), !dbg !37
   ret void, !dbg !38
 }
@@ -104,12 +104,12 @@ while.body4:                                      ; preds = %while.body, %while.
   store i32 0, ptr %ref.tmp5, align 4, !dbg !56, !tbaa !42
   store i32 0, ptr %ref.tmp6, align 4, !dbg !57, !tbaa !42
   call void @_Z4funcRKiS0_(ptr dereferenceable(4) %ref.tmp5, ptr dereferenceable(4) %ref.tmp6), !dbg !58
-  call void @llvm.dbg.declare(metadata ptr undef, metadata !28, metadata !36), !dbg !59
-  call void @llvm.dbg.value(metadata ptr %x, metadata !28, metadata !33), !dbg !59
+  call void @llvm.dbg.declare(metadata ptr undef, metadata !28, metadata !DIExpression()), !dbg !59
+  call void @llvm.dbg.value(metadata ptr %x, metadata !28, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 8)), !dbg !59
   call void @llvm.dbg.value(metadata ptr %x, metadata !21, metadata !DIExpression(DW_OP_deref)), !dbg !46
-  call void @llvm.dbg.value(metadata ptr %x, metadata !60, metadata !33), !dbg !62
-  call void @llvm.dbg.value(metadata i32 undef, metadata !60, metadata !35), !dbg !62
-  call void @llvm.dbg.declare(metadata ptr undef, metadata !60, metadata !36), !dbg !62
+  call void @llvm.dbg.value(metadata ptr %x, metadata !60, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 8)), !dbg !62
+  call void @llvm.dbg.value(metadata i32 undef, metadata !60, metadata !DIExpression(DW_OP_LLVM_fragment, 8, 4)), !dbg !62
+  call void @llvm.dbg.declare(metadata ptr undef, metadata !60, metadata !DIExpression()), !dbg !62
   call void @_Z2f1Pii(ptr %x, i32 undef), !dbg !63
   %call2 = call i32 @_Z4condv(), !dbg !48
   %tobool3 = icmp eq i32 %call2, 0, !dbg !48
@@ -168,10 +168,7 @@ attributes #3 = { ssp uwtable }
 !30 = !{i32 2, !"Debug Info Version", i32 3}
 !31 = !{i32 1, !"PIC Level", i32 2}
 !32 = !{!"clang version 3.7.0 (trunk 227088) (llvm/trunk 227091)"}
-!33 = !DIExpression(DW_OP_LLVM_fragment, 0, 8)
 !34 = !DILocation(line: 7, column: 42, scope: !11)
-!35 = !DIExpression(DW_OP_LLVM_fragment, 8, 4)
-!36 = !DIExpression()
 !37 = !DILocation(line: 7, column: 48, scope: !11)
 !38 = !DILocation(line: 7, column: 66, scope: !11)
 !39 = !DILocation(line: 13, column: 10, scope: !17)

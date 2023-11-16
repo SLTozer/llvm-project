@@ -28,7 +28,7 @@ target triple = "aarch64-apple-ios"
 ; Function Attrs: nounwind
 define ptr @_ZN1BC2Ev(ptr %this) unnamed_addr #0 align 2 !dbg !28 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %this, metadata !30, metadata !38), !dbg !39
+  tail call void @llvm.dbg.value(metadata ptr %this, metadata !30, metadata !DIExpression()), !dbg !39
   %call = tail call ptr @_ZN1AC2Ev(ptr %this) #3, !dbg !40
   store ptr getelementptr inbounds ([4 x ptr], ptr @_ZTV1B, i64 0, i64 2), ptr %this, align 8, !dbg !40, !tbaa !41
   ret ptr %this, !dbg !40
@@ -39,8 +39,8 @@ declare ptr @_ZN1AC2Ev(ptr)
 ; Function Attrs: nounwind
 define ptr @_ZN1BC1Ev(ptr %this) unnamed_addr #0 align 2 !dbg !32 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %this, metadata !34, metadata !38), !dbg !44
-  tail call void @llvm.dbg.value(metadata ptr %this, metadata !45, metadata !38) #3, !dbg !47
+  tail call void @llvm.dbg.value(metadata ptr %this, metadata !34, metadata !DIExpression()), !dbg !44
+  tail call void @llvm.dbg.value(metadata ptr %this, metadata !45, metadata !DIExpression()) #3, !dbg !47
   %call.i = tail call ptr @_ZN1AC2Ev(ptr %this) #3, !dbg !48
   store ptr getelementptr inbounds ([4 x ptr], ptr @_ZTV1B, i64 0, i64 2), ptr %this, align 8, !dbg !48, !tbaa !41
   ret ptr %this, !dbg !46
@@ -94,7 +94,6 @@ attributes #3 = { nounwind }
 !35 = !{i32 2, !"Dwarf Version", i32 4}
 !36 = !{i32 2, !"Debug Info Version", i32 3}
 !37 = !{!"clang version 3.6.0 (trunk 224279) (llvm/trunk 224283)"}
-!38 = !DIExpression()
 !39 = !DILocation(line: 0, scope: !28)
 !40 = !DILocation(line: 9, scope: !28)
 !41 = !{!42, !42, i64 0}

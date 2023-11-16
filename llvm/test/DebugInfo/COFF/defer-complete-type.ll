@@ -162,7 +162,7 @@ define i32 @"\01?f@@YAHPEAUA@@@Z"(ptr %p) #0 !dbg !7 {
 entry:
   %p.addr = alloca ptr, align 8
   store ptr %p, ptr %p.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %p.addr, metadata !19, metadata !20), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %p.addr, metadata !19, metadata !DIExpression()), !dbg !21
   %0 = load ptr, ptr %p.addr, align 8, !dbg !22
   %1 = load ptr, ptr %0, align 8, !dbg !23
   %2 = load i32, ptr %1, align 4, !dbg !24
@@ -199,7 +199,6 @@ attributes #1 = { nounwind readnone }
 !17 = !{!18}
 !18 = !DIDerivedType(tag: DW_TAG_member, name: "b", scope: !16, file: !1, line: 1, baseType: !10, size: 32, align: 32)
 !19 = !DILocalVariable(name: "p", arg: 1, scope: !7, file: !1, line: 3, type: !11)
-!20 = !DIExpression()
 !21 = !DILocation(line: 3, column: 10, scope: !7)
 !22 = !DILocation(line: 3, column: 22, scope: !7)
 !23 = !DILocation(line: 3, column: 25, scope: !7)

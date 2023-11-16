@@ -18,7 +18,7 @@ entry:
   %retval = alloca i32, align 4
   %x = alloca i32, align 4
   store i32 0, ptr %retval
-  call void @llvm.dbg.declare(metadata ptr %x, metadata !10, metadata !11), !dbg !12
+  call void @llvm.dbg.declare(metadata ptr %x, metadata !10, metadata !DIExpression()), !dbg !12
   store i32 0, ptr %x, align 4, !dbg !12
   %0 = load i32, ptr %x, align 4, !dbg !13
   %cmp = icmp sgt i32 %0, 0, !dbg !15
@@ -65,7 +65,6 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata)
 !8 = !{i32 2, !"Dwarf Version", i32 4}
 !9 = !{i32 2, !"Debug Info Version", i32 3}
 !10 = !DILocalVariable(name: "x", scope: !4, file: !1, line: 3, type: !7)
-!11 = !DIExpression()
 !12 = !DILocation(line: 3, column: 9, scope: !4)
 !13 = !DILocation(line: 4, column: 9, scope: !14)
 !14 = distinct !DILexicalBlock(scope: !4, file: !1, line: 4, column: 9)

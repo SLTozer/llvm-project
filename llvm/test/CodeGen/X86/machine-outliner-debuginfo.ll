@@ -15,7 +15,7 @@ define i32 @main() #0 !dbg !11 {
   store i32 1, ptr %2, align 4
   store i32 2, ptr %3, align 4
   store i32 3, ptr %4, align 4
-  call void @llvm.dbg.value(metadata i32 10, i64 0, metadata !15, metadata !16), !dbg !17
+  call void @llvm.dbg.value(metadata i32 10, i64 0, metadata !15, metadata !DIExpression()), !dbg !17
   store i32 4, ptr %5, align 4
   store i32 0, ptr @x, align 4, !dbg !24
   call void asm sideeffect "", "~{memory},~{dirflag},~{fpsr},~{flags}"()
@@ -66,7 +66,6 @@ attributes #0 = { noredzone nounwind ssp uwtable "frame-pointer"="all" }
 !13 = !{!6}
 !14 = !DILocation(line: 7, column: 4, scope: !11)
 !15 = !DILocalVariable(name: "a", scope: !11, file: !3, line: 5, type: !6)
-!16 = !DIExpression()
 !17 = !DILocation(line: 5, column: 6, scope: !11)
 !18 = !DILocalVariable(name: "b", scope: !11, file: !3, line: 5, type: !6)
 !19 = !DILocation(line: 5, column: 9, scope: !11)

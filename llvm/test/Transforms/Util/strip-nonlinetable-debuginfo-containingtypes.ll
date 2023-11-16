@@ -34,7 +34,7 @@ entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
   ; CHECK-NOT: @llvm.dbg.declare
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !30, metadata !32), !dbg !33
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !30, metadata !DIExpression()), !dbg !33
   %this1 = load ptr, ptr %this.addr, align 8
   call void @_ZN1BC2Ev(ptr %this1) #2, !dbg !34
   ret void, !dbg !34
@@ -85,7 +85,6 @@ attributes #2 = { nounwind }
 !29 = !DISubprogram(name: "B", scope: !6, type: !26, isLocal: false, isDefinition: false, flags: DIFlagArtificial | DIFlagPrototyped, isOptimized: false)
 !30 = !DILocalVariable(name: "this", arg: 1, scope: !25, type: !31, flags: DIFlagArtificial | DIFlagObjectPointer)
 !31 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !6, size: 64, align: 64)
-!32 = !DIExpression()
 !33 = !DILocation(line: 0, scope: !25)
 !34 = !DILocation(line: 4, column: 8, scope: !25)
 

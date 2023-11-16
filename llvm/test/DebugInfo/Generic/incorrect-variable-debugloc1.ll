@@ -32,12 +32,12 @@
 define i32 @main() #0 !dbg !4 {
 entry:
   %c = alloca i32, align 4
-  tail call void @llvm.dbg.value(metadata i32 13, metadata !10, metadata !16), !dbg !17
+  tail call void @llvm.dbg.value(metadata i32 13, metadata !10, metadata !DIExpression()), !dbg !17
   store volatile i32 13, ptr %c, align 4, !dbg !18
   %call = tail call i32 @_Z4funcv(), !dbg !19
-  tail call void @llvm.dbg.value(metadata i32 %call, metadata !10, metadata !16), !dbg !17
+  tail call void @llvm.dbg.value(metadata i32 %call, metadata !10, metadata !DIExpression()), !dbg !17
   store volatile i32 %call, ptr %c, align 4, !dbg !19
-  tail call void @llvm.dbg.value(metadata ptr %c, metadata !10, metadata !21), !dbg !17
+  tail call void @llvm.dbg.value(metadata ptr %c, metadata !10, metadata !DIExpression(DW_OP_deref)), !dbg !17
   %c.0.c.0. = load volatile i32, ptr %c, align 4, !dbg !20
   ret i32 %c.0.c.0., !dbg !20
 }
@@ -70,10 +70,8 @@ attributes #2 = { nounwind readnone }
 !13 = !{i32 2, !"Debug Info Version", i32 3}
 !14 = !{!"clang version 3.6.0 (trunk 223522)"}
 !15 = !{i32 13}
-!16 = !DIExpression()
 !17 = !DILocation(line: 5, column: 16, scope: !4)
 !18 = !DILocation(line: 5, column: 3, scope: !4)
 !19 = !DILocation(line: 6, column: 7, scope: !4)
 !20 = !DILocation(line: 7, column: 3, scope: !4)
-!21 = !DIExpression(DW_OP_deref)
 

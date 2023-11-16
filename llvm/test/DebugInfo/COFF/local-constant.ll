@@ -28,7 +28,7 @@ target triple = "x86_64-pc-windows-msvc18.0.0"
 ; Function Attrs: nounwind uwtable
 define void @"\01?constant_var@@YAXXZ"() #0 !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 42, metadata !8, metadata !14), !dbg !15
+  tail call void @llvm.dbg.value(metadata i32 42, metadata !8, metadata !DIExpression()), !dbg !15
   tail call void @"\01?useint@@YAXH@Z"(i32 42) #3, !dbg !16
   tail call void @"\01?useint@@YAXH@Z"(i32 42) #3, !dbg !17
   ret void, !dbg !18
@@ -61,7 +61,6 @@ attributes #3 = { nounwind }
 !11 = !{i32 2, !"Debug Info Version", i32 3}
 !12 = !{i32 1, !"PIC Level", i32 2}
 !13 = !{!"clang version 3.9.0 (trunk 260957)"}
-!14 = !DIExpression()
 !15 = !DILocation(line: 3, column: 7, scope: !4)
 !16 = !DILocation(line: 4, column: 3, scope: !4)
 !17 = !DILocation(line: 5, column: 3, scope: !4)

@@ -37,7 +37,7 @@
     %1 = bitcast %class.j* %att to i64*
     %2 = bitcast %class.j* %bz to i64*
     store i64 1, i64* %2, align 8
-    call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !18, metadata !23), !dbg !24
+    call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !18, metadata !DIExpression()), !dbg !24
     store i64 1, i64* %1, align 8, !dbg !27
     br label %sw.epilog
 
@@ -109,7 +109,6 @@
   !20 = !DISubprogram(name: "m", linkageName: "_ZN1jILi6EN1a1fEE1mEj", scope: !11, file: !5, line: 22, type: !16, isLocal: false, isDefinition: false, scopeLine: 22, flags: DIFlagPublic | DIFlagPrototyped, isOptimized: true)
   !21 = !DIDerivedType(tag: DW_TAG_typedef, name: "h", file: !5, line: 10, baseType: !22)
   !22 = !DIBasicType(name: "unsigned int", size: 32, encoding: DW_ATE_unsigned)
-  !23 = !DIExpression()
   !24 = !DILocation(line: 22, scope: !19, inlinedAt: !25)
   !25 = distinct !DILocation(line: 109, scope: !26)
   !26 = distinct !DILexicalBlock(scope: !14, file: !5, line: 106)
@@ -210,7 +209,7 @@ body:             |
     $x3 = IMPLICIT_DEF debug-location !32
     $x1 = IMPLICIT_DEF
     STRXui $x2, $sp, 2 :: (store (s64) into %ir.2)
-    DBG_VALUE 0, 0, !18, !23, debug-location !24
+    DBG_VALUE 0, 0, !18, !DIExpression(), debug-location !24
     STRXui $x2, $sp, 0, debug-location !27 :: (store (s64) into %ir.1)
     $w4 = ORRWri $wzr, 0, implicit-def $x4
     B %bb.5.sw.epilog

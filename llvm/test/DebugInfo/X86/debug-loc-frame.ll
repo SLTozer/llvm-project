@@ -51,9 +51,9 @@ entry:
   %0 = bitcast i32* %val to i8*, !dbg !22
   call void @llvm.lifetime.start(i64 4, i8* %0), !dbg !22
   %1 = load i32, i32* @data, align 4, !dbg !23, !tbaa !24
-  tail call void @llvm.dbg.value(metadata i32 %1, metadata !21, metadata !28), !dbg !29
+  tail call void @llvm.dbg.value(metadata i32 %1, metadata !21, metadata !DIExpression()), !dbg !29
   store i32 %1, i32* %val, align 4, !dbg !30, !tbaa !24
-  tail call void @llvm.dbg.value(metadata i32* %val, metadata !21, metadata !31), !dbg !29
+  tail call void @llvm.dbg.value(metadata i32* %val, metadata !21, metadata !DIExpression(DW_OP_deref)), !dbg !29
   call void @foo(i32 1, i32* nonnull %val), !dbg !32
   call void @foo(i32 2, i32* nonnull @data), !dbg !33
   %2 = load i32, i32* @zero, align 4, !dbg !34, !tbaa !24
@@ -107,10 +107,8 @@ attributes #1 = { nounwind readnone }
 !25 = !{!"int", !26, i64 0}
 !26 = !{!"omnipotent char", !27, i64 0}
 !27 = !{!"Simple C/C++ TBAA"}
-!28 = !DIExpression()
 !29 = !DILocation(line: 10, column: 7, scope: !17)
 !30 = !DILocation(line: 11, column: 7, scope: !17)
-!31 = !DIExpression(DW_OP_deref)
 !32 = !DILocation(line: 12, column: 3, scope: !17)
 !33 = !DILocation(line: 13, column: 3, scope: !17)
 !34 = !DILocation(line: 14, column: 10, scope: !17)

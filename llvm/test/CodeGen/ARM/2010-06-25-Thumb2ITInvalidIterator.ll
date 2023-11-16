@@ -9,16 +9,16 @@ target triple = "thumbv7-apple-darwin3.0.0-iphoneos"
 ; Function Attrs: nounwind optsize
 define void @x0(ptr nocapture %buf, i32 %nbytes) #0 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %buf, metadata !8, metadata !14), !dbg !15
-  tail call void @llvm.dbg.value(metadata i32 %nbytes, metadata !16, metadata !14), !dbg !18
+  tail call void @llvm.dbg.value(metadata ptr %buf, metadata !8, metadata !DIExpression()), !dbg !15
+  tail call void @llvm.dbg.value(metadata i32 %nbytes, metadata !16, metadata !DIExpression()), !dbg !18
   %tmp = load i32, ptr @length, !dbg !19
   %cmp = icmp eq i32 %tmp, -1, !dbg !19
   %cmp.not = xor i1 %cmp, true
   %cmp3 = icmp ult i32 %tmp, %nbytes, !dbg !19
   %or.cond = and i1 %cmp.not, %cmp3
-  tail call void @llvm.dbg.value(metadata i32 %tmp, metadata !16, metadata !14), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 %tmp, metadata !16, metadata !DIExpression()), !dbg !19
   %nbytes.addr.0 = select i1 %or.cond, i32 %tmp, i32 %nbytes
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !21, metadata !14), !dbg !22
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !21, metadata !DIExpression()), !dbg !22
   br label %while.cond, !dbg !23
 
 while.cond:                                       ; preds = %while.body, %entry
@@ -70,7 +70,6 @@ attributes #2 = { nounwind readnone }
 !11 = !{null}
 !12 = !DIDerivedType(tag: DW_TAG_pointer_type, scope: !2, file: !2, baseType: !13, size: 32, align: 32)
 !13 = !DIBasicType(name: "unsigned char", size: 8, align: 8, encoding: DW_ATE_unsigned_char)
-!14 = !DIExpression()
 !15 = !DILocation(line: 4, column: 24, scope: !9)
 !16 = !DILocalVariable(name: "nbytes", arg: 2, scope: !9, file: !2, line: 4, type: !17)
 !17 = !DIBasicType(name: "unsigned long", size: 32, align: 32, encoding: DW_ATE_unsigned)

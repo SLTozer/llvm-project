@@ -176,25 +176,25 @@ target triple = "x86_64-pc-windows-msvc18.0.0"
 ; Function Attrs: nounwind uwtable
 define void @f(i32 %p) #0 !dbg !12 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %p, metadata !16, metadata !23), !dbg !24
+  tail call void @llvm.dbg.value(metadata i32 %p, metadata !16, metadata !DIExpression()), !dbg !24
   %tobool = icmp eq i32 %p, 0, !dbg !25
   %call2 = tail call i32 @getint() #3, !dbg !26
   br i1 %tobool, label %if.else, label %if.then, !dbg !27
 
 if.then:                                          ; preds = %entry
-  tail call void @llvm.dbg.value(metadata i32 %call2, metadata !17, metadata !23), !dbg !28
-  tail call void @llvm.dbg.value(metadata i32 %call2, metadata !29, metadata !23), !dbg !35
+  tail call void @llvm.dbg.value(metadata i32 %call2, metadata !17, metadata !DIExpression()), !dbg !28
+  tail call void @llvm.dbg.value(metadata i32 %call2, metadata !29, metadata !DIExpression()), !dbg !35
   %add.i = add nsw i32 %call2, 1, !dbg !37
-  tail call void @llvm.dbg.value(metadata i32 %add.i, metadata !34, metadata !23), !dbg !38
+  tail call void @llvm.dbg.value(metadata i32 %add.i, metadata !34, metadata !DIExpression()), !dbg !38
   %0 = load volatile i32, ptr @x, align 4, !dbg !39, !tbaa !40
   %inc.i = add nsw i32 %0, 1, !dbg !39
   store volatile i32 %inc.i, ptr @x, align 4, !dbg !39, !tbaa !40
-  tail call void @llvm.dbg.value(metadata i32 %add.i, metadata !20, metadata !23), !dbg !44
+  tail call void @llvm.dbg.value(metadata i32 %add.i, metadata !20, metadata !DIExpression()), !dbg !44
   tail call void @putint(i32 %add.i) #3, !dbg !45
   br label %if.end, !dbg !46
 
 if.else:                                          ; preds = %entry
-  tail call void @llvm.dbg.value(metadata i32 %call2, metadata !21, metadata !23), !dbg !47
+  tail call void @llvm.dbg.value(metadata i32 %call2, metadata !21, metadata !DIExpression()), !dbg !47
   tail call void @putint(i32 %call2) #3, !dbg !48
   br label %if.end
 
@@ -241,7 +241,6 @@ attributes #3 = { nounwind }
 !20 = !DILocalVariable(name: "b", scope: !18, file: !3, line: 12, type: !7)
 !21 = !DILocalVariable(name: "c", scope: !22, file: !3, line: 15, type: !7)
 !22 = distinct !DILexicalBlock(scope: !19, file: !3, line: 14, column: 10)
-!23 = !DIExpression()
 !24 = !DILocation(line: 9, column: 12, scope: !12)
 !25 = !DILocation(line: 10, column: 7, scope: !19)
 !26 = !DILocation(line: 15, column: 13, scope: !22)

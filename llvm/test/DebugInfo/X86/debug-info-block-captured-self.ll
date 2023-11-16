@@ -66,13 +66,13 @@
 declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 define internal void @"__24-[Main initWithContext:]_block_invoke"(ptr %.block_descriptor, ptr %obj) #0 !dbg !38 {
   %block.captured-self = getelementptr inbounds <{ ptr, i32, i32, ptr, ptr, ptr }>, ptr %.block_descriptor, i32 0, i32 5, !dbg !84
-  call void @llvm.dbg.declare(metadata ptr %.block_descriptor, metadata !86, metadata !110), !dbg !87
+  call void @llvm.dbg.declare(metadata ptr %.block_descriptor, metadata !86, metadata !DIExpression(DW_OP_plus_uconst, 32, DW_OP_deref)), !dbg !87
   ret void, !dbg !87
 }
 
 define internal void @"__24-[Main initWithContext:]_block_invoke_2"(ptr %.block_descriptor, ptr %object) #0 !dbg !42 {
   %block.captured-self = getelementptr inbounds <{ ptr, i32, i32, ptr, ptr, ptr }>, ptr %.block_descriptor, i32 0, i32 5, !dbg !103
-  call void @llvm.dbg.declare(metadata ptr %.block_descriptor, metadata !105, metadata !109), !dbg !106
+  call void @llvm.dbg.declare(metadata ptr %.block_descriptor, metadata !105, metadata !DIExpression(DW_OP_plus_uconst, 32, DW_OP_deref)), !dbg !106
   ret void, !dbg !106
 }
 
@@ -105,5 +105,3 @@ define internal void @"__24-[Main initWithContext:]_block_invoke_2"(ptr %.block_
 !106 = !DILocation(line: 40, scope: !42)
 !107 = !DIFile(filename: "llvm/tools/clang/test/CodeGenObjC/debug-info-block-captured-self.m", directory: "")
 !108 = !{i32 1, !"Debug Info Version", i32 3}
-!109 = !DIExpression(DW_OP_plus_uconst, 32, DW_OP_deref)
-!110 = !DIExpression(DW_OP_plus_uconst, 32, DW_OP_deref)

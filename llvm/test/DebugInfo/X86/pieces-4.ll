@@ -37,10 +37,10 @@ target triple = "x86_64-pc-windows-msvc19.0.24210"
 ; Function Attrs: nounwind uwtable
 define i32 @bitpiece_spill() local_unnamed_addr #0 !dbg !7 {
 entry:
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !12, metadata !17), !dbg !18
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !12, metadata !DIExpression()), !dbg !18
   %call = tail call i32 @g() #3, !dbg !19
-  tail call void @llvm.dbg.value(metadata i32 %call, metadata !12, metadata !20), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !21), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 %call, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !12, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !18
   tail call void asm sideeffect "", "~{rax},~{rbx},~{rcx},~{rdx},~{rsi},~{rdi},~{rbp},~{r8},~{r9},~{r10},~{r11},~{r12},~{r13},~{r14},~{r15},~{dirflag},~{fpsr},~{flags}"() #3, !dbg !22, !srcloc !23
   ret i32 %call, !dbg !24
 }
@@ -79,11 +79,8 @@ attributes #3 = { nounwind }
 !14 = !{!15, !16}
 !15 = !DIDerivedType(tag: DW_TAG_member, name: "x", scope: !13, file: !1, line: 1, baseType: !10, size: 32, align: 32)
 !16 = !DIDerivedType(tag: DW_TAG_member, name: "y", scope: !13, file: !1, line: 1, baseType: !10, size: 32, align: 32, offset: 32)
-!17 = !DIExpression()
 !18 = !DILocation(line: 4, column: 18, scope: !7)
 !19 = !DILocation(line: 4, column: 23, scope: !7)
-!20 = !DIExpression(DW_OP_LLVM_fragment, 0, 32)
-!21 = !DIExpression(DW_OP_LLVM_fragment, 32, 32)
 !22 = !DILocation(line: 6, column: 3, scope: !7)
 !23 = !{i32 138}
 !24 = !DILocation(line: 8, column: 3, scope: !7)

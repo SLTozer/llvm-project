@@ -93,12 +93,12 @@ entry:
   %m = alloca i32, align 4
   %j = alloca i32, align 4
   store i32 %x, ptr %x.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !11, metadata !12), !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !11, metadata !DIExpression()), !dbg !13
   store i32 %y, ptr %y.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %y.addr, metadata !14, metadata !12), !dbg !15
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !16, metadata !12), !dbg !17
-  call void @llvm.dbg.declare(metadata ptr %m, metadata !18, metadata !12), !dbg !19
-  call void @llvm.dbg.declare(metadata ptr %j, metadata !20, metadata !12), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %y.addr, metadata !14, metadata !DIExpression()), !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !16, metadata !DIExpression()), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %m, metadata !18, metadata !DIExpression()), !dbg !19
+  call void @llvm.dbg.declare(metadata ptr %j, metadata !20, metadata !DIExpression()), !dbg !21
   %0 = load i32, ptr %x.addr, align 4, !dbg !22
   %1 = load i32, ptr %y.addr, align 4, !dbg !24
   %cmp = icmp sgt i32 %0, %1, !dbg !25
@@ -153,12 +153,12 @@ entry:
   %m = alloca i32, align 4
   %j = alloca i32, align 4
   store i32 %x, ptr %x.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !35, metadata !12), !dbg !36
+  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !35, metadata !DIExpression()), !dbg !36
   store i32 %y, ptr %y.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %y.addr, metadata !37, metadata !12), !dbg !38
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !39, metadata !12), !dbg !40
-  call void @llvm.dbg.declare(metadata ptr %m, metadata !41, metadata !12), !dbg !42
-  call void @llvm.dbg.declare(metadata ptr %j, metadata !43, metadata !12), !dbg !44
+  call void @llvm.dbg.declare(metadata ptr %y.addr, metadata !37, metadata !DIExpression()), !dbg !38
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !39, metadata !DIExpression()), !dbg !40
+  call void @llvm.dbg.declare(metadata ptr %m, metadata !41, metadata !DIExpression()), !dbg !42
+  call void @llvm.dbg.declare(metadata ptr %j, metadata !43, metadata !DIExpression()), !dbg !44
   %0 = load i32, ptr %x.addr, align 4, !dbg !45
   %1 = load i32, ptr %y.addr, align 4, !dbg !47
   %cmp = icmp sgt i32 %0, %1, !dbg !48
@@ -215,7 +215,6 @@ entry:
 !9 = !{!10, !10, !10}
 !10 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !11 = !DILocalVariable(name: "x", arg: 1, scope: !6, file: !7, line: 1, type: !10)
-!12 = !DIExpression()
 !13 = !DILocation(line: 1, column: 14, scope: !6)
 !14 = !DILocalVariable(name: "y", arg: 2, scope: !6, file: !7, line: 1, type: !10)
 !15 = !DILocation(line: 1, column: 21, scope: !6)

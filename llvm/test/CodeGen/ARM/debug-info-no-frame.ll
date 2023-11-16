@@ -7,7 +7,7 @@ define void @need_cfi_def_cfa_offset() #0 !dbg !3 {
 ; CHECK: .cfi_def_cfa_offset 4
 entry:
   %Depth = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %Depth, metadata !9, metadata !10), !dbg !11
+  call void @llvm.dbg.declare(metadata ptr %Depth, metadata !9, metadata !DIExpression()), !dbg !11
   store i32 2, ptr %Depth, align 4, !dbg !11
   ret void, !dbg !12
 }
@@ -31,6 +31,5 @@ attributes #1 = { nounwind readnone }
 !7 = !{i32 2, !"Dwarf Version", i32 4}
 !8 = !{i32 2, !"Debug Info Version", i32 3}
 !9 = !DILocalVariable(name: "Depth", scope: !3, file: !1, line: 3, type: !6)
-!10 = !DIExpression()
 !11 = !DILocation(line: 3, column: 9, scope: !3)
 !12 = !DILocation(line: 7, column: 5, scope: !3)

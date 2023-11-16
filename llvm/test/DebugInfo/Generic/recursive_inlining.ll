@@ -93,7 +93,7 @@ define void @_Z3fn6v() #0 !dbg !20 {
 entry:
   tail call void @_Z3fn8v() #3, !dbg !23
   %0 = load ptr, ptr @x, align 8, !dbg !24, !tbaa !25
-  tail call void @llvm.dbg.value(metadata ptr %0, metadata !29, metadata !32) #3, !dbg !33
+  tail call void @llvm.dbg.value(metadata ptr %0, metadata !29, metadata !DIExpression()) #3, !dbg !33
   tail call void @_Z3fn8v() #3, !dbg !34
   %1 = load i32, ptr %0, align 4, !dbg !35, !tbaa !37
   %tobool.i = icmp eq i32 %1, 0, !dbg !35
@@ -114,7 +114,7 @@ declare void @_Z3fn8v() #1
 
 define linkonce_odr void @_ZN1C5m_fn2Ev(ptr nocapture readonly %this) #0 align 2 !dbg !30 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %this, metadata !29, metadata !32), !dbg !44
+  tail call void @llvm.dbg.value(metadata ptr %this, metadata !29, metadata !DIExpression()), !dbg !44
   tail call void @_Z3fn8v() #3, !dbg !45
   %0 = load i32, ptr %this, align 4, !dbg !46, !tbaa !37
   %tobool = icmp eq i32 %0, 0, !dbg !46
@@ -127,7 +127,7 @@ if.then:                                          ; preds = %entry
 if.end:                                           ; preds = %if.then, %entry
   tail call void @_Z3fn8v() #3, !dbg !48
   %1 = load ptr, ptr @x, align 8, !dbg !52, !tbaa !25
-  tail call void @llvm.dbg.value(metadata ptr %1, metadata !29, metadata !32) #3, !dbg !53
+  tail call void @llvm.dbg.value(metadata ptr %1, metadata !29, metadata !DIExpression()) #3, !dbg !53
   tail call void @_Z3fn8v() #3, !dbg !54
   %2 = load i32, ptr %1, align 4, !dbg !55, !tbaa !37
   %tobool.i.i = icmp eq i32 %2, 0, !dbg !55
@@ -151,7 +151,7 @@ entry:
 tailrecurse:                                      ; preds = %tailrecurse.backedge, %entry
   tail call void @_Z3fn8v() #3, !dbg !59
   %0 = load ptr, ptr @x, align 8, !dbg !61, !tbaa !25
-  tail call void @llvm.dbg.value(metadata ptr %0, metadata !29, metadata !32) #3, !dbg !62
+  tail call void @llvm.dbg.value(metadata ptr %0, metadata !29, metadata !DIExpression()) #3, !dbg !62
   tail call void @_Z3fn8v() #3, !dbg !63
   %1 = load i32, ptr %0, align 4, !dbg !64, !tbaa !37
   %tobool.i.i = icmp eq i32 %1, 0, !dbg !64
@@ -227,7 +227,6 @@ attributes #3 = { nounwind }
 !29 = !DILocalVariable(name: "this", arg: 1, scope: !30, type: !3, flags: DIFlagArtificial | DIFlagObjectPointer)
 !30 = distinct !DISubprogram(name: "m_fn2", linkageName: "_ZN1C5m_fn2Ev", scope: !4, file: !2, line: 7, type: !9, isLocal: false, isDefinition: true, scopeLine: 7, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: true, unit: !12, declaration: !8, retainedNodes: !31)
 !31 = !{!29}
-!32 = !DIExpression()
 !33 = !DILocation(line: 0, scope: !30, inlinedAt: !24)
 !34 = !DILocation(line: 8, scope: !30, inlinedAt: !24)
 !35 = !DILocation(line: 9, scope: !36, inlinedAt: !24)

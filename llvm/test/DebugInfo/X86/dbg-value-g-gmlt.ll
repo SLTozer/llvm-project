@@ -38,7 +38,7 @@ target triple = "x86_64-unknown-linux-gnu"
 ; Function Attrs: uwtable
 define void @_Z3fooi(i32 %param) local_unnamed_addr #0 !dbg !8 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %param, metadata !13, metadata !14), !dbg !15
+  tail call void @llvm.dbg.value(metadata i32 %param, metadata !13, metadata !DIExpression()), !dbg !15
   %tobool = icmp eq i32 %param, 0, !dbg !16
   br i1 %tobool, label %if.end, label %if.then, !dbg !18
 
@@ -58,7 +58,7 @@ declare void @_Z1fv() local_unnamed_addr #2
 ; Function Attrs: nounwind readnone uwtable
 define void @_Z3barv() local_unnamed_addr #3 !dbg !22 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !13, metadata !14), !dbg !24
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !13, metadata !DIExpression()), !dbg !24
   ret void, !dbg !26
 }
 
@@ -85,7 +85,6 @@ attributes #3 = { nounwind readnone uwtable }
 !11 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !12 = !{!13}
 !13 = !DILocalVariable(name: "param", arg: 1, scope: !8, file: !1, line: 2, type: !11)
-!14 = !DIExpression()
 !15 = !DILocation(line: 2, column: 14, scope: !8)
 !16 = !DILocation(line: 3, column: 7, scope: !17)
 !17 = distinct !DILexicalBlock(scope: !8, file: !1, line: 3, column: 7)

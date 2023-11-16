@@ -113,15 +113,15 @@ define void @f(ptr inalloca(<{ %struct.NonTrivial, i32, i32, i32 }>)) local_unna
 entry:
   %a = getelementptr inbounds <{ %struct.NonTrivial, i32, i32, i32 }>, ptr %0, i32 0, i32 0
   %b = getelementptr inbounds <{ %struct.NonTrivial, i32, i32, i32 }>, ptr %0, i32 0, i32 1
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !22, metadata !24), !dbg !26
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !23, metadata !24), !dbg !27
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !22, metadata !DIExpression()), !dbg !26
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !23, metadata !DIExpression()), !dbg !27
   %1 = load i32, ptr %b, align 4, !dbg !28, !tbaa !30
   %tobool = icmp eq i32 %1, 0, !dbg !28
   br i1 %tobool, label %if.else, label %if.then, !dbg !34
 
 if.then:                                          ; preds = %entry
   %c = getelementptr inbounds <{ %struct.NonTrivial, i32, i32, i32 }>, ptr %0, i32 0, i32 3
-  call void @llvm.dbg.declare(metadata ptr %c, metadata !20, metadata !24), !dbg !25
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !20, metadata !DIExpression()), !dbg !25
   %2 = load i32, ptr %c, align 4, !dbg !35, !tbaa !30
   tail call void @g(i32 %2) #4, !dbg !37
   br label %if.end, !dbg !38
@@ -180,7 +180,6 @@ attributes #4 = { nounwind }
 !21 = !DILocalVariable(name: "unused", arg: 3, scope: !7, file: !1, line: 8, type: !13)
 !22 = !DILocalVariable(name: "b", arg: 2, scope: !7, file: !1, line: 8, type: !13)
 !23 = !DILocalVariable(name: "a", arg: 1, scope: !7, file: !1, line: 8, type: !10)
-!24 = !DIExpression()
 !25 = !DILocation(line: 8, column: 56, scope: !7)
 !26 = !DILocation(line: 8, column: 37, scope: !7)
 !27 = !DILocation(line: 8, column: 30, scope: !7)

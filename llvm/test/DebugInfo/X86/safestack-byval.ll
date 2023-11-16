@@ -29,10 +29,10 @@ entry:
   %unsafe_stack_static_top = getelementptr i8, ptr %unsafe_stack_ptr, i32 -400, !dbg !22
   store ptr %unsafe_stack_static_top, ptr @__safestack_unsafe_stack_ptr, !dbg !22
 ; !17 describes "zzz"
-  call void @llvm.dbg.declare(metadata ptr %unsafe_stack_ptr, metadata !17, metadata !23), !dbg !22
+  call void @llvm.dbg.declare(metadata ptr %unsafe_stack_ptr, metadata !17, metadata !DIExpression(DW_OP_deref, DW_OP_constu, 400, DW_OP_minus)), !dbg !22
   %0 = getelementptr i8, ptr %unsafe_stack_ptr, i32 -400, !dbg !22
   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %0, ptr align 8 %zzz, i64 400, i1 false), !dbg !24
-  tail call void @llvm.dbg.value(metadata i64 %len, metadata !18, metadata !25), !dbg !24
+  tail call void @llvm.dbg.value(metadata i64 %len, metadata !18, metadata !DIExpression()), !dbg !24
   %arrayidx = getelementptr inbounds %struct.S, ptr %0, i64 0, i32 0, i64 %len, !dbg !26
   %1 = load i32, ptr %arrayidx, align 4, !dbg !26, !tbaa !27
   store ptr %unsafe_stack_ptr, ptr @__safestack_unsafe_stack_ptr, !dbg !31
@@ -78,9 +78,7 @@ attributes #2 = { argmemonly nounwind }
 !20 = !{i32 2, !"Debug Info Version", i32 3}
 !21 = !{!"clang version 3.8.0 (trunk 254107) (llvm/trunk 254109)"}
 !22 = !DILocation(line: 8, column: 9, scope: !12)
-!23 = !DIExpression(DW_OP_deref, DW_OP_constu, 400, DW_OP_minus)
 !24 = !DILocation(line: 8, column: 28, scope: !12)
-!25 = !DIExpression()
 !26 = !DILocation(line: 9, column: 10, scope: !12)
 !27 = !{!28, !28, i64 0}
 !28 = !{!"int", !29, i64 0}

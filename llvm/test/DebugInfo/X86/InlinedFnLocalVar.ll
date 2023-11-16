@@ -19,8 +19,8 @@ declare void @llvm.dbg.value(metadata, metadata, metadata) #0
 define i32 @bar() #1 !dbg !8 {
 entry:
   %0 = load i32, ptr @i, align 4, !dbg !11
-  tail call void @llvm.dbg.value(metadata i32 %0, metadata !13, metadata !24), !dbg !25
-  tail call void @llvm.dbg.declare(metadata !5, metadata !18, metadata !24), !dbg !26
+  tail call void @llvm.dbg.value(metadata i32 %0, metadata !13, metadata !DIExpression()), !dbg !25
+  tail call void @llvm.dbg.declare(metadata !5, metadata !18, metadata !DIExpression()), !dbg !26
   %1 = mul nsw i32 %0, %0, !dbg !27
   store i32 %1, ptr @i, align 4, !dbg !11
   ret i32 %1, !dbg !28
@@ -56,7 +56,6 @@ attributes #1 = { nounwind ssp }
 !21 = !{!22, !23}
 !22 = !DIDerivedType(tag: DW_TAG_member, name: "a", scope: !20, file: !2, line: 10, baseType: !3, size: 32, align: 32)
 !23 = !DIDerivedType(tag: DW_TAG_member, name: "b", scope: !20, file: !2, line: 10, baseType: !3, size: 32, align: 32, offset: 32)
-!24 = !DIExpression()
 !25 = !DILocation(line: 9, scope: !14, inlinedAt: !11)
 !26 = !DILocation(line: 9, scope: !19, inlinedAt: !11)
 !27 = !DILocation(line: 11, scope: !19, inlinedAt: !11)

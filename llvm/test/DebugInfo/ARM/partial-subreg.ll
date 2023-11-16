@@ -20,8 +20,8 @@ declare void @llvm.dbg.value(metadata, metadata, metadata) #0
 
 define <3 x float> @_TFV4simd8float2x3g9subscriptFSiVS_6float3(i32, <3 x float>, <3 x float>) !dbg !5 {
 entry:
-  tail call void @llvm.dbg.value(metadata <3 x float> %1, metadata !8, metadata !9), !dbg !10
-  tail call void @llvm.dbg.value(metadata <3 x float> %2, metadata !8, metadata !11), !dbg !10
+  tail call void @llvm.dbg.value(metadata <3 x float> %1, metadata !8, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 96)), !dbg !10
+  tail call void @llvm.dbg.value(metadata <3 x float> %2, metadata !8, metadata !DIExpression(DW_OP_LLVM_fragment, 96, 96)), !dbg !10
   %3 = icmp eq i32 %0, 0, !dbg !12
   br i1 %3, label %7, label %4, !dbg !12
 
@@ -51,9 +51,7 @@ attributes #0 = { nounwind readnone }
 !6 = !DICompositeType(tag: DW_TAG_structure_type, name: "float2x3", scope: !0, file: !1, line: 5824, size: 256, align: 128, elements: !2, runtimeLang: DW_LANG_Swift, identifier: "_TtV4simd8float2x3")
 !7 = !DISubroutineType(types: !2)
 !8 = !DILocalVariable(name: "self", arg: 2, scope: !5, file: !1, line: 5897, type: !6, flags: DIFlagArtificial)
-!9 = !DIExpression(DW_OP_LLVM_fragment, 0, 96)
 !10 = !DILocation(line: 5897, column: 5, scope: !5)
-!11 = !DIExpression(DW_OP_LLVM_fragment, 96, 96)
 !12 = !DILocation(line: 5900, column: 12, scope: !13)
 !13 = distinct !DILexicalBlock(scope: !14, file: !1, line: 5898, column: 7)
 !14 = distinct !DILexicalBlock(scope: !5, file: !1, line: 5897, column: 9)

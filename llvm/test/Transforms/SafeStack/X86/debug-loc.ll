@@ -15,8 +15,8 @@ entry:
 ; CHECK: %[[USP:.*]] = load ptr, ptr @__safestack_unsafe_stack_ptr
 
   %xxx = alloca %struct.S, align 1
-  call void @llvm.dbg.declare(metadata ptr %zzz, metadata !18, metadata !19), !dbg !20
-  call void @llvm.dbg.declare(metadata ptr %xxx, metadata !21, metadata !19), !dbg !22
+  call void @llvm.dbg.declare(metadata ptr %zzz, metadata !18, metadata !DIExpression()), !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %xxx, metadata !21, metadata !DIExpression()), !dbg !22
 
 ; dbg.declare for %zzz and %xxx are gone; replaced with dbg.declare based off the unsafe stack pointer
 ; CHECK-NOT: call void @llvm.dbg.declare
@@ -71,7 +71,6 @@ attributes #2 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "fra
 !16 = !{i32 2, !"Debug Info Version", i32 3}
 !17 = !{!"clang version 3.8.0 (trunk 254019) (llvm/trunk 254036)"}
 !18 = !DILocalVariable(name: "zzz", arg: 1, scope: !12, file: !1, line: 10, type: !4)
-!19 = !DIExpression()
 !20 = !DILocation(line: 10, column: 10, scope: !12)
 !21 = !DILocalVariable(name: "xxx", scope: !12, file: !1, line: 11, type: !4)
 !22 = !DILocation(line: 11, column: 5, scope: !12)

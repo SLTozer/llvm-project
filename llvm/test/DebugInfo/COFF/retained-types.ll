@@ -53,7 +53,7 @@ define i32 @"\01?f@@YAHPEAX@Z"(ptr %p) #0 !dbg !13 {
 entry:
   %p.addr = alloca ptr, align 8
   store ptr %p, ptr %p.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %p.addr, metadata !17, metadata !18), !dbg !19
+  call void @llvm.dbg.declare(metadata ptr %p.addr, metadata !17, metadata !DIExpression()), !dbg !19
   %0 = load ptr, ptr %p.addr, align 8, !dbg !20
   %1 = load i32, ptr %0, align 4, !dbg !22
   ret i32 %1, !dbg !23
@@ -87,7 +87,6 @@ attributes #1 = { nounwind readnone }
 !15 = !{!8, !16}
 !16 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: null, size: 64, align: 64)
 !17 = !DILocalVariable(name: "p", arg: 1, scope: !13, file: !1, line: 2, type: !16)
-!18 = !DIExpression()
 !19 = !DILocation(line: 2, column: 13, scope: !13)
 !20 = !DILocation(line: 3, column: 26, scope: !13)
 !21 = !DILocation(line: 3, column: 10, scope: !13)

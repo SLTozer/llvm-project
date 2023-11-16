@@ -53,7 +53,7 @@ target triple = "x86_64-unknown-linux-gnu"
 define void @_Z2f3v() #0 !dbg !8 {
 entry:
   %.addr.i = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %.addr.i, metadata !11, metadata !16), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %.addr.i, metadata !11, metadata !DIExpression()), !dbg !17
   store i32 0, ptr %.addr.i, align 4
   call void @_Z2f1v(), !dbg !19
   ret void, !dbg !20
@@ -95,7 +95,6 @@ attributes #3 = { noinline nounwind uwtable }
 !13 = !DISubroutineType(types: !14)
 !14 = !{null, !15}
 !15 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
-!16 = !DIExpression()
 !17 = !DILocation(line: 2, column: 50, scope: !12, inlinedAt: !18)
 !18 = distinct !DILocation(line: 6, column: 3, scope: !8)
 !19 = !DILocation(line: 3, column: 3, scope: !12, inlinedAt: !18)

@@ -22,7 +22,7 @@ entry:
 
 define i32 @bar(i32 %x) !dbg !50 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !41, metadata !43), !dbg !52
+  tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !41, metadata !DIExpression()), !dbg !52
   %tobool.i = icmp eq i32 %x, 0
   br i1 %tobool.i, label %foo.exit, label %if.then.i
 
@@ -54,7 +54,6 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !39 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !40 = !{!41}
 !41 = !DILocalVariable(name: "x", arg: 1, scope: !36, file: !1, line: 1, type: !39)
-!43 = !DIExpression()
 !50 = distinct !DISubprogram(name: "bar", scope: !4, file: !4, line: 3, type: !51, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: true, unit: !3, retainedNodes: !2)
 !51 = !DISubroutineType(types: !2)
 !52 = !DILocation(line: 1, scope: !36, inlinedAt: !53)

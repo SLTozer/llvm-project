@@ -18,8 +18,8 @@ target triple = "hexagon-unknown--elf"
 ; Function Attrs: nounwind
 define i32 @foo(i32 %x, i32 %y) #0 !dbg !4 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !9, metadata !14), !dbg !15
-  tail call void @llvm.dbg.value(metadata i32 %y, i64 0, metadata !10, metadata !14), !dbg !16
+  tail call void @llvm.dbg.value(metadata i32 %x, i64 0, metadata !9, metadata !DIExpression()), !dbg !15
+  tail call void @llvm.dbg.value(metadata i32 %y, i64 0, metadata !10, metadata !DIExpression()), !dbg !16
   %add = add nsw i32 %x, 1, !dbg !17
   %add1 = add nsw i32 %y, 1, !dbg !18
   %call = tail call i32 @bar(i32 %add, i32 %add1) #3, !dbg !19
@@ -54,7 +54,6 @@ attributes #3 = { nounwind }
 !11 = !{i32 2, !"Dwarf Version", i32 4}
 !12 = !{i32 2, !"Debug Info Version", i32 3}
 !13 = !{!"clang version 3.8.0"}
-!14 = !DIExpression()
 !15 = !DILocation(line: 3, column: 13, scope: !4)
 !16 = !DILocation(line: 3, column: 20, scope: !4)
 !17 = !DILocation(line: 4, column: 15, scope: !4)

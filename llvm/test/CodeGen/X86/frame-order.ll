@@ -29,14 +29,14 @@
 define void @f(i32 %param) #0 !dbg !4 {
 entry:
   %v.i1 = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %v.i1, metadata !15, metadata !16), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %v.i1, metadata !15, metadata !DIExpression()), !dbg !17
   %v.i = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %v.i, metadata !15, metadata !16), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %v.i, metadata !15, metadata !DIExpression()), !dbg !21
   %param.addr = alloca i32, align 4
   %a = alloca i32, align 4
   %b = alloca i32, align 4
   store i32 %param, ptr %param.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %param.addr, metadata !24, metadata !16), !dbg !25
+  call void @llvm.dbg.declare(metadata ptr %param.addr, metadata !24, metadata !DIExpression()), !dbg !25
   %0 = load i32, ptr %param.addr, align 4, !dbg !26
   %tobool = icmp ne i32 %0, 0, !dbg !26
   br i1 %tobool, label %if.then, label %if.else, !dbg !27
@@ -45,7 +45,7 @@ entry:
 ;CHECK: je [[LABEL:.*]]
 
 if.then:                                          ; preds = %entry
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !28, metadata !16), !dbg !29
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !28, metadata !DIExpression()), !dbg !29
   store i32 42, ptr %a, align 4, !dbg !29
   store i32 3, ptr %v.i, align 4, !dbg !21
   call void @capture(ptr %v.i) #3, !dbg !30
@@ -55,7 +55,7 @@ if.then:                                          ; preds = %entry
 ;CHECK: movl    $3, 12(%rsp)
 
 if.else:                                          ; preds = %entry
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !33, metadata !16), !dbg !34
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !33, metadata !DIExpression()), !dbg !34
   store i32 42, ptr %b, align 4, !dbg !34
   store i32 3, ptr %v.i1, align 4, !dbg !17
   call void @capture(ptr %v.i1) #3, !dbg !35
@@ -98,7 +98,6 @@ attributes #3 = { nounwind }
 !13 = !{i32 1, !"PIC Level", i32 2}
 !14 = !{!"clang version 3.9.0 "}
 !15 = !DILocalVariable(name: "v", scope: !8, file: !1, line: 4, type: !7)
-!16 = !DIExpression()
 !17 = !DILocation(line: 4, column: 7, scope: !8, inlinedAt: !18)
 !18 = distinct !DILocation(line: 14, column: 5, scope: !19)
 !19 = distinct !DILexicalBlock(scope: !20, file: !1, line: 12, column: 10)

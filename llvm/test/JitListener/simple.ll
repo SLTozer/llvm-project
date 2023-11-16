@@ -20,7 +20,7 @@ define i32 @foo(i32 %a) #0 !dbg !4 {
 entry:
   %a.addr = alloca i32, align 4
   store i32 %a, i32* %a.addr, align 4
-  call void @llvm.dbg.declare(metadata i32* %a.addr, metadata !12, metadata !13), !dbg !14
+  call void @llvm.dbg.declare(metadata i32* %a.addr, metadata !12, metadata !DIExpression()), !dbg !14
   %0 = load i32, i32* %a.addr, align 4, !dbg !15
   ret i32 %0, !dbg !16
 }
@@ -47,7 +47,6 @@ attributes #1 = { nounwind readnone }
 !10 = !{i32 2, !"Debug Info Version", i32 3}
 !11 = !{!"clang version 3.6.0 (trunk)"}
 !12 = !DILocalVariable(name: "a", line: 1, arg: 1, scope: !4, file: !5, type: !8)
-!13 = !DIExpression()
 !14 = !DILocation(line: 1, column: 13, scope: !4)
 !15 = !DILocation(line: 2, column: 10, scope: !4)
 !16 = !DILocation(line: 2, column: 3, scope: !4)

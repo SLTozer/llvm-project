@@ -46,7 +46,7 @@ define i32 @"\01?bar@foo@@YAHH@Z"(i32 %x) #0 !dbg !6 {
 entry:
   %x.addr = alloca i32, align 4
   store i32 %x, ptr %x.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !11, metadata !12), !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !11, metadata !DIExpression()), !dbg !13
   %0 = load i32, ptr %x.addr, align 4, !dbg !14
   %mul = mul nsw i32 %0, 2, !dbg !15
   ret i32 %mul, !dbg !16
@@ -91,7 +91,6 @@ attributes #1 = { nounwind readnone }
 !9 = !{!10, !10}
 !10 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !11 = !DILocalVariable(name: "x", arg: 1, scope: !6, file: !1, line: 2, type: !10)
-!12 = !DIExpression()
 !13 = !DILocation(line: 2, column: 13, scope: !6)
 !14 = !DILocation(line: 2, column: 25, scope: !6)
 !15 = !DILocation(line: 2, column: 27, scope: !6)

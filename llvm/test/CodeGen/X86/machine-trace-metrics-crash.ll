@@ -60,13 +60,13 @@ if.then:
 if.end:
   %h = phi float [ 0.0, %if.then ], [ 4.0, %entry ]
   call void @foo(ptr nonnull undef)
-  tail call void @llvm.dbg.value(metadata ptr undef, i64 0, metadata !5, metadata !4), !dbg !6
-  tail call void @llvm.dbg.value(metadata float %h, i64 0, metadata !5, metadata !4), !dbg !6
+  tail call void @llvm.dbg.value(metadata ptr undef, i64 0, metadata !5, metadata !DIExpression()), !dbg !6
+  tail call void @llvm.dbg.value(metadata float %h, i64 0, metadata !5, metadata !DIExpression()), !dbg !6
   %n0 = load float, ptr undef, align 4
   %mul = fmul fast float %n0, %h
   %add = fadd fast float %mul, 1.0
-  tail call void @llvm.dbg.value(metadata ptr undef, i64 0, metadata !5, metadata !4), !dbg !6
-  tail call void @llvm.dbg.value(metadata float %add, i64 0, metadata !5, metadata !4), !dbg !6
+  tail call void @llvm.dbg.value(metadata ptr undef, i64 0, metadata !5, metadata !DIExpression()), !dbg !6
+  tail call void @llvm.dbg.value(metadata float %add, i64 0, metadata !5, metadata !DIExpression()), !dbg !6
   %add.i = fadd fast float %add, %n0
   store float %add.i, ptr undef, align 4
   call void @llvm.lifetime.start.p0(i64 16, ptr %i)
@@ -93,7 +93,6 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !1 = !DIFile(filename: "24199.cpp", directory: "/bin")
 !2 = !{i32 2, !"Debug Info Version", i32 3}
 !3 = distinct !DISubprogram(linkageName: "foo", file: !1, line: 18, isLocal: false, isDefinition: true, scopeLine: 18, unit: !0)
-!4 = !DIExpression()
 !5 = !DILocalVariable(name: "this", arg: 1, scope: !3, flags: DIFlagArtificial | DIFlagObjectPointer)
 !6 = !DILocation(line: 0, scope: !3)
 

@@ -58,15 +58,15 @@ entry:
   %FuncVar2 = alloca ptr addrspace(3), align 4, addrspace(5)
   %FuncVar3 = alloca ptr addrspace(5), align 4, addrspace(5)
   %FuncVar4 = alloca ptr, align 4, addrspace(5)
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar0, metadata !10, metadata !13), !dbg !14
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar0, metadata !10, metadata !DIExpression()), !dbg !14
   store ptr addrspace(1) null, ptr addrspace(5) %FuncVar0, align 4, !dbg !14
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar1, metadata !15, metadata !13), !dbg !16
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar1, metadata !15, metadata !DIExpression()), !dbg !16
   store ptr addrspace(4) null, ptr addrspace(5) %FuncVar1, align 4, !dbg !16
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar2, metadata !17, metadata !13), !dbg !19
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar2, metadata !17, metadata !DIExpression()), !dbg !19
   store ptr addrspace(3) addrspacecast (ptr null to ptr addrspace(3)), ptr addrspace(5) %FuncVar2, align 4, !dbg !19
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar3, metadata !20, metadata !13), !dbg !22
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar3, metadata !20, metadata !DIExpression()), !dbg !22
   store ptr addrspace(5) addrspacecast (ptr null to ptr addrspace(5)), ptr addrspace(5) %FuncVar3, align 4, !dbg !22
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar4, metadata !23, metadata !13), !dbg !24
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %FuncVar4, metadata !23, metadata !DIExpression()), !dbg !24
   store ptr null, ptr addrspace(5) %FuncVar4, align 4, !dbg !24
   ret void, !dbg !25
 }
@@ -89,7 +89,6 @@ entry:
 !10 = !DILocalVariable(name: "FuncVar0", scope: !7, file: !1, line: 2, type: !11)
 !11 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !12, size: 64)
 !12 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
-!13 = !DIExpression()
 !14 = !DILocation(line: 2, column: 15, scope: !7)
 !15 = !DILocalVariable(name: "FuncVar1", scope: !7, file: !1, line: 3, type: !11)
 !16 = !DILocation(line: 3, column: 17, scope: !7)

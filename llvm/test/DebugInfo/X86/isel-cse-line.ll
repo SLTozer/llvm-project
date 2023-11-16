@@ -42,17 +42,17 @@ define i32 @main() !dbg !16 {
   %4 = alloca double, align 8
   %5 = alloca double, align 8
   store i32 0, ptr %1, align 4
-  call void @llvm.dbg.declare(metadata ptr %2, metadata !20, metadata !21), !dbg !22
+  call void @llvm.dbg.declare(metadata ptr %2, metadata !20, metadata !DIExpression()), !dbg !22
   %6 = load i64, ptr @glb_start, align 8, !dbg !23
   store i64 %6, ptr %2, align 8, !dbg !22
-  call void @llvm.dbg.declare(metadata ptr %3, metadata !24, metadata !21), !dbg !25
+  call void @llvm.dbg.declare(metadata ptr %3, metadata !24, metadata !DIExpression()), !dbg !25
   %7 = load i64, ptr @glb_end, align 8, !dbg !26
   store i64 %7, ptr %3, align 8, !dbg !25
-  call void @llvm.dbg.declare(metadata ptr %4, metadata !27, metadata !21), !dbg !28
+  call void @llvm.dbg.declare(metadata ptr %4, metadata !27, metadata !DIExpression()), !dbg !28
   %8 = load i64, ptr %2, align 8, !dbg !29
   %9 = uitofp i64 %8 to double, !dbg !29
   store double %9, ptr %4, align 8, !dbg !28
-  call void @llvm.dbg.declare(metadata ptr %5, metadata !30, metadata !21), !dbg !31
+  call void @llvm.dbg.declare(metadata ptr %5, metadata !30, metadata !DIExpression()), !dbg !31
   %10 = load i64, ptr %3, align 8, !dbg !32
   %11 = uitofp i64 %10 to double, !dbg !32
   store double %11, ptr %5, align 8, !dbg !31
@@ -89,7 +89,6 @@ attributes #0 = { nounwind readnone }
 !18 = !{!19}
 !19 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !20 = !DILocalVariable(name: "start", scope: !16, file: !3, line: 9, type: !11)
-!21 = !DIExpression()
 !22 = !DILocation(line: 9, column: 9, scope: !16)
 !23 = !DILocation(line: 9, column: 17, scope: !16)
 !24 = !DILocalVariable(name: "end", scope: !16, file: !3, line: 10, type: !11)

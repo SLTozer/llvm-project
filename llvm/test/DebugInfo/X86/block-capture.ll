@@ -32,10 +32,10 @@ entry:
   %block.addr = alloca ptr, align 8
   store ptr %.block_descriptor, ptr %.block_descriptor.addr, align 8
   %0 = load ptr, ptr %.block_descriptor.addr
-  call void @llvm.dbg.value(metadata ptr %0, metadata !47, metadata !43), !dbg !66
-  call void @llvm.dbg.declare(metadata ptr %.block_descriptor, metadata !47, metadata !43), !dbg !66
+  call void @llvm.dbg.value(metadata ptr %0, metadata !47, metadata !DIExpression()), !dbg !66
+  call void @llvm.dbg.declare(metadata ptr %.block_descriptor, metadata !47, metadata !DIExpression()), !dbg !66
   store ptr %.block_descriptor, ptr %block.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %block.addr, metadata !68, metadata !69), !dbg !70
+  call void @llvm.dbg.declare(metadata ptr %block.addr, metadata !68, metadata !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 32)), !dbg !70
   %block.capture.addr = getelementptr inbounds <{ ptr, i32, i32, ptr, ptr, ptr }>, ptr %.block_descriptor, i32 0, i32 5, !dbg !71
   %1 = load ptr, ptr %block.capture.addr, align 8, !dbg !71
   %2 = getelementptr inbounds %struct.__block_literal_generic, ptr %1, i32 0, i32 3, !dbg !71
@@ -95,7 +95,6 @@ attributes #3 = { nounwind }
 !40 = !DIDerivedType(tag: DW_TAG_member, name: "reserved", size: 64, align: 64, file: !1, scope: !5, baseType: !41)
 !41 = !DIBasicType(tag: DW_TAG_base_type, name: "long unsigned int", size: 64, align: 64, encoding: DW_ATE_unsigned)
 !42 = !DIDerivedType(tag: DW_TAG_member, name: "Size", size: 64, align: 64, offset: 64, file: !1, scope: !5, baseType: !41)
-!43 = !DIExpression()
 !47 = !DILocalVariable(name: ".block_descriptor", line: 2, arg: 1, flags: DIFlagArtificial, scope: !8, file: !5, type: !48)
 !48 = !DIDerivedType(tag: DW_TAG_pointer_type, size: 64, baseType: !49)
 !49 = !DICompositeType(tag: DW_TAG_structure_type, name: "__block_literal_1", line: 2, size: 320, align: 64, file: !1, scope: !5, elements: !50)
@@ -118,7 +117,6 @@ attributes #3 = { nounwind }
 !66 = !DILocation(line: 2, column: 20, scope: !8)
 !67 = !DILocation(line: 2, column: 21, scope: !8)
 !68 = !DILocalVariable(name: "block", line: 2, scope: !8, file: !5, type: !25)
-!69 = !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 32)
 !70 = !DILocation(line: 2, column: 9, scope: !8)
 !71 = !DILocation(line: 2, column: 23, scope: !72)
 !72 = distinct !DILexicalBlock(line: 2, column: 21, file: !1, scope: !8)

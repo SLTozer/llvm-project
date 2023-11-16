@@ -24,7 +24,7 @@ if.end.i:                                         ; preds = %if.then
 
 php_intpow10.exit:                                ; preds = %if.end.i, %if.then.i
   %retval.0.i = phi double [ %call.i, %if.then.i ], [ %0, %if.end.i ], !dbg !48
-  tail call void @llvm.dbg.value(metadata double %retval.0.i, i64 0, metadata !15, metadata !49), !dbg !50
+  tail call void @llvm.dbg.value(metadata double %retval.0.i, i64 0, metadata !15, metadata !DIExpression()), !dbg !50
   %div = fdiv double %conv, %retval.0.i, !dbg !51
   br label %if.end.15, !dbg !52
 
@@ -104,7 +104,6 @@ attributes #3 = { nounwind }
 !46 = !{!"Simple C/C++ TBAA"}
 !47 = !DILocation(line: 11, column: 2, scope: !18, inlinedAt: !38)
 !48 = !DILocation(line: 23, column: 8, scope: !35)
-!49 = !DIExpression()
 !50 = !DILocation(line: 17, column: 13, scope: !6)
 !51 = !DILocation(line: 24, column: 25, scope: !35)
 !52 = !DILocation(line: 25, column: 2, scope: !35)

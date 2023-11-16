@@ -79,7 +79,7 @@ catch.dispatch:
 
 catch:
   %cp1 = catchpad within %cs1 []
-  tail call void @llvm.dbg.value(metadata ptr %p, i64 0, metadata !11, metadata !13), !dbg !14
+  tail call void @llvm.dbg.value(metadata ptr %p, i64 0, metadata !11, metadata !DIExpression(DW_OP_deref)), !dbg !14
   call void @g(ptr %p)
   catchret from %cp1 to label %ret
 
@@ -108,6 +108,5 @@ catch:
 !10 = !{!"clang version 3.8.0 (trunk 254906) (llvm/trunk 254917)"}
 !11 = !DILocalVariable(name: "p", scope: !4, file: !1, line: 2, type: !12)
 !12 = !DIBasicType(name: "char", size: 8, align: 8, encoding: DW_ATE_signed_char)
-!13 = !DIExpression(DW_OP_deref)
 !14 = !DILocation(line: 2, column: 8, scope: !4)
 !15 = !DILocation(line: 3, column: 1, scope: !4)

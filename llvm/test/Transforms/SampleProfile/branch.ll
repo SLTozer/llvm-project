@@ -43,9 +43,9 @@ entry:
   %x = alloca double, align 8
   store i32 0, ptr %retval, align 4
   store i32 %argc, ptr %argc.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %argc.addr, metadata !16, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %argc.addr, metadata !16, metadata !DIExpression()), !dbg !18
   store ptr %argv, ptr %argv.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %argv.addr, metadata !19, metadata !17), !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %argv.addr, metadata !19, metadata !DIExpression()), !dbg !20
   %0 = load i32, ptr %argc.addr, align 4, !dbg !21
   %cmp = icmp slt i32 %0, 2, !dbg !23
   br i1 %cmp, label %if.then, label %if.end, !dbg !24
@@ -57,8 +57,8 @@ if.then:                                          ; preds = %entry
   br label %return, !dbg !25
 
 if.end:                                           ; preds = %entry
-  call void @llvm.dbg.declare(metadata ptr %result, metadata !26, metadata !17), !dbg !27
-  call void @llvm.dbg.declare(metadata ptr %limit, metadata !28, metadata !17), !dbg !29
+  call void @llvm.dbg.declare(metadata ptr %result, metadata !26, metadata !DIExpression()), !dbg !27
+  call void @llvm.dbg.declare(metadata ptr %limit, metadata !28, metadata !DIExpression()), !dbg !29
   %1 = load ptr, ptr %argv.addr, align 8, !dbg !30
   %arrayidx = getelementptr inbounds ptr, ptr %1, i64 1, !dbg !30
   %2 = load ptr, ptr %arrayidx, align 8, !dbg !30
@@ -71,7 +71,7 @@ if.end:                                           ; preds = %entry
 ; CHECK: edge if.end -> if.else probability is 0x19ad38b8 / 0x80000000 = 20.06%
 
 if.then.2:                                        ; preds = %if.end
-  call void @llvm.dbg.declare(metadata ptr %s, metadata !36, metadata !17), !dbg !38
+  call void @llvm.dbg.declare(metadata ptr %s, metadata !36, metadata !DIExpression()), !dbg !38
   %4 = load ptr, ptr %argv.addr, align 8, !dbg !39
   %arrayidx3 = getelementptr inbounds ptr, ptr %4, i64 2, !dbg !39
   %5 = load ptr, ptr %arrayidx3, align 8, !dbg !39
@@ -79,7 +79,7 @@ if.then.2:                                        ; preds = %if.end
   %conv = sitofp i32 %call4 to double, !dbg !40
   %mul = fmul double 0x40370ABE6A337A81, %conv, !dbg !41
   store double %mul, ptr %s, align 8, !dbg !38
-  call void @llvm.dbg.declare(metadata ptr %u, metadata !42, metadata !17), !dbg !44
+  call void @llvm.dbg.declare(metadata ptr %u, metadata !42, metadata !DIExpression()), !dbg !44
   store i32 0, ptr %u, align 4, !dbg !44
   br label %for.cond, !dbg !45
 
@@ -94,7 +94,7 @@ for.cond:                                         ; preds = %for.inc, %if.then.2
 ; OVW: edge for.cond -> for.end probability is 0x094c0c42 / 0x80000000 = 7.26% 
 
 for.body:                                         ; preds = %for.cond
-  call void @llvm.dbg.declare(metadata ptr %x, metadata !51, metadata !17), !dbg !53
+  call void @llvm.dbg.declare(metadata ptr %x, metadata !51, metadata !DIExpression()), !dbg !53
   %8 = load double, ptr %s, align 8, !dbg !54
   store double %8, ptr %x, align 8, !dbg !53
   %9 = load double, ptr %x, align 8, !dbg !55
@@ -178,7 +178,6 @@ attributes #4 = { nounwind readonly }
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !{!"clang version 3.8.0 (trunk 248211) (llvm/trunk 248217)"}
 !16 = !DILocalVariable(name: "argc", arg: 1, scope: !6, file: !1, line: 4, type: !9)
-!17 = !DIExpression()
 !18 = !DILocation(line: 4, column: 15, scope: !6)
 !19 = !DILocalVariable(name: "argv", arg: 2, scope: !6, file: !1, line: 4, type: !10)
 !20 = !DILocation(line: 4, column: 27, scope: !6)

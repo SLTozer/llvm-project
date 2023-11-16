@@ -60,7 +60,7 @@ define void @_ZN1C15member_functionEv(ptr %this) #0 align 2 !dbg !23 {
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !24, metadata !26), !dbg !27
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !24, metadata !DIExpression()), !dbg !27
   %this1 = load ptr, ptr %this.addr
   store i32 0, ptr @_ZN1C22static_member_variableE, align 4, !dbg !28
   ret void, !dbg !29
@@ -121,7 +121,6 @@ attributes #1 = { nounwind readnone }
 !23 = distinct !DISubprogram(name: "member_function", linkageName: "_ZN1C15member_functionEv", scope: null, file: !3, line: 9, type: !8, isLocal: false, isDefinition: true, scopeLine: 9, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: false, unit: !20, declaration: !7, retainedNodes: !11)
 !24 = !DILocalVariable(name: "this", arg: 1, scope: !23, file: !3, line: 9, type: !25, flags: DIFlagArtificial | DIFlagObjectPointer)
 !25 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !2, size: 64, align: 64)
-!26 = !DIExpression()
 !27 = !DILocation(line: 9, scope: !23)
 !28 = !DILocation(line: 10, scope: !23)
 !29 = !DILocation(line: 11, scope: !23)

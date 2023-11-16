@@ -21,9 +21,9 @@ target triple = "thumbv7-apple-darwin10"
 ; Function Attrs: nounwind optsize
 define zeroext i8 @get1(i8 zeroext %a) #0 !dbg !16 {
 entry:
-  tail call void @llvm.dbg.value(metadata i8 %a, metadata !20, metadata !23), !dbg !24
+  tail call void @llvm.dbg.value(metadata i8 %a, metadata !20, metadata !DIExpression()), !dbg !24
   %0 = load i8, ptr @x1, align 4, !dbg !24
-  tail call void @llvm.dbg.value(metadata i8 %0, metadata !21, metadata !23), !dbg !24
+  tail call void @llvm.dbg.value(metadata i8 %0, metadata !21, metadata !DIExpression()), !dbg !24
   store i8 %a, ptr @x1, align 4, !dbg !24
   ret i8 %0, !dbg !25
 }
@@ -34,9 +34,9 @@ declare void @llvm.dbg.value(metadata, metadata, metadata) #1
 ; Function Attrs: nounwind optsize
 define zeroext i8 @get2(i8 zeroext %a) #0 !dbg !26 {
 entry:
-  tail call void @llvm.dbg.value(metadata i8 %a, metadata !28, metadata !23), !dbg !31
+  tail call void @llvm.dbg.value(metadata i8 %a, metadata !28, metadata !DIExpression()), !dbg !31
   %0 = load i8, ptr @x2, align 4, !dbg !31
-  tail call void @llvm.dbg.value(metadata i8 %0, metadata !29, metadata !23), !dbg !31
+  tail call void @llvm.dbg.value(metadata i8 %0, metadata !29, metadata !DIExpression()), !dbg !31
   store i8 %a, ptr @x2, align 4, !dbg !31
   ret i8 %0, !dbg !32
 }
@@ -45,9 +45,9 @@ entry:
 
 define zeroext i8 @get3(i8 zeroext %a) #0 !dbg !33 {
 entry:
-  tail call void @llvm.dbg.value(metadata i8 %a, metadata !35, metadata !23), !dbg !38
+  tail call void @llvm.dbg.value(metadata i8 %a, metadata !35, metadata !DIExpression()), !dbg !38
   %0 = load i8, ptr @x3, align 4, !dbg !38
-  tail call void @llvm.dbg.value(metadata i8 %0, metadata !36, metadata !23), !dbg !38
+  tail call void @llvm.dbg.value(metadata i8 %0, metadata !36, metadata !DIExpression()), !dbg !38
   store i8 %a, ptr @x3, align 4, !dbg !38
   ret i8 %0, !dbg !39
 }
@@ -56,9 +56,9 @@ entry:
 
 define zeroext i8 @get4(i8 zeroext %a) #0 !dbg !40 {
 entry:
-  tail call void @llvm.dbg.value(metadata i8 %a, metadata !42, metadata !23), !dbg !45
+  tail call void @llvm.dbg.value(metadata i8 %a, metadata !42, metadata !DIExpression()), !dbg !45
   %0 = load i8, ptr @x4, align 4, !dbg !45
-  tail call void @llvm.dbg.value(metadata i8 %0, metadata !43, metadata !23), !dbg !45
+  tail call void @llvm.dbg.value(metadata i8 %0, metadata !43, metadata !DIExpression()), !dbg !45
   store i8 %a, ptr @x4, align 4, !dbg !45
   ret i8 %0, !dbg !46
 }
@@ -67,9 +67,9 @@ entry:
 
 define zeroext i8 @get5(i8 zeroext %a) #0 !dbg !47 {
 entry:
-  tail call void @llvm.dbg.value(metadata i8 %a, metadata !49, metadata !23), !dbg !52
+  tail call void @llvm.dbg.value(metadata i8 %a, metadata !49, metadata !DIExpression()), !dbg !52
   %0 = load i8, ptr @x5, align 4, !dbg !52
-  tail call void @llvm.dbg.value(metadata i8 %0, metadata !50, metadata !23), !dbg !52
+  tail call void @llvm.dbg.value(metadata i8 %0, metadata !50, metadata !DIExpression()), !dbg !52
   store i8 %a, ptr @x5, align 4, !dbg !52
   ret i8 %0, !dbg !53
 }
@@ -103,7 +103,6 @@ attributes #1 = { nounwind readnone }
 !20 = !DILocalVariable(name: "a", arg: 1, scope: !16, file: !2, line: 4, type: !3)
 !21 = !DILocalVariable(name: "b", scope: !22, file: !2, line: 4, type: !3)
 !22 = distinct !DILexicalBlock(scope: !16, file: !2, line: 4)
-!23 = !DIExpression()
 !24 = !DILocation(line: 4, scope: !16)
 !25 = !DILocation(line: 4, scope: !22)
 !26 = distinct !DISubprogram(name: "get2", linkageName: "get2", scope: !2, file: !2, line: 7, type: !17, isLocal: false, isDefinition: true, scopeLine: 7, virtualIndex: 6, flags: DIFlagPrototyped, isOptimized: true, unit: !12, retainedNodes: !27)

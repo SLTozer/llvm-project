@@ -222,7 +222,7 @@
 define void @use_dbg_declare() #0 !dbg !7 {
 entry:
   %o = alloca %struct.Foo, align 8
-  call void @llvm.dbg.declare(metadata ptr %o, metadata !10, metadata !15), !dbg !16
+  call void @llvm.dbg.declare(metadata ptr %o, metadata !10, metadata !DIExpression()), !dbg !16
   call void @escape_foo(ptr %o), !dbg !17
   ret void, !dbg !18
 }
@@ -254,7 +254,6 @@ attributes #1 = { nounwind readnone speculatable }
 !12 = !{!13}
 !13 = !DIDerivedType(tag: DW_TAG_member, name: "x", scope: !11, file: !1, line: 1, baseType: !14, size: 32)
 !14 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
-!15 = !DIExpression()
 !16 = !DILocation(line: 4, column: 14, scope: !7)
 !17 = !DILocation(line: 5, column: 3, scope: !7)
 !18 = !DILocation(line: 6, column: 1, scope: !7)

@@ -19,8 +19,8 @@ entry:
   %value.addr = alloca float, align 4
   %tempValue = alloca %"union.PR15637::Value", align 4
   store float %value, ptr %value.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %value.addr, metadata !22, metadata !23), !dbg !24
-  call void @llvm.dbg.declare(metadata ptr %tempValue, metadata !25, metadata !23), !dbg !26
+  call void @llvm.dbg.declare(metadata ptr %value.addr, metadata !22, metadata !DIExpression()), !dbg !24
+  call void @llvm.dbg.declare(metadata ptr %tempValue, metadata !25, metadata !DIExpression()), !dbg !26
   ret void, !dbg !27
 }
 
@@ -56,7 +56,6 @@ attributes #1 = { nounwind readnone }
 !20 = !DISubroutineType(types: !21)
 !21 = !{null, !14}
 !22 = !DILocalVariable(name: "value", arg: 1, scope: !19, file: !3, line: 3, type: !14)
-!23 = !DIExpression()
 !24 = !DILocation(line: 3, scope: !19)
 !25 = !DILocalVariable(name: "tempValue", scope: !19, file: !3, line: 4, type: !4)
 !26 = !DILocation(line: 4, scope: !19)

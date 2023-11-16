@@ -23,8 +23,8 @@ define amdgpu_kernel void @kernel1(
     ptr addrspace(1) nocapture readonly %A,
     ptr addrspace(1) nocapture %B) !dbg !7  {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr addrspace(1) %A, metadata !13, metadata !19), !dbg !20
-  tail call void @llvm.dbg.value(metadata ptr addrspace(1) %B, metadata !14, metadata !19), !dbg !21
+  tail call void @llvm.dbg.value(metadata ptr addrspace(1) %A, metadata !13, metadata !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)), !dbg !20
+  tail call void @llvm.dbg.value(metadata ptr addrspace(1) %B, metadata !14, metadata !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)), !dbg !21
   %0 = load i32, ptr addrspace(1) %A, align 4, !dbg !22, !tbaa !24
   %cmp = icmp eq i32 %0, 1, !dbg !28
   br i1 %cmp, label %if.then, label %if.end, !dbg !29
@@ -71,7 +71,6 @@ if.end3:                                          ; preds = %if.then2, %if.end
 !16 = !{!"none", !"none"}
 !17 = !{!"int*", !"int*"}
 !18 = !{!"", !""}
-!19 = !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)
 !20 = !DILocation(line: 1, column: 33, scope: !7)
 !21 = !DILocation(line: 1, column: 48, scope: !7)
 !22 = !DILocation(line: 2, column: 7, scope: !23)

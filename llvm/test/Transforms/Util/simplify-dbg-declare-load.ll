@@ -15,7 +15,7 @@ define void @julia_fastshortest_6256(i1 %c1) #1 {
 top:
   %cp = alloca %foo, align 8
   %sink = alloca %foo, align 8
-  call void @llvm.dbg.declare(metadata ptr %cp, metadata !1, metadata !16), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %cp, metadata !1, metadata !DIExpression()), !dbg !17
   br i1 %c1, label %idxend, label %fail
 
 fail:                                             ; preds = %top
@@ -57,6 +57,5 @@ attributes #1 = { sspreq }
 !13 = !{!14, !15, !15}
 !14 = !DIBasicType(name: "UInt64", size: 64, align: 64, encoding: DW_ATE_unsigned)
 !15 = !DIBasicType(name: "Int32", size: 32, align: 32, encoding: DW_ATE_unsigned)
-!16 = !DIExpression()
 !17 = !DILocation(line: 106, scope: !2)
 !18 = distinct !DICompileUnit(language: DW_LANG_Julia, file: !3)

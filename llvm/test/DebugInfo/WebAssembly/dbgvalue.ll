@@ -11,7 +11,7 @@ target triple = "wasm32-unknown-unknown"
 @.str = external unnamed_addr constant [33 x i8], align 1
 
 define internal i32 @0(ptr) local_unnamed_addr !dbg !15 !type !23 {
-  tail call void @llvm.dbg.value(metadata ptr %0, i64 0, metadata !22, metadata !24), !dbg !25
+  tail call void @llvm.dbg.value(metadata ptr %0, i64 0, metadata !22, metadata !DIExpression()), !dbg !25
   %2 = tail call i32 (ptr, ...) @printf(ptr @.str, ptr %0), !dbg !26
   br i1 true, label %a, label %b
 
@@ -64,7 +64,6 @@ attributes #0 = { nounwind readnone }
 !21 = !{!22}
 !22 = !DILocalVariable(name: "self", arg: 1, scope: !15, file: !1, line: 15, type: !19)
 !23 = !{i64 0, !"_ZTSFiPcE"}
-!24 = !DIExpression()
 !25 = !DILocation(line: 15, column: 17, scope: !15)
 !26 = !DILocation(line: 16, column: 3, scope: !15)
 !27 = !DILocation(line: 17, column: 3, scope: !15)

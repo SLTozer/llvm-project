@@ -35,7 +35,7 @@ define void @"\01?anchor@named_struct@@QEAAXXZ"(ptr %this) #0 align 2 !dbg !7 {
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !21, metadata !23), !dbg !24
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !21, metadata !DIExpression()), !dbg !24
   %this1 = load ptr, ptr %this.addr, align 8
   ret void, !dbg !25
 }
@@ -73,6 +73,5 @@ attributes #1 = { nounwind readnone }
 !20 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !8, size: 64, flags: DIFlagArtificial | DIFlagObjectPointer)
 !21 = !DILocalVariable(name: "this", arg: 1, scope: !7, type: !22, flags: DIFlagArtificial | DIFlagObjectPointer)
 !22 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !8, size: 64)
-!23 = !DIExpression()
 !24 = !DILocation(line: 0, scope: !7)
 !25 = !DILocation(line: 7, column: 30, scope: !7)

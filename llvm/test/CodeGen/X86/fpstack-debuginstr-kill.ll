@@ -34,7 +34,7 @@ sw.bb735:                                         ; preds = %if.end511
   unreachable
 
 if.end41.i2210:                                   ; preds = %if.end511
-  call void @llvm.dbg.value(metadata x86_fp80 %src.sroa.0.0.src.sroa.0.0.2280, i64 0, metadata !25, metadata !26), !dbg !27
+  call void @llvm.dbg.value(metadata x86_fp80 %src.sroa.0.0.src.sroa.0.0.2280, i64 0, metadata !25, metadata !DIExpression()), !dbg !27
   unreachable
 
 sw.bb992:                                         ; preds = %if.end511
@@ -75,6 +75,5 @@ attributes #0 = { nounwind readnone }
 !23 = !DILocalVariable(name: "x", scope: !16, file: !2, line: 14, type: !3)
 !24 = !DILocalVariable(name: "a", scope: !16, file: !2, line: 15, type: !9)
 !25 = !DILocalVariable(name: "value", scope: !16, file: !2, line: 16, type: !3)
-!26 = !DIExpression()
 !27 = !DILocation(line: 0, scope: !16)
 

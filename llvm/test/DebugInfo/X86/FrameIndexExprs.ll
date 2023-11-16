@@ -17,9 +17,9 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
 define void @fn4() local_unnamed_addr !dbg !12 {
 entry:
   %l1.sroa.7.i = alloca [3 x i8], align 1
-  tail call void @llvm.dbg.declare(metadata ptr %l1.sroa.7.i, metadata !15, metadata !26), !dbg !27
+  tail call void @llvm.dbg.declare(metadata ptr %l1.sroa.7.i, metadata !15, metadata !DIExpression(DW_OP_LLVM_fragment, 72, 24)), !dbg !27
   %i.sroa.4.i = alloca [3 x i8], align 8
-  tail call void @llvm.dbg.declare(metadata ptr %i.sroa.4.i, metadata !15, metadata !32), !dbg !27
+  tail call void @llvm.dbg.declare(metadata ptr %i.sroa.4.i, metadata !15, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 24)), !dbg !27
   %0 = load i32, ptr @h, align 4
   br label %while.body.i.i, !dbg !33
 
@@ -72,13 +72,11 @@ attributes #0 = { nounwind readnone }
 !23 = !DIDerivedType(tag: DW_TAG_member, name: "c", scope: !19, file: !3, line: 5, baseType: !8, size: 32, offset: 32)
 !24 = !DIDerivedType(tag: DW_TAG_member, name: "d", scope: !19, file: !3, line: 6, baseType: !8, size: 6, offset: 64, flags: DIFlagBitField, extraData: i64 64)
 !25 = !{!15}
-!26 = !DIExpression(DW_OP_LLVM_fragment, 72, 24)
 !27 = !DILocation(line: 19, column: 20, scope: !16, inlinedAt: !28)
 !28 = distinct !DILocation(line: 27, column: 3, scope: !29, inlinedAt: !30)
 !29 = distinct !DISubprogram(name: "fn3", scope: !3, file: !3, line: 24, type: !13, isLocal: false, isDefinition: true, scopeLine: 25, isOptimized: true, unit: !2, retainedNodes: !4)
 !30 = distinct !DILocation(line: 34, column: 7, scope: !31)
 !31 = distinct !DILexicalBlock(scope: !12, file: !3, line: 33, column: 5)
-!32 = !DIExpression(DW_OP_LLVM_fragment, 0, 24)
 !33 = !DILocation(line: 22, column: 9, scope: !16, inlinedAt: !28)
 !34 = !DILocation(line: 21, column: 3, scope: !35, inlinedAt: !28)
 !35 = !DILexicalBlockFile(scope: !16, file: !3, discriminator: 2)

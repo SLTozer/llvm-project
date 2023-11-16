@@ -64,7 +64,7 @@ define i32 @_Z3barv() #0 !dbg !4 {
 entry:
   %retval = alloca i32, align 4
   %y = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %y, metadata !18, metadata !19), !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %y, metadata !18, metadata !DIExpression()), !dbg !20
   br label %while.cond, !dbg !21
 
 while.cond:                                       ; preds = %entry
@@ -93,7 +93,7 @@ define i32 @_Z3foov() #2 !dbg !8 {
 entry:
   %retval.i = alloca i32, align 4
   %y.i = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %y.i, metadata !18, metadata !19), !dbg !29
+  call void @llvm.dbg.declare(metadata ptr %y.i, metadata !18, metadata !DIExpression()), !dbg !29
   %0 = load i32, ptr %y.i, align 4, !dbg !31
   %cmp.i = icmp slt i32 %0, 0, !dbg !31
   br i1 %cmp.i, label %while.body.i, label %while.end.i, !dbg !31
@@ -137,7 +137,6 @@ attributes #2 = { nounwind }
 !16 = !{i32 2, !"Debug Info Version", i32 3}
 !17 = !{!"clang version 3.9.0 (trunk 264349)"}
 !18 = !DILocalVariable(name: "y", scope: !13, file: !1, line: 4, type: !7)
-!19 = !DIExpression()
 !20 = !DILocation(line: 4, scope: !13)
 !21 = !DILocation(line: 2, scope: !12)
 !22 = !DILocation(line: 2, scope: !23)

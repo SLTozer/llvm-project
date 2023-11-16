@@ -24,7 +24,7 @@ entry:
 ; Function Attrs: nounwind readonly ssp
 define i32 @foo(i32 %i) #2 !dbg !15 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %i, metadata !18, metadata !19), !dbg !20
+  tail call void @llvm.dbg.value(metadata i32 %i, metadata !18, metadata !DIExpression()), !dbg !20
   %.0 = load i32, ptr @xyz, align 4, !dbg !30
   ret i32 %.0, !dbg !21
 }
@@ -55,7 +55,6 @@ attributes #2 = { nounwind readonly ssp }
 !16 = !DISubroutineType(types: !17)
 !17 = !{!3, !3}
 !18 = !DILocalVariable(name: "i", arg: 1, scope: !15, file: !2, line: 7, type: !3)
-!19 = !DIExpression()
 !20 = !DILocation(line: 7, scope: !15)
 !21 = !DILocation(line: 10, scope: !22)
 !22 = distinct !DILexicalBlock(scope: !15, file: !2, line: 7)

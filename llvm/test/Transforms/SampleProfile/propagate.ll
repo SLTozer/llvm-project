@@ -49,11 +49,11 @@ entry:
   %i = alloca i64, align 8
   %j = alloca i64, align 8
   store i32 %x, ptr %x.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !11, metadata !12), !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !11, metadata !DIExpression()), !dbg !13
   store i32 %y, ptr %y.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %y.addr, metadata !14, metadata !12), !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %y.addr, metadata !14, metadata !DIExpression()), !dbg !15
   store i64 %N, ptr %N.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %N.addr, metadata !16, metadata !12), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %N.addr, metadata !16, metadata !DIExpression()), !dbg !17
   %0 = load i32, ptr %x.addr, align 4, !dbg !18
   %1 = load i32, ptr %y.addr, align 4, !dbg !20
   %cmp = icmp slt i32 %0, %1, !dbg !21
@@ -68,7 +68,7 @@ if.then:                                          ; preds = %entry
   br label %return, !dbg !27
 
 if.else:                                          ; preds = %entry
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !28, metadata !12), !dbg !31
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !28, metadata !DIExpression()), !dbg !31
   store i64 0, ptr %i, align 8, !dbg !31
   br label %for.cond, !dbg !32
 
@@ -112,7 +112,7 @@ if.then6:                                         ; preds = %if.end
   br label %if.end16, !dbg !57
 
 if.else7:                                         ; preds = %if.end
-  call void @llvm.dbg.declare(metadata ptr %j, metadata !58, metadata !12), !dbg !62
+  call void @llvm.dbg.declare(metadata ptr %j, metadata !58, metadata !DIExpression()), !dbg !62
   store i64 0, ptr %j, align 8, !dbg !62
   br label %for.cond8, !dbg !63
 
@@ -181,11 +181,11 @@ entry:
   %y = alloca i32, align 4
   %N = alloca i64, align 8
   store i32 0, ptr %retval, align 4
-  call void @llvm.dbg.declare(metadata ptr %x, metadata !89, metadata !12), !dbg !90
+  call void @llvm.dbg.declare(metadata ptr %x, metadata !89, metadata !DIExpression()), !dbg !90
   store i32 5678, ptr %x, align 4, !dbg !90
-  call void @llvm.dbg.declare(metadata ptr %y, metadata !91, metadata !12), !dbg !92
+  call void @llvm.dbg.declare(metadata ptr %y, metadata !91, metadata !DIExpression()), !dbg !92
   store i32 1234, ptr %y, align 4, !dbg !92
-  call void @llvm.dbg.declare(metadata ptr %N, metadata !93, metadata !12), !dbg !94
+  call void @llvm.dbg.declare(metadata ptr %N, metadata !93, metadata !DIExpression()), !dbg !94
   store i64 9999999, ptr %N, align 8, !dbg !94
   %0 = load i32, ptr %x, align 4, !dbg !95
   %1 = load i32, ptr %y, align 4, !dbg !96
@@ -221,7 +221,6 @@ attributes #3 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "fra
 !9 = !DIBasicType(name: "long int", size: 64, align: 64, encoding: DW_ATE_signed)
 !10 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !11 = !DILocalVariable(name: "x", arg: 1, scope: !6, file: !1, line: 3, type: !10)
-!12 = !DIExpression()
 !13 = !DILocation(line: 3, column: 14, scope: !6)
 !14 = !DILocalVariable(name: "y", arg: 2, scope: !6, file: !1, line: 3, type: !10)
 !15 = !DILocation(line: 3, column: 21, scope: !6)

@@ -10,7 +10,7 @@ target triple = "x86_64-unknown-linux-gnu"
 
 define void @f(i32 %n) safestack !dbg !6 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %n, metadata !11, metadata !14), !dbg !15
+  tail call void @llvm.dbg.value(metadata i32 %n, metadata !11, metadata !DIExpression()), !dbg !15
   %0 = zext i32 %n to i64, !dbg !16
 
 ; CHECK:  store ptr %[[VLA:.*]], ptr @__safestack_unsafe_stack_ptr
@@ -18,7 +18,7 @@ entry:
 ; CHECK:  call void @capture({{.*}} %[[VLA]])
 
   %vla = alloca i8, i64 %0, align 16, !dbg !16
-  tail call void @llvm.dbg.value(metadata ptr %vla, metadata !12, metadata !17), !dbg !18
+  tail call void @llvm.dbg.value(metadata ptr %vla, metadata !12, metadata !DIExpression(DW_OP_deref)), !dbg !18
   call void @capture(ptr nonnull %vla), !dbg !19
   ret void, !dbg !20
 }
@@ -46,11 +46,9 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 ; CHECK-DAG: ![[TYPE]] = !DILocalVariable(name: "x",
 !12 = !DILocalVariable(name: "x", scope: !6, file: !1, line: 3, type: !13)
 !13 = !DIBasicType(name: "char", size: 8, align: 8, encoding: DW_ATE_signed_char)
-!14 = !DIExpression()
 !15 = !DILocation(line: 2, column: 12, scope: !6)
 !16 = !DILocation(line: 3, column: 3, scope: !6)
 
-!17 = !DIExpression(DW_OP_deref)
 !18 = !DILocation(line: 3, column: 8, scope: !6)
 !19 = !DILocation(line: 4, column: 3, scope: !6)
 !20 = !DILocation(line: 5, column: 1, scope: !6)

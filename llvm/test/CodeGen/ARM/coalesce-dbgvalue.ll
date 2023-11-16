@@ -28,11 +28,11 @@ for.cond1:                                        ; preds = %for.end9, %for.cond
 
 for.body2:                                        ; preds = %for.cond1
   store i32 %storemerge11, ptr @b, align 4, !dbg !26
-  tail call void @llvm.dbg.value(metadata ptr null, metadata !20, metadata !27), !dbg !28
+  tail call void @llvm.dbg.value(metadata ptr null, metadata !20, metadata !DIExpression()), !dbg !28
   %0 = load i64, ptr @a, align 8, !dbg !29
   %xor = xor i64 %0, %e.1.ph, !dbg !29
   %conv3 = trunc i64 %xor to i32, !dbg !29
-  tail call void @llvm.dbg.value(metadata i32 %conv3, metadata !19, metadata !27), !dbg !29
+  tail call void @llvm.dbg.value(metadata i32 %conv3, metadata !19, metadata !DIExpression()), !dbg !29
   %tobool4 = icmp eq i32 %conv3, 0, !dbg !29
   br i1 %tobool4, label %land.end, label %land.rhs, !dbg !29
 
@@ -107,7 +107,6 @@ attributes #3 = { nounwind }
 !24 = !DILocation(line: 10, scope: !25)
 !25 = distinct !DILexicalBlock(scope: !15, file: !2, line: 10)
 !26 = !DILocation(line: 12, scope: !22)
-!27 = !DIExpression()
 !28 = !DILocation(line: 13, scope: !21)
 !29 = !DILocation(line: 14, scope: !21)
 !30 = !DILocation(line: 16, scope: !15)

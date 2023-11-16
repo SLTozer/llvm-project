@@ -16,7 +16,7 @@
 
 define void @foo(i32 %n) !dbg !7 {
 entry:
-  call void @llvm.dbg.value(metadata i32 %n, i64 0, metadata !12, metadata !19), !dbg !20
+  call void @llvm.dbg.value(metadata i32 %n, i64 0, metadata !12, metadata !DIExpression()), !dbg !20
   ret void, !dbg !21
 }
 
@@ -45,6 +45,5 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !16 = !DICompositeType(tag: DW_TAG_array_type, baseType: !10, align: 32, elements: !17)
 !17 = !{!18, !18}
 !18 = !DISubrange(count: !13)
-!19 = !DIExpression()
 !20 = !DILocation(line: 20, column: 14, scope: !7)
 !21 = !DILocation(line: 22, column: 1, scope: !7)

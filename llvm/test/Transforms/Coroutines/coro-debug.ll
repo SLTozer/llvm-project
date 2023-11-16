@@ -28,16 +28,16 @@ entry:
 sw.bb:                                            ; preds = %entry
   %direct = load i32, ptr %x.addr, align 4, !dbg !14
   %gep = getelementptr inbounds [16 x i8], ptr undef, i32 %direct, !dbg !14
-  call void @llvm.dbg.declare(metadata ptr %gep, metadata !27, metadata !13), !dbg !14
-  call void @llvm.dbg.declare(metadata i32 %conv, metadata !26, metadata !13), !dbg !14
-  call void @llvm.dbg.declare(metadata i32 %direct, metadata !25, metadata !13), !dbg !14
-  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !12, metadata !13), !dbg !14
-  call void @llvm.dbg.declare(metadata ptr %coro_hdl, metadata !15, metadata !13), !dbg !16
-  call void @llvm.dbg.declare(metadata ptr %late_local, metadata !29, metadata !13), !dbg !16
-  call void @llvm.dbg.value(metadata i32 %direct, metadata !30, metadata !13), !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %gep, metadata !27, metadata !DIExpression()), !dbg !14
+  call void @llvm.dbg.declare(metadata i32 %conv, metadata !26, metadata !DIExpression()), !dbg !14
+  call void @llvm.dbg.declare(metadata i32 %direct, metadata !25, metadata !DIExpression()), !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !12, metadata !DIExpression()), !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %coro_hdl, metadata !15, metadata !DIExpression()), !dbg !16
+  call void @llvm.dbg.declare(metadata ptr %late_local, metadata !29, metadata !DIExpression()), !dbg !16
+  call void @llvm.dbg.value(metadata i32 %direct, metadata !30, metadata !DIExpression()), !dbg !14
   ; don't crash when encountering nonsensical debug info, verfifier doesn't yet reject these
-  call void @llvm.dbg.declare(metadata ptr null, metadata !28, metadata !13), !dbg !16
-  call void @llvm.dbg.declare(metadata !{}, metadata !28, metadata !13), !dbg !16
+  call void @llvm.dbg.declare(metadata ptr null, metadata !28, metadata !DIExpression()), !dbg !16
+  call void @llvm.dbg.declare(metadata !{}, metadata !28, metadata !DIExpression()), !dbg !16
   %new_storgae = invoke ptr @allocate()
     to label %next unwind label %ehcleanup, !dbg !18
 
@@ -51,7 +51,7 @@ sw.default:                                       ; preds = %entry
   br label %coro_Suspend, !dbg !18
 
 sw.epilog:                                        ; preds = %sw.bb
-  call void @llvm.dbg.declare(metadata ptr %new_storgae, metadata !31, metadata !13), !dbg !16
+  call void @llvm.dbg.declare(metadata ptr %new_storgae, metadata !31, metadata !DIExpression()), !dbg !16
   %4 = load i32, ptr %x.addr, align 4, !dbg !20
   %add = add nsw i32 %4, 1, !dbg !21
   store i32 %add, ptr %x.addr, align 4, !dbg !22
@@ -66,7 +66,7 @@ coro_Cleanup:                                     ; preds = %sw.epilog, %sw.bb1
   %5 = load ptr, ptr %coro_hdl, align 8, !dbg !24
   %6 = call ptr @llvm.coro.free(token %0, ptr %5), !dbg !24
   call void @free(ptr %6), !dbg !24
-  call void @llvm.dbg.declare(metadata i32 %asm_res, metadata !32, metadata !13), !dbg !16
+  call void @llvm.dbg.declare(metadata i32 %asm_res, metadata !32, metadata !DIExpression()), !dbg !16
   br label %coro_Suspend, !dbg !24
 
 coro_Suspend:                                     ; preds = %coro_Cleanup, %sw.default
@@ -148,7 +148,6 @@ attributes #7 = { noduplicate }
 !10 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: null, size: 64)
 !11 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !12 = !DILocalVariable(name: "x", arg: 1, scope: !6, file: !7, line: 55, type: !11)
-!13 = !DIExpression()
 !14 = !DILocation(line: 55, column: 13, scope: !6)
 !15 = !DILocalVariable(name: "coro_hdl", scope: !6, file: !7, line: 56, type: !10)
 !16 = !DILocation(line: 56, column: 3, scope: !6)

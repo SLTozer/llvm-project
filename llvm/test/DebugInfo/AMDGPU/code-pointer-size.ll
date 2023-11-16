@@ -22,7 +22,7 @@ define amdgpu_kernel void @kernel1(ptr addrspace(1) %A) !dbg !7 {
 entry:
   %A.addr = alloca ptr addrspace(1), align 4, addrspace(5)
   store ptr addrspace(1) %A, ptr addrspace(5) %A.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %A.addr, metadata !16, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %A.addr, metadata !16, metadata !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)), !dbg !18
   %0 = load ptr addrspace(1), ptr addrspace(5) %A.addr, align 4, !dbg !19
   store i32 11, ptr addrspace(1) %0, align 4, !dbg !20
   ret void, !dbg !21
@@ -32,7 +32,7 @@ define amdgpu_kernel void @kernel2(ptr addrspace(1) %B) !dbg !22 {
 entry:
   %B.addr = alloca ptr addrspace(1), align 4, addrspace(5)
   store ptr addrspace(1) %B, ptr addrspace(5) %B.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr addrspace(5) %B.addr, metadata !23, metadata !17), !dbg !24
+  call void @llvm.dbg.declare(metadata ptr addrspace(5) %B.addr, metadata !23, metadata !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)), !dbg !24
   %0 = load ptr addrspace(1), ptr addrspace(5) %B.addr, align 4, !dbg !25
   store i32 12, ptr addrspace(1) %0, align 4, !dbg !26
   ret void, !dbg !27
@@ -60,7 +60,6 @@ entry:
 !14 = !{!"int addrspace(5)*"}
 !15 = !{!""}
 !16 = !DILocalVariable(name: "A", arg: 1, scope: !7, file: !1, line: 1, type: !10)
-!17 = !DIExpression(DW_OP_constu, 1, DW_OP_swap, DW_OP_xderef)
 !18 = !DILocation(line: 1, column: 33, scope: !7)
 !19 = !DILocation(line: 2, column: 4, scope: !7)
 !20 = !DILocation(line: 2, column: 6, scope: !7)

@@ -50,7 +50,7 @@ bb2:
 
 bb3:
   call void @llvm.lifetime.start.p0(i64 1, ptr %text)
-  call void @llvm.dbg.declare(metadata ptr %text, metadata !14, metadata !25), !dbg !26
+  call void @llvm.dbg.declare(metadata ptr %text, metadata !14, metadata !DIExpression()), !dbg !26
   call void @llvm.lifetime.end.p0(i64 1, ptr %text)
   br label %fin
 
@@ -96,5 +96,4 @@ attributes #0 = { null_pointer_is_valid }
 !22 = !{i32 2, !"Dwarf Version", i32 4}
 !23 = !{i32 2, !"Debug Info Version", i32 3}
 !24 = !{!"clang version 3.8.0 (trunk 248826) (llvm/trunk 248827)"}
-!25 = !DIExpression()
 !26 = !DILocation(line: 4, column: 10, scope: !15)

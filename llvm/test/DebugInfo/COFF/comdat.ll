@@ -80,7 +80,7 @@ entry:
 ; Function Attrs: inlinehint noinline nounwind uwtable
 define linkonce_odr void @f(i32 %c) #2 comdat personality ptr @__C_specific_handler !dbg !22 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %c, metadata !26, metadata !27), !dbg !28
+  tail call void @llvm.dbg.value(metadata i32 %c, metadata !26, metadata !DIExpression()), !dbg !28
   %0 = load volatile i32, ptr @x, align 4, !dbg !29, !tbaa !11
   %inc = add nsw i32 %0, 1, !dbg !29
   store volatile i32 %inc, ptr @x, align 4, !dbg !29, !tbaa !11
@@ -114,8 +114,8 @@ if.end:                                           ; preds = %if.else, %invoke.co
 ; Function Attrs: nounwind
 define internal fastcc void @"\01?fin$0@0@f@@"() unnamed_addr #3 comdat($f) !dbg !41 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr null, metadata !44, metadata !27), !dbg !48
-  tail call void @llvm.dbg.value(metadata i8 0, metadata !46, metadata !27), !dbg !48
+  tail call void @llvm.dbg.value(metadata ptr null, metadata !44, metadata !DIExpression()), !dbg !48
+  tail call void @llvm.dbg.value(metadata i8 0, metadata !46, metadata !DIExpression()), !dbg !48
   %0 = load volatile i32, ptr @x, align 4, !dbg !49, !tbaa !11
   %inc = add nsw i32 %0, 1, !dbg !49
   store volatile i32 %inc, ptr @x, align 4, !dbg !49, !tbaa !11
@@ -169,7 +169,6 @@ attributes #7 = { nounwind }
 !24 = !{null, !19}
 !25 = !{!26}
 !26 = !DILocalVariable(name: "c", arg: 1, scope: !22, file: !1, line: 5, type: !19)
-!27 = !DIExpression()
 !28 = !DILocation(line: 5, column: 40, scope: !22)
 !29 = !DILocation(line: 6, column: 4, scope: !22)
 !30 = !DILocation(line: 7, column: 7, scope: !31)

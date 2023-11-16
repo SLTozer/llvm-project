@@ -557,35 +557,35 @@ entry:
   %l4 = alloca i32, align 4
   %v6 = alloca i8*, align 8
   store i64 %p3, i64* %p3.addr, align 8
-  call void @llvm.dbg.declare(metadata i64* %p3.addr, metadata !13, metadata !14), !dbg !15
+  call void @llvm.dbg.declare(metadata i64* %p3.addr, metadata !13, metadata !DIExpression()), !dbg !15
   store double %p2, double* %p2.addr, align 8
-  call void @llvm.dbg.declare(metadata double* %p2.addr, metadata !16, metadata !14), !dbg !17
+  call void @llvm.dbg.declare(metadata double* %p2.addr, metadata !16, metadata !DIExpression()), !dbg !17
   store float %p1, float* %p1.addr, align 4
-  call void @llvm.dbg.declare(metadata float* %p1.addr, metadata !18, metadata !14), !dbg !19
-  call void @llvm.dbg.declare(metadata i32* %v1, metadata !20, metadata !14), !dbg !22
+  call void @llvm.dbg.declare(metadata float* %p1.addr, metadata !18, metadata !DIExpression()), !dbg !19
+  call void @llvm.dbg.declare(metadata i32* %v1, metadata !20, metadata !DIExpression()), !dbg !22
   %0 = load i64, i64* %p3.addr, align 8, !dbg !23
   %conv = trunc i64 %0 to i32, !dbg !23
   store i32 %conv, i32* %v1, align 4, !dbg !22
-  call void @llvm.dbg.declare(metadata i32** %v2, metadata !24, metadata !14), !dbg !26
+  call void @llvm.dbg.declare(metadata i32** %v2, metadata !24, metadata !DIExpression()), !dbg !26
   store i32* %v1, i32** %v2, align 8, !dbg !26
-  call void @llvm.dbg.declare(metadata i32** %v21, metadata !27, metadata !14), !dbg !30
+  call void @llvm.dbg.declare(metadata i32** %v21, metadata !27, metadata !DIExpression()), !dbg !30
   store i32* %v1, i32** %v21, align 8, !dbg !30
-  call void @llvm.dbg.declare(metadata i8** %v3, metadata !31, metadata !14), !dbg !33
+  call void @llvm.dbg.declare(metadata i8** %v3, metadata !31, metadata !DIExpression()), !dbg !33
   %1 = bitcast i32* %v1 to i8*, !dbg !34
   store i8* %1, i8** %v3, align 8, !dbg !33
-  call void @llvm.dbg.declare(metadata i32* %v4, metadata !35, metadata !14), !dbg !44
+  call void @llvm.dbg.declare(metadata i32* %v4, metadata !35, metadata !DIExpression()), !dbg !44
   store i32 0, i32* %v4, align 8, !dbg !44
-  call void @llvm.dbg.declare(metadata i8** %v5, metadata !45, metadata !14), !dbg !47
+  call void @llvm.dbg.declare(metadata i8** %v5, metadata !45, metadata !DIExpression()), !dbg !47
   store i8* bitcast (void (%struct.A*)* @"\01?f@A@@QEAAXXZ" to i8*), i8** %v5, align 8, !dbg !47
-  call void @llvm.dbg.declare(metadata i32* %l1, metadata !48, metadata !14), !dbg !50
+  call void @llvm.dbg.declare(metadata i32* %l1, metadata !48, metadata !DIExpression()), !dbg !50
   store i32 0, i32* %l1, align 4, !dbg !50
-  call void @llvm.dbg.declare(metadata i32* %l2, metadata !51, metadata !14), !dbg !52
+  call void @llvm.dbg.declare(metadata i32* %l2, metadata !51, metadata !DIExpression()), !dbg !52
   store i32 0, i32* %l2, align 4, !dbg !52
-  call void @llvm.dbg.declare(metadata i32* %l3, metadata !53, metadata !14), !dbg !55
+  call void @llvm.dbg.declare(metadata i32* %l3, metadata !53, metadata !DIExpression()), !dbg !55
   store i32 0, i32* %l3, align 4, !dbg !55
-  call void @llvm.dbg.declare(metadata i32* %l4, metadata !56, metadata !14), !dbg !57
+  call void @llvm.dbg.declare(metadata i32* %l4, metadata !56, metadata !DIExpression()), !dbg !57
   store i32 0, i32* %l4, align 4, !dbg !57
-  call void @llvm.dbg.declare(metadata i8** %v6, metadata !58, metadata !14), !dbg !61
+  call void @llvm.dbg.declare(metadata i8** %v6, metadata !58, metadata !DIExpression()), !dbg !61
   %2 = bitcast i32* %v1 to i8*, !dbg !62
   store i8* %2, i8** %v6, align 8, !dbg !61
   %3 = load i32, i32* %l4, align 4, !dbg !63
@@ -616,13 +616,13 @@ entry:
   %sc = alloca i8, align 1
   %c16 = alloca i16, align 2
   %c32 = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata i16* %w, metadata !75, metadata !14), !dbg !77
-  call void @llvm.dbg.declare(metadata i16* %us, metadata !78, metadata !14), !dbg !80
-  call void @llvm.dbg.declare(metadata i8* %c, metadata !81, metadata !14), !dbg !83
-  call void @llvm.dbg.declare(metadata i8* %uc, metadata !84, metadata !14), !dbg !86
-  call void @llvm.dbg.declare(metadata i8* %sc, metadata !87, metadata !14), !dbg !89
-  call void @llvm.dbg.declare(metadata i16* %c16, metadata !90, metadata !14), !dbg !92
-  call void @llvm.dbg.declare(metadata i32* %c32, metadata !93, metadata !14), !dbg !95
+  call void @llvm.dbg.declare(metadata i16* %w, metadata !75, metadata !DIExpression()), !dbg !77
+  call void @llvm.dbg.declare(metadata i16* %us, metadata !78, metadata !DIExpression()), !dbg !80
+  call void @llvm.dbg.declare(metadata i8* %c, metadata !81, metadata !DIExpression()), !dbg !83
+  call void @llvm.dbg.declare(metadata i8* %uc, metadata !84, metadata !DIExpression()), !dbg !86
+  call void @llvm.dbg.declare(metadata i8* %sc, metadata !87, metadata !DIExpression()), !dbg !89
+  call void @llvm.dbg.declare(metadata i16* %c16, metadata !90, metadata !DIExpression()), !dbg !92
+  call void @llvm.dbg.declare(metadata i32* %c32, metadata !93, metadata !DIExpression()), !dbg !95
   ret void, !dbg !96
 }
 
@@ -649,7 +649,6 @@ attributes #3 = { nounwind uwtable "disable-tail-calls"="false" "less-precise-fp
 !11 = !DIBasicType(name: "double", size: 64, align: 64, encoding: DW_ATE_float)
 !12 = !DIBasicType(name: "long long int", size: 64, align: 64, encoding: DW_ATE_signed)
 !13 = !DILocalVariable(name: "p3", arg: 3, scope: !7, file: !1, line: 6, type: !12)
-!14 = !DIExpression()
 !15 = !DILocation(line: 6, column: 39, scope: !7)
 !16 = !DILocalVariable(name: "p2", arg: 2, scope: !7, file: !1, line: 6, type: !11)
 !17 = !DILocation(line: 6, column: 25, scope: !7)

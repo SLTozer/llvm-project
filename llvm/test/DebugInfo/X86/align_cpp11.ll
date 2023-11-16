@@ -95,12 +95,12 @@ entry:
   %c1 = alloca %class.C1, align 1
   %i = alloca i32, align 32
   %Lambda = alloca %class.anon, align 4
-  call void @llvm.dbg.declare(metadata ptr %ss, metadata !27, metadata !28), !dbg !29
-  call void @llvm.dbg.declare(metadata ptr %e, metadata !30, metadata !28), !dbg !31
-  call void @llvm.dbg.declare(metadata ptr %c1, metadata !32, metadata !28), !dbg !37
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !38, metadata !28), !dbg !40
+  call void @llvm.dbg.declare(metadata ptr %ss, metadata !27, metadata !DIExpression()), !dbg !29
+  call void @llvm.dbg.declare(metadata ptr %e, metadata !30, metadata !DIExpression()), !dbg !31
+  call void @llvm.dbg.declare(metadata ptr %c1, metadata !32, metadata !DIExpression()), !dbg !37
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !38, metadata !DIExpression()), !dbg !40
   store i32 42, ptr %i, align 32, !dbg !40
-  call void @llvm.dbg.declare(metadata ptr %Lambda, metadata !41, metadata !28), !dbg !50
+  call void @llvm.dbg.declare(metadata ptr %Lambda, metadata !41, metadata !DIExpression()), !dbg !50
   %0 = load i32, ptr %i, align 32, !dbg !52
   store i32 %0, ptr %Lambda, align 4, !dbg !51
   ret void, !dbg !53
@@ -144,7 +144,6 @@ attributes #1 = { nounwind readnone }
 !25 = !DISubroutineType(types: !26)
 !26 = !{null}
 !27 = !DILocalVariable(name: "ss", scope: !24, file: !6, line: 25, type: !14)
-!28 = !DIExpression()
 !29 = !DILocation(line: 25, column: 7, scope: !24)
 !30 = !DILocalVariable(name: "e", scope: !24, file: !6, line: 26, type: !5)
 !31 = !DILocation(line: 26, column: 7, scope: !24)

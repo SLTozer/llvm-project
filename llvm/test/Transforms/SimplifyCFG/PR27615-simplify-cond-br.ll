@@ -18,8 +18,8 @@ bb2:
   store i32 -1, ptr @b, align 1
   %_tmp1.pre = load i16, ptr @a, align 1, !dbg !20
   %_tmp2.pre = load ptr, ptr @c, align 1
-  tail call void @llvm.dbg.value(metadata i16 6, metadata !22, metadata !23), !dbg !24
-  tail call void @llvm.dbg.value(metadata i16 %_tmp1.pre, metadata !25, metadata !23), !dbg !20
+  tail call void @llvm.dbg.value(metadata i16 6, metadata !22, metadata !DIExpression()), !dbg !24
+  tail call void @llvm.dbg.value(metadata i16 %_tmp1.pre, metadata !25, metadata !DIExpression()), !dbg !20
   %_tmp3 = load i16, ptr %_tmp2.pre, align 1
   %_tmp4 = icmp ne i16 %_tmp3, 0
   %_tmp6 = icmp ne i16 %_tmp1.pre, 0
@@ -65,7 +65,6 @@ attributes #0 = { nounwind readnone }
 !20 = !DILocation(line: 8, column: 16, scope: !21)
 !21 = !DILexicalBlock(scope: !17, file: !2, line: 7, column: 29)
 !22 = !DILocalVariable(name: "d", scope: !21, line: 8, type: !3)
-!23 = !DIExpression()
 !24 = !DILocation(line: 8, column: 9, scope: !21)
 !25 = !DILocalVariable(name: "e", scope: !21, line: 8, type: !3)
 

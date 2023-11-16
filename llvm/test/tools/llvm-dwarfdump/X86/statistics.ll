@@ -81,7 +81,7 @@ entry:
   %i.addr = alloca i32, align 4
   store i32 %i, ptr %i.addr, align 4
   ; Modified to loose debug info for i here.
-  call void @llvm.dbg.declare(metadata ptr undef, metadata !23, metadata !24), !dbg !25
+  call void @llvm.dbg.declare(metadata ptr undef, metadata !23, metadata !DIExpression()), !dbg !25
   %0 = load i32, ptr %i.addr, align 4, !dbg !26
   %1 = load i32, ptr %i.addr, align 4, !dbg !27
   %mul = mul nsw i32 %0, %1, !dbg !28
@@ -96,21 +96,21 @@ declare void @llvm.dbg.value(metadata, metadata, metadata) #1
 define i32 @_Z4cubei(i32 %i) #2 !dbg !30 {
 entry:
   %i.addr.i = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %i.addr.i, metadata !23, metadata !24), !dbg !31
+  call void @llvm.dbg.declare(metadata ptr %i.addr.i, metadata !23, metadata !DIExpression()), !dbg !31
   %i.addr = alloca i32, align 4
   %squared = alloca i32, align 4
   store i32 %i, ptr %i.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %i.addr, metadata !33, metadata !24), !dbg !34
+  call void @llvm.dbg.declare(metadata ptr %i.addr, metadata !33, metadata !DIExpression()), !dbg !34
   %0 = load i32, ptr %i.addr, align 4, !dbg !37
   store i32 %0, ptr %i.addr.i, align 4
   %1 = load i32, ptr %i.addr.i, align 4, !dbg !38
   %2 = load i32, ptr %i.addr.i, align 4, !dbg !39
   %mul.i = mul nsw i32 %1, %2, !dbg !40
   ; Modified to cover only about 50% of the lexical scope.
-  call void @llvm.dbg.value(metadata i32 %mul.i, metadata !35, metadata !24), !dbg !36
+  call void @llvm.dbg.value(metadata i32 %mul.i, metadata !35, metadata !DIExpression()), !dbg !36
   store i32 %mul.i, ptr %squared, align 4, !dbg !36
   %3 = load i32, ptr %squared, align 4, !dbg !41
-  call void @llvm.dbg.value(metadata i32 %3, metadata !35, metadata !24), !dbg !36
+  call void @llvm.dbg.value(metadata i32 %3, metadata !35, metadata !DIExpression()), !dbg !36
   %4 = load i32, ptr %i.addr, align 4, !dbg !42
   %mul = mul nsw i32 %3, %4, !dbg !43
   ret i32 %mul, !dbg !44
@@ -171,7 +171,6 @@ attributes #2 = { noinline nounwind optnone ssp uwtable }
 !21 = !DISubroutineType(types: !22)
 !22 = !{!8, !8}
 !23 = !DILocalVariable(name: "i", arg: 1, scope: !20, file: !3, line: 8, type: !8)
-!24 = !DIExpression()
 !25 = !DILocation(line: 8, column: 47, scope: !20)
 !26 = !DILocation(line: 8, column: 59, scope: !20)
 !27 = !DILocation(line: 8, column: 63, scope: !20)

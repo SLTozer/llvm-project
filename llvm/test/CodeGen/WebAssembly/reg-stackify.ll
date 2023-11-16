@@ -573,7 +573,7 @@ define i32 @store_past_invar_load(i32 %a, ptr %p1, ptr dereferenceable(4) align(
 ; NOREGS:       unreachable
 declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 define void @ignore_dbg_value() {
-  call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !7, metadata !9), !dbg !10
+  call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !7, metadata !DIExpression()), !dbg !10
   unreachable
 }
 
@@ -670,5 +670,4 @@ define i32 @call_indirect_stackify(ptr %objptr, i32 %arg) {
 !6 = !DISubroutineType(types: !3)
 !7 = !DILocalVariable(name: "nzcnt", scope: !5, file: !2, line: 15, type: !8)
 !8 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!9 = !DIExpression()
 !10 = !DILocation(line: 15, column: 6, scope: !5)

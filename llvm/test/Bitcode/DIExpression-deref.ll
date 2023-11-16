@@ -12,16 +12,12 @@
 ; DW_OP_deref should be moved to the back of the expression.
 ;
 ; CHECK: !DIExpression(DW_OP_plus_uconst, 0, DW_OP_deref, DW_OP_LLVM_fragment, 8, 8)
-!6 = !DIExpression(DW_OP_deref, DW_OP_plus, 0, DW_OP_LLVM_fragment, 8, 8)
 ; CHECK: !DIExpression(DW_OP_plus_uconst, 0, DW_OP_deref)
-!7 = !DIExpression(DW_OP_deref, DW_OP_plus, 0)
 ; CHECK: !DIExpression(DW_OP_plus_uconst, 1, DW_OP_deref)
-!8 = !DIExpression(DW_OP_plus, 1, DW_OP_deref)
 ; CHECK: !DIExpression(DW_OP_deref)
-!9 = !DIExpression(DW_OP_deref)
-!10 = !DIGlobalVariableExpression(var: !0, expr: !6)
-!11 = !DIGlobalVariableExpression(var: !0, expr: !7)
-!12 = !DIGlobalVariableExpression(var: !0, expr: !8)
-!13 = !DIGlobalVariableExpression(var: !0, expr: !9)
+!10 = !DIGlobalVariableExpression(var: !0, expr: !DIExpression(DW_OP_deref, DW_OP_plus, 0, DW_OP_LLVM_fragment, 8, 8))
+!11 = !DIGlobalVariableExpression(var: !0, expr: !DIExpression(DW_OP_deref, DW_OP_plus, 0))
+!12 = !DIGlobalVariableExpression(var: !0, expr: !DIExpression(DW_OP_plus, 1, DW_OP_deref))
+!13 = !DIGlobalVariableExpression(var: !0, expr: !DIExpression(DW_OP_deref))
 !20 = !{i32 2, !"Dwarf Version", i32 4}
 !21 = !{i32 2, !"Debug Info Version", i32 3}

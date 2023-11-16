@@ -93,7 +93,7 @@ target triple = "i686-pc-windows-msvc19.0.23918"
 define void @"\01?f@@YAXXZ"() #0 !dbg !6 {
 entry:
   %a = alloca [5 x i32], align 4
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !9, metadata !14), !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !9, metadata !DIExpression()), !dbg !15
   call void @llvm.memcpy.p0.p0.i32(ptr align 4 %a, ptr align 4 @"\01?a@?1??f@@YAXXZ@3PAHA", i32 20, i1 false), !dbg !15
   %0 = load i32, ptr %a, align 4, !dbg !17
   call void (i32, ...) @"\01?usevars@@YAXHZZ"(i32 %0, ptr %a), !dbg !18
@@ -131,7 +131,6 @@ attributes #3 = { "disable-tail-calls"="false" "less-precise-fpmad"="false" "fra
 !11 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !12 = !{!13}
 !13 = !DISubrange(count: 5)
-!14 = !DIExpression()
 !15 = !DILocation(line: 3, column: 7, scope: !6)
 !16 = !DILocation(line: 4, column: 17, scope: !6)
 !17 = !DILocation(line: 4, column: 11, scope: !6)

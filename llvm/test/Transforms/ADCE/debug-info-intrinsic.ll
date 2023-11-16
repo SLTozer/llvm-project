@@ -36,7 +36,7 @@ define void @variable_in_unused_subscope() !dbg !4 {
 ; CHECK-NEXT:   call void @sink
 ; CHECK-NEXT:   ret void
 entry:
-  call void @llvm.dbg.value(metadata i32 0, metadata !15, metadata !17), !dbg !18
+  call void @llvm.dbg.value(metadata i32 0, metadata !15, metadata !DIExpression()), !dbg !18
   call void @sink(), !dbg !19
   ret void, !dbg !20
 }
@@ -48,7 +48,7 @@ define void @variable_in_parent_scope() !dbg !7 {
 ; CHECK-NEXT:   call void @sink
 ; CHECK-NEXT:   ret void
 entry:
-  call void @llvm.dbg.value(metadata i32 0, metadata !21, metadata !17), !dbg !22
+  call void @llvm.dbg.value(metadata i32 0, metadata !21, metadata !DIExpression()), !dbg !22
   call void @sink(), !dbg !23
   ret void, !dbg !25
 }
@@ -59,7 +59,7 @@ define void @calls_empty_function_with_unused_variable_in_unused_subscope() !dbg
 ; CHECK-NEXT:   call void @sink
 ; CHECK-NEXT:   ret void
 entry:
-  call void @llvm.dbg.value(metadata i32 0, metadata !26, metadata !17), !dbg !28
+  call void @llvm.dbg.value(metadata i32 0, metadata !26, metadata !DIExpression()), !dbg !28
   call void @sink(), !dbg !31
   ret void, !dbg !32
 }
@@ -82,7 +82,6 @@ entry:
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !DILocalVariable(name: "i", scope: !16, file: !1, line: 4, type: !13)
 !16 = distinct !DILexicalBlock(scope: !4, file: !1, line: 4, column: 3)
-!17 = !DIExpression()
 !18 = !DILocation(line: 4, column: 9, scope: !16)
 !19 = !DILocation(line: 5, column: 3, scope: !4)
 !20 = !DILocation(line: 6, column: 1, scope: !4)

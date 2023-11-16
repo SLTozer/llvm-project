@@ -30,14 +30,14 @@
   ; Function Attrs: noreturn nounwind uwtable
   define void @Process(i32* nocapture readonly %p) local_unnamed_addr  !dbg !9 {
   entry:
-    tail call void @llvm.dbg.value(metadata i32* %p, i64 0, metadata !16, metadata !17), !dbg !18
+    tail call void @llvm.dbg.value(metadata i32* %p, i64 0, metadata !16, metadata !DIExpression()), !dbg !18
     br label %while.body, !dbg !19
 
   while.body:                                       ; preds = %while.body, %entry
     %p.addr.0 = phi i32* [ %p, %entry ], [ %incdec.ptr, %while.body ]
-    tail call void @llvm.dbg.value(metadata i32* %p.addr.0, i64 0, metadata !16, metadata !17), !dbg !18
+    tail call void @llvm.dbg.value(metadata i32* %p.addr.0, i64 0, metadata !16, metadata !DIExpression()), !dbg !18
     %incdec.ptr = getelementptr inbounds i32, i32* %p.addr.0, i64 1, !dbg !20
-    tail call void @llvm.dbg.value(metadata i32* %incdec.ptr, i64 0, metadata !16, metadata !17), !dbg !18
+    tail call void @llvm.dbg.value(metadata i32* %incdec.ptr, i64 0, metadata !16, metadata !DIExpression()), !dbg !18
     %0 = load i32, i32* %p.addr.0, align 4, !dbg !21, !tbaa !22
     store i32 %0, i32* @x, align 4, !dbg !26, !tbaa !22
     br label %while.body, !dbg !27, !llvm.loop !29
@@ -67,7 +67,6 @@
   !14 = !DIBasicType(name: "unsigned int", size: 32, encoding: DW_ATE_unsigned)
   !15 = !{!16}
   !16 = !DILocalVariable(name: "p", arg: 1, scope: !9, file: !2, line: 2, type: !12)
-  !17 = !DIExpression()
   !18 = !DILocation(line: 2, column: 34, scope: !9)
   !19 = !DILocation(line: 4, column: 3, scope: !9)
   !20 = !DILocation(line: 5, column: 11, scope: !9)
@@ -96,17 +95,17 @@ body:             |
     successors: %bb.1.while.body(0x80000000)
     liveins: $rdi
 
-    DBG_VALUE $rdi, _, !16, !17, debug-location !18
+    DBG_VALUE $rdi, _, !16, !DIExpression(), debug-location !18
     %2 = COPY $rdi
-    DBG_VALUE %2, _, !16, !17, debug-location !18
+    DBG_VALUE %2, _, !16, !DIExpression(), debug-location !18
 
   bb.1.while.body:
     successors: %bb.1.while.body(0x80000000)
 
     %0 = PHI %2, %bb.0.entry, %1, %bb.1.while.body
-    DBG_VALUE %0, _, !16, !17, debug-location !18
+    DBG_VALUE %0, _, !16, !DIExpression(), debug-location !18
     %1 = ADD64ri8 %0, 4, implicit-def dead $eflags, debug-location !20
-    DBG_VALUE %1, _, !16, !17, debug-location !18
+    DBG_VALUE %1, _, !16, !DIExpression(), debug-location !18
     %3 = MOV32rm %0, 1, _, 0, _, debug-location !21 :: (load (s32) from %ir.p.addr.0, !tbaa !22)
     %4 = MOV64rm $rip, 1, _, target-flags(x86-gotpcrel) @x, _, debug-location !26 :: (load (s64) from got)
     MOV32mr killed %4, 1, _, 0, _, killed %3, debug-location !26 :: (store (s32) into @x, !tbaa !22)

@@ -50,7 +50,7 @@ entry:
   %retval = alloca i32, align 4
   %instance_C = alloca %class.C, align 4
   store i32 0, ptr %retval
-  call void @llvm.dbg.declare(metadata ptr %instance_C, metadata !29, metadata !30), !dbg !31
+  call void @llvm.dbg.declare(metadata ptr %instance_C, metadata !29, metadata !DIExpression()), !dbg !31
   store i32 8, ptr %instance_C, align 4, !dbg !32
   %0 = load i32, ptr @_ZN1C1cE, align 4, !dbg !33
   ret i32 %0, !dbg !33
@@ -95,7 +95,6 @@ attributes #1 = { nounwind readnone }
 !27 = !DISubroutineType(types: !28)
 !28 = !{!3}
 !29 = !DILocalVariable(name: "instance_C", scope: !26, file: !2, line: 20, type: !5)
-!30 = !DIExpression()
 !31 = !DILocation(line: 20, scope: !26)
 !32 = !DILocation(line: 21, scope: !26)
 !33 = !DILocation(line: 22, scope: !26)

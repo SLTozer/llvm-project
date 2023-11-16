@@ -39,7 +39,7 @@ source_filename = "test/DebugInfo/Generic/enum.ll"
 define void @_Z4funcv() #0 !dbg !17 {
 entry:
   %b = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !20, metadata !22), !dbg !23
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !20, metadata !DIExpression()), !dbg !23
   store i32 0, ptr %b, align 4, !dbg !23
   ret void, !dbg !24
 }
@@ -75,7 +75,6 @@ attributes #1 = { nounwind readnone }
 !19 = !{null}
 !20 = !DILocalVariable(name: "b", scope: !17, file: !2, line: 4, type: !21)
 !21 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!22 = !DIExpression()
 !23 = !DILocation(line: 4, scope: !17)
 !24 = !DILocation(line: 5, scope: !17)
 

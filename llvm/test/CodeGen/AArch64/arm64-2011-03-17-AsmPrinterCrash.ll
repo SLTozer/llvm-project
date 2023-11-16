@@ -14,7 +14,7 @@ if.then24:                                        ; preds = %entry
   unreachable
 
 if.else295:                                       ; preds = %entry
-  call void @llvm.dbg.declare(metadata ptr %do_tab_convert, metadata !14, metadata !16), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %do_tab_convert, metadata !14, metadata !DIExpression()), !dbg !17
   store i32 0, ptr %do_tab_convert, align 4, !dbg !18
   unreachable
 }
@@ -44,7 +44,6 @@ attributes #1 = { nounwind readnone }
 !13 = distinct !DILexicalBlock(scope: !5, file: !1, line: 616, column: 1)
 !14 = !DILocalVariable(name: "do_tab_convert", scope: !15, file: !1, line: 853, type: !8)
 !15 = distinct !DILexicalBlock(scope: !12, file: !1, line: 850, column: 12)
-!16 = !DIExpression()
 !17 = !DILocation(line: 853, column: 11, scope: !15)
 !18 = !DILocation(line: 853, column: 29, scope: !15)
 

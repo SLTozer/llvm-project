@@ -78,7 +78,7 @@ if.then:                                          ; preds = %entry
   br label %return, !dbg !32
 
 if.end:                                           ; preds = %entry
-  call void @llvm.dbg.value(metadata ptr %value, metadata !35, metadata !13), !dbg !34
+  call void @llvm.dbg.value(metadata ptr %value, metadata !35, metadata !DIExpression(DW_OP_deref)), !dbg !34
   call void @use_i32(ptr %value), !dbg !33
   br label %return, !dbg !34
 
@@ -113,7 +113,6 @@ return:                                           ; preds = %if.end, %if.then
 !9 = !DISubroutineType(types: !10)
 !10 = !{null, !11}
 !11 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
-!13 = !DIExpression(DW_OP_deref)
 !14 = !DILocation(line: 2, column: 12, scope: !8)
 !15 = !DILocation(line: 3, column: 7, scope: !16)
 !16 = distinct !DILexicalBlock(scope: !8, file: !1, line: 3, column: 7)

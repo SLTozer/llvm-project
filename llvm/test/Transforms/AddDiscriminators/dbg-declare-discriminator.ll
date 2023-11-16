@@ -8,9 +8,9 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata)
 ; CHECK-LABEL: @test_valid_metadata
 define void @test_valid_metadata() {
   %a = alloca i8
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !2, metadata !5), !dbg !6
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !2, metadata !DIExpression()), !dbg !6
   %b = alloca i8
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !9, metadata !5), !dbg !11
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !9, metadata !DIExpression()), !dbg !11
   ret void
 }
 
@@ -22,7 +22,6 @@ define void @test_valid_metadata() {
 !2 = !DILocalVariable(scope: !3)
 !3 = distinct !DISubprogram(scope: null, file: !4, isLocal: false, isDefinition: true, isOptimized: false, unit: !12)
 !4 = !DIFile(filename: "a.cpp", directory: "/tmp")
-!5 = !DIExpression()
 !6 = !DILocation(line: 0, scope: !3, inlinedAt: !7)
 !7 = distinct !DILocation(line: 0, scope: !8)
 !8 = distinct !DISubprogram(linkageName: "test_valid_metadata", scope: null, isLocal: false, isDefinition: true, isOptimized: false, unit: !12)

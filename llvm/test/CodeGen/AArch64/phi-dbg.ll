@@ -19,13 +19,13 @@
 ; CHECK-LABEL: name: func
 define i32 @func(i32 %a0) #0 !dbg !8 {
 entry:
-  call void @llvm.dbg.value(metadata i32 %a0, i64 0, metadata !12, metadata !13), !dbg !14
-  call void @llvm.dbg.value(metadata i32 1, i64 0, metadata !15, metadata !13), !dbg !16
+  call void @llvm.dbg.value(metadata i32 %a0, i64 0, metadata !12, metadata !DIExpression()), !dbg !14
+  call void @llvm.dbg.value(metadata i32 1, i64 0, metadata !15, metadata !DIExpression()), !dbg !16
   %v2 = icmp slt i32 %a0, 0, !dbg !17
   br i1 %v2, label %bb2, label %bb3, !dbg !19
 
 bb2:
-  call void @llvm.dbg.value(metadata i32 12, i64 0, metadata !15, metadata !13), !dbg !16
+  call void @llvm.dbg.value(metadata i32 12, i64 0, metadata !15, metadata !DIExpression()), !dbg !16
   br label %bb3, !dbg !20
 
 ; CHECK: bb.2.bb2:
@@ -37,11 +37,11 @@ bb3:
 ; CHECK:   [[PHIDEST:%[0-9]+]]:gpr32 = COPY [[PHIREG]]
 ; CHECK-NEXT:   DBG_VALUE [[PHIDEST]]
   %.0 = phi i32 [ 12, %bb2 ], [ 1, %entry ]
-  call void @llvm.dbg.value(metadata i32 %.0, i64 0, metadata !15, metadata !13), !dbg !16
+  call void @llvm.dbg.value(metadata i32 %.0, i64 0, metadata !15, metadata !DIExpression()), !dbg !16
 ; CHECK: [[ADD:%[0-9]+]]:gpr32 = nsw ADDWrr [[PHIDEST]]
 ; CHECK-NEXT: DBG_VALUE [[ADD]]
   %v5 = add nsw i32 %.0, %a0, !dbg !22
-  call void @llvm.dbg.value(metadata i32 %v5, i64 0, metadata !15, metadata !13), !dbg !16
+  call void @llvm.dbg.value(metadata i32 %v5, i64 0, metadata !15, metadata !DIExpression()), !dbg !16
   ret i32 %v5, !dbg !23
 }
 
@@ -71,7 +71,6 @@ attributes #1 = { nounwind readnone }
 !10 = !{!11, !11}
 !11 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !12 = !DILocalVariable(name: "a", arg: 1, scope: !8, file: !1, line: 1, type: !11)
-!13 = !DIExpression()
 !14 = !DILocation(line: 1, column: 14, scope: !8)
 !15 = !DILocalVariable(name: "c", scope: !8, file: !1, line: 3, type: !11)
 !16 = !DILocation(line: 3, column: 13, scope: !8)

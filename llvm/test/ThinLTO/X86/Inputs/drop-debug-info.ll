@@ -10,7 +10,7 @@ target triple = "x86_64-apple-macosx10.11.0"
 define void @globalfunc() {
 entry:
   %0 = load i8, ptr @argc, align 1
-  tail call void @llvm.dbg.value(metadata i8 %0, i64 0, metadata !19, metadata !29), !dbg !DILocation(scope: !13)
+  tail call void @llvm.dbg.value(metadata i8 %0, i64 0, metadata !19, metadata !DIExpression()), !dbg !DILocation(scope: !13)
   ret void
 }
 
@@ -44,4 +44,3 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !22 = !{i32 2, !"Dwarf Version", i32 4}
 !23 = !{i32 2, !"Debug Info Version", i32 0}
 !25 = !DILocation(line: 8, column: 3, scope: !13)
-!29 = !DIExpression()

@@ -53,9 +53,9 @@ define hidden void @foobar_func_block_invoke_0(i8* %.block_descriptor, %0* %load
   call void @llvm.dbg.declare(metadata %struct.CR* %data, metadata !134, metadata !DIExpression()), !dbg !135
   %6 = bitcast i8* %.block_descriptor to %2*
   %7 = getelementptr inbounds %2, %2* %6, i32 0, i32 6
-  call void @llvm.dbg.declare(metadata %2* %6, metadata !136, metadata !163), !dbg !137
-  call void @llvm.dbg.declare(metadata %2* %6, metadata !138, metadata !164), !dbg !137
-  call void @llvm.dbg.declare(metadata %2* %6, metadata !139, metadata !165), !dbg !140
+  call void @llvm.dbg.declare(metadata %2* %6, metadata !136, metadata !DIExpression(DW_OP_plus_uconst, 20, DW_OP_deref, DW_OP_plus_uconst, 4, DW_OP_deref, DW_OP_plus_uconst, 24)), !dbg !137
+  call void @llvm.dbg.declare(metadata %2* %6, metadata !138, metadata !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 24)), !dbg !137
+  call void @llvm.dbg.declare(metadata %2* %6, metadata !139, metadata !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 28)), !dbg !140
   %8 = load %0*, %0** %1, align 4, !dbg !141
   %9 = load i8*, i8** @"\01L_OBJC_SELECTOR_REFERENCES_13", !dbg !141
   %10 = bitcast %0* %8 to i8*, !dbg !141
@@ -266,6 +266,3 @@ define hidden void @foobar_func_block_invoke_0(i8* %.block_descriptor, %0* %load
 !160 = !DIFile(filename: "header.h", directory: "/Volumes/Sandbox/llvm")
 !161 = !{!"header2.h", !"/Volumes/Sandbox/llvm"}
 !162 = !{i32 1, !"Debug Info Version", i32 3}
-!163 = !DIExpression(DW_OP_plus_uconst, 20, DW_OP_deref, DW_OP_plus_uconst, 4, DW_OP_deref, DW_OP_plus_uconst, 24)
-!164 = !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 24)
-!165 = !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 28)

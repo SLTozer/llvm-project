@@ -4,7 +4,7 @@
 @foo = global i32 0
 
 ; CHECK: !named = !{!0, !1, !2, !3, !4, !5, !6, !DIExpression(DW_OP_constu, 42, DW_OP_stack_value)}
-!named = !{!0, !1, !2, !3, !4, !5, !6, !7}
+!named = !{!0, !1, !2, !3, !4, !5, !6, !DIExpression(DW_OP_constu, 42, DW_OP_stack_value)}
 
 !0 = !DIFile(filename: "scope.h", directory: "/path/to/dir")
 !1 = distinct !{}
@@ -18,5 +18,4 @@
                        isDefinition: false, align: 32)
 
 ; CHECK: !6 = !DIGlobalVariableExpression(var: !5, expr: !DIExpression(DW_OP_constu, 42, DW_OP_stack_value))
-!6 = !DIGlobalVariableExpression(var: !5, expr: !7)
-!7 = !DIExpression(DW_OP_constu, 42, DW_OP_stack_value)
+!6 = !DIGlobalVariableExpression(var: !5, expr: !DIExpression(DW_OP_constu, 42, DW_OP_stack_value))

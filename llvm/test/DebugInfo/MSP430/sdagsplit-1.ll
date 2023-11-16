@@ -25,11 +25,11 @@ target triple = "msp430"
 ; Function Attrs: nounwind readnone
 define i64 @foo(i64 %a, i64 %b) local_unnamed_addr #0 !dbg !7 {
 entry:
-  call void @llvm.dbg.value(metadata i64 %a, metadata !12, metadata !15), !dbg !16
-  call void @llvm.dbg.value(metadata i64 %b, metadata !13, metadata !15), !dbg !17
+  call void @llvm.dbg.value(metadata i64 %a, metadata !12, metadata !DIExpression()), !dbg !16
+  call void @llvm.dbg.value(metadata i64 %b, metadata !13, metadata !DIExpression()), !dbg !17
   %cmp = icmp eq i64 %a, %b, !dbg !19
   %add = add nsw i64 %b, 1, !dbg !21
-  call void @llvm.dbg.value(metadata i64 %add, metadata !14, metadata !15), !dbg !18
+  call void @llvm.dbg.value(metadata i64 %add, metadata !14, metadata !DIExpression()), !dbg !18
   %retval.0 = select i1 %cmp, i64 %add, i64 0, !dbg !22
   ret i64 %retval.0, !dbg !23
 }
@@ -59,7 +59,6 @@ attributes #1 = { nounwind readnone speculatable }
 !12 = !DILocalVariable(name: "a", arg: 1, scope: !7, file: !1, line: 2, type: !10)
 !13 = !DILocalVariable(name: "b", arg: 2, scope: !7, file: !1, line: 2, type: !10)
 !14 = !DILocalVariable(name: "res", scope: !7, file: !1, line: 4, type: !10)
-!15 = !DIExpression()
 !16 = !DILocation(line: 2, column: 26, scope: !7)
 !17 = !DILocation(line: 2, column: 39, scope: !7)
 !18 = !DILocation(line: 4, column: 12, scope: !7)

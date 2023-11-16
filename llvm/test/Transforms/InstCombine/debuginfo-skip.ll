@@ -5,8 +5,8 @@ define i32 @foo(i32 %j) #0 !dbg !7 {
 entry:
   %j.addr = alloca i32, align 4
   store i32 %j, ptr %j.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %j.addr, metadata !11, metadata !12), !dbg !13
-  call void @llvm.dbg.value(metadata i32 10, metadata !16, metadata !12), !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %j.addr, metadata !11, metadata !DIExpression()), !dbg !13
+  call void @llvm.dbg.value(metadata i32 10, metadata !16, metadata !DIExpression()), !dbg !15
   %0 = load i32, ptr %j.addr, align 4, !dbg !14
   ret i32 %0, !dbg !15
 }
@@ -38,7 +38,6 @@ declare void @llvm.dbg.value(metadata, metadata, metadata) #1
 !9 = !{!10, !10}
 !10 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !11 = !DILocalVariable(name: "j", arg: 1, scope: !7, file: !1, line: 2, type: !10)
-!12 = !DIExpression()
 !13 = !DILocation(line: 2, column: 13, scope: !7)
 !14 = !DILocation(line: 5, column: 10, scope: !7)
 !15 = !DILocation(line: 5, column: 3, scope: !7)

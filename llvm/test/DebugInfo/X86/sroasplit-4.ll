@@ -56,13 +56,13 @@ if.then:                                          ; preds = %entry
   br label %return, !dbg !27
 
 if.end:                                           ; preds = %entry
-  call void @llvm.dbg.declare(metadata ptr %y, metadata !28, metadata !29), !dbg !30
+  call void @llvm.dbg.declare(metadata ptr %y, metadata !28, metadata !DIExpression()), !dbg !30
   %0 = load i64, ptr @t, align 8, !dbg !30
   store i64 %0, ptr %y, align 8, !dbg !30
   %t = getelementptr inbounds %struct.p, ptr %y, i32 0, i32 1, !dbg !30
   %1 = load i64, ptr @t, align 8, !dbg !30
   store i64 %1, ptr %t, align 8, !dbg !30
-  call void @llvm.dbg.declare(metadata ptr %r, metadata !31, metadata !29), !dbg !32
+  call void @llvm.dbg.declare(metadata ptr %r, metadata !31, metadata !DIExpression()), !dbg !32
   store i32 0, ptr %r, align 4, !dbg !32
   %x = getelementptr inbounds %struct.r, ptr %r, i32 0, i32 1, !dbg !32
   store i64 0, ptr %x, align 8, !dbg !32
@@ -126,7 +126,6 @@ attributes #3 = { nounwind }
 !26 = !DILocation(line: 19, scope: !17)
 !27 = !DILocation(line: 20, scope: !25)
 !28 = !DILocalVariable(name: "y", line: 21, scope: !17, file: !18, type: !4)
-!29 = !DIExpression()
 !30 = !DILocation(line: 21, scope: !17)
 !31 = !DILocalVariable(name: "r", line: 22, scope: !17, file: !18, type: !10)
 !32 = !DILocation(line: 22, scope: !17)

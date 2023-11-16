@@ -169,7 +169,7 @@ define internal void @"__9-[A init]_block_invoke"(i8* %.block_descriptor) #0 !db
   %4 = bitcast i8* %.block_descriptor to <{ i8*, i32, i32, i8*, %struct.__block_descriptor*, %0* }>*, !dbg !88
   store <{ i8*, i32, i32, i8*, %struct.__block_descriptor*, %0* }>* %4, <{ i8*, i32, i32, i8*, %struct.__block_descriptor*, %0* }>** %2, align 8, !dbg !88
   %5 = getelementptr inbounds <{ i8*, i32, i32, i8*, %struct.__block_descriptor*, %0* }>, <{ i8*, i32, i32, i8*, %struct.__block_descriptor*, %0* }>* %4, i32 0, i32 5, !dbg !88
-  call void @llvm.dbg.declare(metadata <{ i8*, i32, i32, i8*, %struct.__block_descriptor*, %0* }>** %2, metadata !89, metadata !111), !dbg !90
+  call void @llvm.dbg.declare(metadata <{ i8*, i32, i32, i8*, %struct.__block_descriptor*, %0* }>** %2, metadata !89, metadata !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 32)), !dbg !90
   call void @llvm.dbg.declare(metadata %1** %d, metadata !91, metadata !DIExpression()), !dbg !100
   %6 = load %struct._class_t*, %struct._class_t** @"\01L_OBJC_CLASSLIST_REFERENCES_$_", !dbg !100
   %7 = bitcast %struct._class_t* %6 to i8*, !dbg !100
@@ -377,4 +377,3 @@ attributes #3 = { nounwind }
 !108 = !DILocation(line: 61, scope: !36)
 !109 = !DILocation(line: 62, scope: !36)
 !110 = !{i32 1, !"Debug Info Version", i32 3}
-!111 = !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 32)

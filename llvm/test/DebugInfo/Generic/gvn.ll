@@ -27,7 +27,7 @@ entry:
   ; CHECK: %call = tail call i32 @f2(i32 1) #{{[0-9]}}, !dbg
   %call = tail call i32 @f2(i32 1) #0, !dbg !15
   store i32 %call, ptr @a, align 4, !dbg !15, !tbaa !24
-  tail call void @llvm.dbg.value(metadata ptr @a, metadata !22, metadata !28) #0, !dbg !29
+  tail call void @llvm.dbg.value(metadata ptr @a, metadata !22, metadata !DIExpression()) #0, !dbg !29
   %0 = load i32, ptr @b, align 4, !dbg !29, !tbaa !24
   %tobool.i = icmp eq i32 %0, 0, !dbg !29
   br i1 %tobool.i, label %if.end.i, label %land.lhs.true.i.thread, !dbg !30
@@ -95,7 +95,6 @@ attributes #1 = { nounwind readnone }
 !25 = !{!"int", !26, i64 0}
 !26 = !{!"omnipotent char", !27, i64 0}
 !27 = !{!"Simple C/C++ TBAA"}
-!28 = !DIExpression()
 !29 = !DILocation(line: 2, scope: !17, inlinedAt: !23)
 !30 = !DILocation(line: 3, scope: !31, inlinedAt: !23)
 !31 = distinct !DILexicalBlock(scope: !17, file: !3, line: 3)

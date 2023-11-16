@@ -9,7 +9,7 @@ source_filename = "test/Transforms/StripSymbols/2010-06-30-StripDebug.ll"
 ; Function Attrs: nounwind optsize readnone ssp
 define void @foo() #0 !dbg !7 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !10, metadata !12), !dbg !13
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !10, metadata !DIExpression()), !dbg !13
   ret void, !dbg !14
 }
 
@@ -31,4 +31,3 @@ attributes #1 = { nounwind readnone }
 !6 = !{!0}
 !7 = distinct !DISubprogram(name: "foo", linkageName: "foo", scope: !2, file: !2, line: 2, type: !8, isLocal: false, isDefinition: true, virtualIndex: 6, isOptimized: true, unit: !5)
 !8 = !DISubroutineType(types: !9)
-!9 = !{null}!10 = !DILocalVariable(name: "y", scope: !11, file: !2, line: 3, type: !3)!11 = distinct !DILexicalBlock(scope: !7, file: !2, line: 2)!12 = !DIExpression()!13 = !DILocation(line: 3, scope: !11)!14 = !DILocation(line: 4, scope: !11)

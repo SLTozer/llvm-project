@@ -11,7 +11,7 @@ declare void @foo0() local_unnamed_addr #0
 ; Function Attrs: nounwind
 define void @foo1() local_unnamed_addr #0 !dbg !33 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !51, metadata !52), !dbg !53
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !51, metadata !DIExpression()), !dbg !53
   tail call void @foo0(), !dbg !54
   ret void
 }
@@ -78,6 +78,5 @@ attributes #1 = { nounwind readnone speculatable }
 !49 = !DILocalVariable(name: "a4", arg: 5, scope: !33, file: !34, line: 84, type: !42)
 !50 = !DILocalVariable(name: "a5", arg: 6, scope: !33, file: !34, line: 84, type: !43)
 !51 = !DILocalVariable(name: "a6", arg: 7, scope: !33, file: !34, line: 84, type: !37)
-!52 = !DIExpression()
 !53 = !DILocation(line: 84, column: 169, scope: !33)
 !54 = !DILocation(line: 86, column: 12, scope: !33)

@@ -22,7 +22,7 @@ entry:
 
 for.body:
   %i.04 = phi i32 [ 0, %entry ], [ %inc, %for.body ]
-  tail call void @llvm.dbg.value(metadata i32 %i.04, i64 0, metadata !10, metadata !12), !dbg !6
+  tail call void @llvm.dbg.value(metadata i32 %i.04, i64 0, metadata !10, metadata !DIExpression()), !dbg !6
   tail call void (i32, ...) @raf(i32 7, i32 0, i32 0, i32 0, i32 0, i32 0, i32 0, i32 %i.04)
   %inc = add nuw nsw i32 %i.04, 1
   %exitcond = icmp eq i32 %inc, 21
@@ -52,4 +52,3 @@ attributes #3 = { nounwind }
 !9 = !{null}
 !10 = !DILocalVariable(name: "value", arg: 1, scope: !7, file: !1, line: 2, type: !11)
 !11 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
-!12 = !DIExpression()

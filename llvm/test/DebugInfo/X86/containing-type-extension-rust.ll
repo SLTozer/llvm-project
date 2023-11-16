@@ -41,7 +41,7 @@ define internal void @_ZN4core3ptr13drop_in_place17h2818a933abde117eE(double*) u
 start:
   %arg0 = alloca double*
   store double* %0, double** %arg0
-  call void @llvm.dbg.declare(metadata double** %arg0, metadata !20, metadata !22), !dbg !23
+  call void @llvm.dbg.declare(metadata double** %arg0, metadata !20, metadata !DIExpression()), !dbg !23
   ret void, !dbg !24
 }
 
@@ -50,7 +50,7 @@ start:
 define internal void @_ZN2t24main17h6319e6ac7de3a097E() unnamed_addr #0 !dbg !25 {
 start:
   %tu = alloca { i8*, void (i8*)** }
-  call void @llvm.dbg.declare(metadata { i8*, void (i8*)** }* %tu, metadata !29, metadata !22), !dbg !37
+  call void @llvm.dbg.declare(metadata { i8*, void (i8*)** }* %tu, metadata !29, metadata !DIExpression()), !dbg !37
   %0 = getelementptr inbounds { i8*, void (i8*)** }, { i8*, void (i8*)** }* %tu, i32 0, i32 0, !dbg !37
   store i8* bitcast (double* @ref.0 to i8*), i8** %0, !dbg !37
   %1 = getelementptr inbounds { i8*, void (i8*)** }, { i8*, void (i8*)** }* %tu, i32 0, i32 1, !dbg !37
@@ -104,7 +104,6 @@ attributes #3 = { "frame-pointer"="all" "probe-stack"="__rust_probestack" }
 !19 = !DITemplateTypeParameter(name: "T", type: !5)
 !20 = !DILocalVariable(arg: 1, scope: !11, file: !21, line: 1, type: !17)
 !21 = !DIFile(filename: "t2.rs", directory: "")
-!22 = !DIExpression()
 !23 = !DILocation(line: 1, scope: !11)
 !24 = !DILocation(line: 59, scope: !11)
 !25 = distinct !DISubprogram(name: "main", linkageName: "_ZN2t24mainE", scope: !26, file: !9, line: 9, type: !27, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagLocalToUnit | DISPFlagDefinition | DISPFlagMainSubprogram, isOptimized: false, unit: !8, templateParams: !4, retainedNodes: !4)

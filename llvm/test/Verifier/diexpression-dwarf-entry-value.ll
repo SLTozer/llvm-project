@@ -3,6 +3,5 @@
 ; We can only use the internal variant of the entry value operation,
 ; DW_OP_LLVM_entry_value, in DIExpressions.
 
-!named = !{!0}
+!named = !{!DIExpression(DW_OP_entry_value, 1)}
 ; CHECK: invalid expression
-!0 = !DIExpression(DW_OP_entry_value, 1)

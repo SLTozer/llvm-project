@@ -46,8 +46,8 @@ target triple = "x86_64-apple-macosx10.12.0"
 ; Function Attrs: nounwind readnone ssp uwtable
 define i64 @i(i32 %i) local_unnamed_addr #0 !dbg !7 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %i, metadata !18, metadata !22), !dbg !21
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !18, metadata !23), !dbg !21
+  tail call void @llvm.dbg.value(metadata i32 %i, metadata !18, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !21
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !18, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !21
   %retval.sroa.0.0.insert.ext = zext i32 %i to i64, !dbg !24
   ret i64 %retval.sroa.0.0.insert.ext, !dbg !24
 }
@@ -58,8 +58,8 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 ; Function Attrs: nounwind readnone ssp uwtable
 define <2 x float> @f(float %f) local_unnamed_addr #0 !dbg !25 {
 entry:
-  tail call void @llvm.dbg.value(metadata float %f, metadata !36, metadata !22), !dbg !38
-  tail call void @llvm.dbg.value(metadata float 0.000000e+00, metadata !36, metadata !23), !dbg !38
+  tail call void @llvm.dbg.value(metadata float %f, metadata !36, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32)), !dbg !38
+  tail call void @llvm.dbg.value(metadata float 0.000000e+00, metadata !36, metadata !DIExpression(DW_OP_LLVM_fragment, 32, 32)), !dbg !38
   %retval.sroa.0.0.vec.insert = insertelement <2 x float> poison, float %f, i32 0, !dbg !39
   %retval.sroa.0.4.vec.insert = insertelement <2 x float> %retval.sroa.0.0.vec.insert, float 0.000000e+00, i32 1, !dbg !39
   ret <2 x float> %retval.sroa.0.4.vec.insert, !dbg !40
@@ -92,11 +92,8 @@ attributes #1 = { nounwind readnone }
 !14 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !15 = !DIDerivedType(tag: DW_TAG_member, name: "b", scope: !11, file: !1, line: 1, baseType: !14, size: 32, offset: 32)
 !18 = !DILocalVariable(name: "r", scope: !7, file: !1, line: 3, type: !10)
-!19 = !DIExpression()
 !20 = !DILocation(line: 2, column: 9, scope: !7)
 !21 = !DILocation(line: 3, column: 5, scope: !7)
-!22 = !DIExpression(DW_OP_LLVM_fragment, 0, 32)
-!23 = !DIExpression(DW_OP_LLVM_fragment, 32, 32)
 !24 = !DILocation(line: 5, column: 1, scope: !7)
 !25 = distinct !DISubprogram(name: "f", scope: !1, file: !1, line: 8, type: !26, isLocal: false, isDefinition: true, scopeLine: 8, flags: DIFlagPrototyped, isOptimized: true, unit: !0)
 !26 = !DISubroutineType(types: !27)

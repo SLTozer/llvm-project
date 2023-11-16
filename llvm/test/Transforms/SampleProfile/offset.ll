@@ -24,7 +24,7 @@ entry:
   %retval = alloca i32, align 4
   %a.addr = alloca i32, align 4
   store i32 %a, ptr %a.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %a.addr, metadata !11, metadata !12), !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %a.addr, metadata !11, metadata !DIExpression()), !dbg !13
   %0 = load i32, ptr %a.addr, align 4, !dbg !14
   %cmp = icmp sgt i32 %0, 0, !dbg !18
   br i1 %cmp, label %if.then, label %if.else, !dbg !19
@@ -65,7 +65,6 @@ attributes #1 = { nounwind readnone }
 !9 = !{i32 2, !"Debug Info Version", i32 3}
 !10 = !{!"clang version 3.8.0 (trunk 250750)"}
 !11 = !DILocalVariable(name: "a", arg: 1, scope: !4, file: !1, line: 5, type: !7)
-!12 = !DIExpression()
 !13 = !DILocation(line: 5, column: 13, scope: !4)
 !14 = !DILocation(line: 1, column: 5, scope: !15)
 !15 = distinct !DILexicalBlock(scope: !17, file: !16, line: 1, column: 5)

@@ -30,12 +30,12 @@ target triple = "x86_64-unknown-linux-gnu"
 
 define i32 @test_g(ptr nocapture readonly %a, i32 %n) local_unnamed_addr !dbg !6 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %a, i64 0, metadata !12, metadata !16), !dbg !17
-  tail call void @llvm.dbg.value(metadata i32 %n, i64 0, metadata !13, metadata !16), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !15, metadata !16), !dbg !19
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !14, metadata !16), !dbg !20
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !15, metadata !16), !dbg !19
-  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !14, metadata !16), !dbg !20
+  tail call void @llvm.dbg.value(metadata ptr %a, i64 0, metadata !12, metadata !DIExpression()), !dbg !17
+  tail call void @llvm.dbg.value(metadata i32 %n, i64 0, metadata !13, metadata !DIExpression()), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !15, metadata !DIExpression()), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !14, metadata !DIExpression()), !dbg !20
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !15, metadata !DIExpression()), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 0, i64 0, metadata !14, metadata !DIExpression()), !dbg !20
   %cmp6 = icmp eq i32 %n, 0, !dbg !21
   br i1 %cmp6, label %for.end, label %for.body.preheader, !dbg !25
 
@@ -49,9 +49,9 @@ for.body:                                         ; preds = %for.body.preheader,
   %arrayidx = getelementptr inbounds i32, ptr %a, i64 %indvars.iv, !dbg !27
   %0 = load i32, ptr %arrayidx, align 4, !dbg !27, !tbaa !28
   %add = add i32 %0, %r.08, !dbg !32
-  tail call void @llvm.dbg.value(metadata i32 %add, i64 0, metadata !15, metadata !16), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 %add, i64 0, metadata !15, metadata !DIExpression()), !dbg !19
   %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1, !dbg !33
-  tail call void @llvm.dbg.value(metadata i32 %add, i64 0, metadata !15, metadata !16), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 %add, i64 0, metadata !15, metadata !DIExpression()), !dbg !19
   %exitcond = icmp eq i64 %indvars.iv.next, %wide.trip.count, !dbg !21
   br i1 %exitcond, label %for.end.loopexit, label %for.body, !dbg !25, !llvm.loop !35
 
@@ -117,7 +117,6 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !13 = !DILocalVariable(name: "n", arg: 2, scope: !6, file: !1, line: 1, type: !9)
 !14 = !DILocalVariable(name: "i", scope: !6, file: !1, line: 2, type: !9)
 !15 = !DILocalVariable(name: "r", scope: !6, file: !1, line: 2, type: !9)
-!16 = !DIExpression()
 !17 = !DILocation(line: 1, column: 27, scope: !6)
 !18 = !DILocation(line: 1, column: 39, scope: !6)
 !19 = !DILocation(line: 2, column: 15, scope: !6)

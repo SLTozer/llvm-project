@@ -30,7 +30,7 @@ define internal void @bar(%p_t %p)  {
 ; CGSCC-NEXT:    call void @llvm.dbg.value(metadata ptr [[P]], metadata [[META3:![0-9]+]], metadata !DIExpression()) #[[ATTR2:[0-9]+]], !dbg [[DBG5:![0-9]+]]
 ; CGSCC-NEXT:    ret void
 ;
-  call void @llvm.dbg.value(metadata %p_t %p, metadata !4, metadata !5), !dbg !6
+  call void @llvm.dbg.value(metadata %p_t %p, metadata !4, metadata !DIExpression()), !dbg !6
   ret void
 }
 
@@ -44,7 +44,6 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 !2 = !{i32 2, !"Debug Info Version", i32 3}
 !3 = distinct !DISubprogram(name: "bar", unit: !0)
 !4 = !DILocalVariable(name: "p", scope: !3)
-!5 = !DIExpression()
 !6 = !DILocation(line: 1, column: 1, scope: !3)
 ;.
 ; TUNIT: attributes #[[ATTR0]] = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) }

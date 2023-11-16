@@ -48,20 +48,16 @@ target triple = "x86_64-unknown-linux-gnu"
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C_plus_plus, producer: "clang", file: !4, globals: !1, emissionKind: FullDebug)
 !1 = !{!2, !10, !11, !14}
-!2 = !DIGlobalVariableExpression(var: !8, expr: !3)
-!3 = !DIExpression(DW_OP_constu, 4, DW_OP_stack_value, DW_OP_LLVM_fragment, 0, 16)
+!2 = !DIGlobalVariableExpression(var: !8, expr: !DIExpression(DW_OP_constu, 4, DW_OP_stack_value, DW_OP_LLVM_fragment, 0, 16))
 !4 = !DIFile(filename: "<stdin>", directory: "/")
 !5 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !6 = !{i32 2, !"Dwarf Version", i32 2}
 !7 = !{i32 2, !"Debug Info Version", i32 3}
 !8 = distinct !DIGlobalVariable(name: "a", scope: null, isLocal: false, isDefinition: true, type: !5)
-!9 = !DIExpression(DW_OP_constu, 0, DW_OP_stack_value, DW_OP_LLVM_fragment, 16, 16)
-!10 = !DIGlobalVariableExpression(var: !8, expr: !9)
-!11 = !DIGlobalVariableExpression(var: !13, expr: !12)
-!12 = !DIExpression(DW_OP_consts, 18446744073709551615, DW_OP_stack_value, DW_OP_LLVM_fragment, 0, 16)
+!10 = !DIGlobalVariableExpression(var: !8, expr: !DIExpression(DW_OP_constu, 0, DW_OP_stack_value, DW_OP_LLVM_fragment, 16, 16))
+!11 = !DIGlobalVariableExpression(var: !13, expr: !DIExpression(DW_OP_consts, 18446744073709551615, DW_OP_stack_value, DW_OP_LLVM_fragment, 0, 16))
 !13 = distinct !DIGlobalVariable(name: "b", scope: null, isLocal: false, isDefinition: true, type: !5)
-!14 = !DIGlobalVariableExpression(var: !13, expr: !15)
-!15 = !DIExpression(DW_OP_consts, 18446744073709551614, DW_OP_stack_value, DW_OP_LLVM_fragment, 16, 16)
+!14 = !DIGlobalVariableExpression(var: !13, expr: !DIExpression(DW_OP_consts, 18446744073709551614, DW_OP_stack_value, DW_OP_LLVM_fragment, 16, 16))
 
 !llvm.dbg.cu = !{!0}
 !llvm.module.flags = !{!6, !7}

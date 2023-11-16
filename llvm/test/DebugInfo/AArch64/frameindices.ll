@@ -45,7 +45,7 @@ target triple = "aarch64-apple-ios"
 define void @_Z3f131A(%struct.A* nocapture readonly %p1) !dbg !32 {
 entry:
   %agg.tmp = alloca %struct.A, align 8
-  tail call void @llvm.dbg.declare(metadata %struct.A* %p1, metadata !36, metadata !37), !dbg !38
+  tail call void @llvm.dbg.declare(metadata %struct.A* %p1, metadata !36, metadata !DIExpression(DW_OP_deref)), !dbg !38
   %0 = load i64, i64* @a, align 8, !dbg !39, !tbaa !40
   %call = tail call noalias i8* @_Znwm(i64 %0) #4, !dbg !44
   store i8* %call, i8** bitcast (i32** @b to i8**), align 8, !dbg !45, !tbaa !46
@@ -70,7 +70,7 @@ declare void @llvm.memcpy.p0i8.p0i8.i64(i8* nocapture writeonly, i8* nocapture r
 define void @_Z3f111A(%struct.A* nocapture readonly %p1) !dbg !54 {
 entry:
   %agg.tmp.i = alloca %struct.A, align 8
-  tail call void @llvm.dbg.declare(metadata %struct.A* %p1, metadata !56, metadata !37), !dbg !57
+  tail call void @llvm.dbg.declare(metadata %struct.A* %p1, metadata !56, metadata !DIExpression(DW_OP_deref)), !dbg !57
   %0 = getelementptr inbounds %struct.A, %struct.A* %p1, i64 0, i32 0, !dbg !58
   %1 = getelementptr inbounds %struct.A, %struct.A* %agg.tmp.i, i64 0, i32 0, !dbg !59
   call void @llvm.lifetime.start(i64 24, i8* %1), !dbg !59
@@ -89,17 +89,17 @@ entry:
   %d = alloca %struct.B, align 8
   %agg.tmp.sroa.2 = alloca [15 x i8], align 1
   %agg.tmp.sroa.4 = alloca [7 x i8], align 1
-  tail call void @llvm.dbg.declare(metadata [15 x i8]* %agg.tmp.sroa.2, metadata !56, metadata !74), !dbg !75
-  tail call void @llvm.dbg.declare(metadata [7 x i8]* %agg.tmp.sroa.4, metadata !56, metadata !77), !dbg !75
-  tail call void @llvm.dbg.declare(metadata %struct.A* undef, metadata !72, metadata !37), !dbg !78
+  tail call void @llvm.dbg.declare(metadata [15 x i8]* %agg.tmp.sroa.2, metadata !56, metadata !DIExpression(DW_OP_LLVM_fragment, 8, 120)), !dbg !75
+  tail call void @llvm.dbg.declare(metadata [7 x i8]* %agg.tmp.sroa.4, metadata !56, metadata !DIExpression(DW_OP_LLVM_fragment, 136, 56)), !dbg !75
+  tail call void @llvm.dbg.declare(metadata %struct.A* undef, metadata !72, metadata !DIExpression(DW_OP_deref)), !dbg !78
   %0 = load i64, i64* @a, align 8, !dbg !79, !tbaa !40
-  tail call void @llvm.dbg.value(metadata %struct.B* %d, metadata !73, metadata !37), !dbg !80
+  tail call void @llvm.dbg.value(metadata %struct.B* %d, metadata !73, metadata !DIExpression(DW_OP_deref)), !dbg !80
   %call = call %struct.B* @_ZN1BC1El(%struct.B* %d, i64 %0), !dbg !80
-  call void @llvm.dbg.value(metadata i8 1, metadata !72, metadata !81), !dbg !78
-  call void @llvm.dbg.value(metadata i8 1, metadata !72, metadata !82), !dbg !78
-  call void @llvm.dbg.value(metadata i8 1, metadata !56, metadata !81), !dbg !75
-  call void @llvm.dbg.value(metadata i8 1, metadata !56, metadata !82), !dbg !75
-  call void @llvm.dbg.declare(metadata %struct.A* undef, metadata !56, metadata !37), !dbg !75
+  call void @llvm.dbg.value(metadata i8 1, metadata !72, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 8)), !dbg !78
+  call void @llvm.dbg.value(metadata i8 1, metadata !72, metadata !DIExpression(DW_OP_LLVM_fragment, 128, 8)), !dbg !78
+  call void @llvm.dbg.value(metadata i8 1, metadata !56, metadata !DIExpression(DW_OP_LLVM_fragment, 0, 8)), !dbg !75
+  call void @llvm.dbg.value(metadata i8 1, metadata !56, metadata !DIExpression(DW_OP_LLVM_fragment, 128, 8)), !dbg !75
+  call void @llvm.dbg.declare(metadata %struct.A* undef, metadata !56, metadata !DIExpression(DW_OP_deref)), !dbg !75
   %1 = getelementptr inbounds %struct.A, %struct.A* %agg.tmp.i.i, i64 0, i32 0, !dbg !83
   call void @llvm.lifetime.start(i64 24, i8* %1), !dbg !83
   %2 = load i64, i64* @a, align 8, !dbg !85, !tbaa !40
@@ -122,14 +122,14 @@ call.i.i.noexc:                                   ; preds = %entry
 
 invoke.cont:                                      ; preds = %call.i.i.noexc
   call void @llvm.lifetime.end(i64 24, i8* %1), !dbg !91
-  call void @llvm.dbg.value(metadata %struct.B* %d, metadata !73, metadata !37), !dbg !80
+  call void @llvm.dbg.value(metadata %struct.B* %d, metadata !73, metadata !DIExpression(DW_OP_deref)), !dbg !80
   %call1 = call %struct.B* @_ZN1BD1Ev(%struct.B* %d) #3, !dbg !92
   ret void, !dbg !92
 
 lpad:                                             ; preds = %call.i.i.noexc, %entry
   %3 = landingpad { i8*, i32 }
           cleanup, !dbg !92
-  call void @llvm.dbg.value(metadata %struct.B* %d, metadata !73, metadata !37), !dbg !80
+  call void @llvm.dbg.value(metadata %struct.B* %d, metadata !73, metadata !DIExpression(DW_OP_deref)), !dbg !80
   %call2 = call %struct.B* @_ZN1BD1Ev(%struct.B* %d) #3, !dbg !92
   resume { i8*, i32 } %3, !dbg !92
 }
@@ -197,7 +197,6 @@ attributes #4 = { builtin }
 !34 = !{null, !12}
 !35 = !{!36}
 !36 = !DILocalVariable(name: "p1", arg: 1, scope: !32, file: !2, line: 13, type: !12)
-!37 = !DIExpression(DW_OP_deref)
 !38 = !DILocation(line: 13, column: 12, scope: !32)
 !39 = !DILocation(line: 14, column: 37, scope: !32)
 !40 = !{!41, !41, i64 0}
@@ -234,15 +233,11 @@ attributes #4 = { builtin }
 !71 = !{!72, !73}
 !72 = !DILocalVariable(name: "c", scope: !68, file: !2, line: 19, type: !12)
 !73 = !DILocalVariable(name: "d", scope: !68, file: !2, line: 20, type: !19)
-!74 = !DIExpression(DW_OP_LLVM_fragment, 8, 120)
 !75 = !DILocation(line: 17, column: 12, scope: !54, inlinedAt: !76)
 !76 = distinct !DILocation(line: 22, column: 3, scope: !68)
-!77 = !DIExpression(DW_OP_LLVM_fragment, 136, 56)
 !78 = !DILocation(line: 19, column: 5, scope: !68)
 !79 = !DILocation(line: 20, column: 7, scope: !68)
 !80 = !DILocation(line: 20, column: 5, scope: !68)
-!81 = !DIExpression(DW_OP_LLVM_fragment, 0, 8)
-!82 = !DIExpression(DW_OP_LLVM_fragment, 128, 8)
 !83 = !DILocation(line: 13, column: 12, scope: !32, inlinedAt: !84)
 !84 = distinct !DILocation(line: 17, column: 18, scope: !54, inlinedAt: !76)
 !85 = !DILocation(line: 14, column: 37, scope: !32, inlinedAt: !84)

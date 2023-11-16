@@ -22,7 +22,7 @@ target triple = "i686-pc-windows-msvc18.0.0"
 define void @test1() !dbg !5 {
 entry:
   %foo = alloca i16, align 2
-  call void @llvm.dbg.declare(metadata ptr %foo, metadata !8, metadata !11), !dbg !12
+  call void @llvm.dbg.declare(metadata ptr %foo, metadata !8, metadata !DIExpression()), !dbg !12
   ret void, !dbg !12
 }
 
@@ -41,5 +41,4 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata)
 !8 = !DILocalVariable(name: "foo", scope: !5, file: !6, line: 3, type: !9)
 !9 = !DIDerivedType(tag: DW_TAG_typedef, name: "XYZ", file: !6, line: 2, baseType: !10)
 !10 = !DIBasicType(name: "wchar_t", size: 16, align: 16, encoding: DW_ATE_unsigned)
-!11 = !DIExpression()
 !12 = !DILocation(line: 3, column: 16, scope: !5)

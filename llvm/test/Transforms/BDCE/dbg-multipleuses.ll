@@ -14,7 +14,7 @@ define void @f() !dbg !6 {
 entry:
   tail call void (...) @h(), !dbg !9
   %call = tail call i32 (...) @g(), !dbg !10
-  tail call void @llvm.dbg.value(metadata i32 %call, metadata !11, metadata !13), !dbg !14
+  tail call void @llvm.dbg.value(metadata i32 %call, metadata !11, metadata !DIExpression()), !dbg !14
   %patatino = xor i32 %call, %call
   tail call void (...) @h(), !dbg !15
   ret void, !dbg !16
@@ -41,7 +41,6 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 !10 = !DILocation(line: 5, column: 11, scope: !6)
 !11 = !DILocalVariable(name: "a", scope: !6, file: !1, line: 5, type: !12)
 !12 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
-!13 = !DIExpression()
 !14 = !DILocation(line: 5, column: 7, scope: !6)
 !15 = !DILocation(line: 6, column: 3, scope: !6)
 !16 = !DILocation(line: 7, column: 1, scope: !6)

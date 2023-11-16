@@ -572,7 +572,7 @@ define amdgpu_ps void @v_omod_mul4_dbg_use_f32(float %a) #0 {
 ; GFX11-NEXT:    s_sendmsg sendmsg(MSG_DEALLOC_VGPRS)
 ; GFX11-NEXT:    s_endpgm
   %add = fadd float %a, 1.0
-  call void @llvm.dbg.value(metadata float %add, i64 0, metadata !4, metadata !9), !dbg !10
+  call void @llvm.dbg.value(metadata float %add, i64 0, metadata !4, metadata !DIExpression()), !dbg !10
   %div2 = fmul float %add, 4.0
   store float %div2, ptr addrspace(1) undef
   ret void
@@ -1175,5 +1175,4 @@ attributes #6 = { nounwind "denormal-fp-math"="ieee,ieee" "no-signed-zeros-fp-ma
 !6 = !DISubroutineType(types: !7)
 !7 = !{null, !8}
 !8 = !DIBasicType(name: "float", size: 32, align: 32)
-!9 = !DIExpression()
 !10 = !DILocation(line: 1, column: 42, scope: !5)

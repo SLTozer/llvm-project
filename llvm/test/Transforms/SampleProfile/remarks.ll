@@ -122,10 +122,10 @@ entry:
   %sum = alloca i64, align 8
   %i = alloca i32, align 4
   call void @llvm.lifetime.start.p0(i64 8, ptr %sum) #4, !dbg !19
-  call void @llvm.dbg.declare(metadata ptr %sum, metadata !9, metadata !20), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %sum, metadata !9, metadata !DIExpression()), !dbg !21
   store i64 0, ptr %sum, align 8, !dbg !21, !tbaa !22
   call void @llvm.lifetime.start.p0(i64 4, ptr %i) #4, !dbg !26
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !10, metadata !20), !dbg !27
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !10, metadata !DIExpression()), !dbg !27
   store i32 0, ptr %i, align 4, !dbg !27, !tbaa !28
   br label %for.cond, !dbg !26
 
@@ -231,7 +231,6 @@ attributes #4 = { nounwind }
 !17 = !{i32 2, !"Debug Info Version", i32 3}
 !18 = !{!"clang version 3.8.0 (trunk 251041) (llvm/trunk 251053)"}
 !19 = !DILocation(line: 4, column: 3, scope: !4)
-!20 = !DIExpression()
 !21 = !DILocation(line: 4, column: 17, scope: !4)
 !22 = !{!23, !23, i64 0}
 !23 = !{!"long long", !24, i64 0}

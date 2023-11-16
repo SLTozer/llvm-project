@@ -46,7 +46,7 @@ define linkonce_odr void @_ZN3fooC2Ev(ptr %this) unnamed_addr #0 comdat align 2 
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !24, metadata !26), !dbg !27
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !24, metadata !DIExpression()), !dbg !27
   %this1 = load ptr, ptr %this.addr
   call void @_ZN4baseC2Ev(ptr %this1) #2, !dbg !28
   ret void, !dbg !28
@@ -57,7 +57,7 @@ define linkonce_odr void @_ZN3fooD2Ev(ptr %this) unnamed_addr #1 comdat align 2 
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !31, metadata !26), !dbg !32
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !31, metadata !DIExpression()), !dbg !32
   %this1 = load ptr, ptr %this.addr
   call void @_ZN4baseD1Ev(ptr %this1), !dbg !33
   ret void, !dbg !35
@@ -74,7 +74,7 @@ define linkonce_odr void @_ZN4baseC2Ev(ptr %this) unnamed_addr #0 comdat align 2
 entry:
   %this.addr = alloca ptr, align 8
   store ptr %this, ptr %this.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !41, metadata !26), !dbg !43
+  call void @llvm.dbg.declare(metadata ptr %this.addr, metadata !41, metadata !DIExpression()), !dbg !43
   %this1 = load ptr, ptr %this.addr
   store ptr getelementptr inbounds ([4 x ptr], ptr @_ZTV4base, i64 0, i64 2), ptr %this1, !dbg !44
   ret void, !dbg !44
@@ -124,7 +124,6 @@ attributes #4 = { "less-precise-fpmad"="false" "frame-pointer"="all" "no-infs-fp
 !23 = !DISubprogram(name: "foo", scope: !3, type: !20, isLocal: false, isDefinition: false, flags: DIFlagArtificial | DIFlagPrototyped, isOptimized: false)
 !24 = !DILocalVariable(name: "this", arg: 1, scope: !19, type: !25, flags: DIFlagArtificial | DIFlagObjectPointer)
 !25 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !3, size: 64, align: 64)
-!26 = !DIExpression()
 !27 = !DILocation(line: 0, scope: !19)
 !28 = !DILocation(line: 5, column: 8, scope: !19)
 !29 = distinct !DISubprogram(name: "~foo", linkageName: "_ZN3fooD2Ev", scope: !3, file: !2, line: 5, type: !20, isLocal: false, isDefinition: true, scopeLine: 5, flags: DIFlagArtificial | DIFlagPrototyped, isOptimized: false, unit: !8, declaration: !30, retainedNodes: !9)

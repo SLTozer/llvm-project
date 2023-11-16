@@ -14,11 +14,11 @@ define i32 @main(i32 %argc, ptr %argv) norecurse !dbg !18 {
 ; CHECK: call void @llvm.dbg.value(metadata !2,
 ; CHECK: !2 = !{}
 entry:
-  call void @llvm.dbg.value(metadata i32 %argc, metadata !22, metadata !23), !dbg !24
-  call void @llvm.dbg.value(metadata ptr %argv, metadata !25, metadata !23), !dbg !26
+  call void @llvm.dbg.value(metadata i32 %argc, metadata !22, metadata !DIExpression()), !dbg !24
+  call void @llvm.dbg.value(metadata ptr %argv, metadata !25, metadata !DIExpression()), !dbg !26
   %0 = load ptr, ptr %argv, align 8, !dbg !27
   store ptr %0, ptr @_ZL1x, align 8, !dbg !29
-  call void @llvm.dbg.value(metadata ptr @_ZL1x, metadata !30, metadata !23), !dbg !31
+  call void @llvm.dbg.value(metadata ptr @_ZL1x, metadata !30, metadata !DIExpression()), !dbg !31
   %1 = load ptr, ptr @_ZL1x, align 8, !dbg !32
   %2 = load i8, ptr %1, align 1, !dbg !33
   %conv = sext i8 %2 to i32, !dbg !33
@@ -54,7 +54,6 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 !20 = !{!21, !21, !11}
 !21 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !22 = !DILocalVariable(name: "argc", arg: 1, scope: !18, file: !14, line: 2, type: !21)
-!23 = !DIExpression()
 !24 = !DILocation(line: 2, column: 14, scope: !18)
 !25 = !DILocalVariable(name: "argv", arg: 2, scope: !18, file: !14, line: 2, type: !11)
 !26 = !DILocation(line: 2, column: 26, scope: !18)

@@ -34,7 +34,7 @@ target triple = "x86_64-apple-macosx10.12.0"
 ; Function Attrs: nounwind ssp uwtable
 define void @f(ptr nocapture %p) local_unnamed_addr #0 !dbg !8 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %p, metadata !14, metadata !15), !dbg !16
+  tail call void @llvm.dbg.value(metadata ptr %p, metadata !14, metadata !DIExpression()), !dbg !16
   store i32 42, ptr %p, align 4, !dbg !17, !tbaa !18
   ret void, !dbg !22
 }
@@ -46,10 +46,10 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 define i32 @main(i32 %argc, ptr nocapture readnone %argv) local_unnamed_addr #0 !dbg !23 {
 entry:
   %array = alloca [4 x i32], align 16
-  tail call void @llvm.dbg.value(metadata i32 %argc, metadata !30, metadata !15), !dbg !36
-  tail call void @llvm.dbg.value(metadata ptr %argv, metadata !31, metadata !15), !dbg !37
+  tail call void @llvm.dbg.value(metadata i32 %argc, metadata !30, metadata !DIExpression()), !dbg !36
+  tail call void @llvm.dbg.value(metadata ptr %argv, metadata !31, metadata !DIExpression()), !dbg !37
   call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %array) #3, !dbg !38
-  tail call void @llvm.dbg.declare(metadata ptr %array, metadata !32, metadata !15), !dbg !39
+  tail call void @llvm.dbg.declare(metadata ptr %array, metadata !32, metadata !DIExpression()), !dbg !39
   call void @llvm.memcpy.p0.p0.i64(ptr align 16 nonnull %array, ptr align 16 @main.array, i64 16, i1 false), !dbg !39
   call void @f(ptr nonnull %array), !dbg !41
   %0 = load i32, ptr %array, align 16, !dbg !42, !tbaa !18
@@ -93,7 +93,6 @@ attributes #3 = { nounwind }
 !12 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !13 = !{!14}
 !14 = !DILocalVariable(name: "p", arg: 1, scope: !8, file: !1, line: 1, type: !11)
-!15 = !DIExpression()
 !16 = !DILocation(line: 1, column: 13, scope: !8)
 !17 = !DILocation(line: 2, column: 8, scope: !8)
 !18 = !{!19, !19, i64 0}

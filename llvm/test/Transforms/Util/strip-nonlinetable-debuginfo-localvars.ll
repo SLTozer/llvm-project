@@ -4,9 +4,9 @@ define void @f() !dbg !4 {
 entry:
   %i = alloca i32, align 4
   ; CHECK-NOT: llvm.dbg.{{declare|value}}
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !11, metadata !13), !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !11, metadata !DIExpression()), !dbg !14
   store i32 42, ptr %i, align 4, !dbg !14
-  call void @llvm.dbg.value(metadata i32 0, metadata !16, metadata !13), !dbg !15
+  call void @llvm.dbg.value(metadata i32 0, metadata !16, metadata !DIExpression()), !dbg !15
   ret void, !dbg !15
 }
 
@@ -34,7 +34,6 @@ declare void @llvm.dbg.value(metadata, metadata, metadata)
 !10 = !{!"LLVM"}
 !11 = !DILocalVariable(name: "i", scope: !4, file: !1, line: 1, type: !12)
 !12 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!13 = !DIExpression()
 !14 = !DILocation(line: 1, column: 16, scope: !4)
 !15 = !DILocation(line: 1, column: 24, scope: !4)
 !16 = !DILocalVariable(name: "j", scope: !4, file: !1, line: 1, type: !12)

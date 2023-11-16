@@ -16,19 +16,19 @@ entry:
 
 ; Unhandled dbg.value: expression does not start with OP_DW_deref
 ; CHECK: call void @llvm.dbg.value(metadata ptr undef, metadata !{{.*}}, metadata !{{.*}})
-  tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !23), !dbg !16
+  tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !DIExpression()), !dbg !16
 
 ; Unhandled dbg.value: expression does not start with OP_DW_deref
 ; CHECK: call void @llvm.dbg.value(metadata ptr undef, metadata !{{.*}}, metadata !{{.*}})
-  tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !24), !dbg !16
+  tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !DIExpression(DW_OP_constu, 42, DW_OP_minus)), !dbg !16
 
 ; Supported dbg.value: rewritted based on the [[USP]] value.
 ; CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X1:.*]], metadata !DIExpression(DW_OP_constu, 4, DW_OP_minus, DW_OP_deref, DW_OP_LLVM_fragment, 0, 4))
-  tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !25), !dbg !16
+  tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !DIExpression(DW_OP_deref, DW_OP_LLVM_fragment, 0, 4)), !dbg !16
 
 ; Supported dbg.value: rewritted based on the [[USP]] value.
 ; CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X1:.*]], metadata !DIExpression(DW_OP_constu, 4, DW_OP_minus, DW_OP_deref))
-  tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !15), !dbg !16
+  tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !DIExpression(DW_OP_deref)), !dbg !16
   call void @capture(ptr nonnull %x1), !dbg !17
 
 ; An extra non-dbg.value metadata use of %x2. Replaced with undef.
@@ -36,7 +36,7 @@ entry:
   call void @llvm.random.metadata.use(metadata ptr %x2)
 
 ; CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X2:.*]], metadata !DIExpression(DW_OP_constu, 8, DW_OP_minus, DW_OP_deref))
-  call void @llvm.dbg.value(metadata ptr %x2, metadata !12, metadata !15), !dbg !18
+  call void @llvm.dbg.value(metadata ptr %x2, metadata !12, metadata !DIExpression(DW_OP_deref)), !dbg !18
   call void @capture(ptr nonnull %x2), !dbg !19
   ret void, !dbg !20
 }
@@ -85,7 +85,6 @@ attributes #4 = { nounwind }
 !13 = !DILocation(line: 5, column: 3, scope: !6)
 !14 = !DILocation(line: 6, column: 3, scope: !6)
 
-!15 = !DIExpression(DW_OP_deref)
 !16 = !DILocation(line: 5, column: 7, scope: !6)
 !17 = !DILocation(line: 8, column: 3, scope: !6)
 !18 = !DILocation(line: 6, column: 7, scope: !6)
@@ -93,6 +92,3 @@ attributes #4 = { nounwind }
 !20 = !DILocation(line: 10, column: 1, scope: !6)
 !21 = !DILocation(line: 10, column: 1, scope: !22)
 !22 = !DILexicalBlockFile(scope: !6, file: !1, discriminator: 1)
-!23 = !DIExpression()
-!24 = !DIExpression(DW_OP_constu, 42, DW_OP_minus)
-!25 = !DIExpression(DW_OP_deref, DW_OP_LLVM_fragment, 0, 4)

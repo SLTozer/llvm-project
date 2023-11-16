@@ -31,7 +31,7 @@ entry:
   %im_not_dead = alloca ptr
   %0 = load ptr, ptr %queue, align 8, !dbg !19
   %1 = load ptr, ptr %queue, align 8, !dbg !19
-  call void @llvm.dbg.value(metadata ptr %1, metadata !18, metadata !20), !dbg !19
+  call void @llvm.dbg.value(metadata ptr %1, metadata !18, metadata !DIExpression(DW_OP_plus_uconst, 0)), !dbg !19
 ; CHECK: define void @salvage_load
 ; CHECK-NEXT: entry:
 ; CHECK-NEXT: call void @llvm.dbg.value(metadata ptr poison
@@ -42,7 +42,7 @@ entry:
 define void @salvage_bitcast(ptr %queue) local_unnamed_addr #0 !dbg !22 {
 entry:
   %im_not_dead = alloca ptr
-  call void @llvm.dbg.value(metadata ptr %queue, metadata !24, metadata !20), !dbg !23
+  call void @llvm.dbg.value(metadata ptr %queue, metadata !24, metadata !DIExpression(DW_OP_plus_uconst, 0)), !dbg !23
 ; CHECK: define void @salvage_bitcast
 ; CHECK-NEXT: entry:
 ; CHECK-NEXT: call void @llvm.dbg.value(metadata ptr %queue,
@@ -56,7 +56,7 @@ entry:
   %im_not_dead = alloca ptr
   %0 = getelementptr inbounds %struct.entry, ptr %queue, i32 -1, i32 0, !dbg !26
   %1 = getelementptr inbounds %struct.entry, ptr %queue, i32 -1, i32 0, !dbg !26
-  call void @llvm.dbg.value(metadata ptr %1, metadata !27, metadata !20), !dbg !26
+  call void @llvm.dbg.value(metadata ptr %1, metadata !27, metadata !DIExpression(DW_OP_plus_uconst, 0)), !dbg !26
 ; CHECK: define void @salvage_gep0
 ; CHECK-NEXT: entry:
 ; CHECK-NEXT: call void @llvm.dbg.value(metadata ptr %queue,
@@ -123,7 +123,6 @@ attributes #1 = { nounwind readnone }
 !17 = !{!18}
 !18 = !DILocalVariable(name: "entry", scope: !14, file: !1, line: 6, type: !4)
 !19 = !DILocation(line: 6, column: 17, scope: !14)
-!20 = !DIExpression(DW_OP_plus_uconst, 0)
 !21 = !DILocation(line: 11, column: 1, scope: !14)
 !22 = distinct !DISubprogram(name: "scan", scope: !1, file: !1, line: 4, type: !15, isLocal: false, isDefinition: true, scopeLine: 5, flags: DIFlagPrototyped, isOptimized: true, unit: !0, retainedNodes: !17)
 !23 = !DILocation(line: 6, column: 17, scope: !22)

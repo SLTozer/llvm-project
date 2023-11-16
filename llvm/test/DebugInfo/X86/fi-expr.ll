@@ -10,7 +10,7 @@ define void @f(ptr %bar) !dbg !6 {
 entry:
   %foo.addr = alloca ptr
   store ptr %bar, ptr %foo.addr
-  call void @llvm.dbg.declare(metadata ptr %foo.addr, metadata !12, metadata !13), !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %foo.addr, metadata !12, metadata !DIExpression(DW_OP_deref)), !dbg !14
   ret void, !dbg !15
 }
 
@@ -31,6 +31,5 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata)
 !10 = !DIDerivedType(tag: DW_TAG_const_type, baseType: !11)
 !11 = !DIBasicType(name: "char", size: 8, encoding: DW_ATE_signed_char)
 !12 = !DILocalVariable(name: "foo", arg: 1, scope: !6, file: !1, line: 1, type: !10)
-!13 = !DIExpression(DW_OP_deref)
 !14 = !DILocation(line: 1, scope: !6)
 !15 = !DILocation(line: 1, scope: !6)

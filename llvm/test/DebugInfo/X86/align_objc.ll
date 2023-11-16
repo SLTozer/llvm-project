@@ -54,8 +54,8 @@ define void @f() #0 !dbg !14 {
 entry:
   %s1 = alloca %struct.S1, align 64
   %i = alloca i32, align 32
-  call void @llvm.dbg.declare(metadata ptr %s1, metadata !17, metadata !22), !dbg !23
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !24, metadata !22), !dbg !26
+  call void @llvm.dbg.declare(metadata ptr %s1, metadata !17, metadata !DIExpression()), !dbg !23
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !24, metadata !DIExpression()), !dbg !26
   ret void, !dbg !27
 }
 
@@ -91,7 +91,6 @@ attributes #1 = { nounwind readnone }
 !19 = distinct !DICompositeType(tag: DW_TAG_structure_type, file: !3, line: 6, size: 512, elements: !20)
 !20 = !{!21}
 !21 = !DIDerivedType(tag: DW_TAG_member, name: "c", scope: !19, file: !3, line: 7, baseType: !10, size: 8, align: 512)
-!22 = !DIExpression()
 !23 = !DILocation(line: 13, column: 6, scope: !14)
 !24 = !DILocalVariable(name: "i", scope: !14, file: !3, line: 14, type: !25, align: 256)
 !25 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)

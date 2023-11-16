@@ -35,7 +35,6 @@
   !10 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !11, size: 64)
   !11 = !DIDerivedType(tag: DW_TAG_const_type, baseType: !12)
   !12 = !DIBasicType(name: "unsigned int", size: 32, encoding: DW_ATE_unsigned)
-  !13 = !DIExpression()
   !14 = distinct !DISubprogram(name: "test", scope: !2, file: !2, line: 2, type: !8, isLocal: false, isDefinition: true, scopeLine: 3, flags: DIFlagPrototyped, isOptimized: true, unit: !1, retainedNodes: !15)
   !15 = !{!16}
   !16 = !DILocalVariable(name: "var", scope: !14, file: !2, line: 2, type: !12)
@@ -71,9 +70,9 @@ body:             |
     %2:gr64 = COPY $rdi
     %5:gr64 = ADD64ri32 %2, 1, implicit-def dead $eflags
     CMP32ri $esi, 0, implicit-def $eflags
-    DBG_VALUE %5.sub_32bit, $noreg, !16, !13, debug-location !17
+    DBG_VALUE %5.sub_32bit, $noreg, !16, !DIExpression(), debug-location !17
     CMP32ri $esi, 0, implicit-def $eflags
-    DBG_VALUE 0, $noreg, !16, !13, debug-location !17
+    DBG_VALUE 0, $noreg, !16, !DIExpression(), debug-location !17
     JCC_1 %bb.1.block1, 4, implicit $eflags
     JMP_1 %bb.2.exit
 

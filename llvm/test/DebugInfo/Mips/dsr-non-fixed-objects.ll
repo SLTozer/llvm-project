@@ -31,10 +31,10 @@ entry:
   %b.addr = alloca i32, align 4
   %c = alloca i32, align 16
   store i32 %a, ptr %a.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %a.addr, metadata !15, metadata !16), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %a.addr, metadata !15, metadata !DIExpression()), !dbg !17
   store i32 %b, ptr %b.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !18, metadata !16), !dbg !19
-  call void @llvm.dbg.declare(metadata ptr %c, metadata !20, metadata !16), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !18, metadata !DIExpression()), !dbg !19
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !20, metadata !DIExpression()), !dbg !21
   %0 = load i32, ptr %a.addr, align 4, !dbg !22
   %1 = load i32, ptr %b.addr, align 4, !dbg !23
   %add = add nsw i32 %0, %1, !dbg !24
@@ -55,10 +55,10 @@ entry:
   %c = alloca i32, align 16
   %w = alloca ptr, align 4
   store i32 %a, ptr %a.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %a.addr, metadata !28, metadata !16), !dbg !29
+  call void @llvm.dbg.declare(metadata ptr %a.addr, metadata !28, metadata !DIExpression()), !dbg !29
   store i32 %b, ptr %b.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !30, metadata !16), !dbg !31
-  call void @llvm.dbg.declare(metadata ptr %c, metadata !32, metadata !16), !dbg !33
+  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !30, metadata !DIExpression()), !dbg !31
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !32, metadata !DIExpression()), !dbg !33
   %0 = load i32, ptr %a.addr, align 4, !dbg !34
   %1 = load i32, ptr %b.addr, align 4, !dbg !35
   %add = add nsw i32 %0, %1, !dbg !36
@@ -91,7 +91,6 @@ entry:
 !13 = !{i32 2, !"Debug Info Version", i32 3}
 !14 = !{!"clang version 3.8.0 (trunk 251783) (llvm/trunk 251781)"}
 !15 = !DILocalVariable(name: "a", arg: 1, scope: !4, file: !1, line: 20, type: !7)
-!16 = !DIExpression()
 !17 = !DILocation(line: 20, column: 12, scope: !4)
 !18 = !DILocalVariable(name: "b", arg: 2, scope: !4, file: !1, line: 20, type: !7)
 !19 = !DILocation(line: 20, column: 19, scope: !4)

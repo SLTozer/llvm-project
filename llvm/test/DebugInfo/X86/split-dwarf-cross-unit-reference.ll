@@ -103,11 +103,11 @@ declare void @_Z1fv() #2
 define void @_Z3foo2t1(i32 %t.coerce) #3 !dbg !20 {
 entry:
   %t.i = alloca %struct.t1, align 4
-  call void @llvm.dbg.declare(metadata ptr %t.i, metadata !15, metadata !16), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %t.i, metadata !15, metadata !DIExpression()), !dbg !21
   %t = alloca %struct.t1, align 4
   %agg.tmp = alloca %struct.t1, align 4
   store i32 %t.coerce, ptr %t, align 4
-  call void @llvm.dbg.declare(metadata ptr %t, metadata !23, metadata !16), !dbg !24
+  call void @llvm.dbg.declare(metadata ptr %t, metadata !23, metadata !DIExpression()), !dbg !24
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %agg.tmp, ptr align 4 %t, i64 4, i1 false), !dbg !25
   %0 = load i32, ptr %agg.tmp, align 4, !dbg !26
   store i32 %0, ptr %t.i, align 4
@@ -122,11 +122,11 @@ declare void @llvm.memcpy.p0.p0.i64(ptr nocapture writeonly, ptr nocapture reado
 define void @_Z3bar2t1(i32 %t.coerce) #3 !dbg !29 {
 entry:
   %t.i = alloca %struct.t1, align 4
-  call void @llvm.dbg.declare(metadata ptr %t.i, metadata !15, metadata !16), !dbg !30
+  call void @llvm.dbg.declare(metadata ptr %t.i, metadata !15, metadata !DIExpression()), !dbg !30
   %t = alloca %struct.t1, align 4
   %agg.tmp = alloca %struct.t1, align 4
   store i32 %t.coerce, ptr %t, align 4
-  call void @llvm.dbg.declare(metadata ptr %t, metadata !32, metadata !16), !dbg !33
+  call void @llvm.dbg.declare(metadata ptr %t, metadata !32, metadata !DIExpression()), !dbg !33
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %agg.tmp, ptr align 4 %t, i64 4, i1 false), !dbg !34
   %0 = load i32, ptr %agg.tmp, align 4, !dbg !35
   store i32 %0, ptr %t.i, align 4
@@ -154,7 +154,6 @@ entry:
 !13 = !DIDerivedType(tag: DW_TAG_member, name: "i", scope: !11, file: !1, line: 1, baseType: !14, size: 32)
 !14 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !15 = !DILocalVariable(name: "t", arg: 1, scope: !8, file: !1, line: 3, type: !11)
-!16 = !DIExpression()
 !17 = !DILocation(line: 3, column: 43, scope: !8)
 !18 = !DILocation(line: 4, column: 3, scope: !8)
 !19 = !DILocation(line: 5, column: 1, scope: !8)

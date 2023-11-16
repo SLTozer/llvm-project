@@ -36,7 +36,7 @@ define i64 @_Z3fool(i64 %i) #0 !dbg !4 {
 entry:
   %i.addr = alloca i64, align 8
   store i64 %i, ptr %i.addr, align 8
-  call void @llvm.dbg.declare(metadata ptr %i.addr, metadata !16, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %i.addr, metadata !16, metadata !DIExpression()), !dbg !18
   %call = call i32 @rand(), !dbg !19
   %conv = sext i32 %call to i64, !dbg !19
   %0 = load i64, ptr %i.addr, align 8, !dbg !20
@@ -54,9 +54,9 @@ entry:
   %sum = alloca i64, align 8
   %i = alloca i32, align 4
   store i32 0, ptr %retval, align 4
-  call void @llvm.dbg.declare(metadata ptr %sum, metadata !23, metadata !17), !dbg !24
+  call void @llvm.dbg.declare(metadata ptr %sum, metadata !23, metadata !DIExpression()), !dbg !24
   store i64 0, ptr %sum, align 8, !dbg !24
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !25, metadata !17), !dbg !27
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !25, metadata !DIExpression()), !dbg !27
   store i32 0, ptr %i, align 4, !dbg !27
   br label %for.cond, !dbg !28
 
@@ -109,7 +109,6 @@ attributes #0 = { "use-sample-profile" }
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !{!"clang version 3.8.0 (trunk 251738) (llvm/trunk 251737)"}
 !16 = !DILocalVariable(name: "i", arg: 1, scope: !4, file: !1, line: 3, type: !8)
-!17 = !DIExpression()
 !18 = !DILocation(line: 3, column: 24, scope: !4)
 !19 = !DILocation(line: 4, column: 10, scope: !4)
 !20 = !DILocation(line: 4, column: 19, scope: !4)

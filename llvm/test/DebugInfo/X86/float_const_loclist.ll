@@ -34,8 +34,8 @@ target triple = "x86_64-apple-macosx10.11.0"
 define void @foo() #0 !dbg !4 {
 entry:
   tail call void (...) @barrier() #3, !dbg !16
-  tail call void @llvm.dbg.value(metadata float 0x40091EB860000000, metadata !8, metadata !17), !dbg !18
-  tail call void @llvm.dbg.value(metadata x86_fp80 0xK4000C8F5C28F5C28F800, metadata !10, metadata !17), !dbg !19
+  tail call void @llvm.dbg.value(metadata float 0x40091EB860000000, metadata !8, metadata !DIExpression()), !dbg !18
+  tail call void @llvm.dbg.value(metadata x86_fp80 0xK4000C8F5C28F5C28F800, metadata !10, metadata !DIExpression()), !dbg !19
   tail call void (...) @barrier() #3, !dbg !20
   ret void, !dbg !21
 }
@@ -69,7 +69,6 @@ attributes #3 = { nounwind }
 !14 = !{i32 1, !"PIC Level", i32 2}
 !15 = !{!"clang version 3.9.0 (trunk 265328) (llvm/trunk 265330)"}
 !16 = !DILocation(line: 7, column: 3, scope: !4)
-!17 = !DIExpression()
 !18 = !DILocation(line: 5, column: 9, scope: !4)
 !19 = !DILocation(line: 6, column: 15, scope: !4)
 !20 = !DILocation(line: 10, column: 3, scope: !4)

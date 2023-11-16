@@ -201,7 +201,7 @@ define void @_ZN1A1B2f1Ei(i32) #0 !dbg !14 {
 entry:
   %.addr = alloca i32, align 4
   store i32 %0, ptr %.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %.addr, metadata !61, metadata !62), !dbg !63
+  call void @llvm.dbg.declare(metadata ptr %.addr, metadata !61, metadata !DIExpression()), !dbg !63
   ret void, !dbg !64
 }
 
@@ -222,7 +222,7 @@ entry:
   %b.addr = alloca i8, align 1
   %frombool = zext i1 %b to i8
   store i8 %frombool, ptr %b.addr, align 1
-  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !66, metadata !62), !dbg !67
+  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !66, metadata !DIExpression()), !dbg !67
   %0 = load i8, ptr %b.addr, align 1, !dbg !68
   %tobool = trunc i8 %0 to i1, !dbg !68
   br i1 %tobool, label %if.then, label %if.end, !dbg !68
@@ -334,7 +334,6 @@ attributes #1 = { nounwind readnone }
 !59 = !{!"clang version 3.6.0 "}
 !60 = !DILocation(line: 3, column: 12, scope: !10)
 !61 = !DILocalVariable(name: "", line: 4, arg: 1, scope: !14, file: !18, type: !13)
-!62 = !DIExpression()
 !63 = !DILocation(line: 4, column: 12, scope: !14)
 !64 = !DILocation(line: 4, column: 16, scope: !14)
 !65 = !DILocation(line: 20, column: 12, scope: !17)

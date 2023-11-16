@@ -57,14 +57,14 @@ entry:
   %d = alloca i32, align 4
   %e = alloca i32, align 4
   store i32 %c, ptr %c.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %c.addr, metadata !11, metadata !12), !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %c.addr, metadata !11, metadata !DIExpression()), !dbg !13
   store i32 %b, ptr %b.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !14, metadata !12), !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !14, metadata !DIExpression()), !dbg !15
   store i32 %a, ptr %a.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %a.addr, metadata !16, metadata !12), !dbg !17
-  call void @llvm.dbg.declare(metadata ptr %d, metadata !18, metadata !12), !dbg !19
+  call void @llvm.dbg.declare(metadata ptr %a.addr, metadata !16, metadata !DIExpression()), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %d, metadata !18, metadata !DIExpression()), !dbg !19
   store i32 4, ptr %d, align 4, !dbg !19
-  call void @llvm.dbg.declare(metadata ptr %e, metadata !20, metadata !12), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %e, metadata !20, metadata !DIExpression()), !dbg !21
   store i32 5, ptr %e, align 4, !dbg !21
   %0 = load i32, ptr %a.addr, align 4, !dbg !22
   %1 = load i32, ptr %b.addr, align 4, !dbg !23
@@ -100,7 +100,6 @@ attributes #1 = { nounwind readnone }
 !9 = !{!10, !10, !10, !10}
 !10 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !11 = !DILocalVariable(name: "c", arg: 3, scope: !7, file: !1, line: 1, type: !10)
-!12 = !DIExpression()
 !13 = !DILocation(line: 1, column: 25, scope: !7)
 !14 = !DILocalVariable(name: "b", arg: 2, scope: !7, file: !1, line: 1, type: !10)
 !15 = !DILocation(line: 1, column: 18, scope: !7)

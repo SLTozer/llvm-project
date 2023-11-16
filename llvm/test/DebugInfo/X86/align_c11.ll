@@ -39,7 +39,7 @@ target triple = "x86_64-unknown-linux-gnu"
 define i32 @foo() #0 !dbg !17 {
 entry:
   %local_data = alloca %struct.data, align 128
-  call void @llvm.dbg.declare(metadata ptr %local_data, metadata !21, metadata !22), !dbg !23
+  call void @llvm.dbg.declare(metadata ptr %local_data, metadata !21, metadata !DIExpression()), !dbg !23
   ret i32 0, !dbg !24
 }
 
@@ -75,7 +75,6 @@ attributes #1 = { nounwind readnone }
 !19 = !{!20}
 !20 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !21 = !DILocalVariable(name: "local_data", scope: !17, file: !3, line: 10, type: !6)
-!22 = !DIExpression()
 !23 = !DILocation(line: 10, column: 17, scope: !17)
 !24 = !DILocation(line: 11, column: 5, scope: !17)
 

@@ -15,7 +15,7 @@ target triple = "x86_64--"
 ; CHECK: movl $42, %eax
 ; CHECK: retq
 define i32 @f0(ptr byval(%struct.s) align 8 %input) !dbg !8 {
-  call void @llvm.dbg.declare(metadata ptr %input, metadata !4, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %input, metadata !4, metadata !DIExpression()), !dbg !18
   ret i32 42, !dbg !18
 }
 
@@ -41,7 +41,7 @@ define i32 @f1(ptr byval(%struct.s) align 8 %input) !dbg !19 {
   ; this alloca should force FP usage.
   %stackspace = alloca i32, i64 %val, align 1
   store ptr %stackspace, ptr @ptr
-  call void @llvm.dbg.declare(metadata ptr %input, metadata !20, metadata !17), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %input, metadata !20, metadata !DIExpression()), !dbg !21
   ret i32 42, !dbg !21
 }
 
@@ -65,7 +65,7 @@ define i32 @f2(ptr byval(%struct.s) align 8 %input) !dbg !22 {
   %val = load i64, ptr @glob
   %stackspace = alloca i32, i64 %val, align 64
   store ptr %stackspace, ptr @ptr
-  call void @llvm.dbg.declare(metadata ptr %input, metadata !23, metadata !17), !dbg !24
+  call void @llvm.dbg.declare(metadata ptr %input, metadata !23, metadata !DIExpression()), !dbg !24
   ret i32 42, !dbg !24
 }
 
@@ -103,7 +103,6 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata)
 !15 = !DIDerivedType(tag: DW_TAG_member, name: "d", baseType: !10, size: 32, offset: 96)
 !16 = !DIDerivedType(tag: DW_TAG_member, name: "e", baseType: !10, size: 32, offset: 128)
 
-!17 = !DIExpression()
 !18 = !DILocation(line: 5, scope: !8)
 
 !19 = distinct !DISubprogram(name: "f1", file: !3, line: 5, type: !6, isLocal: false, isDefinition: true, flags: DIFlagPrototyped, unit: !2, retainedNodes: !5)

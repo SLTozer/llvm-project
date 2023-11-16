@@ -51,12 +51,12 @@ source_filename = "test/DebugInfo/X86/misched-dbg-value.ll"
 ; Function Attrs: nounwind optsize
 define void @Proc8(ptr nocapture %Array1Par, ptr nocapture %Array2Par, i32 %IntParI1, i32 %IntParI2) #0 !dbg !61 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %Array1Par, metadata !67, metadata !73), !dbg !74
-  tail call void @llvm.dbg.value(metadata ptr %Array2Par, metadata !68, metadata !73), !dbg !75
-  tail call void @llvm.dbg.value(metadata i32 %IntParI1, metadata !69, metadata !73), !dbg !76
-  tail call void @llvm.dbg.value(metadata i32 %IntParI2, metadata !70, metadata !73), !dbg !77
+  tail call void @llvm.dbg.value(metadata ptr %Array1Par, metadata !67, metadata !DIExpression()), !dbg !74
+  tail call void @llvm.dbg.value(metadata ptr %Array2Par, metadata !68, metadata !DIExpression()), !dbg !75
+  tail call void @llvm.dbg.value(metadata i32 %IntParI1, metadata !69, metadata !DIExpression()), !dbg !76
+  tail call void @llvm.dbg.value(metadata i32 %IntParI2, metadata !70, metadata !DIExpression()), !dbg !77
   %add = add i32 %IntParI1, 5, !dbg !78
-  tail call void @llvm.dbg.value(metadata i32 %add, metadata !71, metadata !73), !dbg !78
+  tail call void @llvm.dbg.value(metadata i32 %add, metadata !71, metadata !DIExpression()), !dbg !78
   %idxprom = sext i32 %add to i64, !dbg !79
   %arrayidx = getelementptr inbounds i32, ptr %Array1Par, i64 %idxprom, !dbg !79
   store i32 %IntParI2, ptr %arrayidx, align 4, !dbg !79
@@ -68,7 +68,7 @@ entry:
   %idxprom7 = sext i32 %add6 to i64, !dbg !81
   %arrayidx8 = getelementptr inbounds i32, ptr %Array1Par, i64 %idxprom7, !dbg !81
   store i32 %add, ptr %arrayidx8, align 4, !dbg !81
-  tail call void @llvm.dbg.value(metadata i32 %add, metadata !72, metadata !73), !dbg !82
+  tail call void @llvm.dbg.value(metadata i32 %add, metadata !72, metadata !DIExpression()), !dbg !82
   br label %for.body, !dbg !82
 
 for.body:                                         ; preds = %for.body, %entry
@@ -77,7 +77,7 @@ for.body:                                         ; preds = %for.body, %entry
   %arrayidx13 = getelementptr inbounds [51 x i32], ptr %Array2Par, i64 %idxprom, i64 %indvars.iv, !dbg !84
   store i32 %add, ptr %arrayidx13, align 4, !dbg !84
   %inc = add nsw i32 %IntIndex.046, 1, !dbg !82
-  tail call void @llvm.dbg.value(metadata i32 %inc, metadata !72, metadata !73), !dbg !82
+  tail call void @llvm.dbg.value(metadata i32 %inc, metadata !72, metadata !DIExpression()), !dbg !82
   %cmp = icmp sgt i32 %inc, %add3, !dbg !82
   %indvars.iv.next = add i64 %indvars.iv, 1, !dbg !82
   br i1 %cmp, label %for.end, label %for.body, !dbg !82
@@ -180,7 +180,6 @@ attributes #1 = { nounwind readnone }
 !70 = !DILocalVariable(name: "IntParI2", arg: 4, scope: !61, file: !2, line: 184, type: !48)
 !71 = !DILocalVariable(name: "IntLoc", scope: !61, file: !2, line: 186, type: !48)
 !72 = !DILocalVariable(name: "IntIndex", scope: !61, file: !2, line: 187, type: !48)
-!73 = !DIExpression()
 !74 = !DILocation(line: 181, scope: !61)
 !75 = !DILocation(line: 182, scope: !61)
 !76 = !DILocation(line: 183, scope: !61)

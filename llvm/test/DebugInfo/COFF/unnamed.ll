@@ -141,7 +141,7 @@ entry:
   %retval = alloca i32, align 4
   %local = alloca %struct.named_struct, align 4
   store i32 0, ptr %retval, align 4
-  call void @llvm.dbg.declare(metadata ptr %local, metadata !11, metadata !25), !dbg !26
+  call void @llvm.dbg.declare(metadata ptr %local, metadata !11, metadata !DIExpression()), !dbg !26
   store i32 1, ptr %local, align 4, !dbg !28
   %unnamed_union = getelementptr inbounds %struct.named_struct, ptr %local, i32 0, i32 1, !dbg !29
   store i32 65, ptr %unnamed_union, align 4, !dbg !31
@@ -185,7 +185,6 @@ attributes #1 = { nounwind readnone }
 !22 = distinct !DICompositeType(tag: DW_TAG_structure_type, scope: !12, file: !1, line: 7, size: 8, elements: !23)
 !23 = !{!24}
 !24 = !DIDerivedType(tag: DW_TAG_member, name: "m3", scope: !22, file: !1, line: 8, baseType: !20, size: 8)
-!25 = !DIExpression()
 !26 = !DILocation(line: 14, column: 23, scope: !7)
 !27 = !DILocation(line: 16, column: 9, scope: !7)
 !28 = !DILocation(line: 16, column: 12, scope: !7)

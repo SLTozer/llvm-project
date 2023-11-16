@@ -12,7 +12,7 @@ target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f3
 ; Function Attrs: nounwind ssp uwtable
 define i32 @test() #0 !dbg !15 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !19, metadata !21), !dbg !22
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !19, metadata !DIExpression()), !dbg !22
   br label %for.body, !dbg !22
 
 for.body:                                         ; preds = %for.body, %entry
@@ -26,7 +26,7 @@ for.body:                                         ; preds = %for.body, %entry
   %arrayidx4 = getelementptr inbounds [1024 x i32], ptr @A, i64 0, i64 %indvars.iv, !dbg !23
   store i32 %add, ptr %arrayidx4, align 4, !dbg !23
   %indvars.iv.next = add i64 %indvars.iv, 1, !dbg !22
-  tail call void @llvm.dbg.value(metadata !12, metadata !19, metadata !21), !dbg !22
+  tail call void @llvm.dbg.value(metadata !12, metadata !19, metadata !DIExpression()), !dbg !22
   %lftr.wideiv = trunc i64 %indvars.iv.next to i32, !dbg !22
   %exitcond = icmp ne i32 %lftr.wideiv, 1024, !dbg !22
   br i1 %exitcond, label %for.body, label %for.end, !dbg !22
@@ -69,7 +69,6 @@ attributes #1 = { nounwind readnone }
 !18 = !{!19}
 !19 = !DILocalVariable(name: "i", scope: !20, file: !2, line: 6, type: !4)
 !20 = distinct !DILexicalBlock(scope: !15, file: !2, line: 6)
-!21 = !DIExpression()
 !22 = !DILocation(line: 6, scope: !20)
 !23 = !DILocation(line: 7, scope: !24)
 !24 = distinct !DILexicalBlock(scope: !20, file: !2, line: 6)

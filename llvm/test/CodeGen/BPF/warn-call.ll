@@ -3,9 +3,9 @@
 ; CHECK: error: warn_call.c
 ; CHECK: built-in function 'memcpy'
 define ptr @warn(ptr returned, ptr, i64) local_unnamed_addr #0 !dbg !6 {
-  tail call void @llvm.dbg.value(metadata ptr %0, i64 0, metadata !14, metadata !17), !dbg !18
-  tail call void @llvm.dbg.value(metadata ptr %1, i64 0, metadata !15, metadata !17), !dbg !19
-  tail call void @llvm.dbg.value(metadata i64 %2, i64 0, metadata !16, metadata !17), !dbg !20
+  tail call void @llvm.dbg.value(metadata ptr %0, i64 0, metadata !14, metadata !DIExpression()), !dbg !18
+  tail call void @llvm.dbg.value(metadata ptr %1, i64 0, metadata !15, metadata !DIExpression()), !dbg !19
+  tail call void @llvm.dbg.value(metadata i64 %2, i64 0, metadata !16, metadata !DIExpression()), !dbg !20
   tail call void @llvm.memcpy.p0.p0.i64(ptr %0, ptr %1, i64 %2, i1 false), !dbg !21
   %4 = tail call ptr @foo(ptr %0, ptr %1, i64 %2) #5, !dbg !22
   %5 = tail call fastcc ptr @bar(ptr %0), !dbg !23
@@ -19,8 +19,8 @@ declare ptr @foo(ptr, ptr, i64) local_unnamed_addr #2
 
 ; Function Attrs: noinline nounwind readnone
 define internal fastcc ptr @bar(ptr readnone returned) unnamed_addr #3 !dbg !25 {
-  tail call void @llvm.dbg.value(metadata ptr null, i64 0, metadata !28, metadata !17), !dbg !30
-  tail call void @llvm.dbg.value(metadata i64 0, i64 0, metadata !29, metadata !17), !dbg !31
+  tail call void @llvm.dbg.value(metadata ptr null, i64 0, metadata !28, metadata !DIExpression()), !dbg !30
+  tail call void @llvm.dbg.value(metadata i64 0, i64 0, metadata !29, metadata !DIExpression()), !dbg !31
   ret ptr %0, !dbg !32
 }
 
@@ -48,7 +48,6 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata) #4
 !14 = !DILocalVariable(name: "dst", arg: 1, scope: !6, file: !1, line: 4, type: !9)
 !15 = !DILocalVariable(name: "src", arg: 2, scope: !6, file: !1, line: 4, type: !10)
 !16 = !DILocalVariable(name: "len", arg: 3, scope: !6, file: !1, line: 4, type: !12)
-!17 = !DIExpression()
 !18 = !DILocation(line: 4, column: 18, scope: !6)
 !19 = !DILocation(line: 4, column: 35, scope: !6)
 !20 = !DILocation(line: 4, column: 54, scope: !6)

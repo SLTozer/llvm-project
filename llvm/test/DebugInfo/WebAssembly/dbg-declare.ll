@@ -16,9 +16,9 @@ define internal zeroext i8 @0(i32, i8 zeroext) !dbg !15 !type !20 {
   %3 = alloca i32, align 4
   %4 = alloca i8, align 1
   store i32 %0, ptr %3, align 4
-  call void @llvm.dbg.declare(metadata ptr %3, metadata !21, metadata !22), !dbg !23
+  call void @llvm.dbg.declare(metadata ptr %3, metadata !21, metadata !DIExpression()), !dbg !23
   store i8 %1, ptr %4, align 1
-  call void @llvm.dbg.declare(metadata ptr %4, metadata !24, metadata !22), !dbg !25
+  call void @llvm.dbg.declare(metadata ptr %4, metadata !24, metadata !DIExpression()), !dbg !25
   %5 = load i8, ptr %4, align 1, !dbg !26
   %6 = zext i8 %5 to i32, !dbg !26
   %7 = load i32, ptr %3, align 4, !dbg !27
@@ -63,7 +63,6 @@ attributes #0 = { nounwind readnone }
 !19 = !DIBasicType(name: "long unsigned int", size: 32, align: 32, encoding: DW_ATE_unsigned)
 !20 = !{i64 0, !"_ZTSFhmhE"}
 !21 = !DILocalVariable(name: "i", arg: 1, scope: !15, file: !1, line: 11, type: !18)
-!22 = !DIExpression()
 !23 = !DILocation(line: 11, column: 23, scope: !15)
 !24 = !DILocalVariable(name: "v", arg: 2, scope: !15, file: !1, line: 11, type: !7)
 !25 = !DILocation(line: 11, column: 34, scope: !15)

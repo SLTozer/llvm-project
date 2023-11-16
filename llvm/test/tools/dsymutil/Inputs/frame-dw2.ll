@@ -9,8 +9,8 @@ entry:
   %b.addr = alloca i32, align 4
   %var = alloca i32, align 4
   store i32 %b, ptr %b.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !13, metadata !14), !dbg !15
-  call void @llvm.dbg.declare(metadata ptr %var, metadata !16, metadata !14), !dbg !17
+  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !13, metadata !DIExpression()), !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %var, metadata !16, metadata !DIExpression()), !dbg !17
   %0 = load i32, ptr %b.addr, align 4, !dbg !18
   %add = add nsw i32 %0, 1, !dbg !19
   store i32 %add, ptr %var, align 4, !dbg !17
@@ -28,7 +28,7 @@ define i32 @baz(i32 %b) #0 !dbg !8 {
 entry:
   %b.addr = alloca i32, align 4
   store i32 %b, ptr %b.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !22, metadata !14), !dbg !23
+  call void @llvm.dbg.declare(metadata ptr %b.addr, metadata !22, metadata !DIExpression()), !dbg !23
   %0 = load i32, ptr %b.addr, align 4, !dbg !24
   %call = call i32 @bar(i32 %0), !dbg !25
   ret i32 %call, !dbg !26
@@ -55,7 +55,6 @@ attributes #2 = { "less-precise-fpmad"="false" "frame-pointer"="all" "no-infs-fp
 !11 = !{i32 1, !"PIC Level", i32 2}
 !12 = !{!"clang version 3.7.0 (trunk 239176) (llvm/trunk 239190)"}
 !13 = !DILocalVariable(name: "b", arg: 1, scope: !4, file: !1, line: 3, type: !7)
-!14 = !DIExpression()
 !15 = !DILocation(line: 3, column: 13, scope: !4)
 !16 = !DILocalVariable(name: "var", scope: !4, file: !1, line: 4, type: !7)
 !17 = !DILocation(line: 4, column: 6, scope: !4)

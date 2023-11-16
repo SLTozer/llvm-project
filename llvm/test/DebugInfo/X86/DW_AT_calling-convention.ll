@@ -47,8 +47,8 @@ target triple = "i386-pc-windows-msvc19.0.23918"
 ; Function Attrs: nounwind readnone
 define x86_fastcallcc i32 @"\01?f@@YIHHH@Z"(i32 inreg %a, i32 inreg %b) #0 !dbg !13 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %b, metadata !15, metadata !17), !dbg !18
-  tail call void @llvm.dbg.value(metadata i32 %a, metadata !16, metadata !17), !dbg !19
+  tail call void @llvm.dbg.value(metadata i32 %b, metadata !15, metadata !DIExpression()), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 %a, metadata !16, metadata !DIExpression()), !dbg !19
   %add = add nsw i32 %b, %a, !dbg !20
   ret i32 %add, !dbg !21
 }
@@ -80,7 +80,6 @@ attributes #1 = { nounwind readnone }
 !14 = !{!15, !16}
 !15 = !DILocalVariable(name: "b", arg: 2, scope: !13, file: !3, line: 1, type: !9)
 !16 = !DILocalVariable(name: "a", arg: 1, scope: !13, file: !3, line: 1, type: !9)
-!17 = !DIExpression()
 !18 = !DILocation(line: 1, column: 29, scope: !13)
 !19 = !DILocation(line: 1, column: 22, scope: !13)
 !20 = !DILocation(line: 1, column: 43, scope: !13)

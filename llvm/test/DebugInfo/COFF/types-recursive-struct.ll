@@ -149,8 +149,8 @@ define void @"\01?f@@YAXXZ"() #0 !dbg !7 {
 entry:
   %a = alloca %struct.A, align 8
   %b = alloca %struct.B, align 8
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !10, metadata !18), !dbg !19
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !20, metadata !18), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !10, metadata !DIExpression()), !dbg !19
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !20, metadata !DIExpression()), !dbg !21
   ret void, !dbg !22
 }
 
@@ -182,7 +182,6 @@ attributes #1 = { nounwind readnone }
 !15 = distinct !DICompositeType(tag: DW_TAG_structure_type, name: "B", file: !1, line: 3, size: 64, align: 64, elements: !16)
 !16 = !{!17}
 !17 = !DIDerivedType(tag: DW_TAG_member, name: "a", scope: !15, file: !1, line: 3, baseType: !11, size: 64, align: 64)
-!18 = !DIExpression()
 !19 = !DILocation(line: 5, column: 5, scope: !7)
 !20 = !DILocalVariable(name: "b", scope: !7, file: !1, line: 6, type: !15)
 !21 = !DILocation(line: 6, column: 5, scope: !7)

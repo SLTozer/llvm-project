@@ -31,7 +31,7 @@
 define internal void @_ZN2e34main17h934ff72f9a38d4bbE() unnamed_addr #0 !dbg !5 {
 start:
   %qq = alloca %F, align 8
-  call void @llvm.dbg.declare(metadata ptr %qq, metadata !10, metadata !28), !dbg !29
+  call void @llvm.dbg.declare(metadata ptr %qq, metadata !10, metadata !DIExpression()), !dbg !29
   store ptr null, ptr %qq, !dbg !29
   ret void, !dbg !30
 }
@@ -71,6 +71,5 @@ attributes #0 = { nounwind uwtable }
 !24 = !DIDerivedType(tag: DW_TAG_member, scope: !14, file: !7, baseType: !25, size: 128, align: 64, extraData: i64 0)
 !25 = !DICompositeType(tag: DW_TAG_structure_type, name: "Nope", scope: !12, file: !7, size: 128, align: 64, elements: !4, identifier: "7ce1efff6b82281ab9ceb730566e7e20::Nope")
 !27 = !DIBasicType(name: "u64", size: 64, encoding: DW_ATE_unsigned)
-!28 = !DIExpression()
 !29 = !DILocation(line: 3, scope: !11)
 !30 = !DILocation(line: 4, scope: !5)

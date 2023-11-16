@@ -11,8 +11,8 @@ target triple = "bpf"
 
 ; Function Attrs: nounwind
 define i32 @testprog(i32, i32) local_unnamed_addr #0 !dbg !2 {
-  tail call void @llvm.dbg.value(metadata i32 %0, i64 0, metadata !11, metadata !16), !dbg !17
-  tail call void @llvm.dbg.value(metadata i32 %1, i64 0, metadata !12, metadata !16), !dbg !18
+  tail call void @llvm.dbg.value(metadata i32 %0, i64 0, metadata !11, metadata !DIExpression()), !dbg !17
+  tail call void @llvm.dbg.value(metadata i32 %1, i64 0, metadata !12, metadata !DIExpression()), !dbg !18
   %3 = load i32, ptr @testprog.myvar_c, align 4, !dbg !19, !tbaa !20
   %4 = add i32 %1, %0, !dbg !24
   %5 = add i32 %4, %3, !dbg !25
@@ -46,7 +46,6 @@ attributes #1 = { nounwind readnone }
 !13 = !{i32 2, !"Dwarf Version", i32 4}
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !{!"clang version 4.0.0 (trunk 287518) (llvm/trunk 287520)"}
-!16 = !DIExpression()
 !17 = !DILocation(line: 1, column: 18, scope: !2)
 !18 = !DILocation(line: 1, column: 31, scope: !2)
 !19 = !DILocation(line: 5, column: 19, scope: !2)

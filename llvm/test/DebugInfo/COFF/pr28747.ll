@@ -20,7 +20,7 @@ target triple = "i686-pc-windows-msvc18.0.0"
 define void @baz() {
 entry:
   %x.i.i = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %x.i.i, metadata !6, metadata !12), !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %x.i.i, metadata !6, metadata !DIExpression()), !dbg !13
   store i32 5, ptr %x.i.i, align 4, !dbg !13
   ret void
 }
@@ -46,7 +46,6 @@ attributes #0 = { nounwind readnone }
 !9 = !DISubroutineType(types: !10)
 !10 = !{null}
 !11 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
-!12 = !DIExpression()
 !13 = !DILocation(line: 1, column: 56, scope: !7, inlinedAt: !14)
 !14 = distinct !DILocation(line: 2, column: 52, scope: !15)
 !15 = distinct !DISubprogram(name: "bar", scope: !8, file: !8, line: 2, type: !9, isLocal: true, isDefinition: true, scopeLine: 2, isOptimized: false, unit: !0, retainedNodes: !2)

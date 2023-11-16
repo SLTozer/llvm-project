@@ -7,7 +7,7 @@
 ; Function Attrs: minsize nounwind optsize readonly
 define ptr @s_idx(ptr readonly %xl) local_unnamed_addr #0 !dbg !8 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %xl, metadata !17, metadata !18), !dbg !19
+  tail call void @llvm.dbg.value(metadata ptr %xl, metadata !17, metadata !DIExpression()), !dbg !19
   br label %while.cond, !dbg !20
 
 while.cond:                                       ; preds = %while.body, %entry
@@ -17,7 +17,7 @@ while.cond:                                       ; preds = %while.body, %entry
 
 while.body:                                       ; preds = %while.cond
   %0 = load ptr, ptr %xl.addr.0, align 4
-  tail call void @llvm.dbg.value(metadata ptr %0, metadata !17, metadata !18), !dbg !19
+  tail call void @llvm.dbg.value(metadata ptr %0, metadata !17, metadata !DIExpression()), !dbg !19
   br label %while.cond
 
 while.end:                                        ; preds = %while.cond
@@ -48,6 +48,5 @@ declare void @llvm.dbg.value(metadata, metadata, metadata) #1
 !15 = !DIDerivedType(tag: DW_TAG_member, name: "next", scope: !13, file: !1, line: 3, baseType: !11, size: 32, align: 32)
 !16 = !{!17}
 !17 = !DILocalVariable(name: "xl", arg: 1, scope: !8, file: !1, line: 6, type: !11)
-!18 = !DIExpression()
 !19 = !DILocation(line: 6, column: 27, scope: !8)
 !20 = !DILocation(line: 8, column: 5, scope: !8)

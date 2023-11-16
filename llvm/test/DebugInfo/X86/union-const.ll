@@ -22,8 +22,8 @@ target triple = "x86_64-apple-macosx10.10.0"
 ; Function Attrs: nounwind readnone ssp uwtable
 define i32 @mfi_aen_setup() #0 !dbg !4 {
 entry:
-  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !16, metadata !21), !dbg !22
-  tail call void @llvm.dbg.value(metadata i32 0, metadata !16, metadata !21), !dbg !22
+  tail call void @llvm.dbg.declare(metadata ptr undef, metadata !16, metadata !DIExpression()), !dbg !22
+  tail call void @llvm.dbg.value(metadata i32 0, metadata !16, metadata !DIExpression()), !dbg !22
   ret i32 undef, !dbg !23
 }
 
@@ -60,6 +60,5 @@ attributes #1 = { nounwind readnone }
 !18 = !{i32 2, !"Debug Info Version", i32 3}
 !19 = !{i32 1, !"PIC Level", i32 2}
 !20 = !{!"clang version 3.7.0 (trunk 226915) (llvm/trunk 226905)"}
-!21 = !DIExpression()
 !22 = !DILocation(line: 6, column: 17, scope: !4)
 !23 = !DILocation(line: 8, column: 1, scope: !4)

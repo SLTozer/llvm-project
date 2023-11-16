@@ -7,9 +7,9 @@ define void @f() !dbg !3 {
 entry:
   ; CHECK-NOT: call void @llvm.dbg.value
   ; CHECK: call void @llvm.dbg.value(metadata i32 42, metadata !8, metadata !DIExpression())
-  call void @llvm.dbg.value(metadata i32 42, i64 0, metadata !8, metadata !9), !dbg !10
+  call void @llvm.dbg.value(metadata i32 42, i64 0, metadata !8, metadata !DIExpression()), !dbg !10
   ; CHECK-NOT: call void @llvm.dbg.value
-  call void @llvm.dbg.value(metadata i32 0, i64 1, metadata !8, metadata !9), !dbg !10
+  call void @llvm.dbg.value(metadata i32 0, i64 1, metadata !8, metadata !DIExpression()), !dbg !10
   ret void
 }
 
@@ -28,5 +28,4 @@ declare void @llvm.dbg.value(metadata, i64, metadata, metadata)
 !6 = !DIBasicType(name: "int", size: 32, align: 32, encoding: DW_ATE_signed)
 !7 = !{!8}
 !8 = !DILocalVariable(name: "i", scope: !3, file: !1, line: 2, type: !6)
-!9 = !DIExpression()
 !10 = !DILocation(line: 2, scope: !3)

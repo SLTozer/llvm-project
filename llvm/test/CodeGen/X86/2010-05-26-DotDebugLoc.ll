@@ -11,7 +11,7 @@ target triple = "x86_64-apple-darwin10"
 ; Function Attrs: noinline nounwind optsize ssp
 define ptr @bar(ptr %myvar) #0 !dbg !8 {
 entry:
-  tail call void @llvm.dbg.value(metadata ptr %myvar, i64 0, metadata !18, metadata !19), !dbg !20
+  tail call void @llvm.dbg.value(metadata ptr %myvar, i64 0, metadata !18, metadata !DIExpression()), !dbg !20
   %0 = load i32, ptr %myvar, align 8, !dbg !21
   tail call void @foo(i32 %0) #0, !dbg !21
   ret ptr %myvar, !dbg !23
@@ -48,7 +48,6 @@ attributes #1 = { nounwind readnone }
 !16 = !DIDerivedType(tag: DW_TAG_member, name: "d", scope: !13, file: !1, line: 4, baseType: !12, size: 64, align: 64, offset: 64)
 !17 = !{!18}
 !18 = !DILocalVariable(name: "myvar", arg: 1, scope: !8, file: !1, line: 17, type: !12)
-!19 = !DIExpression()
 !20 = !DILocation(line: 0, scope: !8)
 !21 = !DILocation(line: 18, scope: !22)
 !22 = distinct !DILexicalBlock(scope: !8, file: !1, line: 17)

@@ -27,7 +27,7 @@ for.end1042:                                      ; preds = %for.cond968.prehead
 
   %0 = phi i32 [ undef, %for.cond964.preheader ], [ undef, %for.cond968.preheader ], [ undef, %entry ]
   %1 = load i32, ptr @grid_points, align 4, !dbg !285, !tbaa !286
-  tail call void @llvm.dbg.value(metadata i32 1, i64 0, metadata !268, metadata !290), !dbg !291
+  tail call void @llvm.dbg.value(metadata i32 1, i64 0, metadata !268, metadata !DIExpression()), !dbg !291
   %sub10454270 = add nsw i32 %0, -1, !dbg !291
   %cmp10464271 = icmp sgt i32 %sub10454270, 1, !dbg !291
   %sub11134263 = add nsw i32 %1, -1, !dbg !293
@@ -347,7 +347,6 @@ attributes #1 = { nounwind readnone }
 !287 = !{!"int", !288}
 !288 = !{!"omnipotent char", !289}
 !289 = !{!"Simple C/C++ TBAA"}
-!290 = !DIExpression()
 !291 = !DILocation(line: 1925, scope: !292)
 !292 = distinct !DILexicalBlock(scope: !263, file: !8, line: 1925)
 !293 = !DILocation(line: 1939, scope: !294)

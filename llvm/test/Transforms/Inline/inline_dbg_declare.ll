@@ -28,7 +28,7 @@ define float @foo(float %x) #0 !dbg !4 {
 entry:
   %x.addr = alloca float, align 4
   store float %x, ptr %x.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !16, metadata !17), !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %x.addr, metadata !16, metadata !DIExpression()), !dbg !18
   %0 = load float, ptr %x.addr, align 4, !dbg !19
   ret float %0, !dbg !19
 }
@@ -48,7 +48,7 @@ entry:
 
   %dst.addr = alloca ptr, align 4
   store ptr %dst, ptr %dst.addr, align 4
-  call void @llvm.dbg.declare(metadata ptr %dst.addr, metadata !20, metadata !17), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %dst.addr, metadata !20, metadata !DIExpression()), !dbg !21
   %0 = load ptr, ptr %dst.addr, align 4, !dbg !22
   %1 = load float, ptr %0, align 4, !dbg !22
   %call = call float @foo(float %1), !dbg !22
@@ -83,7 +83,6 @@ attributes #1 = { nounwind readnone }
 !14 = !{i32 2, !"Debug Info Version", i32 3}
 !15 = !{!"clang version 3.6.0 (trunk)"}
 !16 = !DILocalVariable(name: "x", line: 1, arg: 1, scope: !4, file: !5, type: !8)
-!17 = !DIExpression()
 !18 = !DILocation(line: 1, column: 17, scope: !4)
 !19 = !DILocation(line: 3, column: 5, scope: !4)
 !20 = !DILocalVariable(name: "dst", line: 6, arg: 1, scope: !9, file: !5, type: !12)

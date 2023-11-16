@@ -42,23 +42,23 @@ target triple = "x86_64-apple-macosx10.10.0"
 ; Function Attrs: nounwind readnone ssp uwtable
 define i32 @_Z3foo1S(i32 %s.coerce) #0 !dbg !12 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %s.coerce, metadata !18, metadata !37), !dbg !38
-  tail call void @llvm.dbg.value(metadata i32 1, metadata !18, metadata !37), !dbg !38
+  tail call void @llvm.dbg.value(metadata i32 %s.coerce, metadata !18, metadata !DIExpression()), !dbg !38
+  tail call void @llvm.dbg.value(metadata i32 1, metadata !18, metadata !DIExpression()), !dbg !38
   ret i32 1, !dbg !39
 }
 
 ; Function Attrs: nounwind readnone ssp uwtable
 define i32 @_Z3foo1C(i32 %c.coerce) #0 !dbg !19 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 %c.coerce, metadata !23, metadata !37), !dbg !40
-  tail call void @llvm.dbg.value(metadata i32 2, metadata !23, metadata !37), !dbg !40
+  tail call void @llvm.dbg.value(metadata i32 %c.coerce, metadata !23, metadata !DIExpression()), !dbg !40
+  tail call void @llvm.dbg.value(metadata i32 2, metadata !23, metadata !DIExpression()), !dbg !40
   ret i32 2, !dbg !41
 }
 
 ; Function Attrs: nounwind readnone ssp uwtable
 define i32 @_Z3barv() #0 !dbg !24 {
 entry:
-  tail call void @llvm.dbg.value(metadata i32 3, metadata !28, metadata !37), !dbg !42
+  tail call void @llvm.dbg.value(metadata i32 3, metadata !28, metadata !DIExpression()), !dbg !42
   ret i32 3, !dbg !43
 }
 
@@ -108,7 +108,6 @@ attributes #1 = { nounwind readnone }
 !34 = !{i32 2, !"Debug Info Version", i32 3}
 !35 = !{i32 1, !"PIC Level", i32 2}
 !36 = !{!"clang version 3.6.0 (trunk 225364) (llvm/trunk 225366)"}
-!37 = !DIExpression()
 !38 = !DILocation(line: 3, column: 16, scope: !12)
 !39 = !DILocation(line: 5, column: 3, scope: !12)
 !40 = !DILocation(line: 10, column: 16, scope: !19)
