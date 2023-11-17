@@ -48,7 +48,7 @@ stack:
 body: |
   bb.0.entry:
     %0 = COPY $edi
-    ; CHECK: [[@LINE+1]]:46: expected a metadata node after 'debug-location'
+    ; CHECK: [[@LINE+1]]:58: expected a metadata node after 'debug-location'
     DBG_VALUE _, 0, !12, !DIExpression(), debug-location 14
     MOV32mr $stack.x.addr, 1, _, 0, _, %0
     $eax = COPY %0
