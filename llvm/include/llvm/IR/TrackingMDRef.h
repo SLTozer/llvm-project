@@ -19,8 +19,6 @@
 
 namespace llvm {
 
-class DIAssignID;
-
 /// Tracking metadata reference.
 ///
 /// This class behaves like \a TrackingVH, but for metadata.
@@ -142,7 +140,6 @@ public:
 
 using TrackingMDNodeRef = TypedTrackingMDRef<MDNode>;
 using TrackingValueAsMetadataRef = TypedTrackingMDRef<ValueAsMetadata>;
-using TrackingDIAssignIDRef = TypedTrackingMDRef<DIAssignID>;
 
 // Expose the underlying metadata to casting.
 template <> struct simplify_type<TrackingMDRef> {

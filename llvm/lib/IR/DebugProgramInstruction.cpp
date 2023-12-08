@@ -15,7 +15,7 @@ namespace llvm {
 DPValue::DPValue(const DbgVariableIntrinsic *DVI)
     : DebugValueUser({DVI->getRawLocation(), nullptr}),
       Variable(DVI->getVariable()), Expression(DVI->getExpression()),
-      DbgLoc(DVI->getDebugLoc()), AssignID(), AddressExpression(nullptr) {
+      DbgLoc(DVI->getDebugLoc()), AddressExpression(nullptr), AssignID() {
   switch (DVI->getIntrinsicID()) {
   case Intrinsic::dbg_value:
     Type = LocationType::Value;
@@ -28,7 +28,7 @@ DPValue::DPValue(const DbgVariableIntrinsic *DVI)
     const DbgAssignIntrinsic* Assign = static_cast<const DbgAssignIntrinsic*>(DVI);
     resetDebugValue(1, Assign->getRawAddress());
     AddressExpression = Assign->getAddressExpression();
-    AssignID = TrackingDIAssignIDRef(Assign->getAssignID());
+    setAssignId(Assign->getAssignID());
     break;
   }
   default:
@@ -38,16 +38,71 @@ DPValue::DPValue(const DbgVariableIntrinsic *DVI)
 }
 
 DPValue::DPValue(const DPValue &DPV)
-    : DebugValueUser(DPV.DebugValues), Type(DPV.getType()),
-      Variable(DPV.getVariable()), Expression(DPV.getExpression()),
-      DbgLoc(DPV.getDebugLoc()), AssignID(DPV.AssignID), AddressExpression(DPV.AddressExpression) {}
+    : DebugValueUser(DPV.DebugValues), Variable(DPV.getVariable()),
+      Type(DPV.getType()), Expression(DPV.getExpression()),
+      DbgLoc(DPV.getDebugLoc()), AddressExpression(DPV.AddressExpression),
+      AssignID(DPV.AssignID) {}
 
 DPValue::DPValue(Metadata *Location, DILocalVariable *DV, DIExpression *Expr,
                  const DILocation *DI)
-    : DebugValueUser({Location, nullptr}), Variable(DV), Expression(Expr),
-      DbgLoc(DI), Type(LocationType::Value), AssignID(), AddressExpression(nullptr) {}
+    : DebugValueUser({Location, nullptr}), Variable(DV),
+      Type(LocationType::Value), Expression(Expr), DbgLoc(DI),
+      AddressExpression(nullptr), AssignID() {}
+
+DPValue::DPValue(Metadata *Value, DILocalVariable *Variable,
+                 DIExpression *Expression, DIAssignID *AssignID,
+                 Metadata *Address, DIExpression *AddressExpression,
+                 const DILocation *DI)
+    : DebugValueUser({Value, Address}), Variable(Variable),
+      Expression(Expression), DbgLoc(DI), Type(LocationType::Assign),
+      AssignID(AssignID), AddressExpression(AddressExpression) {}
 
 void DPValue::deleteInstr() { delete this; }
+
+DPValue *DPValue::createDPValue(
+    Metadata *Location, DILocalVariable *DV, DIExpression *Expr,
+    const DILocation *DI, Instruction *InsertBefore) {
+  auto *NewDPValue = new DPValue(Location, DV, Expr, DI);
+  if (InsertBefore) {
+    InsertBefore->getParent()->insertDPValueBefore(NewDPValue,
+                                                   InsertBefore->getIterator());
+  }
+  return NewDPValue;
+}
+DPValue *DPValue::createDPDeclare(
+    Value *Address, DILocalVariable *DV, DIExpression *Expr,
+    const DILocation *DI, Instruction *InsertBefore) {
+  auto *NewDPDeclare = new DPValue(ValueAsMetadata::get(Address), DV, Expr, DI);
+  NewDPDeclare->Type = LocationType::Declare;
+  if (InsertBefore) {
+    InsertBefore->getParent()->insertDPValueBefore(NewDPDeclare,
+                                                   InsertBefore->getIterator());
+  }
+  return NewDPDeclare;
+}
+DPValue *DPValue::createDPAssign(
+    Metadata *Value, DILocalVariable *Variable, DIExpression *Expression,
+    DIAssignID *AssignID, Metadata *Address, DIExpression *AddressExpression,
+    const DILocation *DI, Instruction *InsertBefore) {
+  auto *NewDPAssign = new DPValue(Value, Variable, Expression, AssignID,
+    Address, AddressExpression, DI);
+  if (InsertBefore) {
+    InsertBefore->getParent()->insertDPValueBefore(NewDPAssign,
+                                                   InsertBefore->getIterator());
+  }
+  return NewDPAssign;
+}
+DPValue *DPValue::createLinkedDPAssign(
+    Instruction *LinkedInstr, Metadata *ValueMD, DILocalVariable *Variable,
+    DIExpression *Expression, Value *Address, 
+    DIExpression *AddressExpression, const DILocation *DI) {
+  auto *Link = LinkedInstr->getMetadata(LLVMContext::MD_DIAssignID);
+  assert(Link && "Linked instruction must have DIAssign metadata attached");
+  auto *NewDPAssign = new DPValue(ValueMD, Variable, Expression,
+    cast<DIAssignID>(Link), ValueAsMetadata::get(Address), AddressExpression, DI);
+  LinkedInstr->getParent()->insertDPValueAfter(NewDPAssign, LinkedInstr);
+  return NewDPAssign;
+}
 
 iterator_range<DPValue::location_op_iterator> DPValue::location_ops() const {
   auto *MD = getRawLocation();
@@ -257,6 +312,23 @@ const LLVMContext &DPValue::getContext() const {
   return getBlock()->getContext();
 }
 
+void DPValue::insertBefore(DPValue *InsertBefore) {
+  assert(!getMarker() &&
+          "Cannot insert a DPValue that is already has a DPMarker!");
+  assert(InsertBefore->getMarker() &&
+          "Cannot insert a DPValue before a DPValue that does not have a "
+          "DPMarker!");
+  InsertBefore->getMarker()->insertDPValue(this, InsertBefore);
+}
+void DPValue::insertAfter(DPValue *InsertAfter) {
+  assert(!getMarker() &&
+          "Cannot insert a DPValue that is already has a DPMarker!");
+  assert(InsertAfter->getMarker() &&
+          "Cannot insert a DPValue after a DPValue that does not have a "
+          "DPMarker!");
+  InsertAfter->getMarker()->insertDPValueAfter(this, InsertAfter);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 // An empty, global, DPMarker for the purpose of describing empty ranges of
@@ -345,6 +417,18 @@ void DPValue::eraseFromParent() {
 void DPMarker::insertDPValue(DPValue *New, bool InsertAtHead) {
   auto It = InsertAtHead ? StoredDPValues.begin() : StoredDPValues.end();
   StoredDPValues.insert(It, *New);
+  New->setMarker(this);
+}
+void DPMarker::insertDPValue(DPValue *New, DPValue *InsertBefore) {
+  assert(InsertBefore->getMarker() == this &&
+         "DPValue 'InsertBefore' must be contained in this DPMarker!");
+  StoredDPValues.insert(InsertBefore->getIterator(), *New);
+  New->setMarker(this);
+}
+void DPMarker::insertDPValueAfter(DPValue *New, DPValue *InsertAfter) {
+  assert(InsertAfter->getMarker() == this &&
+         "DPValue 'InsertAfter' must be contained in this DPMarker!");
+  StoredDPValues.insert(++(InsertAfter->getIterator()), *New);
   New->setMarker(this);
 }
 
