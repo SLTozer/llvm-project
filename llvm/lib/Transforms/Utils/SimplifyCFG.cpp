@@ -3105,6 +3105,10 @@ bool SimplifyCFGOpt::SpeculativelyExecuteBB(BranchInst *BI,
       if (llvm::is_contained(DAI->location_ops(), OrigV))
         DAI->replaceVariableLocationOp(OrigV, S);
     }
+    for (auto *DPV : at::getDPAssignmentMarkers(SpeculatedStore)) {
+      if (llvm::is_contained(DPV->location_ops(), OrigV))
+        DPV->replaceVariableLocationOp(OrigV, S);
+    }
   }
 
   // Metadata can be dependent on the condition we are hoisting above.
@@ -3133,7 +3137,9 @@ bool SimplifyCFGOpt::SpeculativelyExecuteBB(BranchInst *BI,
   // instructions, in the same way that dbg.value intrinsics are dropped at the
   // end of this block.
   for (auto &It : make_range(ThenBB->begin(), ThenBB->end()))
-    It.dropDbgValues();
+    for (DPValue &DPV : It.getDbgValueRange())
+      if (!DPV.isDbgAssign())
+        It.dropOneDbgValue(&DPV);
   BB->splice(BI->getIterator(), ThenBB, ThenBB->begin(),
              std::prev(ThenBB->end()));
 

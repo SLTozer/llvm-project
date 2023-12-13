@@ -460,6 +460,11 @@ bool SelectionDAGISel::runOnMachineFunction(MachineFunction &mf) {
 
   ISEL_DUMP(dbgs() << "\n\n\n=== " << FuncName << "\n");
 
+  if (FnVarLocs) {
+    dbgs() << "\n\n\n=== " << Fn.getName() << "\n";
+    FnVarLocs->print(dbgs(), Fn);
+  }
+
   UniformityInfo *UA = nullptr;
   if (auto *UAPass = getAnalysisIfAvailable<UniformityInfoWrapperPass>())
     UA = &UAPass->getUniformityInfo();

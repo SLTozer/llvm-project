@@ -405,10 +405,17 @@ static bool DPValuesRemoveRedundantDbgInstrsUsingBackwardScan(BasicBlock *BB) {
       // If the same variable fragment is described more than once it is enough
       // to keep the last one (i.e. the first found since we for reverse
       // iteration).
-      // FIXME: add assignment tracking support (see parallel implementation
-      // below).
-      if (!R.second)
-        ToBeRemoved.push_back(&DPV);
+      if (R.second)
+        continue;
+
+      if (DPV.isDbgAssign()) {
+        // Don't delete dbg.assign intrinsics that are linked to instructions.
+        if (!at::getAssignmentInsts(&DPV).empty())
+          continue;
+        // Unlinked dbg.assign intrinsics can be treated like dbg.values.
+      }
+
+      ToBeRemoved.push_back(&DPV);
       continue;
     }
     // Sequence with consecutive dbg.value instrs ended. Clear the map to
@@ -495,6 +502,11 @@ static bool DPValuesRemoveRedundantDbgInstrsUsingForwardScan(BasicBlock *BB) {
       DebugVariable Key(DPV.getVariable(), std::nullopt,
                         DPV.getDebugLoc()->getInlinedAt());
       auto VMI = VariableMap.find(Key);
+      // A dbg.assign with no linked instructions can be treated like a
+      // dbg.value (i.e. can be deleted).
+      bool IsDbgValueKind =
+          (!DPV.isDbgAssign() || at::getAssignmentInsts(&DPV).empty());
+
       // Update the map if we found a new value/expression describing the
       // variable, or if the variable wasn't mapped already.
       SmallVector<Value *, 4> Values(DPV.location_ops());
@@ -509,6 +521,42 @@ static bool DPValuesRemoveRedundantDbgInstrsUsingForwardScan(BasicBlock *BB) {
   }
 
   for (auto *DPV : ToBeRemoved)
+    DPV->eraseFromParent();
+
+  return !ToBeRemoved.empty();
+}
+
+static bool DDDremomveUndefDbgAssignsFromEntryBlock(BasicBlock *BB) {
+  assert(BB->isEntryBlock() && "expected entry block");
+  SmallVector<DPValue *, 8> ToBeRemoved;
+  DenseSet<DebugVariable> SeenDefForAggregate;
+  // Returns the DebugVariable for DVI with no fragment info.
+  auto GetAggregateVariable = [](const DPValue &DPV) {
+    return DebugVariable(DPV.getVariable(), std::nullopt,
+                         DPV.getDebugLoc().getInlinedAt());
+  };
+
+  // Remove undef dbg.assign intrinsics that are encountered before
+  // any non-undef intrinsics from the entry block.
+  for (auto &I : *BB) {
+    for (DPValue &DPV : I.getDbgValueRange()) {
+      if (!DPV.isDbgValue() && !DPV.isDbgAssign())
+        continue;
+      bool IsDbgValueKind =
+          (DPV.isDbgValue() || at::getAssignmentInsts(&DPV).empty());
+      DebugVariable Aggregate = GetAggregateVariable(DPV);
+      if (!SeenDefForAggregate.contains(Aggregate)) {
+        bool IsKill = DPV.isKillLocation() && IsDbgValueKind;
+        if (!IsKill) {
+          SeenDefForAggregate.insert(Aggregate);
+        } else if (DPV.isDbgAssign()) {
+          ToBeRemoved.push_back(&DPV);
+        }
+      }
+    }
+  }
+
+  for (DPValue *DPV : ToBeRemoved)
     DPV->eraseFromParent();
 
   return !ToBeRemoved.empty();
@@ -579,6 +627,9 @@ static bool removeRedundantDbgInstrsUsingForwardScan(BasicBlock *BB) {
 /// Possible improvements:
 /// - Keep track of non-overlapping fragments.
 static bool remomveUndefDbgAssignsFromEntryBlock(BasicBlock *BB) {
+  if (BB->IsNewDbgInfoFormat)
+    return DDDremomveUndefDbgAssignsFromEntryBlock(BB);
+
   assert(BB->isEntryBlock() && "expected entry block");
   SmallVector<DbgAssignIntrinsic *, 8> ToBeRemoved;
   DenseSet<DebugVariable> SeenDefForAggregate;

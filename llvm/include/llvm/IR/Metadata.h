@@ -211,31 +211,36 @@ private:
 /// lookup and callback handling.
 class DebugValueUser {
 protected:
-  Metadata *DebugValue;
+  // Capacity to store 2 debug values.
+  std::array<Metadata *, 2> DebugValues;
+
+  ArrayRef<Metadata *> getDebugValues() const { return DebugValues; }
 
 public:
   DPValue *getUser();
   const DPValue *getUser() const;
-  void handleChangedValue(Metadata *NewDebugValue);
+  void handleChangedValue(void *Old, Metadata *NewDebugValue);
   DebugValueUser() = default;
-  explicit DebugValueUser(Metadata *DebugValue) : DebugValue(DebugValue) {
-    trackDebugValue();
+  explicit DebugValueUser(std::array<Metadata *, 2> DebugValues)
+      : DebugValues(DebugValues) {
+    trackDebugValues();
   }
-
-  DebugValueUser(DebugValueUser &&X) : DebugValue(X.DebugValue) {
-    retrackDebugValue(X);
+  DebugValueUser(DebugValueUser &&X) {
+    DebugValues = X.DebugValues;
+    retrackDebugValues(X);
   }
-  DebugValueUser(const DebugValueUser &X) : DebugValue(X.DebugValue) {
-    trackDebugValue();
+  DebugValueUser(const DebugValueUser &X) {
+    DebugValues = X.DebugValues;
+    trackDebugValues();
   }
 
   DebugValueUser &operator=(DebugValueUser &&X) {
     if (&X == this)
       return *this;
 
-    untrackDebugValue();
-    DebugValue = X.DebugValue;
-    retrackDebugValue(X);
+    untrackDebugValues();
+    DebugValues = X.DebugValues;
+    retrackDebugValues(X);
     return *this;
   }
 
@@ -243,35 +248,41 @@ public:
     if (&X == this)
       return *this;
 
-    untrackDebugValue();
-    DebugValue = X.DebugValue;
-    trackDebugValue();
+    untrackDebugValues();
+    DebugValues = X.DebugValues;
+    trackDebugValues();
     return *this;
   }
 
-  ~DebugValueUser() { untrackDebugValue(); }
+  ~DebugValueUser() { untrackDebugValues(); }
 
-  void resetDebugValue() {
-    untrackDebugValue();
-    DebugValue = nullptr;
+  void resetDebugValues() {
+    untrackDebugValues();
+    DebugValues.fill(nullptr);
   }
-  void resetDebugValue(Metadata *DebugValue) {
-    untrackDebugValue();
-    this->DebugValue = DebugValue;
-    trackDebugValue();
+
+  void resetDebugValue(size_t Idx, Metadata *DebugValue) {
+    assert(Idx < 2 && "Invalid debug value index.");
+    untrackDebugValue(Idx);
+    DebugValues[Idx] = DebugValue;
+    trackDebugValue(Idx);
   }
 
   bool operator==(const DebugValueUser &X) const {
-    return DebugValue == X.DebugValue;
+    return DebugValues == X.DebugValues;
   }
   bool operator!=(const DebugValueUser &X) const {
-    return DebugValue != X.DebugValue;
+    return DebugValues != X.DebugValues;
   }
 
 private:
-  void trackDebugValue();
-  void untrackDebugValue();
-  void retrackDebugValue(DebugValueUser &X);
+  void trackDebugValue(size_t Idx);
+  void trackDebugValues();
+
+  void untrackDebugValue(size_t Idx);
+  void untrackDebugValues();
+
+  void retrackDebugValues(DebugValueUser &X);
 };
 
 /// API for tracking metadata references through RAUW and deletion.
@@ -1037,6 +1048,7 @@ struct TempMDNodeDeleter {
 class MDNode : public Metadata {
   friend class ReplaceableMetadataImpl;
   friend class LLVMContextImpl;
+  friend class DIAssignID;
 
   /// The header that is coallocated with an MDNode along with its "small"
   /// operands. It is located immediately before the main body of the node.
@@ -1219,7 +1231,8 @@ public:
   bool isDistinct() const { return Storage == Distinct; }
   bool isTemporary() const { return Storage == Temporary; }
 
-  bool isReplaceable() const { return isTemporary(); }
+  bool isReplaceable() const { return isTemporary() || isAlwaysReplaceable(); }
+  bool isAlwaysReplaceable() const { return getMetadataID() == DIAssignIDKind; }
 
   /// RAUW a temporary.
   ///

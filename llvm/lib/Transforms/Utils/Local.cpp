@@ -1724,20 +1724,6 @@ void llvm::ConvertDebugDeclareToDebugValue(DbgVariableIntrinsic *DII,
                           SI->getIterator());
 }
 
-namespace llvm {
-// RemoveDIs: duplicate the getDebugValueLoc method using DPValues instead of
-// dbg.value intrinsics. In llvm namespace so that it overloads the
-// DbgVariableIntrinsic version.
-static DebugLoc getDebugValueLoc(DPValue *DPV) {
-  // Original dbg.declare must have a location.
-  const DebugLoc &DeclareLoc = DPV->getDebugLoc();
-  MDNode *Scope = DeclareLoc.getScope();
-  DILocation *InlinedAt = DeclareLoc.getInlinedAt();
-  // Produce an unknown location with the correct scope / inlinedAt fields.
-  return DILocation::get(DPV->getContext(), 0, 0, Scope, InlinedAt);
-}
-} // namespace llvm
-
 /// Inserts a llvm.dbg.value intrinsic before a load of an alloca'd value
 /// that has an associated llvm.dbg.declare intrinsic.
 void llvm::ConvertDebugDeclareToDebugValue(DbgVariableIntrinsic *DII,
@@ -2204,14 +2190,13 @@ void llvm::salvageDebugInfo(Instruction &I) {
   salvageDebugInfoForDbgValues(I, DbgUsers, DPUsers);
 }
 
-/// Salvage the address component of \p DAI.
-static void salvageDbgAssignAddress(DbgAssignIntrinsic *DAI) {
-  Instruction *I = dyn_cast<Instruction>(DAI->getAddress());
+template <typename T> static void salvageDbgAssignAddress(T *Assign) {
+  Instruction *I = dyn_cast<Instruction>(Assign->getAddress());
   // Only instructions can be salvaged at the moment.
   if (!I)
     return;
 
-  assert(!DAI->getAddressExpression()->getFragmentInfo().has_value() &&
+  assert(!Assign->getAddressExpression()->getFragmentInfo().has_value() &&
          "address-expression shouldn't have fragment info");
 
   // The address component of a dbg.assign cannot be variadic.
@@ -2225,16 +2210,16 @@ static void salvageDbgAssignAddress(DbgAssignIntrinsic *DAI) {
     return;
 
   DIExpression *SalvagedExpr = DIExpression::appendOpsToArg(
-      DAI->getAddressExpression(), Ops, 0, /*StackValue=*/false);
+      Assign->getAddressExpression(), Ops, 0, /*StackValue=*/false);
   assert(!SalvagedExpr->getFragmentInfo().has_value() &&
          "address-expression shouldn't have fragment info");
 
   // Salvage succeeds if no additional values are required.
   if (AdditionalValues.empty()) {
-    DAI->setAddress(NewV);
-    DAI->setAddressExpression(SalvagedExpr);
+    Assign->setAddress(NewV);
+    Assign->setAddressExpression(SalvagedExpr);
   } else {
-    DAI->setKillAddress();
+    Assign->setKillAddress();
   }
 }
 
@@ -2308,6 +2293,15 @@ void llvm::salvageDebugInfoForDbgValues(
   }
   // Duplicate of above block for DPValues.
   for (auto *DPV : DPUsers) {
+    if (DPV->isDbgAssign()) {
+      if (DPV->getAddress() == &I) {
+        salvageDbgAssignAddress(DPV);
+        Salvaged = true;
+      }
+      if (DPV->getValue() != &I)
+        continue;
+    }
+
     // Do not add DW_OP_stack_value for DbgDeclare and DbgAddr, because they
     // are implicitly pointing out the value as a DWARF memory location
     // description.
@@ -2355,8 +2349,7 @@ void llvm::salvageDebugInfoForDbgValues(
       // currently only valid for stack value expressions.
       // Also do not salvage if the resulting DIArgList would contain an
       // unreasonably large number of values.
-      Value *Undef = UndefValue::get(I.getOperand(0)->getType());
-      DPV->replaceVariableLocationOp(I.getOperand(0), Undef);
+      DPV->setKillLocation();
     }
     LLVM_DEBUG(dbgs() << "SALVAGE: " << DPV << '\n');
     Salvaged = true;
