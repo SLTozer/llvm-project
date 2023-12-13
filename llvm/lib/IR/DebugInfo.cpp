@@ -1810,8 +1810,6 @@ void at::deleteAssignmentMarkers(const Instruction *Inst) {
 }
 
 void at::RAUW(DIAssignID *Old, DIAssignID *New) {
-  Old->replaceAllUsesWith(New);
-
   // Replace attachments.
   AssignmentInstRange InstRange = getAssignmentInsts(Old);
   // Use intermediate storage for the instruction ptrs because the
@@ -1820,6 +1818,8 @@ void at::RAUW(DIAssignID *Old, DIAssignID *New) {
   SmallVector<Instruction *> InstVec(InstRange.begin(), InstRange.end());
   for (auto *I : InstVec)
     I->setMetadata(LLVMContext::MD_DIAssignID, New);
+
+  Old->replaceAllUsesWith(New);
 }
 
 void at::deleteAll(Function *F) {

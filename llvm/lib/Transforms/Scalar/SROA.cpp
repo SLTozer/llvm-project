@@ -324,6 +324,49 @@ static DebugVariable getAggregateVariable(DPValue *DPV) {
                        DPV->getDebugLoc().getInlinedAt());
 }
 
+static DbgAssignIntrinsic *replaceDbgAssign(DIBuilder &DIB,
+                                            Instruction *LinkedInstr,
+                                            DbgAssignIntrinsic *Orig,
+                                            Value *NewAddr, Value *NewValue,
+                                            DIExpression *NewExpr) {
+  auto *NewAssign = DIB.insertDbgAssign(
+      LinkedInstr, NewValue, Orig->getVariable(), NewExpr, NewAddr,
+      DIExpression::get(NewExpr->getContext(), std::nullopt),
+      Orig->getDebugLoc());
+  // We could use more precision here at the cost of some
+  // additional (code) complexity - if the original
+  // dbg.assign was adjacent to its store, we could
+  // position this new dbg.assign adjacent to its store
+  // rather than the old dbg.assgn. That would result in
+  // interleaved dbg.assigns rather than what we get now:
+  //    split store !1
+  //    split store !2
+  //    dbg.assign !1
+  //    dbg.assign !2
+  // This (current behaviour) results results in debug
+  // assignments being noted as slightly offset (in code)
+  // from the store. In practice this should have little
+  // effect on the debugging experience due to the fact
+  // that all the split stores should get the same line
+  // number.
+  NewAssign->moveBefore(Orig);
+  return NewAssign;
+}
+
+static DPValue *replaceDbgAssign(DIBuilder &DIB, Instruction *LinkedInstr,
+                                 DPValue *Orig, Value *NewAddr, Value *NewValue,
+                                 DIExpression *NewExpr) {
+  (void)DIB;
+  auto *NewAssign = DPValue::createLinkedDPAssign(
+      LinkedInstr, ValueAsMetadata::get(NewValue), Orig->getVariable(), NewExpr,
+      NewAddr, DIExpression::get(NewExpr->getContext(), std::nullopt),
+      Orig->getDebugLoc());
+  // We could use more precision here at the cost of some additional
+  // (code) complexity (see comment above).
+  NewAssign->insertBefore(Orig);
+  return NewAssign;
+}
+
 /// Find linked dbg.assign and generate a new one with the correct
 /// FragmentInfo. Link Inst to the new dbg.assign.  If Value is nullptr the
 /// value component is copied from the old dbg.assign to the new.
@@ -379,7 +422,7 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
   DIBuilder DIB(*OldInst->getModule(), /*AllowUnresolved*/ false);
   assert(OldAlloca->isStaticAlloca());
 
-  auto MigrateDbgAssign = [&](auto DbgAssign, auto CreateNewAssign) {
+  auto MigrateDbgAssign = [&](auto DbgAssign) {
     LLVM_DEBUG(dbgs() << "      existing dbg.assign is: " << *DbgAssign
                       << "\n");
     auto *Expr = DbgAssign->getExpression();
@@ -433,9 +476,9 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
     }
 
     ::Value *NewValue = Value ? Value : DbgAssign->getValue();
-    auto *NewAssign = CreateNewAssign(Inst, NewValue, DbgAssign, Expr, Dest,
-                                      DIExpression::get(Ctx, std::nullopt),
-                                      DbgAssign->getDebugLoc());
+
+    auto *NewAssign =
+        replaceDbgAssign(DIB, Inst, DbgAssign, Dest, NewValue, Expr);
 
     // If we've updated the value but the original dbg.assign has an arglist
     // then kill it now - we can't use the requested new value.
@@ -456,53 +499,8 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
     LLVM_DEBUG(dbgs() << "Created new assign: " << *NewAssign << "\n");
   };
 
-  for (DbgAssignIntrinsic *DbgAssign : MarkerRange) {
-    MigrateDbgAssign(DbgAssign,
-                     [&DIB](Instruction *Inst, ::Value *NewValue,
-                            DbgAssignIntrinsic *DbgAssign, DIExpression *Expr,
-                            ::Value *Dest, DIExpression *AddrExpr,
-                            const DILocation *DL) -> DbgAssignIntrinsic * {
-                       DbgAssignIntrinsic *NewAssign = DIB.insertDbgAssign(
-                           Inst, NewValue, DbgAssign->getVariable(), Expr, Dest,
-                           DIExpression::get(Expr->getContext(), std::nullopt),
-                           DbgAssign->getDebugLoc());
-                       // We could use more precision here at the cost of some
-                       // additional (code) complexity - if the original
-                       // dbg.assign was adjacent to its store, we could
-                       // position this new dbg.assign adjacent to its store
-                       // rather than the old dbg.assgn. That would result in
-                       // interleaved dbg.assigns rather than what we get now:
-                       //    split store !1
-                       //    split store !2
-                       //    dbg.assign !1
-                       //    dbg.assign !2
-                       // This (current behaviour) results results in debug
-                       // assignments being noted as slightly offset (in code)
-                       // from the store. In practice this should have little
-                       // effect on the debugging experience due to the fact
-                       // that all the split stores should get the same line
-                       // number.
-                       NewAssign->moveBefore(DbgAssign);
-                       return NewAssign;
-                     });
-  }
-  for (DPValue *DPAssign : DPAssignMarkerRange) {
-    MigrateDbgAssign(
-        DPAssign,
-        [](Instruction *Inst, ::Value *NewValue, DPValue *DPAssign,
-           DIExpression *Expr, ::Value *Dest, DIExpression *AddrExpr,
-           const DILocation *DL) -> DPValue * {
-          DIAssignID *AssignID =
-              cast<DIAssignID>(Inst->getMetadata(LLVMContext::MD_DIAssignID));
-          DPValue *NewAssign = new DPValue(
-              ValueAsMetadata::get(NewValue), DPAssign->getVariable(), Expr,
-              AssignID, ValueAsMetadata::get(Dest), AddrExpr, DL);
-          // We could use more precision here at the cost of some additional
-          // (code) complexity (see comment above).
-          NewAssign->insertBefore(DPAssign);
-          return NewAssign;
-        });
-  }
+  for_each(MarkerRange, MigrateDbgAssign);
+  for_each(DPAssignMarkerRange, MigrateDbgAssign);
 }
 
 namespace {

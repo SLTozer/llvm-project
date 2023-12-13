@@ -16,7 +16,8 @@ namespace llvm {
 DPValue::DPValue(const DbgVariableIntrinsic *DVI)
     : DebugValueUser({DVI->getRawLocation(), nullptr}),
       Variable(DVI->getVariable()), Expression(DVI->getExpression()),
-      DbgLoc(DVI->getDebugLoc()), AddressExpression(nullptr), AssignID() {
+      DbgLoc(DVI->getDebugLoc()), AddressExpression(nullptr),
+      AssignID(nullptr) {
   switch (DVI->getIntrinsicID()) {
   case Intrinsic::dbg_value:
     Type = LocationType::Value;
@@ -43,12 +44,14 @@ DPValue::DPValue(const DPValue &DPV)
     : DebugValueUser(DPV.DebugValues), Variable(DPV.getVariable()),
       Expression(DPV.getExpression()), DbgLoc(DPV.getDebugLoc()),
       AddressExpression(DPV.AddressExpression), AssignID(DPV.AssignID),
-      Type(DPV.getType()) {}
+      Type(DPV.getType()) {
+  trackAssignID();
+}
 
 DPValue::DPValue(Metadata *Location, DILocalVariable *DV, DIExpression *Expr,
                  const DILocation *DI, LocationType Type)
     : DebugValueUser({Location, nullptr}), Variable(DV), Expression(Expr),
-      DbgLoc(DI), Type(Type) {}
+      DbgLoc(DI), Type(Type), AssignID(nullptr) {}
 
 DPValue::DPValue(Metadata *Value, DILocalVariable *Variable,
                  DIExpression *Expression, DIAssignID *AssignID,
@@ -56,7 +59,9 @@ DPValue::DPValue(Metadata *Value, DILocalVariable *Variable,
                  const DILocation *DI)
     : DebugValueUser({Value, Address}), Variable(Variable),
       Expression(Expression), DbgLoc(DI), Type(LocationType::Assign),
-      AssignID(AssignID), AddressExpression(AddressExpression) {}
+      AssignID(AssignID), AddressExpression(AddressExpression) {
+  trackAssignID();
+}
 
 void DPValue::deleteInstr() { delete this; }
 
