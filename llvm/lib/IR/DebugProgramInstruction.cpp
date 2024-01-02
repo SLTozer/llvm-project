@@ -59,7 +59,7 @@ DPValue::DPValue(Metadata *Value, DILocalVariable *Variable,
                  const DILocation *DI)
     : DebugValueUser({Value, Address}), Variable(Variable),
       Expression(Expression), DbgLoc(DI),
-      AssignID(AssignID), AddressExpression(AddressExpression),
+      AddressExpression(AddressExpression), AssignID(AssignID),
       Type(LocationType::Assign) {
   trackAssignID();
 }

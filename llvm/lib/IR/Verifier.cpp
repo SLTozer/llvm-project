@@ -173,7 +173,7 @@ private:
 
   void Write(const DPValue *V) {
     if (V)
-      *OS << "DPValue { " << V->getVariable() << " }\n";
+      V->print(*OS, MST, false);
   }
 
   void Write(const Metadata *MD) {
