@@ -2130,9 +2130,8 @@ void llvm::insertDebugValuesForPHIs(BasicBlock *BB,
 bool llvm::replaceDbgDeclare(Value *Address, Value *NewAddress,
                              DIBuilder &Builder, uint8_t DIExprFlags,
                              int Offset) {
-  SmallVector<DbgDeclareInst *, 1> DbgDeclares;
-  SmallVector<DPValue *, 1> DPValues;
-  findDbgDeclares(DbgDeclares, Address, &DPValues);
+  TinyPtrVector<DbgDeclareInst *> DbgDeclares = FindDbgDeclareUses(Address);
+  TinyPtrVector<DPValue *> DPDeclares = FindDPDeclareUses(Address);
 
   auto ReplaceOne = [&](auto *DII) {
     assert(DII->getVariable() && "Missing variable");
@@ -2143,9 +2142,9 @@ bool llvm::replaceDbgDeclare(Value *Address, Value *NewAddress,
   };
 
   for_each(DbgDeclares, ReplaceOne);
-  for_each(DPValues, ReplaceOne);
+  for_each(DPDeclares, ReplaceOne);
 
-  return !DbgDeclares.empty() || !DPValues.empty();
+  return !DbgDeclares.empty() || !DPDeclares.empty();
 }
 
 static void updateOneDbgValueForAlloca(const DebugLoc &Loc,

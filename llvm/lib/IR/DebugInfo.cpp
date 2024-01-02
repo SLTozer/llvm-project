@@ -44,6 +44,45 @@ using namespace llvm;
 using namespace llvm::at;
 using namespace llvm::dwarf;
 
+TinyPtrVector<DbgDeclareInst *> llvm::FindDbgDeclareUses(Value *V) {
+  // This function is hot. Check whether the value has any metadata to avoid a
+  // DenseMap lookup.
+  if (!V->isUsedByMetadata())
+    return {};
+  auto *L = LocalAsMetadata::getIfExists(V);
+  if (!L)
+    return {};
+  auto *MDV = MetadataAsValue::getIfExists(V->getContext(), L);
+  if (!MDV)
+    return {};
+
+  TinyPtrVector<DbgDeclareInst *> Declares;
+  for (User *U : MDV->users()) {
+    if (auto *DDI = dyn_cast<DbgDeclareInst>(U))
+      Declares.push_back(DDI);
+  }
+
+  return Declares;
+}
+TinyPtrVector<DPValue *> llvm::FindDPDeclareUses(Value *V) {
+  // This function is hot. Check whether the value has any metadata to avoid a
+  // DenseMap lookup.
+  if (!V->isUsedByMetadata())
+    return {};
+  auto *L = LocalAsMetadata::getIfExists(V);
+  if (!L)
+    return {};
+
+  TinyPtrVector<DPValue *> Declares;
+  for (DPValue *DPV : L->getAllDPValueUsers()) {
+    if (DPV->getType() == DPValue::LocationType::Declare)
+      Declares.push_back(DPV);
+  }
+
+  return Declares;
+}
+
+/// TODO DDD-AT Should this change to match the style of findDbg/DPDeclareUses?
 template <typename IntrinsicT,
           DPValue::LocationType Type = DPValue::LocationType::Any>
 static void findDbgIntrinsics(SmallVectorImpl<IntrinsicT *> &Result, Value *V,
@@ -95,12 +134,6 @@ static void findDbgIntrinsics(SmallVectorImpl<IntrinsicT *> &Result, Value *V,
             DPValues->push_back(DPV);
     }
   }
-}
-
-void llvm::findDbgDeclares(SmallVectorImpl<DbgDeclareInst *> &DbgUsers,
-                           Value *V, SmallVectorImpl<DPValue *> *DPValues) {
-  findDbgIntrinsics<DbgDeclareInst, DPValue::LocationType::Declare>(DbgUsers, V,
-                                                                    DPValues);
 }
 
 void llvm::findDbgValues(SmallVectorImpl<DbgValueInst *> &DbgValues,
