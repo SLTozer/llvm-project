@@ -75,7 +75,7 @@ TinyPtrVector<DPValue *> llvm::findDPVDeclares(Value *V) {
 
   TinyPtrVector<DPValue *> Declares;
   for (DPValue *DPV : L->getAllDPValueUsers()) {
-    if (DPV->getType() == DPValue::LocationType::Declare)
+    if (DPV->isDbgDeclare())
       Declares.push_back(DPV);
   }
 
