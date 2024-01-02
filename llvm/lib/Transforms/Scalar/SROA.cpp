@@ -324,47 +324,32 @@ static DebugVariable getAggregateVariable(DPValue *DPV) {
                        DPV->getDebugLoc().getInlinedAt());
 }
 
-static DbgAssignIntrinsic *replaceDbgAssign(DIBuilder &DIB,
-                                            Instruction *LinkedInstr,
-                                            DbgAssignIntrinsic *Orig,
-                                            Value *NewAddr, Value *NewValue,
-                                            DIExpression *NewExpr) {
-  auto *NewAssign = DIB.insertDbgAssign(
-      LinkedInstr, NewValue, Orig->getVariable(), NewExpr, NewAddr,
-      DIExpression::get(NewExpr->getContext(), std::nullopt),
-      Orig->getDebugLoc());
-  // We could use more precision here at the cost of some
-  // additional (code) complexity - if the original
-  // dbg.assign was adjacent to its store, we could
-  // position this new dbg.assign adjacent to its store
-  // rather than the old dbg.assgn. That would result in
-  // interleaved dbg.assigns rather than what we get now:
-  //    split store !1
-  //    split store !2
-  //    dbg.assign !1
-  //    dbg.assign !2
-  // This (current behaviour) results results in debug
-  // assignments being noted as slightly offset (in code)
-  // from the store. In practice this should have little
-  // effect on the debugging experience due to the fact
-  // that all the split stores should get the same line
-  // number.
-  NewAssign->moveBefore(Orig);
-  return NewAssign;
-}
-
-static DPValue *replaceDbgAssign(DIBuilder &DIB, Instruction *LinkedInstr,
-                                 DPValue *Orig, Value *NewAddr, Value *NewValue,
-                                 DIExpression *NewExpr) {
+static DPValue *createLinkedAssign(DPValue *,
+                                   DIBuilder &DIB,
+                                   Instruction *LinkedInstr,
+                                   Value *NewValue,
+                                   DILocalVariable *Variable,
+                                   DIExpression *Expression,
+                                   Value *Address,
+                                   DIExpression *AddressExpression,
+                                   const DILocation *DI) {
   (void)DIB;
-  auto *NewAssign = DPValue::createLinkedDPAssign(
-      LinkedInstr, ValueAsMetadata::get(NewValue), Orig->getVariable(), NewExpr,
-      NewAddr, DIExpression::get(NewExpr->getContext(), std::nullopt),
-      Orig->getDebugLoc());
-  // We could use more precision here at the cost of some additional
-  // (code) complexity (see comment above).
-  NewAssign->insertBefore(Orig);
-  return NewAssign;
+  return DPValue::createLinkedDPAssign(
+      LinkedInstr, ValueAsMetadata::get(NewValue), Variable, Expression,
+      Address, AddressExpression, DI);
+}
+static DbgAssignIntrinsic *createLinkedAssign(DbgAssignIntrinsic *,
+                                              DIBuilder &DIB,
+                                              Instruction *LinkedInstr,
+                                              Value *NewValue,
+                                              DILocalVariable *Variable,
+                                              DIExpression *Expression,
+                                              Value *Address,
+                                              DIExpression *AddressExpression,
+                                              const DILocation *DI) {
+  return DIB.insertDbgAssign(
+      LinkedInstr, NewValue, Variable, Expression, Address, AddressExpression,
+      DI);
 }
 
 /// Find linked dbg.assign and generate a new one with the correct
@@ -476,9 +461,10 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
     }
 
     ::Value *NewValue = Value ? Value : DbgAssign->getValue();
-
-    auto *NewAssign =
-        replaceDbgAssign(DIB, Inst, DbgAssign, Dest, NewValue, Expr);
+    auto *NewAssign = createLinkedAssign(
+        DbgAssign, DIB, Inst, NewValue, DbgAssign->getVariable(), Expr, Dest,
+        DIExpression::get(Expr->getContext(), std::nullopt),
+        DbgAssign->getDebugLoc());
 
     // If we've updated the value but the original dbg.assign has an arglist
     // then kill it now - we can't use the requested new value.
@@ -496,6 +482,22 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
     if (SetKillLocation)
       NewAssign->setKillLocation();
 
+    // We could use more precision here at the cost of some additional (code)
+    // complexity - if the original dbg.assign was adjacent to its store, we
+    // could position this new dbg.assign adjacent to its store rather than the
+    // old dbg.assgn. That would result in interleaved dbg.assigns rather than
+    // what we get now:
+    //    split store !1
+    //    split store !2
+    //    dbg.assign !1
+    //    dbg.assign !2
+    // This (current behaviour) results results in debug assignments being
+    // noted as slightly offset (in code) from the store. In practice this
+    // should have little effect on the debugging experience due to the fact
+    // that all the split stores should get the same line number.
+    NewAssign->moveBefore(DbgAssign);
+  
+    NewAssign->setDebugLoc(DbgAssign->getDebugLoc());
     LLVM_DEBUG(dbgs() << "Created new assign: " << *NewAssign << "\n");
   };
 
@@ -3294,17 +3296,13 @@ private:
       Value *AdjustedPtr = getNewAllocaSlicePtr(IRB, OldPtr->getType());
       if (IsDest) {
         // Update the address component of linked dbg.assigns.
-        for (auto *DAI : at::getAssignmentMarkers(&II)) {
-          if (llvm::is_contained(DAI->location_ops(), II.getDest()) ||
-              DAI->getAddress() == II.getDest())
-            DAI->replaceVariableLocationOp(II.getDest(), AdjustedPtr);
-        }
-        for (auto *DPV : at::getDPAssignmentMarkers(&II)) {
-          if (any_of(DPV->location_ops(),
-                     [&](Value *V) { return V == II.getDest(); }) ||
-              DPV->getAddress() == II.getDest())
-            DPV->replaceVariableLocationOp(II.getDest(), AdjustedPtr);
-        }
+        auto UpdateAssignAddress =  [&](auto *DbgAssign) {
+          if (llvm::is_contained(DbgAssign->location_ops(), II.getDest()) ||
+              DbgAssign->getAddress() == II.getDest())
+            DbgAssign->replaceVariableLocationOp(II.getDest(), AdjustedPtr);
+        };
+        for_each(at::getAssignmentMarkers(&II), UpdateAssignAddress);
+        for_each(at::getDPAssignmentMarkers(&II), UpdateAssignAddress);
         II.setDest(AdjustedPtr);
         II.setDestAlignment(SliceAlign);
       } else {
@@ -5028,7 +5026,7 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
     for (auto Fragment : Fragments) {
       // Create a fragment expression describing the new partition or reuse AI's
       // expression if there is only one partition.
-      DIExpression *FragmentExpr = Expr;
+      auto *FragmentExpr = Expr;
       if (Fragment.Size < AllocaSize || Expr->isFragment()) {
         // If this alloca is already a scalar replacement of a larger aggregate,
         // Fragment.Offset describes the offset inside the scalar.
@@ -5046,7 +5044,7 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
           Size = std::min(Size, AbsEnd - Start);
         }
         // The new, smaller fragment is stenciled out from the old fragment.
-        if (auto OrigFragment = Expr->getFragmentInfo()) {
+        if (auto OrigFragment = FragmentExpr->getFragmentInfo()) {
           assert(Start >= OrigFragment->OffsetInBits &&
                  "new fragment is outside of original fragment");
           Start -= OrigFragment->OffsetInBits;
@@ -5064,8 +5062,7 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
         // Avoid creating a fragment expression that covers the entire variable.
         if (!VarSize || *VarSize != Size) {
           if (auto E =
-                  DIExpression::createFragmentExpression(Expr, Start, Size);
-              E)
+                  DIExpression::createFragmentExpression(Expr, Start, Size))
             FragmentExpr = *E;
           else
             continue;
@@ -5096,6 +5093,7 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
   for_each(FindDPDeclareUses(&AI), MigrateOne);
   for_each(at::getAssignmentMarkers(&AI), MigrateOne);
   for_each(at::getDPAssignmentMarkers(&AI), MigrateOne);
+
   return Changed;
 }
 

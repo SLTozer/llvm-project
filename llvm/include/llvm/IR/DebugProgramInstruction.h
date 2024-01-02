@@ -129,9 +129,12 @@ public:
           DIExpression *AddressExpression, const DILocation *DI);
   ~DPValue() { untrackAssignID(); }
 
-  static DPValue *createDPValue(Metadata *Location, DILocalVariable *DV,
+  static DPValue *createDPValue(Value *Location, DILocalVariable *DV,
                                 DIExpression *Expr, const DILocation *DI,
                                 Instruction *InsertBefore = nullptr);
+  static DPValue *createDPValue(Value *Location, DILocalVariable *DV,
+                                DIExpression *Expr, const DILocation *DI,
+                                DPValue *InsertBefore);
   static DPValue *createDPDeclare(Value *Address, DILocalVariable *DV,
                                   DIExpression *Expr, const DILocation *DI,
                                   Instruction *InsertBefore = nullptr);
@@ -347,6 +350,8 @@ public:
   /// is already contained in a DPMarker.
   void insertBefore(DPValue *InsertBefore);
   void insertAfter(DPValue *InsertAfter);
+  void moveBefore(DPValue *MoveBefore);
+  void moveAfter(DPValue *MoveAfter);
 
   void print(raw_ostream &O, bool IsForDebug = false) const;
   void print(raw_ostream &ROS, ModuleSlotTracker &MST, bool IsForDebug) const;

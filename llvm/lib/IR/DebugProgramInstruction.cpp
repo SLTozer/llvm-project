@@ -51,28 +51,37 @@ DPValue::DPValue(const DPValue &DPV)
 DPValue::DPValue(Metadata *Location, DILocalVariable *DV, DIExpression *Expr,
                  const DILocation *DI, LocationType Type)
     : DebugValueUser({Location, nullptr}), Variable(DV), Expression(Expr),
-      DbgLoc(DI), Type(Type), AssignID(nullptr) {}
+      DbgLoc(DI), AssignID(nullptr), Type(Type) {}
 
 DPValue::DPValue(Metadata *Value, DILocalVariable *Variable,
                  DIExpression *Expression, DIAssignID *AssignID,
                  Metadata *Address, DIExpression *AddressExpression,
                  const DILocation *DI)
     : DebugValueUser({Value, Address}), Variable(Variable),
-      Expression(Expression), DbgLoc(DI), Type(LocationType::Assign),
-      AssignID(AssignID), AddressExpression(AddressExpression) {
+      Expression(Expression), DbgLoc(DI),
+      AssignID(AssignID), AddressExpression(AddressExpression),
+      Type(LocationType::Assign) {
   trackAssignID();
 }
 
 void DPValue::deleteInstr() { delete this; }
 
-DPValue *DPValue::createDPValue(Metadata *Location, DILocalVariable *DV,
+DPValue *DPValue::createDPValue(Value *Location, DILocalVariable *DV,
                                 DIExpression *Expr, const DILocation *DI,
                                 Instruction *InsertBefore) {
-  auto *NewDPValue = new DPValue(Location, DV, Expr, DI, LocationType::Value);
+  auto *NewDPValue = new DPValue(ValueAsMetadata::get(Location), DV, Expr, DI, LocationType::Value);
   if (InsertBefore) {
     InsertBefore->getParent()->insertDPValueBefore(NewDPValue,
                                                    InsertBefore->getIterator());
   }
+  return NewDPValue;
+}
+DPValue *DPValue::createDPValue(Value *Location, DILocalVariable *DV,
+                                DIExpression *Expr, const DILocation *DI,
+                                DPValue *InsertBefore) {
+  auto *NewDPValue = new DPValue(ValueAsMetadata::get(Location), DV, Expr, DI, LocationType::Value);
+  if (InsertBefore)
+    NewDPValue->insertBefore(InsertBefore);
   return NewDPValue;
 }
 DPValue *DPValue::createDPDeclare(Value *Address, DILocalVariable *DV,
@@ -365,6 +374,18 @@ void DPValue::insertAfter(DPValue *InsertAfter) {
          "DPMarker!");
   InsertAfter->getMarker()->insertDPValueAfter(this, InsertAfter);
 }
+void DPValue::moveBefore(DPValue *MoveBefore) {
+  assert(getMarker() &&
+         "Canot move a DPValue that does not currently have a DPMarker!");
+  removeFromParent();
+  insertBefore(MoveBefore);
+}
+void DPValue::moveAfter(DPValue *MoveAfter) {
+  assert(getMarker() &&
+         "Canot move a DPValue that does not currently have a DPMarker!");
+  removeFromParent();
+  insertAfter(MoveAfter);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -437,6 +458,7 @@ DPMarker::getDbgValueRange() const {
 
 void DPValue::removeFromParent() {
   getMarker()->StoredDPValues.erase(getIterator());
+  Marker = nullptr;
 }
 
 void DPValue::eraseFromParent() {

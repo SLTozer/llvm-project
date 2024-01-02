@@ -101,6 +101,40 @@ bool llvm::isAllocaPromotable(const AllocaInst *AI) {
 
 namespace {
 
+static DbgAssignIntrinsic *createLinkedAssign(DbgAssignIntrinsic *,
+                                              DIBuilder &DIB,
+                                              Instruction *LinkedInstr,
+                                              Value *NewValue,
+                                              DILocalVariable *Variable,
+                                              DIExpression *Expression,
+                                              Value *Address,
+                                              DIExpression *AddressExpression,
+                                              const DILocation *DI) {
+  return DIB.insertDbgAssign(
+      LinkedInstr, NewValue, Variable, Expression, Address, AddressExpression,
+      DI);
+}
+static DPValue *createDebugValue(DIBuilder &DIB,
+                                 Value *NewValue,
+                                 DILocalVariable *Variable,
+                                 DIExpression *Expression,
+                                 const DILocation *DI,
+                                 DPValue *InsertBefore) {
+  (void)DIB;
+  return DPValue::createDPValue(NewValue, Variable, Expression, DI, InsertBefore);
+}
+static DbgValueInst *createDebugValue(DIBuilder &DIB,
+                                      Value *NewValue,
+                                      DILocalVariable *Variable,
+                                      DIExpression *Expression,
+                                      const DILocation *DI,
+                                      Instruction *InsertBefore) {
+  return static_cast<DbgValueInst*>(
+    DIB.insertDbgValueIntrinsic(NewValue, Variable,
+                                Expression, DI,
+                                InsertBefore));
+}
+
 /// Helper for updating assignment tracking debug info when promoting allocas.
 class AssignmentTrackingInfo {
   /// DbgAssignIntrinsics linked to the alloca with at most one per variable
@@ -140,20 +174,17 @@ public:
     // dbg.assign for each variable fragment for the untracked store handling
     // (after this loop).
     SmallSet<DebugVariableAggregate, 2> VarHasDbgAssignForStore;
-    for (DbgAssignIntrinsic *DAI : at::getAssignmentMarkers(ToDelete)) {
-      VarHasDbgAssignForStore.insert(DebugVariableAggregate(DAI));
-      DbgAssignsToDelete->insert(DAI);
-      DIB.insertDbgValueIntrinsic(DAI->getValue(), DAI->getVariable(),
-                                  DAI->getExpression(), DAI->getDebugLoc(),
-                                  DAI);
-    }
-    for (DPValue *DPV : at::getDPAssignmentMarkers(ToDelete)) {
-      VarHasDbgAssignForStore.insert(DebugVariableAggregate(DPV));
-      DPAssignsToDelete->insert(DPV);
-      auto *NewDPValue = new DPValue(DPV->getRawLocation(), DPV->getVariable(),
-                                     DPV->getExpression(), DPV->getDebugLoc());
-      DPV->getMarker()->insertDPValue(NewDPValue, DPV);
-    }
+    auto InsertValueForAssign = [&](auto *AssignList) {
+      return [&](auto *DbgAssign) {
+        VarHasDbgAssignForStore.insert(DebugVariableAggregate(DbgAssign));
+        AssignList->insert(DbgAssign);
+        createDebugValue(DIB, DbgAssign->getValue(), DbgAssign->getVariable(),
+                         DbgAssign->getExpression(), DbgAssign->getDebugLoc(),
+                         DbgAssign);
+      };
+    };
+    for_each(at::getAssignmentMarkers(ToDelete), InsertValueForAssign(DbgAssignsToDelete));
+    for_each(at::getDPAssignmentMarkers(ToDelete), InsertValueForAssign(DPAssignsToDelete));
 
     // It's possible for variables using assignment tracking to have no
     // dbg.assign linked to this store. These are variables in DbgAssigns that

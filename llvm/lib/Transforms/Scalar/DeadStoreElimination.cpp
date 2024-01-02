@@ -553,10 +553,8 @@ static void shortenAssignment(Instruction *Inst, Value *OriginalDest,
       SetDeadFragExpr(NewAssign, *NewFragment);
     NewAssign->setKillAddress();
   };
-  for (auto *DAI : Linked)
-    InsertAssignForOverlap(DAI);
-  for (auto *DPV : LinkedDPAssigns)
-    InsertAssignForOverlap(DPV);
+  for_each(Linked, InsertAssignForOverlap);
+  for_each(LinkedDPAssigns, InsertAssignForOverlap);
 }
 
 static bool tryToShorten(Instruction *DeadI, int64_t &DeadStart,
