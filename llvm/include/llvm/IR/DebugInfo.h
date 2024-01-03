@@ -58,6 +58,7 @@ DISubprogram *getDISubprogram(const MDNode *Scope);
 /// Produce a DebugLoc to use for each dbg.declare that is promoted to a
 /// dbg.value.
 DebugLoc getDebugValueLoc(DbgVariableIntrinsic *DII);
+DebugLoc getDebugValueLoc(DPValue *DPV);
 
 /// Strip debug info in the module if it exists.
 ///
@@ -191,6 +192,11 @@ AssignmentInstRange getAssignmentInsts(DIAssignID *ID);
 inline AssignmentInstRange getAssignmentInsts(const DbgAssignIntrinsic *DAI) {
   return getAssignmentInsts(DAI->getAssignID());
 }
+inline AssignmentInstRange getAssignmentInsts(const DPValue *DPV) {
+  assert(DPV->isDbgAssign() &&
+         "Can't get assignment instructions for non-assign DPV!");
+  return getAssignmentInsts(DPV->getAssignID());
+}
 
 //
 // Utilities for enumerating llvm.dbg.assign intrinsic from an assignment ID.
@@ -222,6 +228,11 @@ inline AssignmentMarkerRange getAssignmentMarkers(const Instruction *Inst) {
     return getAssignmentMarkers(cast<DIAssignID>(ID));
   else
     return make_range(Value::user_iterator(), Value::user_iterator());
+}
+inline SmallVector<DPValue *> getDPAssignmentMarkers(const Instruction *Inst) {
+  if (auto *ID = Inst->getMetadata(LLVMContext::MD_DIAssignID))
+    return cast<DIAssignID>(ID)->getAllDPValueUsers();
+  return {};
 }
 
 /// Delete the llvm.dbg.assign intrinsics linked to \p Inst.
