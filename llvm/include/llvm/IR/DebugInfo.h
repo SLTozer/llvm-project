@@ -229,6 +229,11 @@ inline AssignmentMarkerRange getAssignmentMarkers(const Instruction *Inst) {
   else
     return make_range(Value::user_iterator(), Value::user_iterator());
 }
+inline SmallVector<DPValue *> getDPVAssignmentMarkers(const Instruction *Inst) {
+  if (auto *ID = Inst->getMetadata(LLVMContext::MD_DIAssignID))
+    return cast<DIAssignID>(ID)->getAllDPValueUsers();
+  return {};
+}
 
 /// Delete the llvm.dbg.assign intrinsics linked to \p Inst.
 void deleteAssignmentMarkers(const Instruction *Inst);
@@ -250,7 +255,11 @@ void deleteAll(Function *F);
 /// Result contains a zero-sized fragment if there's no intersect.
 bool calculateFragmentIntersect(
     const DataLayout &DL, const Value *Dest, uint64_t SliceOffsetInBits,
-    uint64_t SliceSizeInBits, const DbgAssignIntrinsic *DAI,
+    uint64_t SliceSizeInBits, const DbgAssignIntrinsic *DbgAssign,
+    std::optional<DIExpression::FragmentInfo> &Result);
+bool calculateFragmentIntersect(
+    const DataLayout &DL, const Value *Dest, uint64_t SliceOffsetInBits,
+    uint64_t SliceSizeInBits, const DPValue *DPVAssign,
     std::optional<DIExpression::FragmentInfo> &Result);
 
 /// Helper struct for trackAssignments, below. We don't use the similar
@@ -265,6 +274,8 @@ struct VarRecord {
 
   VarRecord(DbgVariableIntrinsic *DVI)
       : Var(DVI->getVariable()), DL(getDebugValueLoc(DVI)) {}
+  VarRecord(DPValue *DPV)
+      : Var(DPV->getVariable()), DL(getDebugValueLoc(DPV)) {}
   VarRecord(DILocalVariable *Var, DILocation *DL) : Var(Var), DL(DL) {}
   friend bool operator<(const VarRecord &LHS, const VarRecord &RHS) {
     return std::tie(LHS.Var, LHS.DL) < std::tie(RHS.Var, RHS.DL);
