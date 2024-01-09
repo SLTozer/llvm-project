@@ -50,7 +50,6 @@
 #include "llvm/ADT/ilist.h"
 #include "llvm/ADT/ilist_node.h"
 #include "llvm/ADT/iterator.h"
-#include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DebugLoc.h"
 
 namespace llvm {
@@ -60,6 +59,7 @@ class BasicBlock;
 class MDNode;
 class Module;
 class DbgVariableIntrinsic;
+class DIAssignID;
 class DPMarker;
 class DPValue;
 class raw_ostream;
@@ -275,27 +275,20 @@ public:
     return isDbgAssign() ? DebugValues[1] : DebugValues[0];
   }
   Metadata *getRawAssignID() const { return DebugValues[2]; }
-  DIAssignID *getAssignID() const { return cast<DIAssignID>(DebugValues[2]); }
-  Metadata *getRawAddressExpression() const { return AddressExpression; }
+  DIAssignID *getAssignID() const;
   DIExpression *getAddressExpression() const { return AddressExpression; }
   void setAddressExpression(DIExpression *NewExpr) {
     AddressExpression = NewExpr;
   }
-  void setAssignId(DIAssignID *New) { resetDebugValue(2, New); }
+  void setAssignId(DIAssignID *New);
   void setAddress(Value *V) { resetDebugValue(1, ValueAsMetadata::get(V)); }
   /// Kill the address component.
-  void setKillAddress() {
-    resetDebugValue(
-        1, ValueAsMetadata::get(UndefValue::get(getAddress()->getType())));
-  }
+  void setKillAddress();
   /// Check whether this kills the address component. This doesn't take into
   /// account the position of the intrinsic, therefore a returned value of false
   /// does not guarentee the address is a valid location for the variable at the
   /// intrinsic's position in IR.
-  bool isKillAddress() const {
-    Value *Addr = getAddress();
-    return !Addr || isa<UndefValue>(Addr);
-  }
+  bool isKillAddress() const;
 
 public:
   /////////////////////////////////////////////

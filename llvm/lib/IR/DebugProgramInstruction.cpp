@@ -331,6 +331,22 @@ Value *DPValue::getAddress() const {
   return nullptr;
 }
 
+DIAssignID *DPValue::getAssignID() const {
+  return cast<DIAssignID>(DebugValues[2]);
+}
+
+void DPValue::setAssignId(DIAssignID *New) { resetDebugValue(2, New); }
+
+void DPValue::setKillAddress() {
+  resetDebugValue(
+      1, ValueAsMetadata::get(UndefValue::get(getAddress()->getType())));
+}
+
+bool DPValue::isKillAddress() const {
+  Value *Addr = getAddress();
+  return !Addr || isa<UndefValue>(Addr);
+}
+
 /////////////////////////////////////////////
 
 const BasicBlock *DPValue::getParent() const {
