@@ -457,7 +457,6 @@ DPMarker::getDbgValueRange() const {
 
 void DPValue::removeFromParent() {
   getMarker()->StoredDPValues.erase(getIterator());
-  Marker = nullptr;
 }
 
 void DPValue::eraseFromParent() {
