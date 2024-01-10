@@ -532,7 +532,7 @@ static bool DPValuesRemoveRedundantDbgInstrsUsingForwardScan(BasicBlock *BB) {
   return !ToBeRemoved.empty();
 }
 
-static bool DDDremomveUndefDbgAssignsFromEntryBlock(BasicBlock *BB) {
+static bool DPValuesRemoveUndefDbgAssignsFromEntryBlock(BasicBlock *BB) {
   assert(BB->isEntryBlock() && "expected entry block");
   SmallVector<DPValue *, 8> ToBeRemoved;
   DenseSet<DebugVariable> SeenDefForAggregate;
@@ -632,9 +632,9 @@ static bool removeRedundantDbgInstrsUsingForwardScan(BasicBlock *BB) {
 /// then (only) the instruction marked with (*) can be removed.
 /// Possible improvements:
 /// - Keep track of non-overlapping fragments.
-static bool remomveUndefDbgAssignsFromEntryBlock(BasicBlock *BB) {
+static bool removeUndefDbgAssignsFromEntryBlock(BasicBlock *BB) {
   if (BB->IsNewDbgInfoFormat)
-    return DDDremomveUndefDbgAssignsFromEntryBlock(BB);
+    return DPValuesRemoveUndefDbgAssignsFromEntryBlock(BB);
 
   assert(BB->isEntryBlock() && "expected entry block");
   SmallVector<DbgAssignIntrinsic *, 8> ToBeRemoved;
@@ -686,7 +686,7 @@ bool llvm::RemoveRedundantDbgInstrs(BasicBlock *BB) {
   MadeChanges |= removeRedundantDbgInstrsUsingBackwardScan(BB);
   if (BB->isEntryBlock() &&
       isAssignmentTrackingEnabled(*BB->getParent()->getParent()))
-    MadeChanges |= remomveUndefDbgAssignsFromEntryBlock(BB);
+    MadeChanges |= removeUndefDbgAssignsFromEntryBlock(BB);
   MadeChanges |= removeRedundantDbgInstrsUsingForwardScan(BB);
 
   if (MadeChanges)

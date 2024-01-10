@@ -40,9 +40,9 @@ class Module;
 
 /// Finds dbg.declare intrinsics declaring local variables as living in the
 /// memory that 'V' points to.
-TinyPtrVector<DbgDeclareInst *> FindDbgDeclareUses(Value *V);
-/// As above, for DPDeclares.
-TinyPtrVector<DPValue *> FindDPDeclareUses(Value *V);
+TinyPtrVector<DbgDeclareInst *> findDbgDeclares(Value *V);
+/// As above, for DPVDeclares.
+TinyPtrVector<DPValue *> findDPVDeclares(Value *V);
 
 /// Finds the llvm.dbg.value intrinsics describing a value.
 void findDbgValues(SmallVectorImpl<DbgValueInst *> &DbgValues,
@@ -229,7 +229,7 @@ inline AssignmentMarkerRange getAssignmentMarkers(const Instruction *Inst) {
   else
     return make_range(Value::user_iterator(), Value::user_iterator());
 }
-inline SmallVector<DPValue *> getDPAssignmentMarkers(const Instruction *Inst) {
+inline SmallVector<DPValue *> getDPVAssignmentMarkers(const Instruction *Inst) {
   if (auto *ID = Inst->getMetadata(LLVMContext::MD_DIAssignID))
     return cast<DIAssignID>(ID)->getAllDPValueUsers();
   return {};
@@ -259,7 +259,7 @@ bool calculateFragmentIntersect(
     std::optional<DIExpression::FragmentInfo> &Result);
 bool calculateFragmentIntersect(
     const DataLayout &DL, const Value *Dest, uint64_t SliceOffsetInBits,
-    uint64_t SliceSizeInBits, const DPValue *DPAssign,
+    uint64_t SliceSizeInBits, const DPValue *DPVAssign,
     std::optional<DIExpression::FragmentInfo> &Result);
 
 /// Helper struct for trackAssignments, below. We don't use the similar

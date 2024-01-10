@@ -331,9 +331,9 @@ static DPValue *createLinkedAssign(DPValue *, DIBuilder &DIB,
                                    DIExpression *AddressExpression,
                                    const DILocation *DI) {
   (void)DIB;
-  return DPValue::createLinkedDPAssign(LinkedInstr, NewValue, Variable,
-                                       Expression, Address, AddressExpression,
-                                       DI);
+  return DPValue::createLinkedDPVAssign(LinkedInstr, NewValue, Variable,
+                                        Expression, Address, AddressExpression,
+                                        DI);
 }
 static DbgAssignIntrinsic *createLinkedAssign(
     DbgAssignIntrinsic *, DIBuilder &DIB, Instruction *LinkedInstr,
@@ -363,9 +363,9 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
                              Instruction *Inst, Value *Dest, Value *Value,
                              const DataLayout &DL) {
   auto MarkerRange = at::getAssignmentMarkers(OldInst);
-  auto DPAssignMarkerRange = at::getDPAssignmentMarkers(OldInst);
+  auto DPVAssignMarkerRange = at::getDPVAssignmentMarkers(OldInst);
   // Nothing to do if OldInst has no linked dbg.assign intrinsics.
-  if (MarkerRange.empty() && DPAssignMarkerRange.empty())
+  if (MarkerRange.empty() && DPVAssignMarkerRange.empty())
     return;
 
   LLVM_DEBUG(dbgs() << "  migrateDebugInfo\n");
@@ -386,7 +386,7 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
   for (auto *DAI : at::getAssignmentMarkers(OldAlloca))
     BaseFragments[getAggregateVariable(DAI)] =
         DAI->getExpression()->getFragmentInfo();
-  for (auto *DPV : at::getDPAssignmentMarkers(OldAlloca))
+  for (auto *DPV : at::getDPVAssignmentMarkers(OldAlloca))
     BaseFragments[getAggregateVariable(DPV)] =
         DPV->getExpression()->getFragmentInfo();
 
@@ -493,7 +493,7 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
   };
 
   for_each(MarkerRange, MigrateDbgAssign);
-  for_each(DPAssignMarkerRange, MigrateDbgAssign);
+  for_each(DPVAssignMarkerRange, MigrateDbgAssign);
 }
 
 namespace {
@@ -3140,7 +3140,7 @@ private:
       // emit dbg.assign intrinsics for mem intrinsics storing through non-
       // constant geps, or storing a variable number of bytes.
       assert(at::getAssignmentMarkers(&II).empty() &&
-             at::getDPAssignmentMarkers(&II).empty() &&
+             at::getDPVAssignmentMarkers(&II).empty() &&
              "AT: Unexpected link to non-const GEP");
       deleteIfTriviallyDead(OldPtr);
       return false;
@@ -3293,7 +3293,7 @@ private:
             DbgAssign->replaceVariableLocationOp(II.getDest(), AdjustedPtr);
         };
         for_each(at::getAssignmentMarkers(&II), UpdateAssignAddress);
-        for_each(at::getDPAssignmentMarkers(&II), UpdateAssignAddress);
+        for_each(at::getDPVAssignmentMarkers(&II), UpdateAssignAddress);
         II.setDest(AdjustedPtr);
         II.setDestAlignment(SliceAlign);
       } else {
@@ -3877,7 +3877,7 @@ private:
                          DL);
       } else {
         assert(at::getAssignmentMarkers(Store).empty() &&
-               at::getDPAssignmentMarkers(Store).empty() &&
+               at::getDPVAssignmentMarkers(Store).empty() &&
                "AT: unexpected debug.assign linked to store through "
                "unbounded GEP");
       }
@@ -4898,18 +4898,18 @@ static void insertNewDbgInst(DIBuilder &DIB, DPValue *Orig, AllocaInst *NewAddr,
                              Instruction *BeforeInst) {
   (void)DIB;
   if (Orig->isDbgDeclare()) {
-    DPValue::createDPDeclare(NewAddr, Orig->getVariable(), NewFragmentExpr,
-                             Orig->getDebugLoc(), BeforeInst);
+    DPValue::createDPVDeclare(NewAddr, Orig->getVariable(), NewFragmentExpr,
+                              Orig->getDebugLoc(), BeforeInst);
     return;
   }
   if (!NewAddr->hasMetadata(LLVMContext::MD_DIAssignID)) {
     NewAddr->setMetadata(LLVMContext::MD_DIAssignID,
                          DIAssignID::getDistinct(NewAddr->getContext()));
   }
-  auto *NewAssign = DPValue::createLinkedDPAssign(
+  auto *NewAssign = DPValue::createLinkedDPVAssign(
       NewAddr, Orig->getValue(), Orig->getVariable(), NewFragmentExpr, NewAddr,
       Orig->getAddressExpression(), Orig->getDebugLoc());
-  LLVM_DEBUG(dbgs() << "Created new DPAssign: " << *NewAssign << "\n");
+  LLVM_DEBUG(dbgs() << "Created new DPVAssign: " << *NewAssign << "\n");
   (void)NewAssign;
 }
 
@@ -5076,8 +5076,8 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
         if (SameVariableFragment(OldDII, DbgVariable))
           OldDII->eraseFromParent();
       };
-      for_each(FindDbgDeclareUses(Fragment.Alloca), RemoveOne);
-      for_each(FindDPDeclareUses(Fragment.Alloca), RemoveOne);
+      for_each(findDbgDeclares(Fragment.Alloca), RemoveOne);
+      for_each(findDPVDeclares(Fragment.Alloca), RemoveOne);
 
       insertNewDbgInst(DIB, DbgVariable, Fragment.Alloca, FragmentExpr, &AI);
     }
@@ -5085,10 +5085,10 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
 
   // Migrate debug information from the old alloca to the new alloca(s)
   // and the individual partitions.
-  for_each(FindDbgDeclareUses(&AI), MigrateOne);
-  for_each(FindDPDeclareUses(&AI), MigrateOne);
+  for_each(findDbgDeclares(&AI), MigrateOne);
+  for_each(findDPVDeclares(&AI), MigrateOne);
   for_each(at::getAssignmentMarkers(&AI), MigrateOne);
-  for_each(at::getDPAssignmentMarkers(&AI), MigrateOne);
+  for_each(at::getDPVAssignmentMarkers(&AI), MigrateOne);
 
   return Changed;
 }
@@ -5210,9 +5210,9 @@ bool SROA::deleteDeadInstructions(
     // not be able to find it.
     if (AllocaInst *AI = dyn_cast<AllocaInst>(I)) {
       DeletedAllocas.insert(AI);
-      for (DbgDeclareInst *OldDII : FindDbgDeclareUses(AI))
+      for (DbgDeclareInst *OldDII : findDbgDeclares(AI))
         OldDII->eraseFromParent();
-      for (DPValue *OldDII : FindDPDeclareUses(AI))
+      for (DPValue *OldDII : findDPVDeclares(AI))
         OldDII->eraseFromParent();
     }
 

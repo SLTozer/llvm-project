@@ -289,7 +289,7 @@ Instruction *InstCombinerImpl::SimplifyAnyMemSet(AnyMemSetInst *MI) {
         DbgAssign->replaceVariableLocationOp(FillC, FillVal);
     };
     for_each(at::getAssignmentMarkers(S), replaceOpForAssignmentMarkers);
-    for_each(at::getDPAssignmentMarkers(S), replaceOpForAssignmentMarkers);
+    for_each(at::getDPVAssignmentMarkers(S), replaceOpForAssignmentMarkers);
 
     S->setAlignment(Alignment);
     if (isa<AtomicMemSetInst>(MI))

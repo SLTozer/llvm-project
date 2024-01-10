@@ -4729,10 +4729,9 @@ void Verifier::visitDIAssignIDMetadata(Instruction &I, MDNode *MD) {
   }
   for (DPValue *DPV : cast<DIAssignID>(MD)->getAllDPValueUsers()) {
     CheckDI(DPV->isDbgAssign(),
-            "!DIAssignID should only be used by llvm.dbg.assign intrinsics", MD,
-            DPV);
+            "!DIAssignID should only be used by Assign DPVs.", MD, DPV);
     CheckDI(DPV->getFunction() == I.getFunction(),
-            "DPAssign not in same function as inst", DPV, &I);
+            "DPVAssign not in same function as inst", DPV, &I);
   }
 }
 

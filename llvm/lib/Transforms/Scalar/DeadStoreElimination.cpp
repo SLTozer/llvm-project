@@ -526,7 +526,7 @@ static void shortenAssignment(Instruction *Inst, Value *OriginalDest,
   // returned by getAssignmentMarkers so save a copy of the markers to iterate
   // over.
   auto LinkedRange = at::getAssignmentMarkers(Inst);
-  SmallVector<DPValue *> LinkedDPAssigns = at::getDPAssignmentMarkers(Inst);
+  SmallVector<DPValue *> LinkedDPVAssigns = at::getDPVAssignmentMarkers(Inst);
   SmallVector<DbgAssignIntrinsic *> Linked(LinkedRange.begin(),
                                            LinkedRange.end());
   auto InsertAssignForOverlap = [&](auto *Assign) {
@@ -554,7 +554,7 @@ static void shortenAssignment(Instruction *Inst, Value *OriginalDest,
     NewAssign->setKillAddress();
   };
   for_each(Linked, InsertAssignForOverlap);
-  for_each(LinkedDPAssigns, InsertAssignForOverlap);
+  for_each(LinkedDPVAssigns, InsertAssignForOverlap);
 }
 
 static bool tryToShorten(Instruction *DeadI, int64_t &DeadStart,

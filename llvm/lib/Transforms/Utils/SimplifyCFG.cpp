@@ -3111,7 +3111,7 @@ bool SimplifyCFGOpt::SpeculativelyExecuteBB(BranchInst *BI,
         DbgAssign->replaceVariableLocationOp(OrigV, S);
     };
     for_each(at::getAssignmentMarkers(SpeculatedStore), replaceVariable);
-    for_each(at::getDPAssignmentMarkers(SpeculatedStore), replaceVariable);
+    for_each(at::getDPVAssignmentMarkers(SpeculatedStore), replaceVariable);
   }
 
   // Metadata can be dependent on the condition we are hoisting above.

@@ -64,10 +64,9 @@ DPValue *DPValue::createDPValue(Value *Location, DILocalVariable *DV,
                                 Instruction *InsertBefore) {
   auto *NewDPValue = new DPValue(ValueAsMetadata::get(Location), DV, Expr, DI,
                                  LocationType::Value);
-  if (InsertBefore) {
+  if (InsertBefore)
     InsertBefore->getParent()->insertDPValueBefore(NewDPValue,
                                                    InsertBefore->getIterator());
-  }
   return NewDPValue;
 }
 DPValue *DPValue::createDPValue(Value *Location, DILocalVariable *DV,
@@ -79,43 +78,43 @@ DPValue *DPValue::createDPValue(Value *Location, DILocalVariable *DV,
     NewDPValue->insertBefore(InsertBefore);
   return NewDPValue;
 }
-DPValue *DPValue::createDPDeclare(Value *Address, DILocalVariable *DV,
-                                  DIExpression *Expr, const DILocation *DI,
+DPValue *DPValue::createDPVDeclare(Value *Address, DILocalVariable *DV,
+                                   DIExpression *Expr, const DILocation *DI,
+                                   Instruction *InsertBefore) {
+  auto *NewDPVDeclare = new DPValue(ValueAsMetadata::get(Address), DV, Expr, DI,
+                                    LocationType::Declare);
+  if (InsertBefore)
+    InsertBefore->getParent()->insertDPValueBefore(NewDPVDeclare,
+                                                   InsertBefore->getIterator());
+  return NewDPVDeclare;
+}
+DPValue *DPValue::createDPVAssign(Metadata *Value, DILocalVariable *Variable,
+                                  DIExpression *Expression,
+                                  DIAssignID *AssignID, Metadata *Address,
+                                  DIExpression *AddressExpression,
+                                  const DILocation *DI,
                                   Instruction *InsertBefore) {
-  auto *NewDPDeclare = new DPValue(ValueAsMetadata::get(Address), DV, Expr, DI,
-                                   LocationType::Declare);
+  auto *NewDPVAssign = new DPValue(Value, Variable, Expression, AssignID,
+                                   Address, AddressExpression, DI);
   if (InsertBefore) {
-    InsertBefore->getParent()->insertDPValueBefore(NewDPDeclare,
+    InsertBefore->getParent()->insertDPValueBefore(NewDPVAssign,
                                                    InsertBefore->getIterator());
   }
-  return NewDPDeclare;
+  return NewDPVAssign;
 }
-DPValue *DPValue::createDPAssign(Metadata *Value, DILocalVariable *Variable,
-                                 DIExpression *Expression, DIAssignID *AssignID,
-                                 Metadata *Address,
-                                 DIExpression *AddressExpression,
-                                 const DILocation *DI,
-                                 Instruction *InsertBefore) {
-  auto *NewDPAssign = new DPValue(Value, Variable, Expression, AssignID,
-                                  Address, AddressExpression, DI);
-  if (InsertBefore) {
-    InsertBefore->getParent()->insertDPValueBefore(NewDPAssign,
-                                                   InsertBefore->getIterator());
-  }
-  return NewDPAssign;
-}
-DPValue *DPValue::createLinkedDPAssign(Instruction *LinkedInstr, Value *Val,
-                                       DILocalVariable *Variable,
-                                       DIExpression *Expression, Value *Address,
-                                       DIExpression *AddressExpression,
-                                       const DILocation *DI) {
+DPValue *DPValue::createLinkedDPVAssign(Instruction *LinkedInstr, Value *Val,
+                                        DILocalVariable *Variable,
+                                        DIExpression *Expression,
+                                        Value *Address,
+                                        DIExpression *AddressExpression,
+                                        const DILocation *DI) {
   auto *Link = LinkedInstr->getMetadata(LLVMContext::MD_DIAssignID);
   assert(Link && "Linked instruction must have DIAssign metadata attached");
-  auto *NewDPAssign = new DPValue(
+  auto *NewDPVAssign = new DPValue(
       ValueAsMetadata::get(Val), Variable, Expression, cast<DIAssignID>(Link),
       ValueAsMetadata::get(Address), AddressExpression, DI);
-  LinkedInstr->getParent()->insertDPValueAfter(NewDPAssign, LinkedInstr);
-  return NewDPAssign;
+  LinkedInstr->getParent()->insertDPValueAfter(NewDPVAssign, LinkedInstr);
+  return NewDPVAssign;
 }
 
 iterator_range<DPValue::location_op_iterator> DPValue::location_ops() const {
@@ -318,9 +317,6 @@ DPValue::createDebugIntrinsic(Module *M, Instruction *InsertBefore) const {
   return DVI;
 }
 
-/////////////////////////////////////////////
-/// DbgAssign Methods
-
 Value *DPValue::getAddress() const {
   auto *MD = getRawAddress();
   if (auto *V = dyn_cast<ValueAsMetadata>(MD))
@@ -346,8 +342,6 @@ bool DPValue::isKillAddress() const {
   Value *Addr = getAddress();
   return !Addr || isa<UndefValue>(Addr);
 }
-
-/////////////////////////////////////////////
 
 const BasicBlock *DPValue::getParent() const {
   return Marker->MarkedInstr->getParent();
@@ -473,6 +467,7 @@ DPMarker::getDbgValueRange() const {
 
 void DPValue::removeFromParent() {
   getMarker()->StoredDPValues.erase(getIterator());
+  Marker = nullptr;
 }
 
 void DPValue::eraseFromParent() {

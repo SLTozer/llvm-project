@@ -212,6 +212,9 @@ private:
 class DebugValueUser {
 protected:
   // Capacity to store 3 debug values.
+  // TODO: Not all DebugValueUser instances need all 3 elements, if we
+  // restructure the DPValue class then we can template parameterize this array
+  // size.
   std::array<Metadata *, 3> DebugValues;
 
   ArrayRef<Metadata *> getDebugValues() const { return DebugValues; }

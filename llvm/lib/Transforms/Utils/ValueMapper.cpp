@@ -544,6 +544,10 @@ void Mapper::remapDPValue(DPValue &V) {
   V.setVariable(cast<DILocalVariable>(MappedVar));
   V.setDebugLoc(DebugLoc(cast<DILocation>(MappedDILoc)));
 
+  if (V.isDbgAssign()) {
+    V.setAddress(mapValue(V.getAddress()));
+  }
+
   // Find Value operands and remap those.
   SmallVector<Value *, 4> Vals, NewVals;
   for (Value *Val : V.location_ops())

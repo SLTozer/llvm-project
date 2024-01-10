@@ -963,15 +963,15 @@ static void cacheDIVar(FrameDataInfo &FrameData,
     if (DIVarCache.contains(V))
       continue;
 
-    auto CacheIt = [&DIVarCache, V](auto Container) {
+    auto CacheIt = [&DIVarCache, V](const auto &Container) {
       auto *I = llvm::find_if(Container, [](auto *DDI) {
         return DDI->getExpression()->getNumElements() == 0;
       });
       if (I != Container.end())
         DIVarCache.insert({V, (*I)->getVariable()});
     };
-    CacheIt(FindDbgDeclareUses(V));
-    CacheIt(FindDPDeclareUses(V));
+    CacheIt(findDbgDeclares(V));
+    CacheIt(findDPVDeclares(V));
   }
 }
 
@@ -1122,8 +1122,8 @@ static void buildFrameDebugInfo(Function &F, coro::Shape &Shape,
   assert(PromiseAlloca &&
          "Coroutine with switch ABI should own Promise alloca");
 
-  TinyPtrVector<DbgDeclareInst *> DIs = FindDbgDeclareUses(PromiseAlloca);
-  TinyPtrVector<DPValue *> DPVs = FindDPDeclareUses(PromiseAlloca);
+  TinyPtrVector<DbgDeclareInst *> DIs = findDbgDeclares(PromiseAlloca);
+  TinyPtrVector<DPValue *> DPVs = findDPVDeclares(PromiseAlloca);
 
   DILocalVariable *PromiseDIVariable = nullptr;
   DILocation *DILoc = nullptr;
@@ -1861,8 +1861,8 @@ static void insertSpills(const FrameDataInfo &FrameData, coro::Shape &Shape) {
               FrameTy->getElementType(FrameData.getFieldIndex(E.first)), GEP,
               SpillAlignment, E.first->getName() + Twine(".reload"));
 
-        TinyPtrVector<DbgDeclareInst *> DIs = FindDbgDeclareUses(Def);
-        TinyPtrVector<DPValue *> DPVs = FindDPDeclareUses(Def);
+        TinyPtrVector<DbgDeclareInst *> DIs = findDbgDeclares(Def);
+        TinyPtrVector<DPValue *> DPVs = findDPVDeclares(Def);
         // Try best to find dbg.declare. If the spill is a temp, there may not
         // be a direct dbg.declare. Walk up the load chain to find one from an
         // alias.
@@ -1876,8 +1876,8 @@ static void insertSpills(const FrameDataInfo &FrameData, coro::Shape &Shape) {
             CurDef = LdInst->getPointerOperand();
             if (!isa<AllocaInst, LoadInst>(CurDef))
               break;
-            DIs = FindDbgDeclareUses(Def);
-            DPVs = FindDPDeclareUses(Def);
+            DIs = findDbgDeclares(CurDef);
+            DPVs = findDPVDeclares(CurDef);
           }
         }
 
@@ -2961,7 +2961,7 @@ void coro::salvageDebugInfo(
   Function *F = DPV.getFunction();
   // Follow the pointer arithmetic all the way to the incoming
   // function argument and convert into a DIExpression.
-  bool SkipOutermostLoad = !DPV.isDbgValue();
+  bool SkipOutermostLoad = DPV.isDbgDeclare();
   Value *OriginalStorage = DPV.getVariableLocationOp(0);
 
   auto SalvagedInfo = ::salvageDebugInfoImpl(

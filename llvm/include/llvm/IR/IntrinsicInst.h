@@ -534,10 +534,9 @@ public:
   /// @}
 };
 
-////////////////////////////////////
-// Wrapper functions for opaque interfacing between DbgVariableIntrinsics and
-// DPValues.
-
+/// Wrapper functions for opaque interfacing between DbgVariableIntrinsics and
+/// DPValues.
+/// @{
 inline bool IsaDbgValue(DPValue *DPV) { return DPV->isDbgValue(); }
 inline bool IsaDbgDeclare(DPValue *DPV) { return DPV->isDbgDeclare(); }
 inline bool IsaDbgAssign(DPValue *DPV) { return DPV->isDbgAssign(); }
@@ -591,8 +590,7 @@ inline DbgDeclareInst *DynCastToDbgDeclare(DbgVariableIntrinsic *DVI) {
 inline DbgAssignIntrinsic *DynCastToDbgAssign(DbgVariableIntrinsic *DVI) {
   return dyn_cast<DbgAssignIntrinsic>(DVI);
 }
-
-////
+/// @}
 
 /// This is the common base class for vector predication intrinsics.
 class VPIntrinsic : public IntrinsicInst {

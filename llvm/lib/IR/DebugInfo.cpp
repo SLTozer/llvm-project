@@ -44,7 +44,7 @@ using namespace llvm;
 using namespace llvm::at;
 using namespace llvm::dwarf;
 
-TinyPtrVector<DbgDeclareInst *> llvm::FindDbgDeclareUses(Value *V) {
+TinyPtrVector<DbgDeclareInst *> llvm::findDbgDeclares(Value *V) {
   // This function is hot. Check whether the value has any metadata to avoid a
   // DenseMap lookup.
   if (!V->isUsedByMetadata())
@@ -64,7 +64,7 @@ TinyPtrVector<DbgDeclareInst *> llvm::FindDbgDeclareUses(Value *V) {
 
   return Declares;
 }
-TinyPtrVector<DPValue *> llvm::FindDPDeclareUses(Value *V) {
+TinyPtrVector<DPValue *> llvm::findDPVDeclares(Value *V) {
   // This function is hot. Check whether the value has any metadata to avoid a
   // DenseMap lookup.
   if (!V->isUsedByMetadata())
@@ -82,7 +82,6 @@ TinyPtrVector<DPValue *> llvm::FindDPDeclareUses(Value *V) {
   return Declares;
 }
 
-/// TODO DDD-AT Should this change to match the style of findDbg/DPDeclareUses?
 template <typename IntrinsicT,
           DPValue::LocationType Type = DPValue::LocationType::Any>
 static void findDbgIntrinsics(SmallVectorImpl<IntrinsicT *> &Result, Value *V,
@@ -1793,13 +1792,13 @@ AssignmentMarkerRange at::getAssignmentMarkers(DIAssignID *ID) {
 
 void at::deleteAssignmentMarkers(const Instruction *Inst) {
   auto Range = getAssignmentMarkers(Inst);
-  SmallVector<DPValue *> DPAssigns = getDPAssignmentMarkers(Inst);
-  if (Range.empty() && DPAssigns.empty())
+  SmallVector<DPValue *> DPVAssigns = getDPVAssignmentMarkers(Inst);
+  if (Range.empty() && DPVAssigns.empty())
     return;
   SmallVector<DbgAssignIntrinsic *> ToDelete(Range.begin(), Range.end());
   for (auto *DAI : ToDelete)
     DAI->eraseFromParent();
-  for (auto *DPV : DPAssigns)
+  for (auto *DPV : DPVAssigns)
     DPV->eraseFromParent();
 }
 
@@ -2008,10 +2007,10 @@ bool at::calculateFragmentIntersect(
 }
 bool at::calculateFragmentIntersect(
     const DataLayout &DL, const Value *Dest, uint64_t SliceOffsetInBits,
-    uint64_t SliceSizeInBits, const DPValue *DPAssign,
+    uint64_t SliceSizeInBits, const DPValue *DPVAssign,
     std::optional<DIExpression::FragmentInfo> &Result) {
   return calculateFragmentIntersectImpl(DL, Dest, SliceOffsetInBits,
-                                        SliceSizeInBits, DPAssign, Result);
+                                        SliceSizeInBits, DPVAssign, Result);
 }
 
 /// Collect constant properies (base, size, offset) of \p StoreDest.
@@ -2105,7 +2104,7 @@ static void emitDbgAssign(AssignmentInfo Info, Value *Val, Value *Dest,
   DIExpression *AddrExpr =
       DIExpression::get(StoreLikeInst.getContext(), std::nullopt);
   if (StoreLikeInst.getParent()->IsNewDbgInfoFormat) {
-    auto *Assign = DPValue::createLinkedDPAssign(
+    auto *Assign = DPValue::createLinkedDPVAssign(
         &StoreLikeInst, Val, VarRec.Var, Expr, Dest, AddrExpr, VarRec.DL);
     (void)Assign;
     LLVM_DEBUG(if (Assign) errs() << " > INSERT: " << *Assign << "\n");
@@ -2218,7 +2217,7 @@ bool AssignmentTrackingPass::runOnFunction(Function &F) {
   // storage" is limited to Allocas). We'll use this to find dbg.declares to
   // delete after running `trackAssignments`.
   DenseMap<const AllocaInst *, SmallPtrSet<DbgDeclareInst *, 2>> DbgDeclares;
-  DenseMap<const AllocaInst *, SmallPtrSet<DPValue *, 2>> DPDeclares;
+  DenseMap<const AllocaInst *, SmallPtrSet<DPValue *, 2>> DPVDeclares;
   // Create another similar map of {storage : variables} that we'll pass to
   // trackAssignments.
   StorageToVarsMap Vars;
@@ -2246,7 +2245,7 @@ bool AssignmentTrackingPass::runOnFunction(Function &F) {
     for (auto &I : BB) {
       for (auto &DPV : I.getDbgValueRange()) {
         if (DPV.isDbgDeclare())
-          ProcessDeclare(&DPV, DPDeclares);
+          ProcessDeclare(&DPV, DPVDeclares);
       }
       DbgDeclareInst *DDI = dyn_cast<DbgDeclareInst>(&I);
       if (!DDI)
@@ -2268,6 +2267,7 @@ bool AssignmentTrackingPass::runOnFunction(Function &F) {
 
   // Delete dbg.declares for variables now tracked with assignment tracking.
   auto DeleteSubsumedDeclare = [&](const auto &Markers, auto &Declares) {
+    (void)Markers;
     for (auto *Declare : Declares) {
       // Assert that the alloca that Declare uses is now linked to a dbg.assign
       // describing the same variable (i.e. check that this dbg.declare has
@@ -2288,8 +2288,8 @@ bool AssignmentTrackingPass::runOnFunction(Function &F) {
   };
   for (auto &P : DbgDeclares)
     DeleteSubsumedDeclare(at::getAssignmentMarkers(P.first), P.second);
-  for (auto &P : DPDeclares)
-    DeleteSubsumedDeclare(at::getDPAssignmentMarkers(P.first), P.second);
+  for (auto &P : DPVDeclares)
+    DeleteSubsumedDeclare(at::getDPVAssignmentMarkers(P.first), P.second);
   return Changed;
 }
 

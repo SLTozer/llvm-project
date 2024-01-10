@@ -133,20 +133,21 @@ public:
   static DPValue *createDPValue(Value *Location, DILocalVariable *DV,
                                 DIExpression *Expr, const DILocation *DI,
                                 DPValue *InsertBefore);
-  static DPValue *createDPDeclare(Value *Address, DILocalVariable *DV,
-                                  DIExpression *Expr, const DILocation *DI,
+  static DPValue *createDPVDeclare(Value *Address, DILocalVariable *DV,
+                                   DIExpression *Expr, const DILocation *DI,
+                                   Instruction *InsertBefore = nullptr);
+  static DPValue *createDPVAssign(Metadata *Value, DILocalVariable *Variable,
+                                  DIExpression *Expression,
+                                  DIAssignID *AssignID, Metadata *Address,
+                                  DIExpression *AddressExpression,
+                                  const DILocation *DI,
                                   Instruction *InsertBefore = nullptr);
-  static DPValue *createDPAssign(Metadata *Value, DILocalVariable *Variable,
-                                 DIExpression *Expression, DIAssignID *AssignID,
-                                 Metadata *Address,
-                                 DIExpression *AddressExpression,
-                                 const DILocation *DI,
-                                 Instruction *InsertBefore = nullptr);
-  static DPValue *createLinkedDPAssign(Instruction *LinkedInstr, Value *Val,
-                                       DILocalVariable *Variable,
-                                       DIExpression *Expression, Value *Address,
-                                       DIExpression *AddressExpression,
-                                       const DILocation *DI);
+  static DPValue *createLinkedDPVAssign(Instruction *LinkedInstr, Value *Val,
+                                        DILocalVariable *Variable,
+                                        DIExpression *Expression,
+                                        Value *Address,
+                                        DIExpression *AddressExpression,
+                                        const DILocation *DI);
 
   /// Iterator for ValueAsMetadata that internally uses direct pointer iteration
   /// over either a ValueAsMetadata* or a ValueAsMetadata**, dereferencing to the
@@ -265,9 +266,8 @@ public:
   /// is described.
   std::optional<uint64_t> getFragmentSizeInBits() const;
 
-  /////////////////////////////////////////////
-  /// DbgAssign Methods
-
+  /// @name DbgAssign Methods
+  /// @{
   bool isDbgAssign() const { return getType() == LocationType::Assign; }
 
   Value *getAddress() const;
@@ -290,9 +290,8 @@ public:
   /// intrinsic's position in IR.
   bool isKillAddress() const;
 
+  /// @}
 public:
-  /////////////////////////////////////////////
-
   bool isEquivalentTo(const DPValue &Other) {
     return std::tie(Type, DebugValues, Variable, Expression, DbgLoc,
                     AddressExpression) ==

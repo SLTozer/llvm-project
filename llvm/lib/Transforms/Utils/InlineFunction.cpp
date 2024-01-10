@@ -1797,7 +1797,7 @@ static at::StorageToVarsMap collectEscapedLocals(const DataLayout &DL,
       EscapedLocals[Base].insert(at::VarRecord(DbgAssign));
     };
     for_each(at::getAssignmentMarkers(Base), CollectAssignsForStorage);
-    for_each(at::getDPAssignmentMarkers(Base), CollectAssignsForStorage);
+    for_each(at::getDPVAssignmentMarkers(Base), CollectAssignsForStorage);
   }
   return EscapedLocals;
 }

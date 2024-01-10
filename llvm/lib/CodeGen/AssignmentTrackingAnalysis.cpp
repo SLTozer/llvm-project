@@ -824,18 +824,15 @@ class MemLocFragmentFill {
   void process(BasicBlock &BB, VarFragMap &LiveSet) {
     BBInsertBeforeMap[&BB].clear();
     for (auto &I : BB) {
-      for (auto &DPV : I.getDbgValueRange()) {
-        if (const auto *Locs = FnVarLocs->getWedge(&DPV)) {
+      auto AddDefsForWedge = [&](auto &WedgePos) {
+        if (const auto *Locs = FnVarLocs->getWedge(&WedgePos)) {
           for (const VarLocInfo &Loc : *Locs) {
-            addDef(Loc, &DPV, *I.getParent(), LiveSet);
+            addDef(Loc, &WedgePos, *I.getParent(), LiveSet);
           }
         }
-      }
-      if (const auto *Locs = FnVarLocs->getWedge(&I)) {
-        for (const VarLocInfo &Loc : *Locs) {
-          addDef(Loc, &I, *I.getParent(), LiveSet);
-        }
-      }
+      };
+      for_each(I.getDbgValueRange(), AddDefsForWedge);
+      AddDefsForWedge(I);
     }
   }
 
@@ -1656,12 +1653,12 @@ void AssignmentTrackingLowering::processUntaggedInstruction(
 void AssignmentTrackingLowering::processTaggedInstruction(
     Instruction &I, AssignmentTrackingLowering::BlockInfo *LiveSet) {
   auto Linked = at::getAssignmentMarkers(&I);
-  auto LinkedDPAssigns = at::getDPAssignmentMarkers(&I);
+  auto LinkedDPVAssigns = at::getDPVAssignmentMarkers(&I);
   // No dbg.assign intrinsics linked.
   // FIXME: All vars that have a stack slot this store modifies that don't have
   // a dbg.assign linked to it should probably treat this like an untagged
   // store.
-  if (Linked.empty() && LinkedDPAssigns.empty())
+  if (Linked.empty() && LinkedDPVAssigns.empty())
     return;
 
   LLVM_DEBUG(dbgs() << "processTaggedInstruction on " << I << "\n");
@@ -1737,10 +1734,8 @@ void AssignmentTrackingLowering::processTaggedInstruction(
     } break;
     }
   };
-  for (DbgAssignIntrinsic *DAI : Linked)
-    ProcessLinkedAssign(DAI);
-  for (DPValue *DPV : LinkedDPAssigns)
-    ProcessLinkedAssign(DPV);
+  for_each(Linked, ProcessLinkedAssign);
+  for_each(LinkedDPVAssigns, ProcessLinkedAssign);
 }
 
 void AssignmentTrackingLowering::processDbgAssign(AssignRecord Assign,
@@ -2133,7 +2128,7 @@ static AssignmentTrackingLowering::OverlapMap buildOverlapMapAndRecordDeclares(
   // We need to add fragments for untagged stores too so that we can correctly
   // clobber overlapped fragment locations later.
   SmallVector<DbgDeclareInst *> InstDeclares;
-  SmallVector<DPValue *> DPDeclares;
+  SmallVector<DPValue *> DPVDeclares;
   auto ProcessDbgRecord = [&](auto *Record, auto &DeclareList) {
     if (auto *Declare = DynCastToDbgDeclare(Record)) {
       DeclareList.push_back(Declare);
@@ -2149,7 +2144,7 @@ static AssignmentTrackingLowering::OverlapMap buildOverlapMapAndRecordDeclares(
   for (auto &BB : Fn) {
     for (auto &I : BB) {
       for (auto &DPV : I.getDbgValueRange())
-        ProcessDbgRecord(&DPV, DPDeclares);
+        ProcessDbgRecord(&DPV, DPVDeclares);
       if (auto *DII = dyn_cast<DbgVariableIntrinsic>(&I)) {
         ProcessDbgRecord(DII, InstDeclares);
       } else if (auto Info = getUntaggedStoreAssignmentInfo(
@@ -2188,10 +2183,9 @@ static AssignmentTrackingLowering::OverlapMap buildOverlapMapAndRecordDeclares(
           if (Seen.insert(DV).second)
             FragmentMap[DA].push_back(DV);
         };
-        for (DbgAssignIntrinsic *DAI : at::getAssignmentMarkers(Info->Base))
-          HandleDbgAssignForStore(DAI);
-        for (DPValue *DPV : at::getDPAssignmentMarkers(Info->Base))
-          HandleDbgAssignForStore(DPV);
+        for_each(at::getAssignmentMarkers(Info->Base), HandleDbgAssignForStore);
+        for_each(at::getDPVAssignmentMarkers(Info->Base),
+                 HandleDbgAssignForStore);
       }
     }
   }
@@ -2241,7 +2235,7 @@ static AssignmentTrackingLowering::OverlapMap buildOverlapMapAndRecordDeclares(
   for (auto *DDI : InstDeclares)
     FnVarLocs->addSingleLocVar(DebugVariable(DDI), DDI->getExpression(),
                                DDI->getDebugLoc(), DDI->getWrappedLocation());
-  for (auto *DPV : DPDeclares)
+  for (auto *DPV : DPVDeclares)
     FnVarLocs->addSingleLocVar(DebugVariable(DPV), DPV->getExpression(),
                                DPV->getDebugLoc(),
                                RawLocationWrapper(DPV->getRawLocation()));
@@ -2725,7 +2719,7 @@ static DenseSet<DebugAggregate> findVarsWithStackSlot(Function &Fn) {
       for (DbgAssignIntrinsic *DAI : at::getAssignmentMarkers(&I)) {
         Result.insert({DAI->getVariable(), DAI->getDebugLoc().getInlinedAt()});
       }
-      for (DPValue *DPV : at::getDPAssignmentMarkers(&I)) {
+      for (DPValue *DPV : at::getDPVAssignmentMarkers(&I)) {
         Result.insert({DPV->getVariable(), DPV->getDebugLoc().getInlinedAt()});
       }
     }
