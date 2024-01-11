@@ -544,8 +544,14 @@ void Mapper::remapDPValue(DPValue &V) {
   V.setVariable(cast<DILocalVariable>(MappedVar));
   V.setDebugLoc(DebugLoc(cast<DILocation>(MappedDILoc)));
 
+  bool IgnoreMissingLocals = Flags & RF_IgnoreMissingLocals;
+
   if (V.isDbgAssign()) {
-    V.setAddress(mapValue(V.getAddress()));
+    auto *NewAddr = mapValue(V.getAddress());
+    if (!IgnoreMissingLocals && !NewAddr)
+      V.setKillAddress();
+    else if (NewAddr)
+      V.setAddress(NewAddr);
   }
 
   // Find Value operands and remap those.
@@ -558,8 +564,6 @@ void Mapper::remapDPValue(DPValue &V) {
   // If there are no changes to the Value operands, finished.
   if (Vals == NewVals)
     return;
-
-  bool IgnoreMissingLocals = Flags & RF_IgnoreMissingLocals;
 
   // Otherwise, do some replacement.
   if (!IgnoreMissingLocals &&
