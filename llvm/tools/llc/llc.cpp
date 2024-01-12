@@ -189,7 +189,7 @@ static cl::opt<std::string> RemarksFormat(
 static cl::opt<bool> TryUseNewDbgInfoFormat(
     "try-experimental-debuginfo-iterators",
     cl::desc("Enable debuginfo iterator positions, if they're built in"),
-    cl::init(false));
+    cl::init(true));
 
 extern cl::opt<bool> UseNewDbgInfoFormat;
 
