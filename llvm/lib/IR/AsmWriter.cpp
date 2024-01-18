@@ -4074,30 +4074,30 @@ void AssemblyWriter::writeDPValue(const DPValue &DPV) {
   auto WriterCtx = getContext();
   Out << "#dbg_";
   switch (DPV.getType()) {
-    case DPValue::LocationType::Value:
-      Out << "value";
-      break;
-    case DPValue::LocationType::Declare:
-      Out << "declare";
-      break;
-    case DPValue::LocationType::Assign:
-      Out << "assign";
-      break;
-    default:
-      llvm_unreachable("Attempting to print invalid DPValue type.");
+  case DPValue::LocationType::Value:
+    Out << "value";
+    break;
+  case DPValue::LocationType::Declare:
+    Out << "declare";
+    break;
+  case DPValue::LocationType::Assign:
+    Out << "assign";
+    break;
+  default:
+    llvm_unreachable("Attempting to print invalid DPValue type.");
   };
   Out << " { ";
   WriteAsOperandInternal(Out, DPV.getRawLocation(), WriterCtx,
-                        /* FromValue */ true);
+                         /* FromValue */ true);
   Out << ", ";
   WriteAsOperandInternal(Out, DPV.getVariable(), WriterCtx,
-                        /* FromValue */ true);
+                         /* FromValue */ true);
   Out << ", ";
   WriteAsOperandInternal(Out, DPV.getExpression(), WriterCtx,
-                        /* FromValue */ true);
+                         /* FromValue */ true);
   Out << ", ";
   WriteAsOperandInternal(Out, DPV.getDebugLoc().getAsMDNode(), WriterCtx,
-                        /* FromValue */ true);
+                         /* FromValue */ true);
   Out << " }";
 }
 
