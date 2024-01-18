@@ -3,8 +3,8 @@
 ; RUN: opt -S -passes='require<profile-summary>,function(codegenprepare)' -mattr=+bmi < %s | FileCheck %s --check-prefix=FAST_TZ
 ; RUN: opt -S -passes='require<profile-summary>,function(codegenprepare)' -mattr=+lzcnt < %s | FileCheck %s --check-prefix=FAST_LZ
 
-; RUN: opt -S -enable-debugify -passes='require<profile-summary>,function(codegenprepare)' < %s | FileCheck %s --check-prefix=DEBUGINFO
-; RUN: opt -S -enable-debugify -passes='require<profile-summary>,function(codegenprepare)' --try-experimental-debuginfo-iterators < %s | FileCheck %s --check-prefix=DEBUGINFO
+; RUN: opt -S -enable-debugify -passes='require<profile-summary>,function(codegenprepare)' < %s | FileCheck %s --check-prefixes=DEBUGINFO,OLDDBG-DEBUGINFO
+; RUN: opt -S -enable-debugify -passes='require<profile-summary>,function(codegenprepare)' --try-experimental-debuginfo-iterators < %s | FileCheck %s --check-prefixes=DEBUGINFO,NEWDBG-DEBUGINFO
 
 target triple = "x86_64-unknown-unknown"
 target datalayout = "e-n32:64"
@@ -53,7 +53,8 @@ define i64 @cttz(i64 %A) {
 ; DEBUGINFO-NEXT:    br label [[COND_END]], !dbg [[DBG12:![0-9]+]]
 ; DEBUGINFO:       cond.end:
 ; DEBUGINFO-NEXT:    [[CTZ:%.*]] = phi i64 [ 64, [[ENTRY:%.*]] ], [ [[Z]], [[COND_FALSE]] ], !dbg [[DBG12]]
-; DEBUGINFO-NEXT:    tail call void @llvm.dbg.value(metadata i64 [[CTZ]], metadata [[META9:![0-9]+]], metadata !DIExpression()), !dbg [[DBG11]]
+; OLDDBG-DEBUGINFO-NEXT:    tail call void @llvm.dbg.value(metadata i64 [[CTZ]], metadata [[META9:![0-9]+]], metadata !DIExpression()), !dbg [[DBG11]]
+; NEWDBG-DEBUGINFO-NEXT:    #dbg_value { i64 [[CTZ]], [[META9:![0-9]+]], !DIExpression(), [[DBG11]]
 ; DEBUGINFO-NEXT:    ret i64 [[CTZ]], !dbg [[DBG12]]
 ;
 entry:
@@ -101,7 +102,8 @@ define i64 @ctlz(i64 %A) {
 ; DEBUGINFO-NEXT:    br label [[COND_END]], !dbg [[DBG17:![0-9]+]]
 ; DEBUGINFO:       cond.end:
 ; DEBUGINFO-NEXT:    [[CTZ:%.*]] = phi i64 [ 64, [[ENTRY:%.*]] ], [ [[Z]], [[COND_FALSE]] ], !dbg [[DBG17]]
-; DEBUGINFO-NEXT:    tail call void @llvm.dbg.value(metadata i64 [[CTZ]], metadata [[META15:![0-9]+]], metadata !DIExpression()), !dbg [[DBG16]]
+; OLDDBG-DEBUGINFO-NEXT:    tail call void @llvm.dbg.value(metadata i64 [[CTZ]], metadata [[META15:![0-9]+]], metadata !DIExpression()), !dbg [[DBG16]]
+; NEWDBG-DEBUGINFO-NEXT:    #dbg_value { i64 [[CTZ]], [[META15:![0-9]+]], !DIExpression(), [[DBG16]]
 ; DEBUGINFO-NEXT:    ret i64 [[CTZ]], !dbg [[DBG17]]
 ;
 entry:

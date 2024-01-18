@@ -1,5 +1,5 @@
-; RUN: opt -passes=adce -S < %s | FileCheck %s
-; RUN: opt -passes=adce -S < %s --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -passes=adce -S < %s | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -passes=adce -S < %s --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 ; Test that debug info intrinsics in dead scopes get eliminated by -adce.
 
 ; Generated with 'clang -g -S -emit-llvm | opt -passes=mem2reg -inline' at r262899
@@ -45,7 +45,8 @@ entry:
 ; CHECK-LABEL: define void @variable_in_parent_scope(
 define void @variable_in_parent_scope() !dbg !7 {
 ; CHECK-NEXT: entry:
-; CHECK-NEXT:   call void @llvm.dbg.value
+; OLDDBG-CHECK-NEXT:   call void @llvm.dbg.value
+; NEWDBG-CHECK-NEXT:   #dbg_value
 ; CHECK-NEXT:   call void @sink
 ; CHECK-NEXT:   ret void
 entry:

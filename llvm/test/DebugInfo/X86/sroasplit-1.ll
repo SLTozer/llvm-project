@@ -1,5 +1,5 @@
-; RUN: opt %s -passes='sroa,verify' -S -o - | FileCheck %s
-; RUN: opt --try-experimental-debuginfo-iterators %s -passes='sroa,verify' -S -o - | FileCheck %s
+; RUN: opt %s -passes='sroa,verify' -S -o - | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt --try-experimental-debuginfo-iterators %s -passes='sroa,verify' -S -o - | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 ;
 ; Test that we can partial emit debug info for aggregates repeatedly
 ; split up by SROA.
@@ -22,8 +22,10 @@
 
 ; Verify that SROA creates a variable piece when splitting i1.
 ; CHECK: %[[I1:.*]] = alloca [12 x i8], align 4
-; CHECK: call void @llvm.dbg.declare(metadata ptr %[[I1]], metadata ![[VAR:[0-9]+]], metadata !DIExpression(DW_OP_LLVM_fragment, 32, 96))
-; CHECK: call void @llvm.dbg.value(metadata i32 %[[A:.*]], metadata ![[VAR]], metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32))
+; OLDDBG-CHECK: call void @llvm.dbg.declare(metadata ptr %[[I1]], metadata ![[VAR:[0-9]+]], metadata !DIExpression(DW_OP_LLVM_fragment, 32, 96))
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i32 %[[A:.*]], metadata ![[VAR]], metadata !DIExpression(DW_OP_LLVM_fragment, 0, 32))
+; NEWDBG-CHECK: #dbg_declare { ptr %[[I1]], ![[VAR:[0-9]+]], !DIExpression(DW_OP_LLVM_fragment, 32, 96)
+; NEWDBG-CHECK: #dbg_value { i32 %[[A:.*]], ![[VAR]], !DIExpression(DW_OP_LLVM_fragment, 0, 32)
 ; CHECK: ret i32 %[[A]]
 ; Read Var and Piece:
 ; CHECK: ![[VAR]] = !DILocalVariable(name: "i1",{{.*}} line: 11,

@@ -1,8 +1,9 @@
-; RUN: opt -passes=licm %s -S | FileCheck %s
-; RUN: opt -passes=licm %s -S --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -passes=licm %s -S | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -passes=licm %s -S --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ; CHECK: for.body:
-; CHECK-NEXT: llvm.dbg.value(metadata i8 poison
+; OLDDBG-CHECK-NEXT: llvm.dbg.value(metadata i8 poison
+; NEWDBG-CHECK-NEXT: #dbg_value { i8 poison
 
 ; The load is loop invariant. Check that we leave an undef dbg.value behind
 ; when licm sinks the instruction.

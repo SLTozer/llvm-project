@@ -1,8 +1,9 @@
-; RUN: opt -passes=instcombine -S -o - < %s | FileCheck %s
-; RUN: opt --try-experimental-debuginfo-iterators -passes=instcombine -S -o - < %s | FileCheck %s
+; RUN: opt -passes=instcombine -S -o - < %s | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt --try-experimental-debuginfo-iterators -passes=instcombine -S -o - < %s | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ; CHECK-LABEL: %3 = load i32, ptr %i1_311
-; CHECK: call void @llvm.dbg.value(metadata i32 %3
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i32 %3
+; NEWDBG-CHECK: #dbg_value { i32 %3
 ; Next instruction should not be duplicate dbg.value intrinsic.
 ; CHECK-NEXT: @f90io_sc_i_ldw
 

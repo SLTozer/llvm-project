@@ -2,12 +2,12 @@
 ; Test that SROA can deal with allocas that have more than one
 ; dbg.declare hanging off of it.
 
-; RUN: opt < %s -passes='sroa<preserve-cfg>' -S | FileCheck %s --check-prefixes=CHECK,CHECK-PRESERVE-CFG
-; RUN: opt < %s -passes='sroa<modify-cfg>' -S | FileCheck %s --check-prefixes=CHECK,CHECK-MODIFY-CFG
+; RUN: opt < %s -passes='sroa<preserve-cfg>' -S | FileCheck %s --check-prefixes=CHECK,OLDDBG-CHECK,CHECK-PRESERVE-CFG
+; RUN: opt < %s -passes='sroa<modify-cfg>' -S | FileCheck %s --check-prefixes=CHECK,OLDDBG-CHECK,CHECK-MODIFY-CFG
 
 ;; Duplicate copies for RemoveDIs, eliminating debug intrinsics.
-; RUN: opt < %s -passes='sroa<preserve-cfg>' -S --try-experimental-debuginfo-iterators | FileCheck %s --check-prefixes=CHECK,CHECK-PRESERVE-CFG
-; RUN: opt < %s -passes='sroa<modify-cfg>' -S --try-experimental-debuginfo-iterators | FileCheck %s --check-prefixes=CHECK,CHECK-MODIFY-CFG
+; RUN: opt < %s -passes='sroa<preserve-cfg>' -S --try-experimental-debuginfo-iterators | FileCheck %s --check-prefixes=CHECK,NEWDBG-CHECK,CHECK-PRESERVE-CFG
+; RUN: opt < %s -passes='sroa<modify-cfg>' -S --try-experimental-debuginfo-iterators | FileCheck %s --check-prefixes=CHECK,NEWDBG-CHECK,CHECK-MODIFY-CFG
 
 source_filename = "/tmp/inlinesplit.cpp"
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -19,10 +19,14 @@ target triple = "x86_64-apple-macosx10.15.0"
 define i64 @_Z1g4pair(i64 %p.coerce0, i64 %p.coerce1) #0 !dbg !8 {
 ; CHECK-LABEL: @_Z1g4pair(
 ; CHECK-NEXT:  entry:
-; CHECK-NEXT:    call void @llvm.dbg.value(metadata i64 [[P_COERCE0:%.*]], metadata [[META16:![0-9]+]], metadata !DIExpression(DW_OP_LLVM_fragment, 0, 64)), !dbg [[DBG17:![0-9]+]]
-; CHECK-NEXT:    call void @llvm.dbg.value(metadata i64 [[P_COERCE0]], metadata [[META18:![0-9]+]], metadata !DIExpression(DW_OP_LLVM_fragment, 0, 64)), !dbg [[DBG20:![0-9]+]]
-; CHECK-NEXT:    call void @llvm.dbg.value(metadata i64 [[P_COERCE1:%.*]], metadata [[META16]], metadata !DIExpression(DW_OP_LLVM_fragment, 64, 64)), !dbg [[DBG17]]
-; CHECK-NEXT:    call void @llvm.dbg.value(metadata i64 [[P_COERCE1]], metadata [[META18]], metadata !DIExpression(DW_OP_LLVM_fragment, 64, 64)), !dbg [[DBG20]]
+; OLDDBG-CHECK-NEXT:    call void @llvm.dbg.value(metadata i64 [[P_COERCE0:%.*]], metadata [[META16:![0-9]+]], metadata !DIExpression(DW_OP_LLVM_fragment, 0, 64)), !dbg [[DBG17:![0-9]+]]
+; OLDDBG-CHECK-NEXT:    call void @llvm.dbg.value(metadata i64 [[P_COERCE0]], metadata [[META18:![0-9]+]], metadata !DIExpression(DW_OP_LLVM_fragment, 0, 64)), !dbg [[DBG20:![0-9]+]]
+; OLDDBG-CHECK-NEXT:    call void @llvm.dbg.value(metadata i64 [[P_COERCE1:%.*]], metadata [[META16]], metadata !DIExpression(DW_OP_LLVM_fragment, 64, 64)), !dbg [[DBG17]]
+; OLDDBG-CHECK-NEXT:    call void @llvm.dbg.value(metadata i64 [[P_COERCE1]], metadata [[META18]], metadata !DIExpression(DW_OP_LLVM_fragment, 64, 64)), !dbg [[DBG20]]
+; NEWDBG-CHECK-NEXT:    #dbg_value { i64 [[P_COERCE0:%.*]], [[META16:![0-9]+]], !DIExpression(DW_OP_LLVM_fragment, 0, 64), [[DBG17:![0-9]+]]
+; NEWDBG-CHECK-NEXT:    #dbg_value { i64 [[P_COERCE0]], [[META18:![0-9]+]], !DIExpression(DW_OP_LLVM_fragment, 0, 64), [[DBG20:![0-9]+]]
+; NEWDBG-CHECK-NEXT:    #dbg_value { i64 [[P_COERCE1:%.*]], [[META16]], !DIExpression(DW_OP_LLVM_fragment, 64, 64), [[DBG17]]
+; NEWDBG-CHECK-NEXT:    #dbg_value { i64 [[P_COERCE1]], [[META18]], !DIExpression(DW_OP_LLVM_fragment, 64, 64), [[DBG20]]
 ; CHECK-NEXT:    ret i64 [[P_COERCE0]], !dbg [[DBG22:![0-9]+]]
 ;
 entry:

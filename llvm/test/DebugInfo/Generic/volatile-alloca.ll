@@ -1,5 +1,5 @@
-; RUN: opt -passes=mem2reg,instcombine %s -o - -S | FileCheck %s
-; RUN: opt -passes=mem2reg,instcombine %s -o - -S --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -passes=mem2reg,instcombine %s -o - -S | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -passes=mem2reg,instcombine %s -o - -S --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 ;
 ; Test that a dbg.declare describing am alloca with volatile
 ; load/stores is not lowered into a dbg.value, since the alloca won't
@@ -17,9 +17,12 @@
 ; }
 
 ; CHECK: alloca i64
-; CHECK-NOT: call void @llvm.dbg.value
-; CHECK: call void @llvm.dbg.declare
-; CHECK-NOT: call void @llvm.dbg.value
+; OLDDBG-CHECK-NOT: call void @llvm.dbg.value
+; OLDDBG-CHECK: call void @llvm.dbg.declare
+; OLDDBG-CHECK-NOT: call void @llvm.dbg.value
+; NEWDBG-CHECK-NOT: #dbg_value
+; NEWDBG-CHECK: #dbg_declare
+; NEWDBG-CHECK-NOT: #dbg_value
 
 source_filename = "volatile.c"
 

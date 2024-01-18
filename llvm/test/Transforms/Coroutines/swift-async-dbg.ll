@@ -1,11 +1,11 @@
-; RUN: opt -mtriple='arm64-' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s
-; RUN: opt -mtriple='x86_64' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s
+; RUN: opt -mtriple='arm64-' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -mtriple='x86_64' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
 ; RUN: opt -mtriple='i386-' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s --check-prefix=NOENTRY
 ; RUN: opt -mtriple='armv7-' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s --check-prefix=NOENTRY
 
 ;; Replicate those tests with non-instruction debug markers.
-; RUN: opt --try-experimental-debuginfo-iterators -mtriple='arm64-' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s
-; RUN: opt --try-experimental-debuginfo-iterators -mtriple='x86_64' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s
+; RUN: opt --try-experimental-debuginfo-iterators -mtriple='arm64-' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
+; RUN: opt --try-experimental-debuginfo-iterators -mtriple='x86_64' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 ; RUN: opt --try-experimental-debuginfo-iterators -mtriple='i386-' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s --check-prefix=NOENTRY
 ; RUN: opt --try-experimental-debuginfo-iterators -mtriple='armv7-' %s -S -passes='module(coro-early),cgscc(coro-split,simplifycfg)' -o - | FileCheck %s --check-prefix=NOENTRY
 
@@ -29,10 +29,14 @@ define swifttailcc void @coroutineA(ptr swiftasync %arg) !dbg !48 {
   %i3 = call ptr @llvm.coro.begin(token %i2, ptr null)
 ; CHECK-LABEL: define {{.*}} @coroutineA(
 ; CHECK-SAME:    ptr swiftasync %[[frame_ptr:.*]])
-; CHECK:      @llvm.dbg.declare(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
-; CHECK-SAME:                   DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
-; CHECK:      @llvm.dbg.value(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
-; CHECK-SAME:                 DW_OP_plus_uconst, 16, DW_OP_deref)
+; OLDDBG-CHECK:      @llvm.dbg.declare(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; OLDDBG-CHECK-SAME:                   DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
+; OLDDBG-CHECK:      @llvm.dbg.value(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; OLDDBG-CHECK-SAME:                 DW_OP_plus_uconst, 16, DW_OP_deref)
+; NEWDBG-CHECK:      #dbg_declare { ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; NEWDBG-CHECK-SAME:                   DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
+; NEWDBG-CHECK:      #dbg_value { ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; NEWDBG-CHECK-SAME:                 DW_OP_plus_uconst, 16, DW_OP_deref)
 ; CHECK:      call {{.*}} @swift_task_switch
 
   %i7 = call ptr @llvm.coro.async.resume(), !dbg !54
@@ -48,12 +52,18 @@ define swifttailcc void @coroutineA(ptr swiftasync %arg) !dbg !48 {
 ; CHECK-NOT: define
 ; CHECK-LABEL: define {{.*}} @coroutineATY0_(
 ; CHECK-SAME:    ptr swiftasync %[[frame_ptr:.*]])
-; CHECK:      @llvm.dbg.declare(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
-; CHECK-SAME:                   DW_OP_LLVM_entry_value, 1, DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
-; CHECK:      @llvm.dbg.value(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
-; CHECK-SAME:                 DW_OP_LLVM_entry_value, 1, DW_OP_plus_uconst, 16, DW_OP_deref)
-; CHECK:      @llvm.dbg.value(metadata !DIArgList(ptr %[[frame_ptr]], i32 %{{.*}}), {{.*}} !DIExpression(
-; CHECK-SAME:                 DW_OP_LLVM_arg, 0, DW_OP_plus_uconst, 16, DW_OP_LLVM_arg, 1, DW_OP_plus, DW_OP_deref)
+; OLDDBG-CHECK:      @llvm.dbg.declare(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; OLDDBG-CHECK-SAME:                   DW_OP_LLVM_entry_value, 1, DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
+; OLDDBG-CHECK:      @llvm.dbg.value(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; OLDDBG-CHECK-SAME:                 DW_OP_LLVM_entry_value, 1, DW_OP_plus_uconst, 16, DW_OP_deref)
+; OLDDBG-CHECK:      @llvm.dbg.value(metadata !DIArgList(ptr %[[frame_ptr]], i32 %{{.*}}), {{.*}} !DIExpression(
+; OLDDBG-CHECK-SAME:                 DW_OP_LLVM_arg, 0, DW_OP_plus_uconst, 16, DW_OP_LLVM_arg, 1, DW_OP_plus, DW_OP_deref)
+; NEWDBG-CHECK:      #dbg_declare { ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; NEWDBG-CHECK-SAME:                   DW_OP_LLVM_entry_value, 1, DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
+; NEWDBG-CHECK:      #dbg_value { ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; NEWDBG-CHECK-SAME:                 DW_OP_LLVM_entry_value, 1, DW_OP_plus_uconst, 16, DW_OP_deref)
+; NEWDBG-CHECK:      #dbg_value { !DIArgList(ptr %[[frame_ptr]], i32 %{{.*}}), {{.*}} !DIExpression(
+; NEWDBG-CHECK-SAME:                 DW_OP_LLVM_arg, 0, DW_OP_plus_uconst, 16, DW_OP_LLVM_arg, 1, DW_OP_plus, DW_OP_deref)
 ; CHECK:      call {{.*}} @coroutineB
 
   %i23 = call ptr @llvm.coro.async.resume(), !dbg !54
@@ -69,10 +79,14 @@ define swifttailcc void @coroutineA(ptr swiftasync %arg) !dbg !48 {
 ; CHECK-LABEL: define {{.*}} @coroutineATQ1_(
 ; CHECK-SAME:    ptr swiftasync %[[frame_ptr:.*]])
 ; Note the extra level of indirection that shows up here!
-; CHECK:      @llvm.dbg.declare(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
-; CHECK-SAME:                   DW_OP_LLVM_entry_value, 1, DW_OP_deref, DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
-; CHECK:      @llvm.dbg.value(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
-; CHECK-SAME:                 DW_OP_LLVM_entry_value, 1, DW_OP_deref, DW_OP_plus_uconst, 16, DW_OP_deref)
+; OLDDBG-CHECK:      @llvm.dbg.declare(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; OLDDBG-CHECK-SAME:                   DW_OP_LLVM_entry_value, 1, DW_OP_deref, DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
+; OLDDBG-CHECK:      @llvm.dbg.value(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; OLDDBG-CHECK-SAME:                 DW_OP_LLVM_entry_value, 1, DW_OP_deref, DW_OP_plus_uconst, 16, DW_OP_deref)
+; NEWDBG-CHECK:      #dbg_declare { ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; NEWDBG-CHECK-SAME:                   DW_OP_LLVM_entry_value, 1, DW_OP_deref, DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
+; NEWDBG-CHECK:      #dbg_value { ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; NEWDBG-CHECK-SAME:                 DW_OP_LLVM_entry_value, 1, DW_OP_deref, DW_OP_plus_uconst, 16, DW_OP_deref)
 ; CHECK:      call {{.*}} @swift_task_switch
 
   %i31 = call ptr @llvm.coro.async.resume(), !dbg !54
@@ -84,8 +98,10 @@ define swifttailcc void @coroutineA(ptr swiftasync %arg) !dbg !48 {
 ; CHECK-NOT: define
 ; CHECK-LABEL: define {{.*}} @coroutineATY2_(
 ; CHECK-SAME:    ptr swiftasync %[[frame_ptr:.*]])
-; CHECK:      @llvm.dbg.declare(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
-; CHECK-SAME:                   DW_OP_LLVM_entry_value, 1, DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
+; OLDDBG-CHECK:      @llvm.dbg.declare(metadata ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; OLDDBG-CHECK-SAME:                   DW_OP_LLVM_entry_value, 1, DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
+; NEWDBG-CHECK:      #dbg_declare { ptr %[[frame_ptr]], {{.*}} !DIExpression(
+; NEWDBG-CHECK-SAME:                   DW_OP_LLVM_entry_value, 1, DW_OP_plus_uconst, 16, DW_OP_plus_uconst, 8)
 }
 
 ; Everything from here on is just support code for the coroutines.

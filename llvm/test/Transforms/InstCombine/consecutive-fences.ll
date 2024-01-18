@@ -1,5 +1,5 @@
-; RUN: opt -passes=instcombine -S %s | FileCheck %s
-; RUN: opt -passes=instcombine -S %s --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -passes=instcombine -S %s | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -passes=instcombine -S %s --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ; Make sure we collapse the fences in this case
 
@@ -98,7 +98,8 @@ define void @acquire_single_thread_scope() {
 
 ; CHECK-LABEL: define void @debug
 ; CHECK-NOT: fence
-; CHECK: call void @llvm.dbg.value
+; OLDDBG-CHECK: call void @llvm.dbg.value
+; NEWDBG-CHECK: #dbg_value
 ; CHECK: fence seq_cst
 define void @debug() {
   fence seq_cst

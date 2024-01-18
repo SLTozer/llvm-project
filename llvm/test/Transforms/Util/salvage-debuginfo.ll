@@ -1,18 +1,23 @@
-; RUN: opt -passes=adce %s -S -o - | FileCheck %s
-; RUN: opt -passes=bdce %s -S -o - | FileCheck %s
-; RUN: opt -passes=adce %s -S -o - --try-experimental-debuginfo-iterators | FileCheck %s
-; RUN: opt -passes=bdce %s -S -o - --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -passes=adce %s -S -o - | FileCheck %s -check-prefixes=OLDDBG-CHECK
+; RUN: opt -passes=bdce %s -S -o - | FileCheck %s -check-prefixes=OLDDBG-CHECK
+; RUN: opt -passes=adce %s -S -o - --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=NEWDBG-CHECK
+; RUN: opt -passes=bdce %s -S -o - --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=NEWDBG-CHECK
 target datalayout = "e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-apple-macosx"
 define void @f(i32) !dbg !8 {
 entry:
   %p_x = inttoptr i32 %0 to ptr
   %i_x = ptrtoint ptr %p_x to i32
-  ; CHECK: call void @llvm.dbg.value(metadata i32 %0,
-  ; CHECK-SAME: !DIExpression(DW_OP_LLVM_convert, 32, DW_ATE_unsigned,
-  ; CHECK-SAME:               DW_OP_LLVM_convert, 64, DW_ATE_unsigned,
-  ; CHECK-SAME:               DW_OP_LLVM_convert, 64, DW_ATE_unsigned,
-  ; CHECK-SAME:               DW_OP_LLVM_convert, 32, DW_ATE_unsigned, DW_OP_stack_value))
+  ; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i32 %0,
+  ; OLDDBG-CHECK-SAME: !DIExpression(DW_OP_LLVM_convert, 32, DW_ATE_unsigned,
+  ; OLDDBG-CHECK-SAME:               DW_OP_LLVM_convert, 64, DW_ATE_unsigned,
+  ; OLDDBG-CHECK-SAME:               DW_OP_LLVM_convert, 64, DW_ATE_unsigned,
+  ; OLDDBG-CHECK-SAME:               DW_OP_LLVM_convert, 32, DW_ATE_unsigned, DW_OP_stack_value))
+  ; NEWDBG-CHECK: #dbg_value { i32 %0,
+  ; NEWDBG-CHECK-SAME: !DIExpression(DW_OP_LLVM_convert, 32, DW_ATE_unsigned,
+  ; NEWDBG-CHECK-SAME:               DW_OP_LLVM_convert, 64, DW_ATE_unsigned,
+  ; NEWDBG-CHECK-SAME:               DW_OP_LLVM_convert, 64, DW_ATE_unsigned,
+  ; NEWDBG-CHECK-SAME:               DW_OP_LLVM_convert, 32, DW_ATE_unsigned, DW_OP_stack_value)
   call void @llvm.dbg.value(metadata i32 %i_x, metadata !11, metadata !DIExpression()), !dbg !13
   ret void, !dbg !13
 }

@@ -1,5 +1,5 @@
-; RUN: opt < %s -passes='default<O0>' -S | FileCheck %s
-; RUN: opt --try-experimental-debuginfo-iterators < %s -passes='default<O0>' -S | FileCheck %s
+; RUN: opt < %s -passes='default<O0>' -S | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt --try-experimental-debuginfo-iterators < %s -passes='default<O0>' -S | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ; Define a function 'f' that resembles the Clang frontend's output for the
 ; following C++ coroutine:
@@ -31,20 +31,26 @@
 ; CHECK-LABEL: define void @f() {{.*}} {
 ; CHECK:       entry:
 ; CHECK:         %j = alloca i32, align 4
-; CHECK:         call void @llvm.dbg.declare(metadata ptr %j, metadata ![[JVAR:[0-9]+]], metadata !DIExpression()), !dbg ![[JDBGLOC:[0-9]+]]
+; OLDDBG-CHECK:         call void @llvm.dbg.declare(metadata ptr %j, metadata ![[JVAR:[0-9]+]], metadata !DIExpression()), !dbg ![[JDBGLOC:[0-9]+]]
+; NEWDBG-CHECK:         #dbg_declare { ptr %j, ![[JVAR:[0-9]+]], !DIExpression(), ![[JDBGLOC:[0-9]+]]
 ; CHECK:         %[[MEMORY:.*]] = call ptr @new({{.+}}), !dbg ![[IDBGLOC:[0-9]+]]
-; CHECK:         call void @llvm.dbg.declare(metadata ptr %[[MEMORY]], metadata ![[XVAR:[0-9]+]], metadata !DIExpression(DW_OP_plus_uconst, 32)), !dbg ![[IDBGLOC]]
-; CHECK:         call void @llvm.dbg.declare(metadata ptr %[[MEMORY]], metadata ![[IVAR:[0-9]+]], metadata !DIExpression(DW_OP_plus_uconst, 20)), !dbg ![[IDBGLOC]]
+; OLDDBG-CHECK:         call void @llvm.dbg.declare(metadata ptr %[[MEMORY]], metadata ![[XVAR:[0-9]+]], metadata !DIExpression(DW_OP_plus_uconst, 32)), !dbg ![[IDBGLOC]]
+; OLDDBG-CHECK:         call void @llvm.dbg.declare(metadata ptr %[[MEMORY]], metadata ![[IVAR:[0-9]+]], metadata !DIExpression(DW_OP_plus_uconst, 20)), !dbg ![[IDBGLOC]]
+; NEWDBG-CHECK:         #dbg_declare { ptr %[[MEMORY]], ![[XVAR:[0-9]+]], !DIExpression(DW_OP_plus_uconst, 32), ![[IDBGLOC]]
+; NEWDBG-CHECK:         #dbg_declare { ptr %[[MEMORY]], ![[IVAR:[0-9]+]], !DIExpression(DW_OP_plus_uconst, 20), ![[IDBGLOC]]
 ; CHECK:       await.ready:
 ;
 ; CHECK-LABEL: define internal fastcc void @f.resume({{.*}}) {{.*}} {
 ; CHECK:       entry.resume:
 ; CHECK-NEXT:    %[[DBG_PTR:.*]] = alloca ptr
-; CHECK-NEXT:    call void @llvm.dbg.declare(metadata ptr %[[DBG_PTR]], metadata ![[XVAR_RESUME:[0-9]+]],   metadata !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 32)), !dbg
-; CHECK-NEXT:    call void @llvm.dbg.declare(metadata ptr %[[DBG_PTR]], metadata ![[IVAR_RESUME:[0-9]+]], metadata !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 20)), !dbg ![[IDBGLOC_RESUME:[0-9]+]]
+; OLDDBG-CHECK-NEXT:    call void @llvm.dbg.declare(metadata ptr %[[DBG_PTR]], metadata ![[XVAR_RESUME:[0-9]+]],   metadata !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 32)), !dbg
+; OLDDBG-CHECK-NEXT:    call void @llvm.dbg.declare(metadata ptr %[[DBG_PTR]], metadata ![[IVAR_RESUME:[0-9]+]], metadata !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 20)), !dbg ![[IDBGLOC_RESUME:[0-9]+]]
+; NEWDBG-CHECK-NEXT:    #dbg_declare { ptr %[[DBG_PTR]], ![[XVAR_RESUME:[0-9]+]],   !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 32), 
+; NEWDBG-CHECK-NEXT:    #dbg_declare { ptr %[[DBG_PTR]], ![[IVAR_RESUME:[0-9]+]], !DIExpression(DW_OP_deref, DW_OP_plus_uconst, 20), ![[IDBGLOC_RESUME:[0-9]+]]
 ; CHECK-NEXT:    store ptr {{.*}}, ptr %[[DBG_PTR]]
 ; CHECK:         %[[J:.*]] = alloca i32, align 4
-; CHECK-NEXT:    call void @llvm.dbg.declare(metadata ptr %[[J]], metadata ![[JVAR_RESUME:[0-9]+]], metadata !DIExpression()), !dbg ![[JDBGLOC_RESUME:[0-9]+]]
+; OLDDBG-CHECK-NEXT:    call void @llvm.dbg.declare(metadata ptr %[[J]], metadata ![[JVAR_RESUME:[0-9]+]], metadata !DIExpression()), !dbg ![[JDBGLOC_RESUME:[0-9]+]]
+; NEWDBG-CHECK-NEXT:    #dbg_declare { ptr %[[J]], ![[JVAR_RESUME:[0-9]+]], !DIExpression(), ![[JDBGLOC_RESUME:[0-9]+]]
 ; CHECK:       init.ready:
 ; CHECK:       await.ready:
 ;

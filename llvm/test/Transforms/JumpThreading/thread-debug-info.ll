@@ -1,5 +1,5 @@
-; RUN: opt -S -passes=jump-threading < %s | FileCheck %s
-; RUN: opt -S -passes=jump-threading < %s --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -S -passes=jump-threading < %s | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -S -passes=jump-threading < %s --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 @a = global i32 0, align 4
 ; Test that the llvm.dbg.value calls in a threaded block are correctly updated to
@@ -7,13 +7,17 @@
 define void @test1(i32 %cond1, i32 %cond2) {
 ; CHECK: [[globalptr:@.*]] = global i32 0, align 4
 ; CHECK: bb.cond2:
-; CHECK: call void @llvm.dbg.value(metadata ptr null, metadata ![[DBG1ptr:[0-9]+]], metadata !DIExpression()), !dbg ![[DBG2ptr:[0-9]+]]
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr null, metadata ![[DBG1ptr:[0-9]+]], metadata !DIExpression()), !dbg ![[DBG2ptr:[0-9]+]]
+; NEWDBG-CHECK: #dbg_value { ptr null, ![[DBG1ptr:[0-9]+]], !DIExpression(), ![[DBG2ptr:[0-9]+]]
 ; CHECK-NEXT: [[TOBOOL1:%.*]] = icmp eq i32 %cond2, 0, !dbg ![[DBGLOCtobool1:[0-9]+]]
-; CHECK-NEXT: call void @llvm.dbg.value(metadata !DIArgList(ptr null, i1 [[TOBOOL1]], i1 [[TOBOOL1]]), metadata !{{[0-9]+}}, metadata !DIExpression(DW_OP_LLVM_arg, 0, DW_OP_LLVM_arg, 1, DW_OP_LLVM_arg, 2, DW_OP_plus)), !dbg !{{[0-9]+}}
+; OLDDBG-CHECK-NEXT: call void @llvm.dbg.value(metadata !DIArgList(ptr null, i1 [[TOBOOL1]], i1 [[TOBOOL1]]), metadata !{{[0-9]+}}, metadata !DIExpression(DW_OP_LLVM_arg, 0, DW_OP_LLVM_arg, 1, DW_OP_LLVM_arg, 2, DW_OP_plus)), !dbg !{{[0-9]+}}
+; NEWDBG-CHECK-NEXT: #dbg_value { !DIArgList(ptr null, i1 [[TOBOOL1]], i1 [[TOBOOL1]]), !{{[0-9]+}}, !DIExpression(DW_OP_LLVM_arg, 0, DW_OP_LLVM_arg, 1, DW_OP_LLVM_arg, 2, DW_OP_plus), !{{[0-9]+}}
 ; CHECK: bb.cond2.thread:
-; CHECK-NEXT: call void @llvm.dbg.value(metadata ptr [[globalptr]], metadata ![[DBG1ptr]], metadata !DIExpression()), !dbg ![[DBG2ptr]]
+; OLDDBG-CHECK-NEXT: call void @llvm.dbg.value(metadata ptr [[globalptr]], metadata ![[DBG1ptr]], metadata !DIExpression()), !dbg ![[DBG2ptr]]
+; NEWDBG-CHECK-NEXT: #dbg_value { ptr [[globalptr]], ![[DBG1ptr]], !DIExpression(), ![[DBG2ptr]]
 ; CHECK-NEXT: [[TOBOOL12:%.*]] = icmp eq i32 %cond2, 0, !dbg ![[DBGLOCtobool1]]
-; CHECK-NEXT: call void @llvm.dbg.value(metadata !DIArgList(ptr [[globalptr]], i1 [[TOBOOL12]], i1 [[TOBOOL12]]), metadata !{{[0-9]+}}, metadata !DIExpression(DW_OP_LLVM_arg, 0, DW_OP_LLVM_arg, 1, DW_OP_LLVM_arg, 2, DW_OP_plus)), !dbg !{{[0-9]+}}
+; OLDDBG-CHECK-NEXT: call void @llvm.dbg.value(metadata !DIArgList(ptr [[globalptr]], i1 [[TOBOOL12]], i1 [[TOBOOL12]]), metadata !{{[0-9]+}}, metadata !DIExpression(DW_OP_LLVM_arg, 0, DW_OP_LLVM_arg, 1, DW_OP_LLVM_arg, 2, DW_OP_plus)), !dbg !{{[0-9]+}}
+; NEWDBG-CHECK-NEXT: #dbg_value { !DIArgList(ptr [[globalptr]], i1 [[TOBOOL12]], i1 [[TOBOOL12]]), !{{[0-9]+}}, !DIExpression(DW_OP_LLVM_arg, 0, DW_OP_LLVM_arg, 1, DW_OP_LLVM_arg, 2, DW_OP_plus), !{{[0-9]+}}
 entry:
   %tobool = icmp eq i32 %cond1, 0, !dbg !15
   call void @llvm.dbg.value(metadata i1 %tobool, metadata !9, metadata !DIExpression()), !dbg !15
@@ -54,10 +58,12 @@ exit:                                             ; preds = %bb.f4, %bb.f3, %bb.
 ; inside to correctly take any new definitions.
 define void @test2(i32 %cond1, i32 %cond2) !dbg !5 {
 ; CHECK: bb.f3
-; CHECK: call void @llvm.dbg.value(metadata ptr @a, metadata !{{[0-9]+}}, metadata !DIExpression()), !dbg !{{[0-9]+}}
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr @a, metadata !{{[0-9]+}}, metadata !DIExpression()), !dbg !{{[0-9]+}}
+; NEWDBG-CHECK: #dbg_value { ptr @a, !{{[0-9]+}}, !DIExpression(), !{{[0-9]+}}
 ; CHECK: bb.f4
 ; CHECK-NEXT: [[PTR3:%.*]] = phi ptr [ null, %bb.cond2 ]
-; CHECK-NEXT: call void @llvm.dbg.value(metadata ptr [[PTR3]], metadata !{{[0-9]+}}, metadata !DIExpression()), !dbg !{{[0-9]+}}
+; OLDDBG-CHECK-NEXT: call void @llvm.dbg.value(metadata ptr [[PTR3]], metadata !{{[0-9]+}}, metadata !DIExpression()), !dbg !{{[0-9]+}}
+; NEWDBG-CHECK-NEXT: #dbg_value { ptr [[PTR3]], !{{[0-9]+}}, !DIExpression(), !{{[0-9]+}}
 entry:
   %tobool = icmp eq i32 %cond1, 0, !dbg !15
   br i1 %tobool, label %bb.cond2, label %bb.f1, !dbg !16
@@ -109,14 +115,17 @@ lor.lhs.false.i:
   br i1 %c3, label %land.end, label %land.end, !dbg !33
 
 ; CHECK-LABEL: land.end.thr_comm:
-; CHECK-NEXT:  call void @llvm.dbg.value(metadata i32 0,
-; CHECK-NEXT:  call void @llvm.dbg.value(metadata i32 1,
+; OLDDBG-CHECK-NEXT:  call void @llvm.dbg.value(metadata i32 0,
+; OLDDBG-CHECK-NEXT:  call void @llvm.dbg.value(metadata i32 1,
+; NEWDBG-CHECK-NEXT:  #dbg_value { i32 0,
+; NEWDBG-CHECK-NEXT:  #dbg_value { i32 1,
 ; CHECK-NEXT:  call void @f1()
 ; CHECK-NEXT:  br i1 %c4,
 
 ; CHECK-LABEL: land.end:
 ; CHECK-NEXT:  %0 = phi i1
-; CHECK-NEXT:  call void @llvm.dbg.value(metadata i32 0,
+; OLDDBG-CHECK-NEXT:  call void @llvm.dbg.value(metadata i32 0,
+; NEWDBG-CHECK-NEXT:  #dbg_value { i32 0,
 land.end:
   %0 = phi i1 [ true, %entry ], [ false, %land.rhs ], [false, %lor.lhs.false.i], [false, %lor.lhs.false.i]
   call void @llvm.dbg.value(metadata i32 0, metadata !32, metadata !DIExpression()), !dbg !33

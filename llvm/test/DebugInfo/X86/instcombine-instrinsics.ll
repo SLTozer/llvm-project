@@ -1,10 +1,12 @@
-; RUN: opt %s -O2 -S -o - | FileCheck %s
-; RUN: opt --try-experimental-debuginfo-iterators %s -O2 -S -o - | FileCheck %s
+; RUN: opt %s -O2 -S -o - | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt --try-experimental-debuginfo-iterators %s -O2 -S -o - | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 ; Verify that we emit the same intrinsic at most once.
 ; rdar://problem/13056109
 ;
-; CHECK: call void @llvm.dbg.value(metadata ptr %p
-; CHECK-NOT: call void @llvm.dbg.value(metadata ptr %p
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr %p
+; OLDDBG-CHECK-NOT: call void @llvm.dbg.value(metadata ptr %p
+; NEWDBG-CHECK: #dbg_value { ptr %p
+; NEWDBG-CHECK-NOT: #dbg_value { ptr %p
 ; CHECK-NEXT: call i32 @foo
 ; CHECK: ret
 ;

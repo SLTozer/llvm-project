@@ -1,5 +1,5 @@
-; RUN: opt -passes='sroa' -S -o - %s | FileCheck %s
-; RUN: opt --try-experimental-debuginfo-iterators -passes='sroa' -S -o - %s | FileCheck %s
+; RUN: opt -passes='sroa' -S -o - %s | FileCheck %s -check-prefixes=OLDDBG-CHECK
+; RUN: opt --try-experimental-debuginfo-iterators -passes='sroa' -S -o - %s | FileCheck %s -check-prefixes=NEWDBG-CHECK
 ; Generated from clang -c  -O2 -g -target x86_64-pc-windows-msvc
 ; struct A {
 ;   int _Myval2;
@@ -40,8 +40,10 @@ entry:
   %tmp = alloca %struct.F, align 8
   call void @llvm.lifetime.start.p0(i64 16, ptr %tmp)
   call void @llvm.dbg.declare(metadata ptr %tmp, metadata !10, metadata !DIExpression()), !dbg !14
-  ; CHECK-NOT: !DIExpression(DW_OP_LLVM_fragment, 32, 96)
-  ; CHECK: call void @llvm.dbg.value(metadata i32 0, metadata !10, metadata !DIExpression())
+  ; OLDDBG-CHECK-NOT: !DIExpression(DW_OP_LLVM_fragment, 32, 96)
+  ; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i32 0, metadata !10, metadata !DIExpression())
+  ; NEWDBG-CHECK-NOT: !DIExpression(DW_OP_LLVM_fragment, 32, 96)
+  ; NEWDBG-CHECK: #dbg_value { i32 0, !10, !DIExpression()
   store i32 0, ptr %tmp, align 8
   ret void
 }

@@ -1,5 +1,5 @@
-; RUN: opt < %s -passes=mem2reg -S | FileCheck %s
-; RUN: opt < %s -passes=mem2reg -S --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt < %s -passes=mem2reg -S | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt < %s -passes=mem2reg -S --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 define double @testfunc(i32 %i, double %j) nounwind ssp !dbg !1 {
 entry:
@@ -9,8 +9,10 @@ entry:
   %0 = alloca double                              ; <ptr> [#uses=2]
   %"alloca point" = bitcast i32 0 to i32          ; <i32> [#uses=0]
   call void @llvm.dbg.declare(metadata ptr %i_addr, metadata !0, metadata !DIExpression()), !dbg !8
-; CHECK: call void @llvm.dbg.value(metadata i32 %i, metadata ![[IVAR:[0-9]*]], metadata {{.*}})
-; CHECK: call void @llvm.dbg.value(metadata double %j, metadata ![[JVAR:[0-9]*]], metadata {{.*}})
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i32 %i, metadata ![[IVAR:[0-9]*]], metadata {{.*}})
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata double %j, metadata ![[JVAR:[0-9]*]], metadata {{.*}})
+; NEWDBG-CHECK: #dbg_value { i32 %i, ![[IVAR:[0-9]*]], {{.*}})
+; NEWDBG-CHECK: #dbg_value { double %j, ![[JVAR:[0-9]*]], {{.*}})
 ; CHECK: ![[IVAR]] = !DILocalVariable(name: "i"
 ; CHECK: ![[JVAR]] = !DILocalVariable(name: "j"
   store i32 %i, ptr %i_addr

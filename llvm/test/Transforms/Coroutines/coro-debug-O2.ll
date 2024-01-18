@@ -1,11 +1,12 @@
-; RUN: opt < %s -passes='module(coro-early),cgscc(coro-split<reuse-storage>),function(sroa)' -S | FileCheck %s
-; RUN: opt --try-experimental-debuginfo-iterators < %s -passes='module(coro-early),cgscc(coro-split<reuse-storage>),function(sroa)' -S | FileCheck %s
+; RUN: opt < %s -passes='module(coro-early),cgscc(coro-split<reuse-storage>),function(sroa)' -S | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt --try-experimental-debuginfo-iterators < %s -passes='module(coro-early),cgscc(coro-split<reuse-storage>),function(sroa)' -S | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ; Checks whether the dbg.declare for `__promise` remains valid under O2.
 
 ; CHECK-LABEL: define internal fastcc void @f.resume({{.*}})
 ; CHECK:       entry.resume:
-; CHECK:        call void @llvm.dbg.declare(metadata ptr %begin, metadata ![[PROMISEVAR_RESUME:[0-9]+]], metadata !DIExpression(
+; OLDDBG-CHECK:        call void @llvm.dbg.declare(metadata ptr %begin, metadata ![[PROMISEVAR_RESUME:[0-9]+]], metadata !DIExpression(
+; NEWDBG-CHECK:        #dbg_declare { ptr %begin, ![[PROMISEVAR_RESUME:[0-9]+]], !DIExpression(
 ;
 ; CHECK: ![[PROMISEVAR_RESUME]] = !DILocalVariable(name: "__promise"
 %promise_type = type { i32, i32, double }

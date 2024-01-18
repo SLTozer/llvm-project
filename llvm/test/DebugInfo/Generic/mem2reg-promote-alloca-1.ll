@@ -1,5 +1,5 @@
-; RUN: opt -passes=mem2reg %s -S -o - | FileCheck %s
-; RUN: opt -passes=mem2reg %s -S -o - --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -passes=mem2reg %s -S -o - | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -passes=mem2reg %s -S -o - --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ;; Check that mem2reg removes dbg.value(%param.addr, DIExpression(DW_OP_deref...))
 ;; when promoting the alloca %param.addr.
@@ -20,8 +20,10 @@
 
 ; CHECK: define dso_local void @fun(i32 %param)
 ; CHECK-NEXT: entry:
-; CHECK-NEXT: call void @llvm.dbg.value(metadata i32 %param, metadata ![[PARAM:[0-9]+]], metadata !DIExpression())
-; CHECK-NOT: call void @llvm.dbg.value({{.*}}, metadata ![[PARAM]]
+; OLDDBG-CHECK-NEXT: call void @llvm.dbg.value(metadata i32 %param, metadata ![[PARAM:[0-9]+]], metadata !DIExpression())
+; OLDDBG-CHECK-NOT: call void @llvm.dbg.value({{.*}}, metadata ![[PARAM]]
+; NEWDBG-CHECK-NEXT: #dbg_value { i32 %param, ![[PARAM:[0-9]+]], !DIExpression()
+; NEWDBG-CHECK-NOT: #dbg_value { {{.*}}, ![[PARAM]]
 ; CHECK: ![[PARAM]] = !DILocalVariable(name: "param",
 
 @g = dso_local global i32 0, align 4, !dbg !0

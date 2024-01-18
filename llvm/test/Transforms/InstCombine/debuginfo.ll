@@ -1,10 +1,10 @@
 ; RUN: opt < %s -passes=instcombine -instcombine-lower-dbg-declare=0 -S \
-; RUN:      | FileCheck %s --check-prefix=CHECK --check-prefix=NOLOWER
-; RUN: opt < %s -passes=instcombine -instcombine-lower-dbg-declare=1 -S | FileCheck %s
+; RUN:      | FileCheck %s --check-prefixes=CHECK,OLDDBG-CHECK --check-prefixes=NOLOWER,OLDDBG-NOLOWER
+; RUN: opt < %s -passes=instcombine -instcombine-lower-dbg-declare=1 -S | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
 
 ; RUN: opt < %s -passes=instcombine -instcombine-lower-dbg-declare=0 -S --try-experimental-debuginfo-iterators \
-; RUN:      | FileCheck %s --check-prefix=CHECK --check-prefix=NOLOWER
-; RUN: opt < %s -passes=instcombine -instcombine-lower-dbg-declare=1 -S --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN:      | FileCheck %s --check-prefixes=CHECK,NEWDBG-CHECK --check-prefixes=NOLOWER,NEWDBG-NOLOWER
+; RUN: opt < %s -passes=instcombine -instcombine-lower-dbg-declare=1 -S --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64--linux"
@@ -40,12 +40,16 @@ entry:
 ; CHECK-LABEL: define ptr @passthru(ptr %a, i32 %b, i64 %c)
 ; CHECK-NOT: alloca
 ; CHECK-NOT: store
-; CHECK-NOT: call void @llvm.dbg.declare
-; CHECK: call void @llvm.dbg.value(metadata ptr %a, {{.*}})
+; OLDDBG-CHECK-NOT: call void @llvm.dbg.declare
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr %a, {{.*}})
+; NEWDBG-CHECK-NOT: #dbg_declare
+; NEWDBG-CHECK: #dbg_value { ptr %a, {{.*}})
 ; CHECK-NOT: store
-; CHECK: call void @llvm.dbg.value(metadata i32 %b, {{.*}})
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i32 %b, {{.*}})
+; NEWDBG-CHECK: #dbg_value { i32 %b, {{.*}})
 ; CHECK-NOT: store
-; CHECK: call void @llvm.dbg.value(metadata i64 %c, {{.*}})
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i64 %c, {{.*}})
+; NEWDBG-CHECK: #dbg_value { i64 %c, {{.*}})
 ; CHECK-NOT: store
 ; CHECK: call ptr @passthru_callee(ptr %a, i32 %b, i64 %c, i64 %{{.*}})
 
@@ -72,12 +76,15 @@ entry:
 ; NOLOWER-LABEL: define void @tworegs(i64 %o.coerce0, i64 %o.coerce1)
 ; NOLOWER-NOT: alloca
 ; NOLOWER-NOT: store
-; NOLOWER-NOT: call void @llvm.dbg.declare
+; OLDDBG-NOLOWER-NOT: call void @llvm.dbg.declare
+; NEWDBG-NOLOWER-NOT: #dbg_declare
 ; Here we want to find:  call void @llvm.dbg.value(metadata i64 %o.coerce0, metadata [[VARIABLE_O]], metadata !DIExpression(DW_OP_LLVM_fragment, 0, 64))
-; NOLOWER: call void @llvm.dbg.value(metadata i64 undef, {{.*}})
+; OLDDBG-NOLOWER: call void @llvm.dbg.value(metadata i64 undef, {{.*}})
+; NEWDBG-NOLOWER: #dbg_value { i64 undef, {{.*}})
 ; NOLOWER-NOT: store
 ; Here we want to find:  call void @llvm.dbg.value(metadata i64 %o.coerce1, metadata [[VARIABLE_O]], metadata !DIExpression(DW_OP_LLVM_fragment, 64, 64))
-; NOLOWER: call void @llvm.dbg.value(metadata i64 undef, {{.*}})
+; OLDDBG-NOLOWER: call void @llvm.dbg.value(metadata i64 undef, {{.*}})
+; NEWDBG-NOLOWER: #dbg_value { i64 undef, {{.*}})
 ; NOLOWER-NOT: store
 ; NOLOWER: call void @tworegs_callee(i64 %o.coerce0, i64 %o.coerce1)
 

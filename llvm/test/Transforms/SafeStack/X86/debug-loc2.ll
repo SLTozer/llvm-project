@@ -1,7 +1,7 @@
-; RUN: opt -safe-stack -S -mtriple=i386-pc-linux-gnu < %s -o - | FileCheck %s
-; RUN: opt -safe-stack -S -mtriple=i386-pc-linux-gnu < %s -o - --try-experimental-debuginfo-iterators | FileCheck %s
-; RUN: opt -passes=safe-stack -S -mtriple=i386-pc-linux-gnu < %s -o - | FileCheck %s
-; RUN: opt -passes=safe-stack -S -mtriple=i386-pc-linux-gnu < %s -o - --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -safe-stack -S -mtriple=i386-pc-linux-gnu < %s -o - | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -safe-stack -S -mtriple=i386-pc-linux-gnu < %s -o - --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
+; RUN: opt -passes=safe-stack -S -mtriple=i386-pc-linux-gnu < %s -o - | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -passes=safe-stack -S -mtriple=i386-pc-linux-gnu < %s -o - --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ; Test llvm.dbg.value for the local variables moved onto the unsafe stack.
 ; SafeStack rewrites them relative to the unsafe stack pointer (base address of
@@ -18,27 +18,33 @@ entry:
   %x2 = alloca i32, align 4
 
 ; Unhandled dbg.value: expression does not start with OP_DW_deref
-; CHECK: call void @llvm.dbg.value(metadata ptr undef, metadata !{{.*}}, metadata !{{.*}})
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr undef, metadata !{{.*}}, metadata !{{.*}})
+; NEWDBG-CHECK: #dbg_value { ptr undef, !{{.*}}, !{{.*}})
   tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !23), !dbg !16
 
 ; Unhandled dbg.value: expression does not start with OP_DW_deref
-; CHECK: call void @llvm.dbg.value(metadata ptr undef, metadata !{{.*}}, metadata !{{.*}})
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr undef, metadata !{{.*}}, metadata !{{.*}})
+; NEWDBG-CHECK: #dbg_value { ptr undef, !{{.*}}, !{{.*}})
   tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !24), !dbg !16
 
 ; Supported dbg.value: rewritted based on the [[USP]] value.
-; CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X1:.*]], metadata !DIExpression(DW_OP_constu, 4, DW_OP_minus, DW_OP_deref, DW_OP_LLVM_fragment, 0, 4))
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X1:.*]], metadata !DIExpression(DW_OP_constu, 4, DW_OP_minus, DW_OP_deref, DW_OP_LLVM_fragment, 0, 4))
+; NEWDBG-CHECK: #dbg_value { ptr %[[USP]], ![[X1:.*]], !DIExpression(DW_OP_constu, 4, DW_OP_minus, DW_OP_deref, DW_OP_LLVM_fragment, 0, 4)
   tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !25), !dbg !16
 
 ; Supported dbg.value: rewritted based on the [[USP]] value.
-; CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X1:.*]], metadata !DIExpression(DW_OP_constu, 4, DW_OP_minus, DW_OP_deref))
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X1:.*]], metadata !DIExpression(DW_OP_constu, 4, DW_OP_minus, DW_OP_deref))
+; NEWDBG-CHECK: #dbg_value { ptr %[[USP]], ![[X1:.*]], !DIExpression(DW_OP_constu, 4, DW_OP_minus, DW_OP_deref)
   tail call void @llvm.dbg.value(metadata ptr %x1, metadata !10, metadata !15), !dbg !16
   call void @capture(ptr nonnull %x1), !dbg !17
 
 ; An extra non-dbg.value metadata use of %x2. Replaced with undef.
-; CHECK: call void @llvm.random.metadata.use(metadata ptr undef
+; OLDDBG-CHECK: call void @llvm.random.metadata.use(metadata ptr undef
+; NEWDBG-CHECK: call void @llvm.random..use(ptr undef
   call void @llvm.random.metadata.use(metadata ptr %x2)
 
-; CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X2:.*]], metadata !DIExpression(DW_OP_constu, 8, DW_OP_minus, DW_OP_deref))
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X2:.*]], metadata !DIExpression(DW_OP_constu, 8, DW_OP_minus, DW_OP_deref))
+; NEWDBG-CHECK: #dbg_value { ptr %[[USP]], ![[X2:.*]], !DIExpression(DW_OP_constu, 8, DW_OP_minus, DW_OP_deref)
   call void @llvm.dbg.value(metadata ptr %x2, metadata !12, metadata !15), !dbg !18
   call void @capture(ptr nonnull %x2), !dbg !19
   ret void, !dbg !20

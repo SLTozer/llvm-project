@@ -1,11 +1,12 @@
-; RUN: opt %s -passes='sroa,verify' -S -o - | FileCheck %s
-; RUN: opt --try-experimental-debuginfo-iterators %s -passes='sroa,verify' -S -o - | FileCheck %s
+; RUN: opt %s -passes='sroa,verify' -S -o - | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt --try-experimental-debuginfo-iterators %s -passes='sroa,verify' -S -o - | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ; ModuleID = 'test.c'
 ; Test that SROA updates the debug info correctly if an alloca was rewritten but
 ; not partitioned into multiple allocas.
 ;
-; CHECK: call void @llvm.dbg.value(metadata float %s.coerce, metadata ![[VAR:[0-9]+]], metadata !DIExpression())
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata float %s.coerce, metadata ![[VAR:[0-9]+]], metadata !DIExpression())
+; NEWDBG-CHECK: #dbg_value { float %s.coerce, ![[VAR:[0-9]+]], !DIExpression()
 ; CHECK: ![[VAR]] = !DILocalVariable(name: "s",{{.*}} line: 3,
 
 ;

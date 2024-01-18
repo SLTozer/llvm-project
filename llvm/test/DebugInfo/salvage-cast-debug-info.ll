@@ -1,10 +1,13 @@
-; RUN: opt %s -passes=debugify,early-cse -earlycse-debug-hash -S | FileCheck %s
-; RUN: opt %s -passes=debugify,early-cse -earlycse-debug-hash -S --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt %s -passes=debugify,early-cse -earlycse-debug-hash -S | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt %s -passes=debugify,early-cse -earlycse-debug-hash -S --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 define i32 @foo(i64 %nose, i32 %more) {
 ; CHECK-LABEL: @foo(
-; CHECK: call void @llvm.dbg.value(metadata i64 %nose, metadata [[V1:![0-9]+]], metadata !DIExpression(DW_OP_LLVM_convert, 64, DW_ATE_unsigned, DW_OP_LLVM_convert, 32, DW_ATE_unsigned
-; CHECK: call void @llvm.dbg.value(metadata i64 %nose.shift, metadata [[V2:![0-9]+]]
-; CHECK: call void @llvm.dbg.value(metadata i64 %nose.shift, metadata [[V3:![0-9]+]], metadata !DIExpression(DW_OP_LLVM_convert, 64, DW_ATE_unsigned, DW_OP_LLVM_convert, 32, DW_ATE_unsigned
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i64 %nose, metadata [[V1:![0-9]+]], metadata !DIExpression(DW_OP_LLVM_convert, 64, DW_ATE_unsigned, DW_OP_LLVM_convert, 32, DW_ATE_unsigned
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i64 %nose.shift, metadata [[V2:![0-9]+]]
+; OLDDBG-CHECK: call void @llvm.dbg.value(metadata i64 %nose.shift, metadata [[V3:![0-9]+]], metadata !DIExpression(DW_OP_LLVM_convert, 64, DW_ATE_unsigned, DW_OP_LLVM_convert, 32, DW_ATE_unsigned
+; NEWDBG-CHECK: #dbg_value { i64 %nose, [[V1:![0-9]+]], !DIExpression(DW_OP_LLVM_convert, 64, DW_ATE_unsigned, DW_OP_LLVM_convert, 32, DW_ATE_unsigned
+; NEWDBG-CHECK: #dbg_value { i64 %nose.shift, [[V2:![0-9]+]]
+; NEWDBG-CHECK: #dbg_value { i64 %nose.shift, [[V3:![0-9]+]], !DIExpression(DW_OP_LLVM_convert, 64, DW_ATE_unsigned, DW_OP_LLVM_convert, 32, DW_ATE_unsigned
 
 entry:
   %nose.trunc = trunc i64 %nose to i32

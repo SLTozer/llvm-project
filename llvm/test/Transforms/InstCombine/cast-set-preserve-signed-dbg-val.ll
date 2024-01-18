@@ -1,5 +1,5 @@
-; RUN: opt -passes=instcombine -S < %s | FileCheck %s
-; RUN: opt -passes=instcombine -S < %s --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -passes=instcombine -S < %s | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -passes=instcombine -S < %s --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ; CHECK-LABEL: define {{.*}} @test5
 define i16 @test5(i16 %A) !dbg !34 {
@@ -14,14 +14,17 @@ define i16 @test5(i16 %A) !dbg !34 {
   ; Preserve the dbg.value for the DCE'd 32-bit 'and'.
   ;
   ; The high 16 bits of the original 'and' require sign-extending the new 16-bit and:
-  ; CHECK-NEXT: call void @llvm.dbg.value(metadata i16 [[and]], metadata [[C:![0-9]+]],
-  ; CHECK-SAME:    metadata !DIExpression(DW_OP_LLVM_convert, 16, DW_ATE_signed, DW_OP_LLVM_convert, 32, DW_ATE_signed, DW_OP_stack_value)
+  ; OLDDBG-CHECK-NEXT: call void @llvm.dbg.value(metadata i16 [[and]], metadata [[C:![0-9]+]],
+  ; OLDDBG-CHECK-SAME:    metadata !DIExpression(DW_OP_LLVM_convert, 16, DW_ATE_signed, DW_OP_LLVM_convert, 32, DW_ATE_signed, DW_OP_stack_value)
+  ; NEWDBG-CHECK-NEXT: #dbg_value { i16 [[and]], [[C:![0-9]+]],
+  ; NEWDBG-CHECK-SAME:    !DIExpression(DW_OP_LLVM_convert, 16, DW_ATE_signed, DW_OP_LLVM_convert, 32, DW_ATE_signed, DW_OP_stack_value)
 
   %D = trunc i32 %C to i16, !dbg !42
   call void @llvm.dbg.value(metadata i16 %D, metadata !38, metadata !DIExpression()), !dbg !42
 
   ; The dbg.value for a truncate should simply point to the result of the 16-bit 'and'.
-  ; CHECK-NEXT: call void @llvm.dbg.value(metadata i16 [[and]], metadata [[D:![0-9]+]], metadata !DIExpression())
+  ; OLDDBG-CHECK-NEXT: call void @llvm.dbg.value(metadata i16 [[and]], metadata [[D:![0-9]+]], metadata !DIExpression())
+  ; NEWDBG-CHECK-NEXT: #dbg_value { i16 [[and]], [[D:![0-9]+]], !DIExpression()
 
   ret i16 %D, !dbg !43
   ; CHECK-NEXT: ret i16 [[and]]

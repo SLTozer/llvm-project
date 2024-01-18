@@ -1,5 +1,5 @@
-; RUN: opt -passes='sroa' -S -o - %s | FileCheck %s
-; RUN: opt --try-experimental-debuginfo-iterators -passes='sroa' -S -o - %s | FileCheck %s
+; RUN: opt -passes='sroa' -S -o - %s | FileCheck %s -check-prefixes=OLDDBG-CHECK
+; RUN: opt --try-experimental-debuginfo-iterators -passes='sroa' -S -o - %s | FileCheck %s -check-prefixes=NEWDBG-CHECK
 target datalayout = "e-m:o-p:32:32-i64:64-v128:64:128-a:0:32-n32-S64"
 target triple = "thumbv7-apple-unknown-macho"
 
@@ -17,13 +17,19 @@ entry:
   store double 0.000000e+00, ptr %c.realp, align 8, !dbg !17
   ; SROA will split the complex double into two double values.
   ; Test that debug info for both values survives:
-  ; CHECK: call void @llvm.dbg.value(metadata double 0.000000e+00,
-  ; CHECK-SAME:                      metadata ![[C:[^,]*]],
-  ; CHECK-SAME:                      metadata !DIExpression(DW_OP_LLVM_fragment, 0, 64))
+  ; OLDDBG-CHECK: call void @llvm.dbg.value(metadata double 0.000000e+00,
+  ; OLDDBG-CHECK-SAME:                      metadata ![[C:[^,]*]],
+  ; OLDDBG-CHECK-SAME:                      metadata !DIExpression(DW_OP_LLVM_fragment, 0, 64))
+  ; NEWDBG-CHECK: #dbg_value { double 0.000000e+00,
+  ; NEWDBG-CHECK-SAME:                      ![[C:[^,]*]],
+  ; NEWDBG-CHECK-SAME:                      !DIExpression(DW_OP_LLVM_fragment, 0, 64)
   store double 0.000000e+00, ptr %c.imagp, align 8, !dbg !17
-  ; CHECK: call void @llvm.dbg.value(metadata double 0.000000e+00,
-  ; CHECK-SAME:                      metadata ![[C]],
-  ; CHECK-SAME:                      metadata !DIExpression(DW_OP_LLVM_fragment, 64, 64))
+  ; OLDDBG-CHECK: call void @llvm.dbg.value(metadata double 0.000000e+00,
+  ; OLDDBG-CHECK-SAME:                      metadata ![[C]],
+  ; OLDDBG-CHECK-SAME:                      metadata !DIExpression(DW_OP_LLVM_fragment, 64, 64))
+  ; NEWDBG-CHECK: #dbg_value { double 0.000000e+00,
+  ; NEWDBG-CHECK-SAME:                      ![[C]],
+  ; NEWDBG-CHECK-SAME:                      !DIExpression(DW_OP_LLVM_fragment, 64, 64)
   ret void, !dbg !18
 }
 

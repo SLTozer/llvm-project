@@ -1,5 +1,5 @@
-; RUN: opt -S %s -passes=loop-deletion | FileCheck %s
-; RUN: opt -S %s -passes=loop-deletion --try-experimental-debuginfo-iterators | FileCheck %s
+; RUN: opt -S %s -passes=loop-deletion | FileCheck %s -check-prefixes=CHECK,OLDDBG-CHECK
+; RUN: opt -S %s -passes=loop-deletion --try-experimental-debuginfo-iterators | FileCheck %s -check-prefixes=CHECK,NEWDBG-CHECK
 
 ;; static int foo(int Param) __attribute__((always_inline));
 ;; static int foo(int Param) { return Param * Param * 2; }
@@ -20,8 +20,10 @@
 ;; loop is preserved.
 
 ; CHECK-LABEL: for.end:
-; CHECK-NEXT:    @llvm.dbg.value({{.+}} undef, metadata ![[VAR1:[0-9]+]],{{.+}}), !dbg ![[DBG1:[0-9]+]]
-; CHECK-NEXT:    @llvm.dbg.value({{.+}} 5, metadata ![[VAR2:[0-9]+]],{{.+}}), !dbg ![[DBG2:[0-9]+]]
+; OLDDBG-CHECK-NEXT:    @llvm.dbg.value({{.+}} undef, metadata ![[VAR1:[0-9]+]],{{.+}}), !dbg ![[DBG1:[0-9]+]]
+; OLDDBG-CHECK-NEXT:    @llvm.dbg.value({{.+}} 5, metadata ![[VAR2:[0-9]+]],{{.+}}), !dbg ![[DBG2:[0-9]+]]
+; NEWDBG-CHECK-NEXT:    #dbg_value { {{.+}} undef, ![[VAR1:[0-9]+]],{{.+}}), ![[DBG1:[0-9]+]]
+; NEWDBG-CHECK-NEXT:    #dbg_value { {{.+}} 5, ![[VAR2:[0-9]+]],{{.+}}), ![[DBG2:[0-9]+]]
 
 ; CHECK-DAG: ![[VAR1]] = !DILocalVariable(name: "Index"
 ; CHECK-DAG: ![[VAR2]] = !DILocalVariable(name: "Constant"
