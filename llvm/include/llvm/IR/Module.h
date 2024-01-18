@@ -218,11 +218,15 @@ public:
   /// \ref BasicBlock.
   bool IsNewDbgInfoFormat;
 
+  void removeDebugIntrinsicDeclarations();
+
   /// \see BasicBlock::convertToNewDbgValues.
   void convertToNewDbgValues() {
     for (auto &F : *this) {
       F.convertToNewDbgValues();
     }
+    // Remove the declarations of the old debug intrinsics, if any exist.
+    removeDebugIntrinsicDeclarations();
     IsNewDbgInfoFormat = true;
   }
 
