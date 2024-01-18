@@ -4062,9 +4062,8 @@ void AssemblyWriter::printBasicBlock(const BasicBlock *BB) {
 
   // Output all of the instructions in the basic block...
   for (const Instruction &I : *BB) {
-    if (I.DbgMarker)
-      for (const DPValue &DPV : I.getDbgValueRange())
-        printDPValueLine(DPV);
+    for (const DPValue &DPV : I.getDbgValueRange())
+      printDPValueLine(DPV);
     printInstructionLine(I);
   }
 

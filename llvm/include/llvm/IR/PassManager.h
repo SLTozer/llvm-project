@@ -555,9 +555,6 @@ public:
       PA.intersect(std::move(PassPA));
     }
 
-    if (ShouldConvertDbgInfo)
-      doConvertDebugInfoToOld(IR);
-
     // Invalidation was handled after each pass in the above loop for the
     // current unit of IR. Therefore, the remaining analysis results in the
     // AnalysisManager are preserved. We mark this with a set so that we don't

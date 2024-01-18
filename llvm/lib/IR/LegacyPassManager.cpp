@@ -545,8 +545,6 @@ bool PassManagerImpl::run(Module &M) {
   for (ImmutablePass *ImPass : getImmutablePasses())
     Changed |= ImPass->doFinalization(M);
 
-  M.convertFromNewDbgValues();
-
   return Changed;
 }
 } // namespace legacy
