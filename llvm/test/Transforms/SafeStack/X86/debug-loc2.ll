@@ -39,8 +39,7 @@ entry:
   call void @capture(ptr nonnull %x1), !dbg !17
 
 ; An extra non-dbg.value metadata use of %x2. Replaced with undef.
-; OLDDBG-CHECK: call void @llvm.random.metadata.use(metadata ptr undef
-; NEWDBG-CHECK: call void @llvm.random..use(ptr undef
+; CHECK: call void @llvm.random.metadata.use(metadata ptr undef
   call void @llvm.random.metadata.use(metadata ptr %x2)
 
 ; OLDDBG-CHECK: call void @llvm.dbg.value(metadata ptr %[[USP]], metadata ![[X2:.*]], metadata !DIExpression(DW_OP_constu, 8, DW_OP_minus, DW_OP_deref))

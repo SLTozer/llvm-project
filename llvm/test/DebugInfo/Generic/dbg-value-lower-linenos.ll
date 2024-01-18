@@ -56,19 +56,22 @@ bb2:
 ; CHECK-LABEL: define void @bar
 ;
 ; OLDDBG-CHECK:      dbg.value(metadata i32 %map, metadata ![[MAPVAR:[0-9]+]],{{.*}}),
+; OLDDBG-CHECK-SAME:           !dbg ![[UNKNOWN2:[0-9]+]]
 ; NEWDBG-CHECK:      #dbg_value { i32 %map, ![[MAPVAR:[0-9]+]],{{.*}}),
-; CHECK-SAME:           !dbg ![[UNKNOWN2:[0-9]+]]
+; NEWDBG-CHECK-SAME:           ![[UNKNOWN2:[0-9]+]]
 ; CHECK-NEXT: store
 ; OLDDBG-CHECK-NEXT: dbg.value(metadata ptr %map.addr, metadata ![[MAPVAR]],
 ; OLDDBG-CHECK-SAME:           metadata !DIExpression(DW_OP_deref)),
+; OLDDBG-CHECK-SAME:           !dbg ![[UNKNOWN2]]
 ; NEWDBG-CHECK-NEXT: #dbg_value { ptr %map.addr, ![[MAPVAR]],
 ; NEWDBG-CHECK-SAME:           !DIExpression(DW_OP_deref),
-; CHECK-SAME:           !dbg ![[UNKNOWN2]]
+; NEWDBG-CHECK-SAME:           ![[UNKNOWN2]]
 ; CHECK-NEXT: call
 ; CHECK-NEXT: load
 ; OLDDBG-CHECK-NEXT: dbg.value(metadata i32 %{{[0-9]+}}, metadata ![[MAPVAR]],
+; OLDDBG-CHECK-SAME:           !dbg ![[UNKNOWN2]]
 ; NEWDBG-CHECK-NEXT: #dbg_value { i32 %{{[0-9]+}}, ![[MAPVAR]],
-; CHECK-SAME:           !dbg ![[UNKNOWN2]]
+; NEWDBG-CHECK-SAME:           ![[UNKNOWN2]]
 
 define void @bar(i32 %map) !dbg !20 {
 entry:

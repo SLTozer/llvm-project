@@ -2,9 +2,11 @@
 ; RUN:   llc -O0 -filetype=obj - -o - | \
 ; RUN:   llvm-dwarfdump - | FileCheck %s
 
-; RUN: opt --try-experimental-debuginfo-iterators < %s -passes=asan -asan-use-after-return=never -S | \
-; RUN:   llc --try-experimental-debuginfo-iterators -O0 -filetype=obj - -o - | \
-; RUN:   llvm-dwarfdump - | FileCheck %s
+;; FIXME: Temporarily disabled while we are printing new debug info but not
+;;        parsing it, as llc can't understand opt's output.
+; COM: opt --try-experimental-debuginfo-iterators < %s -passes=asan -asan-use-after-return=never -S | \
+; COM:   llc --try-experimental-debuginfo-iterators -O0 -filetype=obj - -o - | \
+; COM:   llvm-dwarfdump - | FileCheck %s
 
 ; For this test case, ASan used to produce IR which resulted in the following
 ; DWARF (at -O0):
