@@ -238,6 +238,13 @@ public:
     IsNewDbgInfoFormat = false;
   }
 
+  void setIsNewDbgInfoFormat(bool NewFlag) {
+    if (NewFlag && !IsNewDbgInfoFormat)
+      convertToNewDbgValues();
+    else if (!NewFlag && IsNewDbgInfoFormat)
+      convertFromNewDbgValues();
+  }
+
   /// The Module constructor. Note that there is no default constructor. You
   /// must provide a name for the module upon construction.
   explicit Module(StringRef ModuleID, LLVMContext& C);

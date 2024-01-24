@@ -4581,7 +4581,7 @@ void AssemblyWriter::printDPValue(const DPValue &DPV) {
     break;
   default:
     llvm_unreachable("Tried to print a DPValue with an invalid LocationType!");
-  };
+  }
   Out << " { ";
   WriteAsOperandInternal(Out, DPV.getRawLocation(), WriterCtx, true);
   Out << ", ";

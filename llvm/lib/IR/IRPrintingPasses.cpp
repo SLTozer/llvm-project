@@ -43,13 +43,8 @@ public:
   bool runOnModule(Module &M) override {
     // RemoveDIs: Regardless of the format we've processed this module in, use
     // `WriteNewDbgInfoFormat` to determine which format we use to write it.
-    bool ShouldConvert = M.IsNewDbgInfoFormat != WriteNewDbgInfoFormat;
-    if (ShouldConvert) {
-      if (WriteNewDbgInfoFormat)
-        M.convertToNewDbgValues();
-      else
-        M.convertFromNewDbgValues();
-    }
+    bool UsedNewDbgInfoFormat = M.IsNewDbgInfoFormat;
+    M.setIsNewDbgInfoFormat(WriteNewDbgInfoFormat);
 
     if (llvm::isFunctionInPrintList("*")) {
       if (!Banner.empty())
@@ -68,12 +63,7 @@ public:
       }
     }
 
-    if (ShouldConvert) {
-      if (WriteNewDbgInfoFormat)
-        M.convertFromNewDbgValues();
-      else
-        M.convertToNewDbgValues();
-    }
+    M.setIsNewDbgInfoFormat(UsedNewDbgInfoFormat);
 
     return false;
   }
@@ -99,13 +89,8 @@ public:
   bool runOnFunction(Function &F) override {
     // RemoveDIs: Regardless of the format we've processed this function in, use
     // `WriteNewDbgInfoFormat` to determine which format we use to write it.
-    bool ShouldConvert = F.IsNewDbgInfoFormat != WriteNewDbgInfoFormat;
-    if (ShouldConvert) {
-      if (WriteNewDbgInfoFormat)
-        F.convertToNewDbgValues();
-      else
-        F.convertFromNewDbgValues();
-    }
+    bool UsedNewDbgInfoFormat = F.IsNewDbgInfoFormat;
+    F.setIsNewDbgInfoFormat(WriteNewDbgInfoFormat);
 
     if (isFunctionInPrintList(F.getName())) {
       if (forcePrintModuleIR())
@@ -115,12 +100,7 @@ public:
         OS << Banner << '\n' << static_cast<Value &>(F);
     }
 
-    if (ShouldConvert) {
-      if (WriteNewDbgInfoFormat)
-        F.convertFromNewDbgValues();
-      else
-        F.convertToNewDbgValues();
-    }
+    F.setIsNewDbgInfoFormat(UsedNewDbgInfoFormat);
 
     return false;
   }
