@@ -2657,7 +2657,6 @@ public:
   void writeAttributeSet(const AttributeSet &AttrSet, bool InAttrGroup = false);
   void writeAllAttributeGroups();
 
-
   void printTypeIdentities();
   void printGlobal(const GlobalVariable *GV);
   void printAlias(const GlobalAlias *GA);
