@@ -4415,52 +4415,19 @@ void InstCombinerImpl::tryToSinkInstructionDPValues(
   // instruction order, but DPValues attached to the same instruction won't
   // have an order.
   auto Order = [](DPValue *A, DPValue *B) -> bool {
-    return B->getInstruction()->comesBefore(A->getInstruction());
+    if (B->getInstruction()->comesBefore(A->getInstruction()))
+      return true;
+    if (A->getInstruction()->comesBefore(B->getInstruction()))
+      return false;
+    for (DPValue &DPV : A->getInstruction()->getDbgValueRange()) {
+      if (&DPV == B)
+        return true;
+      if (&DPV == A)
+        return false;
+    }
+    llvm_unreachable("How?");
   };
   llvm::stable_sort(DPValuesToSink, Order);
-
-  // If there are two assignments to the same variable attached to the same
-  // instruction, the ordering between the two assignments is important. Scan
-  // for this (rare) case and establish which is the last assignment.
-  using InstVarPair = std::pair<const Instruction *, DebugVariable>;
-  SmallDenseMap<InstVarPair, DPValue *> FilterOutMap;
-  if (DPValuesToSink.size() > 1) {
-    SmallDenseMap<InstVarPair, unsigned> CountMap;
-    // Count how many assignments to each variable there is per instruction.
-    for (DPValue *DPV : DPValuesToSink) {
-      DebugVariable DbgUserVariable =
-          DebugVariable(DPV->getVariable(), DPV->getExpression(),
-                        DPV->getDebugLoc()->getInlinedAt());
-      CountMap[std::make_pair(DPV->getInstruction(), DbgUserVariable)] += 1;
-    }
-
-    // If there are any instructions with two assignments, add them to the
-    // FilterOutMap to record that they need extra filtering.
-    SmallPtrSet<const Instruction *, 4> DupSet;
-    for (auto It : CountMap) {
-      if (It.second > 1) {
-        FilterOutMap[It.first] = nullptr;
-        DupSet.insert(It.first.first);
-      }
-    }
-
-    // For all instruction/variable pairs needing extra filtering, find the
-    // latest assignment.
-    for (const Instruction *Inst : DupSet) {
-      for (DPValue &DPV : llvm::reverse(Inst->getDbgValueRange())) {
-        DebugVariable DbgUserVariable =
-            DebugVariable(DPV.getVariable(), DPV.getExpression(),
-                          DPV.getDebugLoc()->getInlinedAt());
-        auto FilterIt =
-            FilterOutMap.find(std::make_pair(Inst, DbgUserVariable));
-        if (FilterIt == FilterOutMap.end())
-          continue;
-        if (FilterIt->second != nullptr)
-          continue;
-        FilterIt->second = &DPV;
-      }
-    }
-  }
 
   // Perform cloning of the DPValues that we plan on sinking, filter out any
   // duplicate assignments identified above.
@@ -4473,17 +4440,6 @@ void InstCombinerImpl::tryToSinkInstructionDPValues(
     DebugVariable DbgUserVariable =
         DebugVariable(DPV->getVariable(), DPV->getExpression(),
                       DPV->getDebugLoc()->getInlinedAt());
-
-    // For any variable where there were multiple assignments in the same place,
-    // ignore all but the last assignment.
-    if (!FilterOutMap.empty()) {
-      InstVarPair IVP = std::make_pair(DPV->getInstruction(), DbgUserVariable);
-      auto It = FilterOutMap.find(IVP);
-
-      // Filter out.
-      if (It != FilterOutMap.end() && It->second != DPV)
-        continue;
-    }
 
     if (!SunkVariables.insert(DbgUserVariable).second)
       continue;
