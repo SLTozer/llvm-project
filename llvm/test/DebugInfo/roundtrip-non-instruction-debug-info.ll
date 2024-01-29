@@ -1,8 +1,15 @@
-;; Test that we can write in the new debug info format.
+;; Test that we can write in the old debug info format.
 ; RUN: opt --passes=verify -S --write-experimental-debuginfo=false < %s \
 ; RUN:   | FileCheck %s --check-prefixes=CHECK,OLDDBG --implicit-check-not=llvm.dbg
+
+;; Test that we can write in the new debug info format...
 ; RUN: opt --passes=verify -S --write-experimental-debuginfo=true < %s \
 ; RUN:   | FileCheck %s --check-prefixes=CHECK,NEWDBG --implicit-check-not=llvm.dbg
+
+;; ...and then read the new format and write the old format.
+; RUN: opt --passes=verify -S --write-experimental-debuginfo=true < %s \
+; RUN:   | opt --passes=verify -S --write-experimental-debuginfo=false \
+; RUN:   | FileCheck %s --check-prefixes=CHECK,OLDDBG  --implicit-check-not=llvm.dbg
 
 ;; Test also that the new flag is independent of the flag that enables use of
 ;; these non-instruction debug info during LLVM passes.

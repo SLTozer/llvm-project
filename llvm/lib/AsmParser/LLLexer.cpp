@@ -15,6 +15,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -440,7 +441,9 @@ lltok::Kind LLLexer::LexCaret() {
 ///    AttrGrpID ::= #[0-9]+
 lltok::Kind LLLexer::LexHash() {
   // Handle AttrGrpID: #[0-9]+
-  return LexUIntID(lltok::AttrGrpID);
+  if (isdigit(static_cast<unsigned char>(CurPtr[0])))
+    return LexUIntID(lltok::AttrGrpID);
+  return lltok::hash;
 }
 
 /// Lex a label, integer type, keyword, or hexadecimal integer constant.
@@ -921,6 +924,20 @@ lltok::Kind LLLexer::LexIdentifier() {
   DWKEYWORD(MACINFO, DwarfMacinfo);
 
 #undef DWKEYWORD
+
+// Keywords for debug record types.
+#define DBGRECORDTYPEKEYWORD(STR)                                              \
+  do {                                                                         \
+    if (Keyword == "dbg_" #STR) {                                              \
+      StrVal = #STR;                                                           \
+      return lltok::DbgRecordType;                                             \
+    }                                                                          \
+  } while (false)
+
+  DBGRECORDTYPEKEYWORD(value);
+  DBGRECORDTYPEKEYWORD(declare);
+  DBGRECORDTYPEKEYWORD(assign);
+#undef DBGRECORDTYPEKEYWORD
 
   if (Keyword.starts_with("DIFlag")) {
     StrVal.assign(Keyword.begin(), Keyword.end());
