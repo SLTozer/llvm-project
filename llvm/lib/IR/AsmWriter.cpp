@@ -1141,10 +1141,10 @@ void SlotTracker::processDPValueMetadata(const DPValue &DPV) {
   // Process metadata used by DPValues; we only specifically care about the
   // DILocalVariable, DILocation, and DIAssignID fields, as the Value and
   // Expression fields should only be printed inline and so do not use a slot.
-  CreateMetadataSlot(DPV.getVariable());
-  CreateMetadataSlot(DPV.getDebugLoc());
+  CreateMetadataSlot(DPV.getRawVariable());
+  CreateMetadataSlot(DPV.getDebugLoc().getAsMDNode());
   if (DPV.isDbgAssign()) {
-    CreateMetadataSlot(DPV.getAssignID());
+    CreateMetadataSlot(cast<MDNode>(DPV.getRawAssignID()));
   }
 }
 

@@ -81,7 +81,7 @@ class DPValue : public ilist_node<DPValue>, private DebugValueUser {
   // DebugValueUser superclass instead. The referred to Value can either be a
   // ValueAsMetadata or a DIArgList.
 
-  DILocalVariable *Variable;
+  TrackingMDNodeRef Variable;
   DIExpression *Expression;
   DebugLoc DbgLoc;
   DIExpression *AddressExpression;
@@ -219,7 +219,7 @@ public:
   void addVariableLocationOps(ArrayRef<Value *> NewValues,
                               DIExpression *NewExpr);
 
-  void setVariable(DILocalVariable *NewVar) { Variable = NewVar; }
+  void setVariable(DILocalVariable *NewVar);
 
   void setExpression(DIExpression *NewExpr) { Expression = NewExpr; }
 
@@ -240,7 +240,8 @@ public:
   void setKillLocation();
   bool isKillLocation() const;
 
-  DILocalVariable *getVariable() const { return Variable; }
+  DILocalVariable *getVariable() const;
+  MDNode *getRawVariable() const { return Variable; }
 
   DIExpression *getExpression() const { return Expression; }
 
