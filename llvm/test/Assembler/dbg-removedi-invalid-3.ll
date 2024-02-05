@@ -4,10 +4,13 @@ source_filename = "<stdin>"
 
 define dso_local i32 @f(i32 %a) !dbg !7 {
 entry:
-  ret i32 %a, !dbg !18
-; CHECK: <stdin>:[[@LINE+1]]:1: error: expected instruction opcode
+  call void @llvm.dbg.value(metadata i32 %a, metadata !12, metadata !DIExpression()), !dbg !14
+; CHECK: <stdin>:[[@LINE+1]]:5: error: debug record should not appear in a module containing debug info intrinsics
     #dbg_value { !DIArgList(i32 %a), !12, !DIExpression(), !14 }
+  ret i32 %a, !dbg !18
 }
+
+declare void @llvm.dbg.value(metadata, metadata, metadata)
 
 !llvm.dbg.cu = !{!0}
 !llvm.module.flags = !{!3, !4, !5}

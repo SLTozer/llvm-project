@@ -6483,8 +6483,11 @@ bool LLParser::parseDebugProgramValue(DPValue *&DPV, PerFunctionState &PFS) {
                   .Case("value", LocType::Value)
                   .Case("assign", LocType::Assign)
                   .Default(LocType::End);
-  if (Type == LocType::End)
-    return error(DPVLoc, "expected valid #dbg record here");
+  // If the file contained an invalid debug record type then parsing should fail
+  // above; the assert here should only fire if the Lexer gives us an invalid
+  // value.
+  assert(Type != LocType::End &&
+         "Lexer returned an invalid DbgRecordType string.");
   Lex.Lex();
   if (parseToken(lltok::lbrace, "Expected '{' here"))
     return true;
@@ -6509,7 +6512,7 @@ bool LLParser::parseDebugProgramValue(DPValue *&DPV, PerFunctionState &PFS) {
   if (parseMetadata(Expression, &PFS))
     return true;
   if (!isa<DIExpression>(Expression))
-    return error(ExprLoc, "expected valid DIExpression here");
+    return error(ExprLoc, "expected valid inline DIExpression here");
   if (parseToken(lltok::comma, "Expected ',' here"))
     return true;
 

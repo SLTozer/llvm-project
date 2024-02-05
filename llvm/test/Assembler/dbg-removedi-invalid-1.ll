@@ -4,8 +4,8 @@ source_filename = "<stdin>"
 
 define dso_local i32 @f(i32 %a) !dbg !7 {
 entry:
-; CHECK: <stdin>:[[@LINE+1]]:34: error: expected valid DIExpression here
     #dbg_value { !DIArgList(i32 %a), !12, !DIExpression(), !14 }
+; CHECK: <stdin>:[[@LINE+1]]:8: error: llvm.dbg intrinsic should not appear in a module using non-intrinsic debug info
   call void @llvm.dbg.value(metadata i32 %a, metadata !12, metadata !DIExpression()), !dbg !14
   ret i32 %a, !dbg !18
 }

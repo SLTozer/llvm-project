@@ -4,9 +4,9 @@ source_filename = "<stdin>"
 
 define dso_local i32 @f(i32 %a) !dbg !7 {
 entry:
+; CHECK: <stdin>:[[@LINE+1]]:31: error: expected valid inline DIExpression here
+    #dbg_value { i32 %a, !12, !DIExpression(), !14 }
   ret i32 %a, !dbg !18
-; CHECK: <stdin>:[[@LINE+1]]:1: error: expected instruction opcode
-    #dbg_value { !DIArgList(i32 %a), !12, !DIExpression(), !14 }
 }
 
 !llvm.dbg.cu = !{!0}
