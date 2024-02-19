@@ -6538,7 +6538,7 @@ bool LLParser::parseDebugProgramValue(DPValue *&DPV, PerFunctionState &PFS) {
     if (parseMetadata(AddressExpression, &PFS))
       return true;
     if (!isa<DIExpression>(Expression))
-      return error(AddressExprLoc, "expected valid DIExpression here");
+      return error(AddressExprLoc, "expected valid inline DIExpression here");
     if (parseToken(lltok::comma, "Expected ',' here"))
       return true;
   }

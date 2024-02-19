@@ -1,3 +1,5 @@
+;; Test that we get a parser error when a debug intrinsic appears in the same
+;; module as a debug record.
 ; RUN: not llvm-as < %s 2>&1 | FileCheck %s
 ; ModuleID = '<stdin>'
 source_filename = "<stdin>"

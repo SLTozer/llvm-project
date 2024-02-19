@@ -1,3 +1,5 @@
+;; Test that we get a parser error when we have a debug record that does not use
+;; an inline DIExpression.
 ; RUN: not llvm-as < %s 2>&1 | FileCheck %s
 ; ModuleID = '<stdin>'
 source_filename = "<stdin>"

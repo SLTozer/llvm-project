@@ -1,3 +1,5 @@
+;; Test that we get a parser error when we have a debug record with an invalid
+;; type.
 ; RUN: not llvm-as < %s 2>&1 | FileCheck %s
 ; ModuleID = '<stdin>'
 source_filename = "<stdin>"
@@ -5,7 +7,7 @@ source_filename = "<stdin>"
 define dso_local i32 @f(i32 %a) !dbg !7 {
 entry:
 ; CHECK: <stdin>:[[@LINE+1]]:6: error: expected debug record type here
-    #invalid { !DIArgList(i32 %a), !12, !DIExpression(), !14 }
+    #dbg_invalid { !DIArgList(i32 %a), !12, !DIExpression(), !14 }
   ret i32 %a, !dbg !18
 }
 
