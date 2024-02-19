@@ -1,14 +1,13 @@
-;; Test that we get a parser error when we have a debug record with an incorrect
-;; number of arguments.
+;; Test that we get a parser error when a basic block contains only a debug
+;; record.
 ; RUN: not llvm-as < %s 2>&1 | FileCheck %s
 ; ModuleID = '<stdin>'
 source_filename = "<stdin>"
 
 define dso_local i32 @f(i32 %a) !dbg !7 {
 entry:
-; CHECK: <stdin>:[[@LINE+1]]:44: error: Expected ',' here
-    #dbg_value(i32 %a, !12, !DIExpression())
-  ret i32 %a, !dbg !18
+    #dbg_value(!DIArgList(i32 %a), !12, !DIExpression(), !14)
+; CHECK: <stdin>:[[@LINE+1]]:1: error: expected instruction opcode
 }
 
 !llvm.dbg.cu = !{!0}

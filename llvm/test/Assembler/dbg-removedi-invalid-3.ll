@@ -8,7 +8,7 @@ define dso_local i32 @f(i32 %a) !dbg !7 {
 entry:
   call void @llvm.dbg.value(metadata i32 %a, metadata !12, metadata !DIExpression()), !dbg !14
 ; CHECK: <stdin>:[[@LINE+1]]:5: error: debug record should not appear in a module containing debug info intrinsics
-    #dbg_value { !DIArgList(i32 %a), !12, !DIExpression(), !14 }
+    #dbg_value(!DIArgList(i32 %a), !12, !DIExpression(), !14)
   ret i32 %a, !dbg !18
 }
 

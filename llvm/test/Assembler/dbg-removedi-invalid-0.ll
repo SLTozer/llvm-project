@@ -1,4 +1,7 @@
 ;; Test that we get a parser error when a debug record appears post-terminator.
+;; Note: From the parser's perspective, the error is that the debug record is
+;; appearing at the start of a new unnamed basic block which contains no actual
+;; instructions.
 ; RUN: not llvm-as < %s 2>&1 | FileCheck %s
 ; ModuleID = '<stdin>'
 source_filename = "<stdin>"
@@ -6,8 +9,8 @@ source_filename = "<stdin>"
 define dso_local i32 @f(i32 %a) !dbg !7 {
 entry:
   ret i32 %a, !dbg !18
+    #dbg_value(!DIArgList(i32 %a), !12, !DIExpression(), !14)
 ; CHECK: <stdin>:[[@LINE+1]]:1: error: expected instruction opcode
-    #dbg_value { !DIArgList(i32 %a), !12, !DIExpression(), !14 }
 }
 
 !llvm.dbg.cu = !{!0}

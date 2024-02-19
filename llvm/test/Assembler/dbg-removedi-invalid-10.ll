@@ -6,8 +6,8 @@ source_filename = "<stdin>"
 
 define dso_local i32 @f(i32 %a) !dbg !7 {
 entry:
-; CHECK: <stdin>:[[@LINE+1]]:48: error: expected '!' here
-    #dbg_value { i32 %a, !12, !DIExpression(), i32 0 }
+; CHECK: <stdin>:[[@LINE+1]]:46: error: expected '!' here
+    #dbg_value(i32 %a, !12, !DIExpression(), i32 0)
   ret i32 %a, !dbg !18
 }
 
