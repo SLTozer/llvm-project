@@ -1625,11 +1625,6 @@ public:
                                     OperandBundleDef OB,
                                     BasicBlock *InsertAtEnd = nullptr);
 
-  /// Create a clone of \p CB with operand bundle \p OB added.
-  static CallBase *addOperandBundle(CallBase *CB, uint32_t ID,
-                                    OperandBundleDef OB,
-                                    BasicBlock::iterator InsertPt);
-
   /// Create a clone of \p CB with operand bundle \p ID removed.
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallBase *removeOperandBundle(CallBase *CB, uint32_t ID,
@@ -1638,10 +1633,6 @@ public:
   /// Create a clone of \p CB with operand bundle \p ID removed.
   static CallBase *removeOperandBundle(CallBase *CB, uint32_t ID,
                                        BasicBlock *InsertAtEnd = nullptr);
-
-  /// Create a clone of \p CB with operand bundle \p ID removed.
-  static CallBase *removeOperandBundle(CallBase *CB, uint32_t ID,
-                                       BasicBlock::iterator InsertPt);
 
   static bool classof(const Instruction *I) {
     return I->getOpcode() == Instruction::Call ||
