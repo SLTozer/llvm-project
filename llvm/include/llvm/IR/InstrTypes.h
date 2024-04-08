@@ -59,6 +59,7 @@ protected:
       : Instruction(Ty, iType, &Op<0>(), 1, IB) {
     Op<0>() = V;
   }
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   UnaryInstruction(Type *Ty, unsigned iType, Value *V, Instruction *IB)
       : Instruction(Ty, iType, &Op<0>(), 1, IB) {
     Op<0>() = V;
@@ -131,6 +132,7 @@ public:
   /// into a BasicBlock right before the specified instruction.  The specified
   /// Instruction is allowed to be a dereferenced end iterator.
   ///
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static UnaryOperator *Create(UnaryOps Op, Value *S, const Twine &Name,
                                Instruction *InsertBefore);
 
@@ -177,6 +179,7 @@ public:
     return UO;
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static UnaryOperator *CreateWithCopiedFlags(UnaryOps Opc, Value *V,
                                               Instruction *CopyO,
                                               const Twine &Name,
@@ -202,6 +205,7 @@ public:
                                  InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static UnaryOperator *CreateFNegFMF(Value *Op, Instruction *FMFSource,
                                       const Twine &Name,
                                       Instruction *InsertBefore) {
@@ -270,6 +274,7 @@ public:
   /// into a BasicBlock right before the specified instruction.  The specified
   /// Instruction is allowed to be a dereferenced end iterator.
   ///
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static BinaryOperator *Create(BinaryOps Op, Value *S1, Value *S2,
                                 const Twine &Name, Instruction *InsertBefore);
 
@@ -317,6 +322,7 @@ public:
     return BO;
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static BinaryOperator *CreateWithCopiedFlags(BinaryOps Opc, Value *V1,
                                                Value *V2, Value *CopyO,
                                                const Twine &Name,
@@ -496,18 +502,21 @@ public:
                                    BasicBlock *InsertAtEnd = nullptr);
   static BinaryOperator *CreateNSWNeg(Value *Op, const Twine &Name,
                                       BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static BinaryOperator *CreateNSWNeg(Value *Op, const Twine &Name,
                                       Instruction *InsertBefore);
   static BinaryOperator *CreateNSWNeg(Value *Op, const Twine &Name = "",
                                       BasicBlock *InsertAtEnd = nullptr);
   static BinaryOperator *CreateNUWNeg(Value *Op, const Twine &Name,
                                       BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static BinaryOperator *CreateNUWNeg(Value *Op, const Twine &Name,
                                       Instruction *InsertBefore);
   static BinaryOperator *CreateNUWNeg(Value *Op, const Twine &Name = "",
                                       BasicBlock *InsertAtEnd = nullptr);
   static BinaryOperator *CreateNot(Value *Op, const Twine &Name,
                                    BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static BinaryOperator *CreateNot(Value *Op, const Twine &Name,
                                    Instruction *InsertBefore);
   static BinaryOperator *CreateNot(Value *Op, const Twine &Name = "",
@@ -609,6 +618,7 @@ protected:
       : UnaryInstruction(Ty, iType, S, InsertBefore) {
     setName(NameStr);
   }
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   /// Constructor with insert-before-instruction semantics for subclasses
   CastInst(Type *Ty, unsigned iType, Value *S, const Twine &NameStr,
            Instruction *InsertBefore)
@@ -642,6 +652,7 @@ public:
   /// constructor has insert-before-instruction semantics to automatically
   /// insert the new CastInst before InsertBefore (if it is non-null).
   /// Construct any of the CastInst subclasses
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CastInst *
   Create(Instruction::CastOps,     ///< The opcode of the cast instruction
          Value *S,                 ///< The value to be casted (operand 0)
@@ -673,6 +684,7 @@ public:
   );
 
   /// Create a ZExt or BitCast cast instruction
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CastInst *CreateZExtOrBitCast(
       Value *S,                 ///< The value to be casted (operand 0)
       Type *Ty,                 ///< The type to which cast should be made
@@ -698,6 +710,7 @@ public:
   );
 
   /// Create a SExt or BitCast cast instruction
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CastInst *CreateSExtOrBitCast(
       Value *S,                 ///< The value to be casted (operand 0)
       Type *Ty,                 ///< The type to which cast should be made
@@ -732,6 +745,7 @@ public:
   );
 
   /// Create a BitCast, AddrSpaceCast or a PtrToInt cast instruction.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CastInst *CreatePointerCast(
       Value *S,                 ///< The pointer value to be casted (operand 0)
       Type *Ty,                 ///< The type to which cast should be made
@@ -757,6 +771,7 @@ public:
   );
 
   /// Create a BitCast or an AddrSpaceCast cast instruction.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CastInst *CreatePointerBitCastOrAddrSpaceCast(
       Value *S,                 ///< The pointer value to be casted (operand 0)
       Type *Ty,                 ///< The type to which cast should be made
@@ -783,6 +798,7 @@ public:
   /// creates a PtrToInt cast. If the value is an integer type and the
   /// destination a pointer type, creates an IntToPtr cast. Otherwise, creates
   /// a bitcast.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CastInst *CreateBitOrPointerCast(
       Value *S,                 ///< The pointer value to be casted (operand 0)
       Type *Ty,                 ///< The type to which cast should be made
@@ -813,6 +829,7 @@ public:
   );
 
   /// Create a ZExt, BitCast, or Trunc for int -> int casts.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CastInst *CreateIntegerCast(
       Value *S,                 ///< The pointer value to be casted (operand 0)
       Type *Ty,                 ///< The type to which cast should be made
@@ -840,6 +857,7 @@ public:
   );
 
   /// Create an FPExt, BitCast, or FPTrunc for fp -> fp casts
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CastInst *
   CreateFPCast(Value *S,          ///< The floating point value to be casted
                Type *Ty,          ///< The floating point type to cast to
@@ -865,6 +883,7 @@ public:
   );
 
   /// Create a Trunc or BitCast cast instruction
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CastInst *CreateTruncOrBitCast(
       Value *S,                 ///< The value to be casted (operand 0)
       Type *Ty,                 ///< The type to which cast should be made
@@ -1065,6 +1084,7 @@ protected:
           Value *RHS, const Twine &Name, BasicBlock::iterator InsertBefore,
           Instruction *FlagsSource = nullptr);
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   CmpInst(Type *ty, Instruction::OtherOps op, Predicate pred, Value *LHS,
           Value *RHS, const Twine &Name, Instruction *InsertBefore,
           Instruction *FlagsSource = nullptr);
@@ -1090,6 +1110,7 @@ public:
   /// instruction into a BasicBlock right before the specified instruction.
   /// The specified Instruction is allowed to be a dereferenced end iterator.
   /// Create a CmpInst
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CmpInst *Create(OtherOps Op, Predicate predicate, Value *S1, Value *S2,
                          const Twine &Name, Instruction *InsertBefore);
 
@@ -1555,6 +1576,7 @@ public:
   /// The returned call instruction is identical \p CB in every way except that
   /// the operand bundles for the new instruction are set to the operand bundles
   /// in \p Bundles.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallBase *Create(CallBase *CB, ArrayRef<OperandBundleDef> Bundles,
                           Instruction *InsertPt);
 
@@ -1580,6 +1602,7 @@ public:
   ///
   /// The returned call instruction is identical \p CI in every way except that
   /// the specified operand bundle has been replaced.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallBase *Create(CallBase *CB, OperandBundleDef Bundle,
                           Instruction *InsertPt);
 
@@ -1593,6 +1616,7 @@ public:
                           BasicBlock *InsertAtEnd = nullptr);
 
   /// Create a clone of \p CB with operand bundle \p OB added.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallBase *addOperandBundle(CallBase *CB, uint32_t ID,
                                     OperandBundleDef OB, Instruction *InsertPt);
 
@@ -1607,6 +1631,7 @@ public:
                                     BasicBlock::iterator InsertPt);
 
   /// Create a clone of \p CB with operand bundle \p ID removed.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallBase *removeOperandBundle(CallBase *CB, uint32_t ID,
                                        Instruction *InsertPt);
 

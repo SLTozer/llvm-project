@@ -75,6 +75,7 @@ protected:
 public:
   explicit AllocaInst(Type *Ty, unsigned AddrSpace, Value *ArraySize,
                       const Twine &Name, BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit AllocaInst(Type *Ty, unsigned AddrSpace, Value *ArraySize,
                       const Twine &Name, Instruction *InsertBefore);
   AllocaInst(Type *Ty, unsigned AddrSpace, Value *ArraySize,
@@ -82,6 +83,7 @@ public:
 
   AllocaInst(Type *Ty, unsigned AddrSpace, const Twine &Name,
              BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   AllocaInst(Type *Ty, unsigned AddrSpace, const Twine &Name,
              Instruction *InsertBefore);
   AllocaInst(Type *Ty, unsigned AddrSpace,
@@ -89,6 +91,7 @@ public:
 
   AllocaInst(Type *Ty, unsigned AddrSpace, Value *ArraySize, Align Align,
              const Twine &Name, BasicBlock::iterator);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   AllocaInst(Type *Ty, unsigned AddrSpace, Value *ArraySize, Align Align,
              const Twine &Name, Instruction *InsertBefore);
   AllocaInst(Type *Ty, unsigned AddrSpace, Value *ArraySize, Align Align,
@@ -200,17 +203,20 @@ protected:
 public:
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr,
            BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr,
            Instruction *InsertBefore);
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr, BasicBlock *InsertAtEnd);
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr, bool isVolatile,
            BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr, bool isVolatile,
            Instruction *InsertBefore);
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr, bool isVolatile,
            BasicBlock *InsertAtEnd);
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr, bool isVolatile,
            Align Align, BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr, bool isVolatile,
            Align Align, Instruction *InsertBefore);
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr, bool isVolatile,
@@ -218,6 +224,7 @@ public:
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr, bool isVolatile,
            Align Align, AtomicOrdering Order, SyncScope::ID SSID,
            BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   LoadInst(Type *Ty, Value *Ptr, const Twine &NameStr, bool isVolatile,
            Align Align, AtomicOrdering Order, SyncScope::ID SSID,
            Instruction *InsertBefore);
@@ -331,19 +338,23 @@ protected:
   StoreInst *cloneImpl() const;
 
 public:
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   StoreInst(Value *Val, Value *Ptr, Instruction *InsertBefore);
   StoreInst(Value *Val, Value *Ptr, BasicBlock *InsertAtEnd);
   StoreInst(Value *Val, Value *Ptr, BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   StoreInst(Value *Val, Value *Ptr, bool isVolatile, Instruction *InsertBefore);
   StoreInst(Value *Val, Value *Ptr, bool isVolatile, BasicBlock *InsertAtEnd);
   StoreInst(Value *Val, Value *Ptr, bool isVolatile,
             BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   StoreInst(Value *Val, Value *Ptr, bool isVolatile, Align Align,
             Instruction *InsertBefore);
   StoreInst(Value *Val, Value *Ptr, bool isVolatile, Align Align,
             BasicBlock *InsertAtEnd = nullptr);
   StoreInst(Value *Val, Value *Ptr, bool isVolatile, Align Align,
             BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   StoreInst(Value *Val, Value *Ptr, bool isVolatile, Align Align,
             AtomicOrdering Order, SyncScope::ID SSID,
             Instruction *InsertBefore);
@@ -474,6 +485,7 @@ public:
   // SequentiallyConsistent.
   FenceInst(LLVMContext &C, AtomicOrdering Ordering, SyncScope::ID SSID,
             BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   FenceInst(LLVMContext &C, AtomicOrdering Ordering, SyncScope::ID SSID,
             Instruction *InsertBefore);
   FenceInst(LLVMContext &C, AtomicOrdering Ordering,
@@ -558,6 +570,7 @@ public:
                     AtomicOrdering SuccessOrdering,
                     AtomicOrdering FailureOrdering, SyncScope::ID SSID,
                     BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   AtomicCmpXchgInst(Value *Ptr, Value *Cmp, Value *NewVal, Align Alignment,
                     AtomicOrdering SuccessOrdering,
                     AtomicOrdering FailureOrdering, SyncScope::ID SSID,
@@ -823,6 +836,7 @@ public:
   AtomicRMWInst(BinOp Operation, Value *Ptr, Value *Val, Align Alignment,
                 AtomicOrdering Ordering, SyncScope::ID SSID,
                 BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   AtomicRMWInst(BinOp Operation, Value *Ptr, Value *Val, Align Alignment,
                 AtomicOrdering Ordering, SyncScope::ID SSID,
                 Instruction *InsertBefore);
@@ -985,6 +999,7 @@ class GetElementPtrInst : public Instruction {
                            ArrayRef<Value *> IdxList, unsigned Values,
                            const Twine &NameStr,
                            BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   inline GetElementPtrInst(Type *PointeeType, Value *Ptr,
                            ArrayRef<Value *> IdxList, unsigned Values,
                            const Twine &NameStr, Instruction *InsertBefore);
@@ -1011,6 +1026,7 @@ public:
                                           NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static GetElementPtrInst *Create(Type *PointeeType, Value *Ptr,
                                    ArrayRef<Value *> IdxList,
                                    const Twine &NameStr,
@@ -1043,6 +1059,7 @@ public:
     return GEP;
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static GetElementPtrInst *CreateInBounds(Type *PointeeType, Value *Ptr,
                                            ArrayRef<Value *> IdxList,
                                            const Twine &NameStr,
@@ -1213,6 +1230,7 @@ GetElementPtrInst::GetElementPtrInst(Type *PointeeType, Value *Ptr,
   init(Ptr, IdxList, NameStr);
 }
 
+LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
 GetElementPtrInst::GetElementPtrInst(Type *PointeeType, Value *Ptr,
                                      ArrayRef<Value *> IdxList, unsigned Values,
                                      const Twine &NameStr,
@@ -1283,6 +1301,7 @@ public:
   }
 
   /// Constructor with insert-before-instruction semantics.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   ICmpInst(
     Instruction *InsertBefore,  ///< Where to insert
     Predicate pred,  ///< The predicate to use for the comparison
@@ -1468,6 +1487,7 @@ public:
   }
 
   /// Constructor with insert-before-instruction semantics.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   FCmpInst(
     Instruction *InsertBefore, ///< Where to insert
     Predicate pred,  ///< The predicate to use for the comparison
@@ -1577,10 +1597,12 @@ class CallInst : public CallBase {
 
   /// Construct a CallInst given a range of arguments.
   /// Construct a CallInst from a range of arguments
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   inline CallInst(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
                   ArrayRef<OperandBundleDef> Bundles, const Twine &NameStr,
                   Instruction *InsertBefore);
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   inline CallInst(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
                   const Twine &NameStr, Instruction *InsertBefore)
       : CallInst(Ty, Func, Args, std::nullopt, NameStr, InsertBefore) {}
@@ -1594,6 +1616,7 @@ class CallInst : public CallBase {
   explicit CallInst(FunctionType *Ty, Value *F, const Twine &NameStr,
                     BasicBlock::iterator InsertBefore);
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit CallInst(FunctionType *Ty, Value *F, const Twine &NameStr,
                     Instruction *InsertBefore);
 
@@ -1623,6 +1646,7 @@ public:
     return new (ComputeNumOperands(0)) CallInst(Ty, F, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallInst *Create(FunctionType *Ty, Value *F, const Twine &NameStr,
                           Instruction *InsertBefore) {
     return new (ComputeNumOperands(0)) CallInst(Ty, F, NameStr, InsertBefore);
@@ -1635,6 +1659,7 @@ public:
         CallInst(Ty, Func, Args, std::nullopt, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallInst *Create(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
                           const Twine &NameStr, Instruction *InsertBefore) {
     return new (ComputeNumOperands(Args.size()))
@@ -1653,6 +1678,7 @@ public:
         CallInst(Ty, Func, Args, Bundles, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallInst *Create(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
                           ArrayRef<OperandBundleDef> Bundles,
                           const Twine &NameStr, Instruction *InsertBefore) {
@@ -1694,6 +1720,7 @@ public:
                   InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallInst *Create(FunctionCallee Func, const Twine &NameStr,
                           Instruction *InsertBefore) {
     return Create(Func.getFunctionType(), Func.getCallee(), NameStr,
@@ -1708,6 +1735,7 @@ public:
                   NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallInst *Create(FunctionCallee Func, ArrayRef<Value *> Args,
                           ArrayRef<OperandBundleDef> Bundles,
                           const Twine &NameStr, Instruction *InsertBefore) {
@@ -1722,6 +1750,7 @@ public:
                   InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallInst *Create(FunctionCallee Func, ArrayRef<Value *> Args,
                           const Twine &NameStr, Instruction *InsertBefore) {
     return Create(Func.getFunctionType(), Func.getCallee(), Args, NameStr,
@@ -1843,6 +1872,7 @@ CallInst::CallInst(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
   init(Ty, Func, Args, Bundles, NameStr);
 }
 
+LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
 CallInst::CallInst(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
                    ArrayRef<OperandBundleDef> Bundles, const Twine &NameStr,
                    Instruction *InsertBefore)
@@ -1869,6 +1899,7 @@ class SelectInst : public Instruction {
     setName(NameStr);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   SelectInst(Value *C, Value *S1, Value *S2, const Twine &NameStr,
              Instruction *InsertBefore)
     : Instruction(S1->getType(), Instruction::Select,
@@ -1909,6 +1940,7 @@ public:
     return Sel;
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static SelectInst *Create(Value *C, Value *S1, Value *S2,
                             const Twine &NameStr, Instruction *InsertBefore,
                             Instruction *MDFrom = nullptr) {
@@ -1986,6 +2018,7 @@ public:
     setName(NameStr);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   VAArgInst(Value *List, Type *Ty, const Twine &NameStr,
             Instruction *InsertBefore)
       : UnaryInstruction(Ty, VAArg, List, InsertBefore) {
@@ -2021,6 +2054,7 @@ public:
 class ExtractElementInst : public Instruction {
   ExtractElementInst(Value *Vec, Value *Idx, const Twine &NameStr,
                      BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   ExtractElementInst(Value *Vec, Value *Idx, const Twine &NameStr,
                      Instruction *InsertBefore);
   ExtractElementInst(Value *Vec, Value *Idx, const Twine &NameStr = "",
@@ -2039,6 +2073,7 @@ public:
     return new (2) ExtractElementInst(Vec, Idx, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static ExtractElementInst *Create(Value *Vec, Value *Idx,
                                     const Twine &NameStr,
                                     Instruction *InsertBefore) {
@@ -2093,6 +2128,7 @@ DEFINE_TRANSPARENT_OPERAND_ACCESSORS(ExtractElementInst, Value)
 class InsertElementInst : public Instruction {
   InsertElementInst(Value *Vec, Value *NewElt, Value *Idx, const Twine &NameStr,
                     BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   InsertElementInst(Value *Vec, Value *NewElt, Value *Idx, const Twine &NameStr,
                     Instruction *InsertBefore);
   InsertElementInst(Value *Vec, Value *NewElt, Value *Idx,
@@ -2112,6 +2148,7 @@ public:
     return new (3) InsertElementInst(Vec, NewElt, Idx, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static InsertElementInst *Create(Value *Vec, Value *NewElt, Value *Idx,
                                    const Twine &NameStr,
                                    Instruction *InsertBefore) {
@@ -2183,18 +2220,21 @@ protected:
 public:
   ShuffleVectorInst(Value *V1, Value *Mask, const Twine &NameStr,
                     BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   ShuffleVectorInst(Value *V1, Value *Mask, const Twine &NameStr,
                     Instruction *InsertBefore);
   ShuffleVectorInst(Value *V1, Value *Mask, const Twine &NameStr = "",
                     BasicBlock *InsertAtEnd = nullptr);
   ShuffleVectorInst(Value *V1, ArrayRef<int> Mask, const Twine &NameStr,
                     BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   ShuffleVectorInst(Value *V1, ArrayRef<int> Mask, const Twine &NameStr,
                     Instruction *InsertBefore);
   ShuffleVectorInst(Value *V1, ArrayRef<int> Mask, const Twine &NameStr = "",
                     BasicBlock *InsertAtEnd = nullptr);
   ShuffleVectorInst(Value *V1, Value *V2, Value *Mask, const Twine &NameStr,
                     BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   ShuffleVectorInst(Value *V1, Value *V2, Value *Mask, const Twine &NameStr,
                     Instruction *InsertBefore);
   ShuffleVectorInst(Value *V1, Value *V2, Value *Mask,
@@ -2202,6 +2242,7 @@ public:
                     BasicBlock *InsertAtEnd = nullptr);
   ShuffleVectorInst(Value *V1, Value *V2, ArrayRef<int> Mask,
                     const Twine &NameStr, BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   ShuffleVectorInst(Value *V1, Value *V2, ArrayRef<int> Mask,
                     const Twine &NameStr, Instruction *InsertBefore);
   ShuffleVectorInst(Value *V1, Value *V2, ArrayRef<int> Mask,
@@ -2682,6 +2723,7 @@ class ExtractValueInst : public UnaryInstruction {
   inline ExtractValueInst(Value *Agg, ArrayRef<unsigned> Idxs,
                           const Twine &NameStr,
                           BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   inline ExtractValueInst(Value *Agg,
                           ArrayRef<unsigned> Idxs,
                           const Twine &NameStr,
@@ -2706,6 +2748,7 @@ public:
       ExtractValueInst(Agg, Idxs, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static ExtractValueInst *Create(Value *Agg, ArrayRef<unsigned> Idxs,
                                   const Twine &NameStr,
                                   Instruction *InsertBefore) {
@@ -2772,6 +2815,7 @@ ExtractValueInst::ExtractValueInst(Value *Agg, ArrayRef<unsigned> Idxs,
   init(Idxs, NameStr);
 }
 
+LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
 ExtractValueInst::ExtractValueInst(Value *Agg,
                                    ArrayRef<unsigned> Idxs,
                                    const Twine &NameStr,
@@ -2809,6 +2853,7 @@ class InsertValueInst : public Instruction {
   inline InsertValueInst(Value *Agg, Value *Val, ArrayRef<unsigned> Idxs,
                          const Twine &NameStr,
                          BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   inline InsertValueInst(Value *Agg, Value *Val,
                          ArrayRef<unsigned> Idxs,
                          const Twine &NameStr,
@@ -2821,6 +2866,7 @@ class InsertValueInst : public Instruction {
   /// one and two index insertvalue instructions are so common.
   InsertValueInst(Value *Agg, Value *Val, unsigned Idx, const Twine &NameStr,
                   BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   InsertValueInst(Value *Agg, Value *Val, unsigned Idx, const Twine &NameStr,
                   Instruction *InsertBefore);
   InsertValueInst(Value *Agg, Value *Val, unsigned Idx,
@@ -2846,6 +2892,7 @@ public:
     return new InsertValueInst(Agg, Val, Idxs, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static InsertValueInst *Create(Value *Agg, Value *Val,
                                  ArrayRef<unsigned> Idxs, const Twine &NameStr,
                                  Instruction *InsertBefore) {
@@ -2926,6 +2973,7 @@ InsertValueInst::InsertValueInst(Value *Agg,
   init(Agg, Val, Idxs, NameStr);
 }
 
+LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
 InsertValueInst::InsertValueInst(Value *Agg,
                                  Value *Val,
                                  ArrayRef<unsigned> Idxs,
@@ -2974,6 +3022,7 @@ class PHINode : public Instruction {
     allocHungoffUses(ReservedSpace);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit PHINode(Type *Ty, unsigned NumReservedValues, const Twine &NameStr,
                    Instruction *InsertBefore)
       : Instruction(Ty, Instruction::PHI, nullptr, 0, InsertBefore),
@@ -3014,6 +3063,7 @@ public:
     return new PHINode(Ty, NumReservedValues, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static PHINode *Create(Type *Ty, unsigned NumReservedValues,
                          const Twine &NameStr, Instruction *InsertBefore) {
     return new PHINode(Ty, NumReservedValues, NameStr, InsertBefore);
@@ -3241,6 +3291,7 @@ private:
   explicit LandingPadInst(Type *RetTy, unsigned NumReservedValues,
                           const Twine &NameStr,
                           BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit LandingPadInst(Type *RetTy, unsigned NumReservedValues,
                           const Twine &NameStr, Instruction *InsertBefore);
   explicit LandingPadInst(Type *RetTy, unsigned NumReservedValues,
@@ -3266,6 +3317,7 @@ public:
   static LandingPadInst *Create(Type *RetTy, unsigned NumReservedClauses,
                                 const Twine &NameStr,
                                 BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static LandingPadInst *Create(Type *RetTy, unsigned NumReservedClauses,
                                 const Twine &NameStr,
                                 Instruction *InsertBefore);
@@ -3352,6 +3404,7 @@ private:
   // if it was passed NULL.
   explicit ReturnInst(LLVMContext &C, Value *retVal,
                       BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit ReturnInst(LLVMContext &C, Value *retVal, Instruction *InsertBefore);
   ReturnInst(LLVMContext &C, Value *retVal = nullptr,
              BasicBlock *InsertAtEnd = nullptr);
@@ -3369,6 +3422,7 @@ public:
     return new (!!retVal) ReturnInst(C, retVal, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static ReturnInst *Create(LLVMContext &C, Value *retVal,
                             Instruction *InsertBefore) {
     return new(!!retVal) ReturnInst(C, retVal, InsertBefore);
@@ -3442,7 +3496,9 @@ class BranchInst : public Instruction {
   explicit BranchInst(BasicBlock *IfTrue, BasicBlock::iterator InsertBefore);
   BranchInst(BasicBlock *IfTrue, BasicBlock *IfFalse, Value *Cond,
              BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit BranchInst(BasicBlock *IfTrue, Instruction *InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   BranchInst(BasicBlock *IfTrue, BasicBlock *IfFalse, Value *Cond,
              Instruction *InsertBefore);
   BranchInst(BasicBlock *IfTrue, BasicBlock *InsertAtEnd = nullptr);
@@ -3490,6 +3546,7 @@ public:
     return new(1) BranchInst(IfTrue, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static BranchInst *Create(BasicBlock *IfTrue, Instruction *InsertBefore) {
     return new(1) BranchInst(IfTrue, InsertBefore);
   }
@@ -3499,6 +3556,7 @@ public:
     return new(3) BranchInst(IfTrue, IfFalse, Cond, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static BranchInst *Create(BasicBlock *IfTrue, BasicBlock *IfFalse,
                             Value *Cond, Instruction *InsertBefore) {
     return new(3) BranchInst(IfTrue, IfFalse, Cond, InsertBefore);
@@ -3603,6 +3661,7 @@ class SwitchInst : public Instruction {
   /// default destination. The number of additional cases can be specified here
   /// to make memory allocation more efficient. This constructor can also
   /// auto-insert before another instruction.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   SwitchInst(Value *Value, BasicBlock *Default, unsigned NumCases,
              Instruction *InsertBefore);
 
@@ -3785,6 +3844,7 @@ public:
     return new SwitchInst(Value, Default, NumCases, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static SwitchInst *Create(Value *Value, BasicBlock *Default,
                             unsigned NumCases, Instruction *InsertBefore) {
     return new SwitchInst(Value, Default, NumCases, InsertBefore);
@@ -4016,6 +4076,7 @@ class IndirectBrInst : public Instruction {
   /// Address to jump to.  The number of expected destinations can be specified
   /// here to make memory allocation more efficient.  This constructor can also
   /// autoinsert before another instruction.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   IndirectBrInst(Value *Address, unsigned NumDests, Instruction *InsertBefore);
 
   /// Create a new indirectbr instruction, specifying an
@@ -4071,6 +4132,7 @@ public:
     return new IndirectBrInst(Address, NumDests, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static IndirectBrInst *Create(Value *Address, unsigned NumDests,
                                 Instruction *InsertBefore) {
     return new IndirectBrInst(Address, NumDests, InsertBefore);
@@ -4167,6 +4229,7 @@ class InvokeInst : public CallBase {
   /// Construct an InvokeInst given a range of arguments.
   ///
   /// Construct an InvokeInst from a range of arguments
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   inline InvokeInst(FunctionType *Ty, Value *Func, BasicBlock *IfNormal,
                     BasicBlock *IfException, ArrayRef<Value *> Args,
                     ArrayRef<OperandBundleDef> Bundles, int NumOperands,
@@ -4205,6 +4268,7 @@ public:
                    NumOperands, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static InvokeInst *Create(FunctionType *Ty, Value *Func, BasicBlock *IfNormal,
                             BasicBlock *IfException, ArrayRef<Value *> Args,
                             const Twine &NameStr, Instruction *InsertBefore) {
@@ -4228,6 +4292,7 @@ public:
                    NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static InvokeInst *Create(FunctionType *Ty, Value *Func, BasicBlock *IfNormal,
                             BasicBlock *IfException, ArrayRef<Value *> Args,
                             ArrayRef<OperandBundleDef> Bundles,
@@ -4273,6 +4338,7 @@ public:
                   IfException, Args, std::nullopt, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static InvokeInst *Create(FunctionCallee Func, BasicBlock *IfNormal,
                             BasicBlock *IfException, ArrayRef<Value *> Args,
                             const Twine &NameStr, Instruction *InsertBefore) {
@@ -4289,6 +4355,7 @@ public:
                   IfException, Args, Bundles, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static InvokeInst *Create(FunctionCallee Func, BasicBlock *IfNormal,
                             BasicBlock *IfException, ArrayRef<Value *> Args,
                             ArrayRef<OperandBundleDef> Bundles,
@@ -4387,6 +4454,7 @@ InvokeInst::InvokeInst(FunctionType *Ty, Value *Func, BasicBlock *IfNormal,
   init(Ty, Func, IfNormal, IfException, Args, Bundles, NameStr);
 }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
 InvokeInst::InvokeInst(FunctionType *Ty, Value *Func, BasicBlock *IfNormal,
                        BasicBlock *IfException, ArrayRef<Value *> Args,
                        ArrayRef<OperandBundleDef> Bundles, int NumOperands,
@@ -4431,6 +4499,7 @@ class CallBrInst : public CallBase {
   /// Construct a CallBrInst given a range of arguments.
   ///
   /// Construct a CallBrInst from a range of arguments
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   inline CallBrInst(FunctionType *Ty, Value *Func, BasicBlock *DefaultDest,
                     ArrayRef<BasicBlock *> IndirectDests,
                     ArrayRef<Value *> Args,
@@ -4473,6 +4542,7 @@ public:
                    NumOperands, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallBrInst *Create(FunctionType *Ty, Value *Func,
                             BasicBlock *DefaultDest,
                             ArrayRef<BasicBlock *> IndirectDests,
@@ -4498,6 +4568,7 @@ public:
                    NumOperands, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallBrInst *Create(FunctionType *Ty, Value *Func,
                             BasicBlock *DefaultDest,
                             ArrayRef<BasicBlock *> IndirectDests,
@@ -4546,6 +4617,7 @@ public:
                   IndirectDests, Args, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallBrInst *Create(FunctionCallee Func, BasicBlock *DefaultDest,
                             ArrayRef<BasicBlock *> IndirectDests,
                             ArrayRef<Value *> Args, const Twine &NameStr,
@@ -4564,6 +4636,7 @@ public:
                   IndirectDests, Args, Bundles, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallBrInst *Create(FunctionCallee Func, BasicBlock *DefaultDest,
                             ArrayRef<BasicBlock *> IndirectDests,
                             ArrayRef<Value *> Args,
@@ -4682,6 +4755,7 @@ CallBrInst::CallBrInst(FunctionType *Ty, Value *Func, BasicBlock *DefaultDest,
   init(Ty, Func, DefaultDest, IndirectDests, Args, Bundles, NameStr);
 }
 
+LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
 CallBrInst::CallBrInst(FunctionType *Ty, Value *Func, BasicBlock *DefaultDest,
                        ArrayRef<BasicBlock *> IndirectDests,
                        ArrayRef<Value *> Args,
@@ -4714,9 +4788,10 @@ CallBrInst::CallBrInst(FunctionType *Ty, Value *Func, BasicBlock *DefaultDest,
 class ResumeInst : public Instruction {
   ResumeInst(const ResumeInst &RI);
 
-  explicit ResumeInst(Value *Exn, Instruction *InsertBefore=nullptr);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
+  explicit ResumeInst(Value *Exn, Instruction *InsertBefore);
   explicit ResumeInst(Value *Exn, BasicBlock::iterator InsertBefore);
-  ResumeInst(Value *Exn, BasicBlock *InsertAtEnd);
+  ResumeInst(Value *Exn, BasicBlock *InsertAtEnd=nullptr);
 
 protected:
   // Note: Instruction needs to be a friend here to call cloneImpl.
@@ -4729,6 +4804,7 @@ public:
     return new (1) ResumeInst(Exn, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static ResumeInst *Create(Value *Exn, Instruction *InsertBefore) {
     return new(1) ResumeInst(Exn, InsertBefore);
   }
@@ -4797,6 +4873,7 @@ class CatchSwitchInst : public Instruction {
   /// default destination.  The number of additional handlers can be specified
   /// here to make memory allocation more efficient.
   /// This constructor can also autoinsert before another instruction.
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   CatchSwitchInst(Value *ParentPad, BasicBlock *UnwindDest,
                   unsigned NumHandlers, const Twine &NameStr,
                   Instruction *InsertBefore);
@@ -4831,6 +4908,7 @@ public:
                                InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CatchSwitchInst *Create(Value *ParentPad, BasicBlock *UnwindDest,
                                  unsigned NumHandlers, const Twine &NameStr,
                                  Instruction *InsertBefore) {
@@ -4973,6 +5051,7 @@ private:
                           BasicBlock::iterator InsertBefore)
       : FuncletPadInst(Instruction::CleanupPad, ParentPad, Args, Values,
                        NameStr, InsertBefore) {}
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit CleanupPadInst(Value *ParentPad, ArrayRef<Value *> Args,
                           unsigned Values, const Twine &NameStr,
                           Instruction *InsertBefore)
@@ -4993,6 +5072,7 @@ public:
         CleanupPadInst(ParentPad, Args, Values, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CleanupPadInst *Create(Value *ParentPad, ArrayRef<Value *> Args,
                                 const Twine &NameStr,
                                 Instruction *InsertBefore) {
@@ -5029,6 +5109,7 @@ private:
                         BasicBlock::iterator InsertBefore)
       : FuncletPadInst(Instruction::CatchPad, CatchSwitch, Args, Values,
                        NameStr, InsertBefore) {}
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit CatchPadInst(Value *CatchSwitch, ArrayRef<Value *> Args,
                         unsigned Values, const Twine &NameStr,
                         Instruction *InsertBefore)
@@ -5049,6 +5130,7 @@ public:
         CatchPadInst(CatchSwitch, Args, Values, NameStr, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CatchPadInst *Create(Value *CatchSwitch, ArrayRef<Value *> Args,
                               const Twine &NameStr, Instruction *InsertBefore) {
     unsigned Values = 1 + Args.size();
@@ -5090,6 +5172,7 @@ class CatchReturnInst : public Instruction {
   CatchReturnInst(const CatchReturnInst &RI);
   CatchReturnInst(Value *CatchPad, BasicBlock *BB,
                   BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   CatchReturnInst(Value *CatchPad, BasicBlock *BB, Instruction *InsertBefore);
   CatchReturnInst(Value *CatchPad, BasicBlock *BB, BasicBlock *InsertAtEnd);
 
@@ -5109,6 +5192,7 @@ public:
     return new (2) CatchReturnInst(CatchPad, BB, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CatchReturnInst *Create(Value *CatchPad, BasicBlock *BB,
                                  Instruction *InsertBefore) {
     assert(CatchPad);
@@ -5183,6 +5267,7 @@ private:
   CleanupReturnInst(const CleanupReturnInst &RI);
   CleanupReturnInst(Value *CleanupPad, BasicBlock *UnwindBB, unsigned Values,
                     BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   CleanupReturnInst(Value *CleanupPad, BasicBlock *UnwindBB, unsigned Values,
                     Instruction *InsertBefore);
   CleanupReturnInst(Value *CleanupPad, BasicBlock *UnwindBB, unsigned Values,
@@ -5207,6 +5292,7 @@ public:
         CleanupReturnInst(CleanupPad, UnwindBB, Values, InsertBefore);
   }
 
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CleanupReturnInst *Create(Value *CleanupPad, BasicBlock *UnwindBB,
                                    Instruction *InsertBefore) {
     assert(CleanupPad);
@@ -5305,6 +5391,7 @@ protected:
 
 public:
   explicit UnreachableInst(LLVMContext &C, BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit UnreachableInst(LLVMContext &C, Instruction *InsertBefore);
   explicit UnreachableInst(LLVMContext &C, BasicBlock *InsertAtEnd = nullptr);
 
@@ -5355,6 +5442,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   TruncInst(Value *S,                 ///< The value to be truncated
             Type *Ty,                 ///< The (smaller) type to truncate to
             const Twine &NameStr,     ///< A name for the new instruction
@@ -5401,6 +5489,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   ZExtInst(Value *S,                 ///< The value to be zero extended
            Type *Ty,                 ///< The type to zero extend to
            const Twine &NameStr,     ///< A name for the new instruction
@@ -5447,6 +5536,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   SExtInst(Value *S,                 ///< The value to be sign extended
            Type *Ty,                 ///< The type to sign extend to
            const Twine &NameStr,     ///< A name for the new instruction
@@ -5493,6 +5583,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   FPTruncInst(Value *S,                 ///< The value to be truncated
               Type *Ty,                 ///< The type to truncate to
               const Twine &NameStr,     ///< A name for the new instruction
@@ -5539,6 +5630,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   FPExtInst(Value *S,                 ///< The value to be extended
             Type *Ty,                 ///< The type to extend to
             const Twine &NameStr,     ///< A name for the new instruction
@@ -5585,6 +5677,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   UIToFPInst(Value *S,                 ///< The value to be converted
              Type *Ty,                 ///< The type to convert to
              const Twine &NameStr,     ///< A name for the new instruction
@@ -5631,6 +5724,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   SIToFPInst(Value *S,                 ///< The value to be converted
              Type *Ty,                 ///< The type to convert to
              const Twine &NameStr,     ///< A name for the new instruction
@@ -5677,6 +5771,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   FPToUIInst(Value *S,                 ///< The value to be converted
              Type *Ty,                 ///< The type to convert to
              const Twine &NameStr,     ///< A name for the new instruction
@@ -5723,6 +5818,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   FPToSIInst(Value *S,                 ///< The value to be converted
              Type *Ty,                 ///< The type to convert to
              const Twine &NameStr,     ///< A name for the new instruction
@@ -5765,6 +5861,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   IntToPtrInst(
       Value *S,                 ///< The value to be converted
       Type *Ty,                 ///< The type to convert to
@@ -5820,6 +5917,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   PtrToIntInst(
       Value *S,                 ///< The value to be converted
       Type *Ty,                 ///< The type to convert to
@@ -5879,6 +5977,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   BitCastInst(Value *S,                 ///< The value to be casted
               Type *Ty,                 ///< The type to casted to
               const Twine &NameStr,     ///< A name for the new instruction
@@ -5926,6 +6025,7 @@ public:
   );
 
   /// Constructor with insert-before-instruction semantics
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   AddrSpaceCastInst(
       Value *S,                 ///< The value to be casted
       Type *Ty,                 ///< The type to casted to
@@ -6069,6 +6169,7 @@ protected:
 public:
   explicit FreezeInst(Value *S, const Twine &NameStr,
                       BasicBlock::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit FreezeInst(Value *S, const Twine &NameStr,
                       Instruction *InsertBefore);
   FreezeInst(Value *S, const Twine &NameStr = "",

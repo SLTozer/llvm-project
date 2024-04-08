@@ -1011,6 +1011,7 @@ protected:
 
   Instruction(Type *Ty, unsigned iType, Use *Ops, unsigned NumOps,
               InstListType::iterator InsertBefore);
+  LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   Instruction(Type *Ty, unsigned iType, Use *Ops, unsigned NumOps,
               Instruction *InsertBefore);
   Instruction(Type *Ty, unsigned iType, Use *Ops, unsigned NumOps,
