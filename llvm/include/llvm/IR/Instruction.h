@@ -182,6 +182,23 @@ public:
   /// \returns an iterator pointing to the element after the erased one
   InstListType::iterator eraseFromParent();
 
+  InstListType::iterator before() {
+    return getIterator();
+  }
+  InstListType::iterator after() {
+    auto It = std::next(getIterator());
+    It.setHeadBit(true);
+    return It;
+  }
+  InstListType::iterator beforeNext() {
+    return std::next(getIterator());
+  }
+  InstListType::iterator afterPrev() {
+    auto It = getIterator();
+    It.setHeadBit(true);
+    return It;
+  }
+
   /// Insert an unlinked instruction into a basic block immediately before
   /// the specified instruction.
   void insertBefore(Instruction *InsertPos);
