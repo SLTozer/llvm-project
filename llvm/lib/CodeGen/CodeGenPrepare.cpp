@@ -2144,23 +2144,15 @@ SinkShiftAndTruncate(BinaryOperator *ShiftI, Instruction *User, ConstantInt *CI,
       // Sink the shift
       if (ShiftI->getOpcode() == Instruction::AShr)
         InsertedShift =
-            BinaryOperator::CreateAShr(ShiftI->getOperand(0), CI, "");
+            BinaryOperator::CreateAShr(ShiftI->getOperand(0), CI, "", InsertPt);
       else
         InsertedShift =
-            BinaryOperator::CreateLShr(ShiftI->getOperand(0), CI, "");
+            BinaryOperator::CreateLShr(ShiftI->getOperand(0), CI, "", InsertPt);
       InsertedShift->setDebugLoc(ShiftI->getDebugLoc());
-      InsertedShift->insertBefore(*TruncUserBB, InsertPt);
 
       // Sink the trunc
-      BasicBlock::iterator TruncInsertPt = TruncUserBB->getFirstInsertionPt();
-      TruncInsertPt++;
-      // It will go ahead of any debug-info.
-      TruncInsertPt.setHeadBit(true);
-      assert(TruncInsertPt != TruncUserBB->end());
-
       InsertedTrunc = CastInst::Create(TruncI->getOpcode(), InsertedShift,
-                                       TruncI->getType(), "");
-      InsertedTrunc->insertBefore(*TruncUserBB, TruncInsertPt);
+                                       TruncI->getType(), "", InsertPt);
       InsertedTrunc->setDebugLoc(TruncI->getDebugLoc());
 
       MadeChange = true;
@@ -2326,10 +2318,8 @@ static bool despeculateCountZeros(IntrinsicInst *CountZeros,
   // Create another block after the count zero intrinsic. A PHI will be added
   // in this block to select the result of the intrinsic or the bit-width
   // constant if the input to the intrinsic is zero.
-  BasicBlock::iterator SplitPt = std::next(BasicBlock::iterator(CountZeros));
-  // Any debug-info after CountZeros should not be included.
-  SplitPt.setHeadBit(true);
-  BasicBlock *EndBlock = CallBlock->splitBasicBlock(SplitPt, "cond.end");
+  // Split after CountZeros, excluding any subsequent debug-info.
+  BasicBlock *EndBlock = CallBlock->splitBasicBlock(CountZeros->after(), "cond.end");
   if (IsHugeFunc)
     FreshBBs.insert(EndBlock);
 
@@ -7182,9 +7172,8 @@ bool CodeGenPrepare::optimizeSelectInst(SelectInst *SI) {
   // Split the select block, according to how many (if any) values go on each
   // side.
   BasicBlock *StartBlock = SI->getParent();
-  BasicBlock::iterator SplitPt = std::next(BasicBlock::iterator(LastSI));
-  // We should split before any debug-info.
-  SplitPt.setHeadBit(true);
+  // Split after LastSI, excluding any subsequent debug-info.
+  BasicBlock::iterator SplitPt = LastSI->after();
 
   IRBuilder<> IB(SI);
   auto *CondFr = IB.CreateFreeze(SI->getCondition(), SI->getName() + ".frozen");

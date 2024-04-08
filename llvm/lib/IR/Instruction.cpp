@@ -175,27 +175,23 @@ void Instruction::insertBefore(BasicBlock &BB,
 /// Unlink this instruction from its current basic block and insert it into the
 /// basic block that MovePos lives in, right before MovePos.
 void Instruction::moveBefore(Instruction *MovePos) {
-  moveBeforeImpl(*MovePos->getParent(), MovePos->getIterator(), false);
+  moveBeforeImpl(*MovePos->getParent(), MovePos->before(), false);
 }
 
 void Instruction::moveBeforePreserving(Instruction *MovePos) {
-  moveBeforeImpl(*MovePos->getParent(), MovePos->getIterator(), true);
+  moveBeforeImpl(*MovePos->getParent(), MovePos->before(), true);
 }
 
 void Instruction::moveAfter(Instruction *MovePos) {
-  auto NextIt = std::next(MovePos->getIterator());
   // We want this instruction to be moved to before NextIt in the instruction
   // list, but before NextIt's debug value range.
-  NextIt.setHeadBit(true);
-  moveBeforeImpl(*MovePos->getParent(), NextIt, false);
+  moveBeforeImpl(*MovePos->getParent(), MovePos->after(), false);
 }
 
 void Instruction::moveAfterPreserving(Instruction *MovePos) {
-  auto NextIt = std::next(MovePos->getIterator());
   // We want this instruction and its debug range to be moved to before NextIt
   // in the instruction list, but before NextIt's debug value range.
-  NextIt.setHeadBit(true);
-  moveBeforeImpl(*MovePos->getParent(), NextIt, true);
+  moveBeforeImpl(*MovePos->getParent(), MovePos->after(), true);
 }
 
 void Instruction::moveBefore(BasicBlock &BB, InstListType::iterator I) {
@@ -351,11 +347,10 @@ std::optional<BasicBlock::iterator> Instruction::getInsertionPointAfterDef() {
   } else {
     assert(!isTerminator() && "Only invoke/callbr terminators return value");
     InsertBB = getParent();
-    InsertPt = std::next(getIterator());
     // Any instruction inserted immediately after "this" will come before any
     // debug-info records take effect -- thus, set the head bit indicating that
     // to debug-info-transfer code.
-    InsertPt.setHeadBit(true);
+    InsertPt = after();
   }
 
   // catchswitch blocks don't have any legal insertion point (because they

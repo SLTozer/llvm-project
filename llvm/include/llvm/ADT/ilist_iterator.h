@@ -329,6 +329,16 @@ public:
   bool getTailBit() const { return TailInclusiveBit; }
   void setHeadBit(bool SetBit) const { HeadInclusiveBit = SetBit; }
   void setTailBit(bool SetBit) const { TailInclusiveBit = SetBit; }
+  void withHeadBit(bool SetBit) const {
+    ilist_iterator_w_bits tmp = *this;
+    tmp.HeadInclusiveBit = SetBit;
+    return tmp;
+  }
+  void withTailBit(bool SetBit) const {
+    ilist_iterator_w_bits tmp = *this;
+    tmp.TailInclusiveBit = SetBit;
+    return tmp;
+  }
 };
 
 template <typename From> struct simplify_type;
