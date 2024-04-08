@@ -871,7 +871,7 @@ void BasicBlock::spliceDebugInfoImpl(BasicBlock::iterator Dest, BasicBlock *Src,
   bool ReadFromHead = First.getHeadBit();
   // Use this flag to signal the abnormal case, where we don't want to copy the
   // DbgRecords ahead of the "Last" position.
-  bool ReadFromTail = !Last.getTailBit();
+  bool ReadFromTail = !Last.getHeadBit();
   bool LastIsEnd = (Last == Src->end());
 
   /*

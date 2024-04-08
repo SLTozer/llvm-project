@@ -55,34 +55,26 @@ TEST(IListIteratorBitsTest, ConsAndAssignment) {
 
   simple_ilist<Node, ilist_iterator_bits<true>>::iterator I, I2;
 
-  // Check that HeadInclusiveBit and TailInclusiveBit are preserved on
-  // assignment and copy construction, but not on other operations.
+  // Check that HeadInclusiveBit is preserved on assignment and copy
+  // construction, but not on other operations.
   I = L.begin();
   EXPECT_FALSE(I.getHeadBit());
-  EXPECT_FALSE(I.getTailBit());
   I.setHeadBit(true);
-  I.setTailBit(true);
   EXPECT_TRUE(I.getHeadBit());
-  EXPECT_TRUE(I.getTailBit());
 
   ++I;
 
   EXPECT_FALSE(I.getHeadBit());
-  EXPECT_FALSE(I.getTailBit());
 
   I = L.begin();
   I.setHeadBit(true);
-  I.setTailBit(true);
   I2 = I;
   EXPECT_TRUE(I2.getHeadBit());
-  EXPECT_TRUE(I2.getTailBit());
 
   I = L.begin();
   I.setHeadBit(true);
-  I.setTailBit(true);
   simple_ilist<Node, ilist_iterator_bits<true>>::iterator I3(I);
   EXPECT_TRUE(I3.getHeadBit());
-  EXPECT_TRUE(I3.getTailBit());
 }
 
 class dummy {

@@ -205,9 +205,6 @@ private:
   /// Is this position intended to contain any debug-info immediately before
   /// the position?
   mutable bool HeadInclusiveBit = false;
-  /// Is this position intended to contain any debug-info immediately after
-  /// the position?
-  mutable bool TailInclusiveBit = false;
 
 public:
   /// Create from an ilist_node.
@@ -227,7 +224,6 @@ public:
       std::enable_if_t<IsConst || !RHSIsConst, void *> = nullptr)
       : NodePtr(RHS.NodePtr) {
     HeadInclusiveBit = RHS.HeadInclusiveBit;
-    TailInclusiveBit = RHS.TailInclusiveBit;
   }
 
   // This is templated so that we can allow assigning to a const iterator from
@@ -237,7 +233,6 @@ public:
   operator=(const ilist_iterator_w_bits<OptionsT, IsReverse, RHSIsConst> &RHS) {
     NodePtr = RHS.NodePtr;
     HeadInclusiveBit = RHS.HeadInclusiveBit;
-    TailInclusiveBit = RHS.TailInclusiveBit;
     return *this;
   }
 
@@ -272,7 +267,6 @@ public:
                                                     false>::node_reference>(
               *NodePtr));
       New.HeadInclusiveBit = HeadInclusiveBit;
-      New.TailInclusiveBit = TailInclusiveBit;
       return New;
     }
     return ilist_iterator_w_bits<OptionsT, IsReverse, false>();
@@ -299,13 +293,11 @@ public:
   ilist_iterator_w_bits &operator--() {
     NodePtr = IsReverse ? NodePtr->getNext() : NodePtr->getPrev();
     HeadInclusiveBit = false;
-    TailInclusiveBit = false;
     return *this;
   }
   ilist_iterator_w_bits &operator++() {
     NodePtr = IsReverse ? NodePtr->getPrev() : NodePtr->getNext();
     HeadInclusiveBit = false;
-    TailInclusiveBit = false;
     return *this;
   }
   ilist_iterator_w_bits operator--(int) {
@@ -326,17 +318,10 @@ public:
   bool isEnd() const { return NodePtr ? NodePtr->isSentinel() : false; }
 
   bool getHeadBit() const { return HeadInclusiveBit; }
-  bool getTailBit() const { return TailInclusiveBit; }
   void setHeadBit(bool SetBit) const { HeadInclusiveBit = SetBit; }
-  void setTailBit(bool SetBit) const { TailInclusiveBit = SetBit; }
   void withHeadBit(bool SetBit) const {
     ilist_iterator_w_bits tmp = *this;
     tmp.HeadInclusiveBit = SetBit;
-    return tmp;
-  }
-  void withTailBit(bool SetBit) const {
-    ilist_iterator_w_bits tmp = *this;
-    tmp.TailInclusiveBit = SetBit;
     return tmp;
   }
 };

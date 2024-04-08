@@ -581,7 +581,7 @@ protected:
 TEST_F(DbgSpliceTest, DbgSpliceTest0) {
   Dest.setHeadBit(false);
   First.setHeadBit(false);
-  Last.setTailBit(false);
+  Last.setHeadBit(false);
 
   /*
         define i16 @f(i16 %a) !dbg !6 {
@@ -633,7 +633,7 @@ void @llvm.dbg.value(metadata i16 %b, metadata !9, metadata !DIExpression()),
 TEST_F(DbgSpliceTest, DbgSpliceTest1) {
   Dest.setHeadBit(true);
   First.setHeadBit(false);
-  Last.setTailBit(false);
+  Last.setHeadBit(false);
 
   /*
         define i16 @f(i16 %a) !dbg !6 {
@@ -689,7 +689,7 @@ metadata !9, metadata !DIExpression()), !dbg !11 Dest      %c = add i16 %b, 1,
 TEST_F(DbgSpliceTest, DbgSpliceTest2) {
   Dest.setHeadBit(false);
   First.setHeadBit(true);
-  Last.setTailBit(false);
+  Last.setHeadBit(false);
 
   /*
         define i16 @f(i16 %a) !dbg !6 {
@@ -745,7 +745,7 @@ i16 0, !dbg !11
 TEST_F(DbgSpliceTest, DbgSpliceTest3) {
   Dest.setHeadBit(true);
   First.setHeadBit(true);
-  Last.setTailBit(false);
+  Last.setHeadBit(false);
 
   /*
         define i16 @f(i16 %a) !dbg !6 {
@@ -800,7 +800,7 @@ i16 0, !dbg !11
 TEST_F(DbgSpliceTest, DbgSpliceTest4) {
   Dest.setHeadBit(false);
   First.setHeadBit(false);
-  Last.setTailBit(true);
+  Last.setHeadBit(true);
 
   /*
         define i16 @f(i16 %a) !dbg !6 {
@@ -855,7 +855,7 @@ add i16 %b, 1, !dbg !11 ret i16 0, !dbg !11
 TEST_F(DbgSpliceTest, DbgSpliceTest5) {
   Dest.setHeadBit(true);
   First.setHeadBit(false);
-  Last.setTailBit(true);
+  Last.setHeadBit(true);
 
   /*
         define i16 @f(i16 %a) !dbg !6 {
@@ -911,7 +911,7 @@ DVRConst  call void @llvm.dbg.value(metadata i16 0, metadata !9, metadata
 TEST_F(DbgSpliceTest, DbgSpliceTest6) {
   Dest.setHeadBit(false);
   First.setHeadBit(true);
-  Last.setTailBit(true);
+  Last.setHeadBit(true);
 
   /*
         define i16 @f(i16 %a) !dbg !6 {
@@ -965,7 +965,7 @@ metadata !9, metadata !DIExpression()), !dbg !11 First     %b = add i16 %a, 1,
 TEST_F(DbgSpliceTest, DbgSpliceTest7) {
   Dest.setHeadBit(true);
   First.setHeadBit(true);
-  Last.setTailBit(true);
+  Last.setHeadBit(true);
 
   /*
         define i16 @f(i16 %a) !dbg !6 {
