@@ -319,7 +319,7 @@ public:
 
   bool getHeadBit() const { return HeadInclusiveBit; }
   void setHeadBit(bool SetBit) const { HeadInclusiveBit = SetBit; }
-  void withHeadBit(bool SetBit) const {
+  ilist_iterator_w_bits withHeadBit(bool SetBit) const {
     ilist_iterator_w_bits tmp = *this;
     tmp.HeadInclusiveBit = SetBit;
     return tmp;
