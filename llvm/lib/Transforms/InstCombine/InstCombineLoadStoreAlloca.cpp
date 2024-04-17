@@ -401,7 +401,8 @@ void PointerReplacer::replace(Instruction *I) {
   } else if (auto *SI = dyn_cast<SelectInst>(I)) {
     auto *NewSI = SelectInst::Create(
         SI->getCondition(), getReplacement(SI->getTrueValue()),
-        getReplacement(SI->getFalseValue()), SI->getName(), nullptr, SI);
+        getReplacement(SI->getFalseValue()), SI->getName());
+    NewSI->copyMetadata(*SI);
     IC.InsertNewInstWith(NewSI, SI->getIterator());
     NewSI->takeName(SI);
     WorkMap[SI] = NewSI;

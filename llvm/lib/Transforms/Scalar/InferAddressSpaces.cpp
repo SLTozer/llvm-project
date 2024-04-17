@@ -678,10 +678,13 @@ Value *InferAddressSpacesImpl::cloneInstructionWithNewAddressSpace(
     NewGEP->setIsInBounds(GEP->isInBounds());
     return NewGEP;
   }
-  case Instruction::Select:
+  case Instruction::Select: {
     assert(I->getType()->isPtrOrPtrVectorTy());
-    return SelectInst::Create(I->getOperand(0), NewPointerOperands[1],
-                              NewPointerOperands[2], "", nullptr, I);
+    SelectInst *SI = SelectInst::Create(I->getOperand(0), NewPointerOperands[1],
+                              NewPointerOperands[2], "");
+    SI->copyMetadata(*I);
+    return SI;
+  }
   case Instruction::IntToPtr: {
     assert(isNoopPtrIntCastPair(cast<Operator>(I), *DL, TTI));
     Value *Src = cast<Operator>(I->getOperand(0))->getOperand(0);

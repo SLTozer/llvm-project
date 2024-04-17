@@ -61,7 +61,7 @@ protected:
   }
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   UnaryInstruction(Type *Ty, unsigned iType, Value *V, Instruction *IB)
-      : Instruction(Ty, iType, &Op<0>(), 1, IB) {
+      : Instruction(Ty, iType, &Op<0>(), 1, IB->getIterator()) {
     Op<0>() = V;
   }
   UnaryInstruction(Type *Ty, unsigned iType, Value *V,
@@ -161,7 +161,7 @@ public:
 #define HANDLE_UNARY_INST(N, OPC, CLASS) \
   static UnaryOperator *Create##OPC(Value *V, const Twine &Name, \
                                     Instruction *I) {\
-    return Create(Instruction::OPC, V, Name, I);\
+    return Create(Instruction::OPC, V, Name, I->getIterator());\
   }
 #include "llvm/IR/Instruction.def"
 #define HANDLE_UNARY_INST(N, OPC, CLASS) \
@@ -184,7 +184,7 @@ public:
                                               Instruction *CopyO,
                                               const Twine &Name,
                                               Instruction *InsertBefore) {
-    UnaryOperator *UO = Create(Opc, V, Name, InsertBefore);
+    UnaryOperator *UO = Create(Opc, V, Name, InsertBefore->getIterator());
     UO->copyIRFlags(CopyO);
     return UO;
   }
@@ -210,7 +210,7 @@ public:
                                       const Twine &Name,
                                       Instruction *InsertBefore) {
     return CreateWithCopiedFlags(Instruction::FNeg, Op, FMFSource, Name,
-                                 InsertBefore);
+                                 InsertBefore->getIterator());
   }
 
   static UnaryOperator *CreateFNegFMF(Value *Op, Instruction *FMFSource,
@@ -304,7 +304,7 @@ public:
 #define HANDLE_BINARY_INST(N, OPC, CLASS) \
   static BinaryOperator *Create##OPC(Value *V1, Value *V2, \
                                      const Twine &Name, Instruction *I) {\
-    return Create(Instruction::OPC, V1, V2, Name, I);\
+    return Create(Instruction::OPC, V1, V2, Name, I->getIterator());\
   }
 #include "llvm/IR/Instruction.def"
 #define HANDLE_BINARY_INST(N, OPC, CLASS) \
@@ -327,7 +327,7 @@ public:
                                                Value *V2, Value *CopyO,
                                                const Twine &Name,
                                                Instruction *InsertBefore) {
-    BinaryOperator *BO = Create(Opc, V1, V2, Name, InsertBefore);
+    BinaryOperator *BO = Create(Opc, V1, V2, Name, InsertBefore->getIterator());
     BO->copyIRFlags(CopyO);
     return BO;
   }
@@ -381,7 +381,7 @@ public:
   }
   static BinaryOperator *CreateNSW(BinaryOps Opc, Value *V1, Value *V2,
                                    const Twine &Name, Instruction *I) {
-    BinaryOperator *BO = Create(Opc, V1, V2, Name, I);
+    BinaryOperator *BO = Create(Opc, V1, V2, Name, I->getIterator());
     BO->setHasNoSignedWrap(true);
     return BO;
   }
@@ -406,7 +406,7 @@ public:
   }
   static BinaryOperator *CreateNUW(BinaryOps Opc, Value *V1, Value *V2,
                                    const Twine &Name, Instruction *I) {
-    BinaryOperator *BO = Create(Opc, V1, V2, Name, I);
+    BinaryOperator *BO = Create(Opc, V1, V2, Name, I->getIterator());
     BO->setHasNoUnsignedWrap(true);
     return BO;
   }
@@ -431,7 +431,7 @@ public:
   }
   static BinaryOperator *CreateExact(BinaryOps Opc, Value *V1, Value *V2,
                                      const Twine &Name, Instruction *I) {
-    BinaryOperator *BO = Create(Opc, V1, V2, Name, I);
+    BinaryOperator *BO = Create(Opc, V1, V2, Name, I->getIterator());
     BO->setIsExact(true);
     return BO;
   }
@@ -588,7 +588,7 @@ BinaryOperator *BinaryOperator::CreateDisjoint(BinaryOps Opc, Value *V1,
 BinaryOperator *BinaryOperator::CreateDisjoint(BinaryOps Opc, Value *V1,
                                                Value *V2, const Twine &Name,
                                                Instruction *I) {
-  BinaryOperator *BO = Create(Opc, V1, V2, Name, I);
+  BinaryOperator *BO = Create(Opc, V1, V2, Name, I->getIterator());
   cast<PossiblyDisjointInst>(BO)->setIsDisjoint(true);
   return BO;
 }
@@ -622,7 +622,7 @@ protected:
   /// Constructor with insert-before-instruction semantics for subclasses
   CastInst(Type *Ty, unsigned iType, Value *S, const Twine &NameStr,
            Instruction *InsertBefore)
-      : UnaryInstruction(Ty, iType, S, InsertBefore) {
+      : UnaryInstruction(Ty, iType, S, InsertBefore->getIterator()) {
     setName(NameStr);
   }
   /// Constructor with insert-at-end-of-block semantics for subclasses

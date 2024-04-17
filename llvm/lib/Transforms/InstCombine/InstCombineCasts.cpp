@@ -2412,14 +2412,18 @@ static Instruction *foldBitCastSelect(BitCastInst &BitCast,
       !isa<Constant>(X)) {
     // bitcast(select(Cond, bitcast(X), Y)) --> select'(Cond, X, bitcast(Y))
     Value *CastedVal = Builder.CreateBitCast(FVal, DestTy);
-    return SelectInst::Create(Cond, X, CastedVal, "", nullptr, Sel);
+    SelectInst *SI = SelectInst::Create(Cond, X, CastedVal, "");
+    SI->copyMetadata(*Sel);
+    return SI;
   }
 
   if (match(FVal, m_OneUse(m_BitCast(m_Value(X)))) && X->getType() == DestTy &&
       !isa<Constant>(X)) {
     // bitcast(select(Cond, Y, bitcast(X))) --> select'(Cond, bitcast(Y), X)
     Value *CastedVal = Builder.CreateBitCast(TVal, DestTy);
-    return SelectInst::Create(Cond, CastedVal, X, "", nullptr, Sel);
+    SelectInst *SI = SelectInst::Create(Cond, CastedVal, X, "");
+    SI->copyMetadata(*Sel);
+    return SI;
   }
 
   return nullptr;

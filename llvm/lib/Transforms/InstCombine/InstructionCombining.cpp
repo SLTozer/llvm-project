@@ -1696,7 +1696,9 @@ Instruction *InstCombinerImpl::FoldOpIntoSelect(Instruction &Op, SelectInst *SI,
     NewTV = foldOperationIntoSelectOperand(Op, SI, TV, *this);
   if (!NewFV)
     NewFV = foldOperationIntoSelectOperand(Op, SI, FV, *this);
-  return SelectInst::Create(SI->getCondition(), NewTV, NewFV, "", nullptr, SI);
+  SelectInst *NewSI = SelectInst::Create(SI->getCondition(), NewTV, NewFV, "");
+  NewSI->copyMetadata(*SI);
+  return NewSI;
 }
 
 static Value *simplifyInstructionWithPHI(Instruction &I, PHINode *PN,
@@ -2314,7 +2316,9 @@ static Instruction *foldSelectGEP(GetElementPtrInst &GEP,
   Type *Ty = GEP.getSourceElementType();
   Value *NewTrueC = Builder.CreateGEP(Ty, TrueC, IndexC, "", IsInBounds);
   Value *NewFalseC = Builder.CreateGEP(Ty, FalseC, IndexC, "", IsInBounds);
-  return SelectInst::Create(Cond, NewTrueC, NewFalseC, "", nullptr, Sel);
+  SelectInst *SI = SelectInst::Create(Cond, NewTrueC, NewFalseC, "");
+  SI->copyMetadata(*Sel);
+  return SI;
 }
 
 Instruction *InstCombinerImpl::visitGEPOfGEP(GetElementPtrInst &GEP,

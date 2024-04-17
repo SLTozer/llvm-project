@@ -271,7 +271,7 @@ TEST(OperationsTest, SplitBlock) {
   ASSERT_THAT(RI->getParent(), Eq(BB1));
 
   // Now add an instruction to BB1 and split on that.
-  auto *AI = new AllocaInst(Type::getInt8Ty(Ctx), 0, "a", RI);
+  auto *AI = new AllocaInst(Type::getInt8Ty(Ctx), 0, "a", RI->getIterator());
   Value *Cond = ConstantInt::getFalse(Ctx);
   SBOp.BuilderFunc({Cond}, AI);
 

@@ -27,9 +27,11 @@ Instruction::Instruction(Type *ty, unsigned it, Use *Ops, unsigned NumOps,
     : User(ty, Value::InstructionVal + it, Ops, NumOps), Parent(nullptr) {
 
   // When called with an iterator, there must be a block to insert into.
+  if (!InsertBefore.getNodePtr())
+    return;
   BasicBlock *BB = InsertBefore->getParent();
-  assert(BB && "Instruction to insert before is not in a basic block!");
-  insertInto(BB, InsertBefore);
+  if (BB)
+    insertInto(BB, InsertBefore);
 }
 
 Instruction::Instruction(Type *ty, unsigned it, Use *Ops, unsigned NumOps,

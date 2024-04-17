@@ -1034,7 +1034,7 @@ public:
     unsigned Values = 1 + unsigned(IdxList.size());
     assert(PointeeType && "Must specify element type");
     return new (Values) GetElementPtrInst(PointeeType, Ptr, IdxList, Values,
-                                          NameStr, InsertBefore);
+                                          NameStr, Instruction::getIt(InsertBefore));
   }
 
   static GetElementPtrInst *Create(Type *PointeeType, Value *Ptr,
@@ -1065,7 +1065,7 @@ public:
                                            const Twine &NameStr,
                                            Instruction *InsertBefore) {
     GetElementPtrInst *GEP =
-        Create(PointeeType, Ptr, IdxList, NameStr, InsertBefore);
+        Create(PointeeType, Ptr, IdxList, NameStr, Instruction::getIt(InsertBefore));
     GEP->setIsInBounds(true);
     return GEP;
   }
@@ -1237,7 +1237,7 @@ GetElementPtrInst::GetElementPtrInst(Type *PointeeType, Value *Ptr,
                                      Instruction *InsertBefore)
     : Instruction(getGEPReturnType(Ptr, IdxList), GetElementPtr,
                   OperandTraits<GetElementPtrInst>::op_end(this) - Values,
-                  Values, InsertBefore),
+                  Values, Instruction::getIt(InsertBefore)),
       SourceElementType(PointeeType),
       ResultElementType(getIndexedType(PointeeType, IdxList)) {
   init(Ptr, IdxList, NameStr);
@@ -1310,7 +1310,7 @@ public:
     const Twine &NameStr = ""  ///< Name of the instruction
   ) : CmpInst(makeCmpResultType(LHS->getType()),
               Instruction::ICmp, pred, LHS, RHS, NameStr,
-              InsertBefore) {
+              Instruction::getIt(InsertBefore)) {
 #ifndef NDEBUG
   AssertOK();
 #endif
@@ -1496,7 +1496,7 @@ public:
     const Twine &NameStr = ""  ///< Name of the instruction
   ) : CmpInst(makeCmpResultType(LHS->getType()),
               Instruction::FCmp, pred, LHS, RHS, NameStr,
-              InsertBefore) {
+              Instruction::getIt(InsertBefore)) {
     AssertOK();
   }
 
@@ -1521,7 +1521,7 @@ public:
     const Twine &NameStr = "", ///< Name of the instruction
     Instruction *FlagsSource = nullptr
   ) : CmpInst(makeCmpResultType(LHS->getType()), Instruction::FCmp, Pred, LHS,
-              RHS, NameStr, nullptr, FlagsSource) {
+              RHS, NameStr, Instruction::getIt(nullptr), FlagsSource) {
     AssertOK();
   }
 
@@ -1605,7 +1605,7 @@ class CallInst : public CallBase {
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   inline CallInst(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
                   const Twine &NameStr, Instruction *InsertBefore)
-      : CallInst(Ty, Func, Args, std::nullopt, NameStr, InsertBefore) {}
+      : CallInst(Ty, Func, Args, std::nullopt, NameStr, Instruction::getIt(InsertBefore)) {}
 
   /// Construct a CallInst given a range of arguments.
   /// Construct a CallInst from a range of arguments
@@ -1649,7 +1649,7 @@ public:
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static CallInst *Create(FunctionType *Ty, Value *F, const Twine &NameStr,
                           Instruction *InsertBefore) {
-    return new (ComputeNumOperands(0)) CallInst(Ty, F, NameStr, InsertBefore);
+    return new (ComputeNumOperands(0)) CallInst(Ty, F, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CallInst *Create(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
@@ -1663,7 +1663,7 @@ public:
   static CallInst *Create(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
                           const Twine &NameStr, Instruction *InsertBefore) {
     return new (ComputeNumOperands(Args.size()))
-        CallInst(Ty, Func, Args, std::nullopt, NameStr, InsertBefore);
+        CallInst(Ty, Func, Args, std::nullopt, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CallInst *Create(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
@@ -1687,7 +1687,7 @@ public:
     const unsigned DescriptorBytes = Bundles.size() * sizeof(BundleOpInfo);
 
     return new (NumOperands, DescriptorBytes)
-        CallInst(Ty, Func, Args, Bundles, NameStr, InsertBefore);
+        CallInst(Ty, Func, Args, Bundles, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CallInst *Create(FunctionType *Ty, Value *F, const Twine &NameStr = "",
@@ -1724,7 +1724,7 @@ public:
   static CallInst *Create(FunctionCallee Func, const Twine &NameStr,
                           Instruction *InsertBefore) {
     return Create(Func.getFunctionType(), Func.getCallee(), NameStr,
-                  InsertBefore);
+                  Instruction::getIt(InsertBefore));
   }
 
   static CallInst *Create(FunctionCallee Func, ArrayRef<Value *> Args,
@@ -1740,7 +1740,7 @@ public:
                           ArrayRef<OperandBundleDef> Bundles,
                           const Twine &NameStr, Instruction *InsertBefore) {
     return Create(Func.getFunctionType(), Func.getCallee(), Args, Bundles,
-                  NameStr, InsertBefore);
+                  NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CallInst *Create(FunctionCallee Func, ArrayRef<Value *> Args,
@@ -1754,7 +1754,7 @@ public:
   static CallInst *Create(FunctionCallee Func, ArrayRef<Value *> Args,
                           const Twine &NameStr, Instruction *InsertBefore) {
     return Create(Func.getFunctionType(), Func.getCallee(), Args, NameStr,
-                  InsertBefore);
+                  Instruction::getIt(InsertBefore));
   }
 
   static CallInst *Create(FunctionCallee Func, const Twine &NameStr = "",
@@ -1880,7 +1880,7 @@ CallInst::CallInst(FunctionType *Ty, Value *Func, ArrayRef<Value *> Args,
                OperandTraits<CallBase>::op_end(this) -
                    (Args.size() + CountBundleInputs(Bundles) + 1),
                unsigned(Args.size() + CountBundleInputs(Bundles) + 1),
-               InsertBefore) {
+               Instruction::getIt(InsertBefore)) {
   init(Ty, Func, Args, Bundles, NameStr);
 }
 
@@ -1903,7 +1903,7 @@ class SelectInst : public Instruction {
   SelectInst(Value *C, Value *S1, Value *S2, const Twine &NameStr,
              Instruction *InsertBefore)
     : Instruction(S1->getType(), Instruction::Select,
-                  &Op<0>(), 3, InsertBefore) {
+                  &Op<0>(), 3, Instruction::getIt(InsertBefore)) {
     init(C, S1, S2);
     setName(NameStr);
   }
@@ -1944,7 +1944,7 @@ public:
   static SelectInst *Create(Value *C, Value *S1, Value *S2,
                             const Twine &NameStr, Instruction *InsertBefore,
                             Instruction *MDFrom = nullptr) {
-    SelectInst *Sel = new(3) SelectInst(C, S1, S2, NameStr, InsertBefore);
+    SelectInst *Sel = new(3) SelectInst(C, S1, S2, NameStr, Instruction::getIt(InsertBefore));
     if (MDFrom)
       Sel->copyMetadata(*MDFrom);
     return Sel;
@@ -2021,7 +2021,7 @@ public:
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   VAArgInst(Value *List, Type *Ty, const Twine &NameStr,
             Instruction *InsertBefore)
-      : UnaryInstruction(Ty, VAArg, List, InsertBefore) {
+      : UnaryInstruction(Ty, VAArg, List, Instruction::getIt(InsertBefore)) {
     setName(NameStr);
   }
 
@@ -2077,7 +2077,7 @@ public:
   static ExtractElementInst *Create(Value *Vec, Value *Idx,
                                     const Twine &NameStr,
                                     Instruction *InsertBefore) {
-    return new(2) ExtractElementInst(Vec, Idx, NameStr, InsertBefore);
+    return new(2) ExtractElementInst(Vec, Idx, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static ExtractElementInst *Create(Value *Vec, Value *Idx,
@@ -2152,7 +2152,7 @@ public:
   static InsertElementInst *Create(Value *Vec, Value *NewElt, Value *Idx,
                                    const Twine &NameStr,
                                    Instruction *InsertBefore) {
-    return new(3) InsertElementInst(Vec, NewElt, Idx, NameStr, InsertBefore);
+    return new(3) InsertElementInst(Vec, NewElt, Idx, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static InsertElementInst *Create(Value *Vec, Value *NewElt, Value *Idx,
@@ -2753,7 +2753,7 @@ public:
                                   const Twine &NameStr,
                                   Instruction *InsertBefore) {
     return new
-      ExtractValueInst(Agg, Idxs, NameStr, InsertBefore);
+      ExtractValueInst(Agg, Idxs, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static ExtractValueInst *Create(Value *Agg, ArrayRef<unsigned> Idxs,
@@ -2821,7 +2821,7 @@ ExtractValueInst::ExtractValueInst(Value *Agg,
                                    const Twine &NameStr,
                                    Instruction *InsertBefore)
   : UnaryInstruction(checkGEPType(getIndexedType(Agg->getType(), Idxs)),
-                     ExtractValue, Agg, InsertBefore) {
+                     ExtractValue, Agg, Instruction::getIt(InsertBefore)) {
   init(Idxs, NameStr);
 }
 
@@ -2896,7 +2896,7 @@ public:
   static InsertValueInst *Create(Value *Agg, Value *Val,
                                  ArrayRef<unsigned> Idxs, const Twine &NameStr,
                                  Instruction *InsertBefore) {
-    return new InsertValueInst(Agg, Val, Idxs, NameStr, InsertBefore);
+    return new InsertValueInst(Agg, Val, Idxs, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static InsertValueInst *Create(Value *Agg, Value *Val,
@@ -2981,7 +2981,7 @@ InsertValueInst::InsertValueInst(Value *Agg,
                                  Instruction *InsertBefore)
   : Instruction(Agg->getType(), InsertValue,
                 OperandTraits<InsertValueInst>::op_begin(this),
-                2, InsertBefore) {
+                2, Instruction::getIt(InsertBefore)) {
   init(Agg, Val, Idxs, NameStr);
 }
 
@@ -3025,7 +3025,7 @@ class PHINode : public Instruction {
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   explicit PHINode(Type *Ty, unsigned NumReservedValues, const Twine &NameStr,
                    Instruction *InsertBefore)
-      : Instruction(Ty, Instruction::PHI, nullptr, 0, InsertBefore),
+      : Instruction(Ty, Instruction::PHI, nullptr, 0, Instruction::getIt(InsertBefore)),
         ReservedSpace(NumReservedValues) {
     assert(!Ty->isTokenTy() && "PHI nodes cannot have token type!");
     setName(NameStr);
@@ -3066,7 +3066,7 @@ public:
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static PHINode *Create(Type *Ty, unsigned NumReservedValues,
                          const Twine &NameStr, Instruction *InsertBefore) {
-    return new PHINode(Ty, NumReservedValues, NameStr, InsertBefore);
+    return new PHINode(Ty, NumReservedValues, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static PHINode *Create(Type *Ty, unsigned NumReservedValues,
@@ -3425,7 +3425,7 @@ public:
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static ReturnInst *Create(LLVMContext &C, Value *retVal,
                             Instruction *InsertBefore) {
-    return new(!!retVal) ReturnInst(C, retVal, InsertBefore);
+    return new(!!retVal) ReturnInst(C, retVal, Instruction::getIt(InsertBefore));
   }
 
   static ReturnInst *Create(LLVMContext &C, Value *retVal = nullptr,
@@ -3548,7 +3548,7 @@ public:
 
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static BranchInst *Create(BasicBlock *IfTrue, Instruction *InsertBefore) {
-    return new(1) BranchInst(IfTrue, InsertBefore);
+    return new(1) BranchInst(IfTrue, Instruction::getIt(InsertBefore));
   }
 
   static BranchInst *Create(BasicBlock *IfTrue, BasicBlock *IfFalse,
@@ -3559,7 +3559,7 @@ public:
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static BranchInst *Create(BasicBlock *IfTrue, BasicBlock *IfFalse,
                             Value *Cond, Instruction *InsertBefore) {
-    return new(3) BranchInst(IfTrue, IfFalse, Cond, InsertBefore);
+    return new(3) BranchInst(IfTrue, IfFalse, Cond, Instruction::getIt(InsertBefore));
   }
 
   static BranchInst *Create(BasicBlock *IfTrue,
@@ -3847,7 +3847,7 @@ public:
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static SwitchInst *Create(Value *Value, BasicBlock *Default,
                             unsigned NumCases, Instruction *InsertBefore) {
-    return new SwitchInst(Value, Default, NumCases, InsertBefore);
+    return new SwitchInst(Value, Default, NumCases, Instruction::getIt(InsertBefore));
   }
 
   static SwitchInst *Create(Value *Value, BasicBlock *Default,
@@ -4135,7 +4135,7 @@ public:
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static IndirectBrInst *Create(Value *Address, unsigned NumDests,
                                 Instruction *InsertBefore) {
-    return new IndirectBrInst(Address, NumDests, InsertBefore);
+    return new IndirectBrInst(Address, NumDests, Instruction::getIt(InsertBefore));
   }
 
   static IndirectBrInst *Create(Value *Address, unsigned NumDests,
@@ -4275,7 +4275,7 @@ public:
     int NumOperands = ComputeNumOperands(Args.size());
     return new (NumOperands)
         InvokeInst(Ty, Func, IfNormal, IfException, Args, std::nullopt,
-                   NumOperands, NameStr, InsertBefore);
+                   NumOperands, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static InvokeInst *Create(FunctionType *Ty, Value *Func, BasicBlock *IfNormal,
@@ -4303,7 +4303,7 @@ public:
 
     return new (NumOperands, DescriptorBytes)
         InvokeInst(Ty, Func, IfNormal, IfException, Args, Bundles, NumOperands,
-                   NameStr, InsertBefore);
+                   NameStr, Instruction::getIt(InsertBefore));
   }
 
   static InvokeInst *Create(FunctionType *Ty, Value *Func, BasicBlock *IfNormal,
@@ -4343,7 +4343,7 @@ public:
                             BasicBlock *IfException, ArrayRef<Value *> Args,
                             const Twine &NameStr, Instruction *InsertBefore) {
     return Create(Func.getFunctionType(), Func.getCallee(), IfNormal,
-                  IfException, Args, std::nullopt, NameStr, InsertBefore);
+                  IfException, Args, std::nullopt, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static InvokeInst *Create(FunctionCallee Func, BasicBlock *IfNormal,
@@ -4361,7 +4361,7 @@ public:
                             ArrayRef<OperandBundleDef> Bundles,
                             const Twine &NameStr, Instruction *InsertBefore) {
     return Create(Func.getFunctionType(), Func.getCallee(), IfNormal,
-                  IfException, Args, Bundles, NameStr, InsertBefore);
+                  IfException, Args, Bundles, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static InvokeInst *Create(FunctionCallee Func, BasicBlock *IfNormal,
@@ -4461,7 +4461,7 @@ InvokeInst::InvokeInst(FunctionType *Ty, Value *Func, BasicBlock *IfNormal,
                        const Twine &NameStr, Instruction *InsertBefore)
     : CallBase(Ty->getReturnType(), Instruction::Invoke,
                OperandTraits<CallBase>::op_end(this) - NumOperands, NumOperands,
-               InsertBefore) {
+               Instruction::getIt(InsertBefore)) {
   init(Ty, Func, IfNormal, IfException, Args, Bundles, NameStr);
 }
 
@@ -4551,7 +4551,7 @@ public:
     int NumOperands = ComputeNumOperands(Args.size(), IndirectDests.size());
     return new (NumOperands)
         CallBrInst(Ty, Func, DefaultDest, IndirectDests, Args, std::nullopt,
-                   NumOperands, NameStr, InsertBefore);
+                   NumOperands, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CallBrInst *
@@ -4581,7 +4581,7 @@ public:
 
     return new (NumOperands, DescriptorBytes)
         CallBrInst(Ty, Func, DefaultDest, IndirectDests, Args, Bundles,
-                   NumOperands, NameStr, InsertBefore);
+                   NumOperands, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CallBrInst *Create(FunctionType *Ty, Value *Func,
@@ -4623,7 +4623,7 @@ public:
                             ArrayRef<Value *> Args, const Twine &NameStr,
                             Instruction *InsertBefore) {
     return Create(Func.getFunctionType(), Func.getCallee(), DefaultDest,
-                  IndirectDests, Args, NameStr, InsertBefore);
+                  IndirectDests, Args, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CallBrInst *Create(FunctionCallee Func, BasicBlock *DefaultDest,
@@ -4643,7 +4643,7 @@ public:
                             ArrayRef<OperandBundleDef> Bundles,
                             const Twine &NameStr, Instruction *InsertBefore) {
     return Create(Func.getFunctionType(), Func.getCallee(), DefaultDest,
-                  IndirectDests, Args, Bundles, NameStr, InsertBefore);
+                  IndirectDests, Args, Bundles, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CallBrInst *Create(FunctionCallee Func, BasicBlock *DefaultDest,
@@ -4763,7 +4763,7 @@ CallBrInst::CallBrInst(FunctionType *Ty, Value *Func, BasicBlock *DefaultDest,
                        const Twine &NameStr, Instruction *InsertBefore)
     : CallBase(Ty->getReturnType(), Instruction::CallBr,
                OperandTraits<CallBase>::op_end(this) - NumOperands, NumOperands,
-               InsertBefore) {
+               Instruction::getIt(InsertBefore)) {
   init(Ty, Func, DefaultDest, IndirectDests, Args, Bundles, NameStr);
 }
 
@@ -4806,7 +4806,7 @@ public:
 
   LLVM_DEPRECATED("Insert before an iterator instead of an Instruction", "")
   static ResumeInst *Create(Value *Exn, Instruction *InsertBefore) {
-    return new(1) ResumeInst(Exn, InsertBefore);
+    return new(1) ResumeInst(Exn, Instruction::getIt(InsertBefore));
   }
 
   static ResumeInst *Create(Value *Exn, BasicBlock *InsertAtEnd = nullptr) {
@@ -4913,7 +4913,7 @@ public:
                                  unsigned NumHandlers, const Twine &NameStr,
                                  Instruction *InsertBefore) {
     return new CatchSwitchInst(ParentPad, UnwindDest, NumHandlers, NameStr,
-                               InsertBefore);
+                               Instruction::getIt(InsertBefore));
   }
 
   static CatchSwitchInst *Create(Value *ParentPad, BasicBlock *UnwindDest,
@@ -5056,7 +5056,7 @@ private:
                           unsigned Values, const Twine &NameStr,
                           Instruction *InsertBefore)
       : FuncletPadInst(Instruction::CleanupPad, ParentPad, Args, Values,
-                       NameStr, InsertBefore) {}
+                       NameStr, Instruction::getIt(InsertBefore)) {}
   explicit CleanupPadInst(Value *ParentPad, ArrayRef<Value *> Args,
                           unsigned Values, const Twine &NameStr,
                           BasicBlock *InsertAtEnd)
@@ -5078,7 +5078,7 @@ public:
                                 Instruction *InsertBefore) {
     unsigned Values = 1 + Args.size();
     return new (Values)
-        CleanupPadInst(ParentPad, Args, Values, NameStr, InsertBefore);
+        CleanupPadInst(ParentPad, Args, Values, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CleanupPadInst *Create(Value *ParentPad,
@@ -5114,7 +5114,7 @@ private:
                         unsigned Values, const Twine &NameStr,
                         Instruction *InsertBefore)
       : FuncletPadInst(Instruction::CatchPad, CatchSwitch, Args, Values,
-                       NameStr, InsertBefore) {}
+                       NameStr, Instruction::getIt(InsertBefore)) {}
   explicit CatchPadInst(Value *CatchSwitch, ArrayRef<Value *> Args,
                         unsigned Values, const Twine &NameStr,
                         BasicBlock *InsertAtEnd)
@@ -5135,7 +5135,7 @@ public:
                               const Twine &NameStr, Instruction *InsertBefore) {
     unsigned Values = 1 + Args.size();
     return new (Values)
-        CatchPadInst(CatchSwitch, Args, Values, NameStr, InsertBefore);
+        CatchPadInst(CatchSwitch, Args, Values, NameStr, Instruction::getIt(InsertBefore));
   }
 
   static CatchPadInst *Create(Value *CatchSwitch, ArrayRef<Value *> Args,
@@ -5197,7 +5197,7 @@ public:
                                  Instruction *InsertBefore) {
     assert(CatchPad);
     assert(BB);
-    return new (2) CatchReturnInst(CatchPad, BB, InsertBefore);
+    return new (2) CatchReturnInst(CatchPad, BB, Instruction::getIt(InsertBefore));
   }
 
   static CatchReturnInst *Create(Value *CatchPad, BasicBlock *BB,
@@ -5300,7 +5300,7 @@ public:
     if (UnwindBB)
       ++Values;
     return new (Values)
-        CleanupReturnInst(CleanupPad, UnwindBB, Values, InsertBefore);
+        CleanupReturnInst(CleanupPad, UnwindBB, Values, Instruction::getIt(InsertBefore));
   }
 
   static CleanupReturnInst *Create(Value *CleanupPad,

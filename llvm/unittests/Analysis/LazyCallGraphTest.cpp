@@ -2352,7 +2352,7 @@ TEST(LazyCallGraphTest, AddSplitFunction1) {
   (void)ReturnInst::Create(Context, GBB);
 
   // Create f -call-> g.
-  (void)CallInst::Create(G, {}, "", &*F.getEntryBlock().begin());
+  (void)CallInst::Create(G, {}, "", F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2393,7 +2393,7 @@ TEST(LazyCallGraphTest, AddSplitFunction2) {
 
   // Create f -ref-> g.
   (void)CastInst::CreatePointerCast(G, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2436,7 +2436,7 @@ TEST(LazyCallGraphTest, AddSplitFunction3) {
   (void)ReturnInst::Create(Context, GBB);
 
   // Create f -call-> g.
-  (void)CallInst::Create(G, {}, "", &*F.getEntryBlock().begin());
+  (void)CallInst::Create(G, {}, "", F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2482,7 +2482,7 @@ TEST(LazyCallGraphTest, AddSplitFunction4) {
 
   // Create f -ref-> g.
   (void)CastInst::CreatePointerCast(G, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2528,7 +2528,7 @@ TEST(LazyCallGraphTest, AddSplitFunction5) {
 
   // Create f -ref-> g.
   (void)CastInst::CreatePointerCast(G, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2572,7 +2572,7 @@ TEST(LazyCallGraphTest, AddSplitFunction6) {
   (void)ReturnInst::Create(Context, GBB);
 
   // Create f -call-> g.
-  (void)CallInst::Create(G, {}, "", &*F.getEntryBlock().begin());
+  (void)CallInst::Create(G, {}, "", F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2623,7 +2623,7 @@ TEST(LazyCallGraphTest, AddSplitFunction7) {
   (void)ReturnInst::Create(Context, GBB);
 
   // Create f -call-> g.
-  (void)CallInst::Create(G, {}, "", &*F.getEntryBlock().begin());
+  (void)CallInst::Create(G, {}, "", F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2676,7 +2676,7 @@ TEST(LazyCallGraphTest, AddSplitFunction8) {
 
   // Create f -ref-> g.
   (void)CastInst::CreatePointerCast(G, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2729,7 +2729,7 @@ TEST(LazyCallGraphTest, AddSplitFunction9) {
   (void)ReturnInst::Create(Context, GBB);
 
   // Create f -call-> g.
-  (void)CallInst::Create(G, {}, "", &*F.getEntryBlock().begin());
+  (void)CallInst::Create(G, {}, "", F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2773,7 +2773,7 @@ TEST(LazyCallGraphTest, AddSplitFunctions1) {
 
   // Create f -ref-> g.
   (void)CastInst::CreatePointerCast(G, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2817,7 +2817,7 @@ TEST(LazyCallGraphTest, AddSplitFunctions2) {
 
   // Create f -ref-> g.
   (void)CastInst::CreatePointerCast(G, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2870,9 +2870,9 @@ TEST(LazyCallGraphTest, AddSplitFunctions3) {
 
   // Create f -ref-> g1 and f -ref-> g2.
   (void)CastInst::CreatePointerCast(G1, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
   (void)CastInst::CreatePointerCast(G2, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2929,9 +2929,9 @@ TEST(LazyCallGraphTest, AddSplitFunctions4) {
 
   // Create f -ref-> g1 and f -ref-> g2.
   (void)CastInst::CreatePointerCast(G1, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
   (void)CastInst::CreatePointerCast(G2, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 
@@ -2999,9 +2999,9 @@ TEST(LazyCallGraphTest, AddSplitFunctions5) {
 
   // Create f -ref-> g1 and f -ref-> g2.
   (void)CastInst::CreatePointerCast(G1, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
   (void)CastInst::CreatePointerCast(G2, PointerType::getUnqual(Context), "",
-                                    &*F.getEntryBlock().begin());
+                                    F.getEntryBlock().begin());
 
   EXPECT_FALSE(verifyModule(*M, &errs()));
 

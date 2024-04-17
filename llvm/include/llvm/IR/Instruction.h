@@ -1017,10 +1017,15 @@ protected:
   Instruction(Type *Ty, unsigned iType, Use *Ops, unsigned NumOps,
               BasicBlock *InsertAtEnd = nullptr);
 
+  constexpr static InstListType::iterator getIt(Instruction *I = nullptr) {
+    return I ? I->getIterator() : InstListType::iterator();
+  }
+
 private:
   /// Create a copy of this instruction.
   Instruction *cloneImpl() const;
 };
+
 
 inline void ilist_alloc_traits<Instruction>::deleteNode(Instruction *V) {
   V->deleteValue();
