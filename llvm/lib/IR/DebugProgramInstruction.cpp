@@ -56,7 +56,7 @@ DbgVariableRecord::DbgVariableRecord(const DbgVariableIntrinsic *DVI)
 }
 
 DbgVariableRecord::DbgVariableRecord(const DbgVariableRecord &DVR)
-    : DbgRecord(ValueKind, DVR.getDebugLoc()), DebugValueUser(DVR.DebugValues),
+    : DbgRecord(ValueKind, DVR.getDebugLoc()), DebugValueUser(DVR),
       Type(DVR.getType()), Variable(DVR.getVariable()),
       Expression(DVR.getExpression()),
       AddressExpression(DVR.AddressExpression) {}
@@ -478,7 +478,7 @@ Value *DbgVariableRecord::getAddress() const {
 }
 
 DIAssignID *DbgVariableRecord::getAssignID() const {
-  return cast<DIAssignID>(DebugValues[2]);
+  return cast<DIAssignID>(getDebugValues(2));
 }
 
 void DbgVariableRecord::setAssignId(DIAssignID *New) {
