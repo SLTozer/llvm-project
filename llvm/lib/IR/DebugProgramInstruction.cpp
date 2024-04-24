@@ -478,7 +478,7 @@ Value *DbgVariableRecord::getAddress() const {
 }
 
 DIAssignID *DbgVariableRecord::getAssignID() const {
-  return cast<DIAssignID>(getDebugValues(2));
+  return cast<DIAssignID>(getDebugValue(2));
 }
 
 void DbgVariableRecord::setAssignId(DIAssignID *New) {

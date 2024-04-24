@@ -273,7 +273,7 @@ ReplaceableMetadataImpl::getAllDbgVariableRecordUsers() {
   SmallVector<DbgVariableRecord *> DVRUsers;
   DebugValueUse *DbgUseIt = DebugUseList;
   while (DbgUseIt != nullptr) {
-    DPVUsers.push_back(DbgUseIt->getUser()->getUser());
+    DVRUsers.push_back(DbgUseIt->getUser()->getUser());
     DbgUseIt = DbgUseIt->getNext();
   }
   return DVRUsers;
