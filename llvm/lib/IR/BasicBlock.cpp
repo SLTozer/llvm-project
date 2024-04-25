@@ -35,7 +35,7 @@ cl::opt<bool> UseNewDbgInfoFormat(
     cl::desc("Enable communicating debuginfo positions through iterators, "
              "eliminating intrinsics. Has no effect if "
              "--preserve-input-debuginfo-format=true."),
-    cl::init(true));
+    cl::init(false));
 cl::opt<cl::boolOrDefault> PreserveInputDbgFormat(
     "preserve-input-debuginfo-format", cl::Hidden,
     cl::desc("When set to true, IR files will be processed and printed in "
@@ -47,7 +47,7 @@ cl::opt<cl::boolOrDefault> PreserveInputDbgFormat(
 bool WriteNewDbgInfoFormatToBitcode /*set default value in cl::init() below*/;
 cl::opt<bool, true> WriteNewDbgInfoFormatToBitcode2(
     "write-experimental-debuginfo-iterators-to-bitcode", cl::Hidden,
-    cl::location(WriteNewDbgInfoFormatToBitcode), cl::init(true));
+    cl::location(WriteNewDbgInfoFormatToBitcode), cl::init(false));
 
 DbgMarker *BasicBlock::createMarker(Instruction *I) {
   assert(IsNewDbgInfoFormat &&

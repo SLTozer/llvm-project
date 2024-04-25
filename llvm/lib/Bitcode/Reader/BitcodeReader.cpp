@@ -107,7 +107,8 @@ static cl::opt<bool> ExpandConstantExprs(
 cl::opt<cl::boolOrDefault> LoadBitcodeIntoNewDbgInfoFormat(
     "load-bitcode-into-experimental-debuginfo-iterators", cl::Hidden,
     cl::desc("Load bitcode directly into the new debug info format (regardless "
-             "of input format)"));
+             "of input format)"),
+    cl::init(cl::boolOrDefault::BOU_FALSE));
 extern cl::opt<cl::boolOrDefault> PreserveInputDbgFormat;
 extern bool WriteNewDbgInfoFormatToBitcode;
 extern cl::opt<bool> WriteNewDbgInfoFormat;
