@@ -814,9 +814,6 @@ TEST(Local, FindDbgRecords) {
   bool BrokenDebugInfo = true;
   verifyModule(*M, &errs(), &BrokenDebugInfo);
   ASSERT_FALSE(BrokenDebugInfo);
-  bool NewDbgInfoFormat = UseNewDbgInfoFormat;
-  UseNewDbgInfoFormat = true;
-  M->convertToNewDbgValues();
 
   Function &Fun = *cast<Function>(M->getNamedValue("fun"));
   Value *Arg = Fun.getArg(0);
@@ -836,7 +833,6 @@ TEST(Local, FindDbgRecords) {
   findDbgValues(Vals, Arg, &Records);
   EXPECT_EQ(Vals.size(), 0u);
   EXPECT_EQ(Records.size(), 1u);
-  UseNewDbgInfoFormat = NewDbgInfoFormat;
 }
 
 TEST(Local, ReplaceAllDbgUsesWith) {
