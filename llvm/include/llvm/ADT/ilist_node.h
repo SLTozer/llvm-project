@@ -263,6 +263,8 @@ protected:
 template <class OptionsT>
 class ilist_sentinel : public ilist_node_impl<OptionsT> {
 public:
+  void *ExtraPointer = nullptr;
+
   ilist_sentinel() {
     this->initializeSentinel();
     reset();
