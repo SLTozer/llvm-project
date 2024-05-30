@@ -176,7 +176,8 @@ template <> void llvm::invalidateParentIListOrdering(BasicBlock *BB) {
 // Explicit instantiation of SymbolTableListTraits since some of the methods
 // are not in the public header file...
 template class llvm::SymbolTableListTraits<Instruction,
-                                           ilist_iterator_bits<true>>;
+                                           ilist_iterator_bits<true>,
+                                           ilist_sentinel_tracking<true>>;
 
 BasicBlock::BasicBlock(LLVMContext &C, const Twine &Name, Function *NewParent,
                        BasicBlock *InsertBefore)
