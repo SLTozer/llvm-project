@@ -119,6 +119,8 @@ public:
 
   // Under-approximation, but always available for assertions.
   using node_base_type::isKnownSentinel;
+  using node_base_type::setNodeBaseParent;
+  using node_base_type::getNodeBaseParent;
 
   /// Check whether this is the sentinel node.
   ///
@@ -263,6 +265,8 @@ protected:
 template <class OptionsT>
 class ilist_sentinel : public ilist_node_impl<OptionsT> {
 public:
+  void *ExtraPointer = nullptr;
+
   ilist_sentinel() {
     this->initializeSentinel();
     reset();
