@@ -46,12 +46,11 @@ getDbgRecordRange(DbgMarker *);
 
 class Instruction : public User,
                     public ilist_node_with_parent<Instruction, BasicBlock,
-                                                  ilist_iterator_bits<true>,
+                                                  ilist_iterator_bits<true>, ilist_node_parent<BasicBlock>,
                                                   ilist_sentinel_tracking<true>> {
 public:
-  using InstListType = SymbolTableList<Instruction, ilist_iterator_bits<true>, ilist_sentinel_tracking<true>>;
+  using InstListType = SymbolTableList<Instruction, ilist_iterator_bits<true>, ilist_node_parent<BasicBlock>, ilist_sentinel_tracking<true>>;
 private:
-  BasicBlock *Parent;
   DebugLoc DbgLoc;                         // 'dbg' Metadata cache.
 
   /// Relative order of this instruction in its parent basic block. Used for
@@ -150,8 +149,8 @@ public:
   Instruction       *user_back()       { return cast<Instruction>(*user_begin());}
   const Instruction *user_back() const { return cast<Instruction>(*user_begin());}
 
-  inline const BasicBlock *getParent() const { return Parent; }
-  inline       BasicBlock *getParent()       { return Parent; }
+  inline const BasicBlock *getParent() const { return getNodeBaseParent(); }
+  inline       BasicBlock *getParent()       { return getNodeBaseParent(); }
 
   /// Return the module owning the function this instruction belongs to
   /// or nullptr it the function does not have a module.
@@ -981,7 +980,7 @@ public:
   };
 
 private:
-  friend class SymbolTableListTraits<Instruction, ilist_iterator_bits<true>, ilist_sentinel_tracking<true>>;
+  friend class SymbolTableListTraits<Instruction, ilist_iterator_bits<true>, ilist_node_parent<BasicBlock>, ilist_sentinel_tracking<true>>;
   friend class BasicBlock; // For renumbering.
 
   // Shadow Value::setValueSubclassData with a private forwarding method so that

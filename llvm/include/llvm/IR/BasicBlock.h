@@ -59,7 +59,7 @@ class DbgMarker;
 class BasicBlock final : public Value, // Basic blocks are data objects also
                          public ilist_node_with_parent<BasicBlock, Function> {
 public:
-  using InstListType = SymbolTableList<Instruction, ilist_iterator_bits<true>, ilist_sentinel_tracking<true>>;
+  using InstListType = SymbolTableList<Instruction, ilist_iterator_bits<true>, ilist_node_parent<BasicBlock>, ilist_sentinel_tracking<true>>;
   /// Flag recording whether or not this block stores debug-info in the form
   /// of intrinsic instructions (false) or non-instruction records (true).
   bool IsNewDbgInfoFormat;
@@ -173,9 +173,9 @@ public:
   friend BasicBlock::iterator Instruction::insertInto(BasicBlock *BB,
                                                       BasicBlock::iterator It);
   friend class llvm::SymbolTableListTraits<llvm::Instruction,
-                                           ilist_iterator_bits<true>, ilist_sentinel_tracking<true>>;
+                                           ilist_iterator_bits<true>, ilist_node_parent<BasicBlock>, ilist_sentinel_tracking<true>>;
   friend class llvm::ilist_node_with_parent<llvm::Instruction, llvm::BasicBlock,
-                                            ilist_iterator_bits<true>, ilist_sentinel_tracking<true>>;
+                                            ilist_iterator_bits<true>, ilist_node_parent<BasicBlock>, ilist_sentinel_tracking<true>>;
 
   // Friendly methods that need to access us for the maintenence of
   // debug-info attachments.

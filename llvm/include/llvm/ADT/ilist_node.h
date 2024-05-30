@@ -119,6 +119,8 @@ public:
 
   // Under-approximation, but always available for assertions.
   using node_base_type::isKnownSentinel;
+  using node_base_type::setNodeBaseParent;
+  using node_base_type::getNodeBaseParent;
 
   /// Check whether this is the sentinel node.
   ///
