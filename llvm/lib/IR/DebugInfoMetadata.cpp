@@ -57,13 +57,13 @@ DebugVariableAggregate::DebugVariableAggregate(const DbgVariableIntrinsic *DVI)
 
 DILocation::DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
                        unsigned Column, ArrayRef<Metadata *> MDs,
-                       bool ImplicitCode)
-    : MDNode(C, DILocationKind, Storage, MDs) {
+                       bool ImplicitCode, uint8_t LocFlags)
+    : MDNode(C, DILocationKind, Storage, MDs), LocFlags(LocFlags) {
   assert((MDs.size() == 1 || MDs.size() == 2) &&
          "Expected a scope and optional inlined-at");
 
   // Set line and column.
-  assert(Column < (1u << 16) && "Expected 16-bit column");
+  assert(Column < (1u << 12) && "Expected 12-bit column");
 
   SubclassData32 = Line;
   SubclassData16 = Column;
@@ -73,13 +73,13 @@ DILocation::DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
 
 static void adjustColumn(unsigned &Column) {
   // Set to unknown on overflow.  We only have 16 bits to play with here.
-  if (Column >= (1u << 16))
+  if (Column >= (1u << 12))
     Column = 0;
 }
 
 DILocation *DILocation::getImpl(LLVMContext &Context, unsigned Line,
                                 unsigned Column, Metadata *Scope,
-                                Metadata *InlinedAt, bool ImplicitCode,
+                                Metadata *InlinedAt, bool ImplicitCode, uint8_t LocFlags,
                                 StorageType Storage, bool ShouldCreate) {
   // Fixup column.
   adjustColumn(Column);
@@ -87,7 +87,7 @@ DILocation *DILocation::getImpl(LLVMContext &Context, unsigned Line,
   if (Storage == Uniqued) {
     if (auto *N = getUniqued(Context.pImpl->DILocations,
                              DILocationInfo::KeyTy(Line, Column, Scope,
-                                                   InlinedAt, ImplicitCode)))
+                                                   InlinedAt, ImplicitCode, LocFlags)))
       return N;
     if (!ShouldCreate)
       return nullptr;
@@ -100,7 +100,7 @@ DILocation *DILocation::getImpl(LLVMContext &Context, unsigned Line,
   if (InlinedAt)
     Ops.push_back(InlinedAt);
   return storeImpl(new (Ops.size(), Storage) DILocation(
-                       Context, Storage, Line, Column, Ops, ImplicitCode),
+                       Context, Storage, Line, Column, Ops, ImplicitCode, LocFlags),
                    Storage, Context.pImpl->DILocations);
 }
 

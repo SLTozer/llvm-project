@@ -1951,20 +1951,22 @@ class DILocation : public MDNode {
   friend class LLVMContextImpl;
   friend class MDNode;
 
+  uint8_t LocFlags;
+
   DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
-             unsigned Column, ArrayRef<Metadata *> MDs, bool ImplicitCode);
+             unsigned Column, ArrayRef<Metadata *> MDs, bool ImplicitCode, uint8_t LocFlags);
   ~DILocation() { dropAllReferences(); }
 
   static DILocation *getImpl(LLVMContext &Context, unsigned Line,
                              unsigned Column, Metadata *Scope,
-                             Metadata *InlinedAt, bool ImplicitCode,
+                             Metadata *InlinedAt, bool ImplicitCode, uint8_t LocFlags,
                              StorageType Storage, bool ShouldCreate = true);
   static DILocation *getImpl(LLVMContext &Context, unsigned Line,
                              unsigned Column, DILocalScope *Scope,
-                             DILocation *InlinedAt, bool ImplicitCode,
+                             DILocation *InlinedAt, bool ImplicitCode, uint8_t LocFlags,
                              StorageType Storage, bool ShouldCreate = true) {
     return getImpl(Context, Line, Column, static_cast<Metadata *>(Scope),
-                   static_cast<Metadata *>(InlinedAt), ImplicitCode, Storage,
+                   static_cast<Metadata *>(InlinedAt), ImplicitCode, LocFlags, Storage,
                    ShouldCreate);
   }
 
@@ -1972,7 +1974,7 @@ class DILocation : public MDNode {
     // Get the raw scope/inlinedAt since it is possible to invoke this on
     // a DILocation containing temporary metadata.
     return getTemporary(getContext(), getLine(), getColumn(), getRawScope(),
-                        getRawInlinedAt(), isImplicitCode());
+                        getRawInlinedAt(), isImplicitCode(), LocFlags);
   }
 
 public:
@@ -1981,17 +1983,18 @@ public:
 
   DEFINE_MDNODE_GET(DILocation,
                     (unsigned Line, unsigned Column, Metadata *Scope,
-                     Metadata *InlinedAt = nullptr, bool ImplicitCode = false),
-                    (Line, Column, Scope, InlinedAt, ImplicitCode))
+                     Metadata *InlinedAt = nullptr, bool ImplicitCode = false, uint8_t LocFlags = 0),
+                    (Line, Column, Scope, InlinedAt, ImplicitCode, LocFlags))
   DEFINE_MDNODE_GET(DILocation,
                     (unsigned Line, unsigned Column, DILocalScope *Scope,
                      DILocation *InlinedAt = nullptr,
-                     bool ImplicitCode = false),
-                    (Line, Column, Scope, InlinedAt, ImplicitCode))
+                     bool ImplicitCode = false, uint8_t LocFlags = 0),
+                    (Line, Column, Scope, InlinedAt, ImplicitCode, LocFlags))
 
   /// Return a (temporary) clone of this.
   TempDILocation clone() const { return cloneImpl(); }
 
+  uint8_t getLocFlags() const { return LocFlags; }
   unsigned getLine() const { return SubclassData32; }
   unsigned getColumn() const { return SubclassData16; }
   DILocalScope *getScope() const { return cast<DILocalScope>(getRawScope()); }
