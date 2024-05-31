@@ -171,7 +171,7 @@ public:
     return tmp;
   }
 
-  operator bool() const { return NodePtr; }
+  bool isValid() const { return NodePtr; }
 
   /// Get the underlying ilist_node.
   node_pointer getNodePtr() const { return static_cast<node_pointer>(NodePtr); }
@@ -327,7 +327,7 @@ public:
 
   parent_ptr_ty getNodeParent() { return NodePtr->getNodeBaseParent(); }
 
-  operator bool() const { return NodePtr; }
+  bool isValid() const { return NodePtr; }
 
   /// Get the underlying ilist_node.
   node_pointer getNodePtr() const { return static_cast<node_pointer>(NodePtr); }
