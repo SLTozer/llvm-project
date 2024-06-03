@@ -46,7 +46,7 @@ getDbgRecordRange(DbgMarker *);
 
 class InsertPosition {
   using InstListType = SymbolTableList<Instruction, ilist_iterator_bits<true>,
-                                       ilist_node_parent<BasicBlock>>;
+                                       ilist_parent<BasicBlock>>;
   InstListType::iterator InsertAt;
 
 public:
@@ -61,14 +61,13 @@ public:
   bool IsValid() const { return InsertAt.getNodePtr(); }
 };
 
-class Instruction
-    : public User,
-      public ilist_node_with_parent<Instruction, BasicBlock,
-                                    ilist_iterator_bits<true>,
-                                    ilist_node_parent<BasicBlock>> {
+class Instruction : public User,
+                    public ilist_node_with_parent<Instruction, BasicBlock,
+                                                  ilist_iterator_bits<true>,
+                                                  ilist_parent<BasicBlock>> {
 public:
   using InstListType = SymbolTableList<Instruction, ilist_iterator_bits<true>,
-                                       ilist_node_parent<BasicBlock>>;
+                                       ilist_parent<BasicBlock>>;
 
 private:
   DebugLoc DbgLoc;                         // 'dbg' Metadata cache.
@@ -168,9 +167,6 @@ public:
   /// can only be used by other instructions.
   Instruction       *user_back()       { return cast<Instruction>(*user_begin());}
   const Instruction *user_back() const { return cast<Instruction>(*user_begin());}
-
-  inline const BasicBlock *getParent() const { return getNodeBaseParent(); }
-  inline BasicBlock *getParent() { return getNodeBaseParent(); }
 
   /// Return the module owning the function this instruction belongs to
   /// or nullptr it the function does not have a module.
@@ -1001,7 +997,7 @@ public:
 
 private:
   friend class SymbolTableListTraits<Instruction, ilist_iterator_bits<true>,
-                                     ilist_node_parent<BasicBlock>>;
+                                     ilist_parent<BasicBlock>>;
   friend class BasicBlock; // For renumbering.
 
   // Shadow Value::setValueSubclassData with a private forwarding method so that
@@ -1013,8 +1009,6 @@ private:
   unsigned short getSubclassDataFromValue() const {
     return Value::getSubclassDataFromValue();
   }
-
-  void setParent(BasicBlock *P);
 
 protected:
   // Instruction subclasses can stick up to 15 bits of stuff into the

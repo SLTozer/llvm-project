@@ -39,7 +39,18 @@ template <class Tag> struct ilist_tag {};
 /// iterator class to store that information.
 template <bool ExtraIteratorBits> struct ilist_iterator_bits {};
 
-template <class ParentTy> struct ilist_node_parent {};
+/// Option to add a pointer to this list's owner in every node.
+///
+/// This option causes the \a ilist_base_node for this list to contain a pointer
+/// ParentTy *Parent, returned by \a ilist_base_node::getNodeBaseParent() and
+/// set by \a ilist_base_node::setNodeBaseParent(ParentTy *Parent). The parent
+/// value is not set automatically; the ilist owner should set itself as the
+/// parent of the list sentinel, and the parent should be set on each node
+/// inserted into the list. This value is also not used by
+/// \a ilist_node_with_parent::getNodeParent(), but is used by \a
+/// ilist_iterator::getNodeParent(), which allows the parent to be fetched from
+/// any valid (non-null) iterator to this list, including the sentinel.
+template <class ParentTy> struct ilist_parent {};
 
 namespace ilist_detail {
 
@@ -118,18 +129,18 @@ struct is_valid_option<ilist_iterator_bits<IteratorBits>> : std::true_type {};
 
 /// Extract node parent option.
 ///
-/// Look through \p Options for the \a ilist_node_parent option, pulling out the
-/// custom parnet type, using void as a default.
+/// Look through \p Options for the \a ilist_parent option, pulling out the
+/// custom parent type, using void as a default.
 template <class... Options> struct extract_parent;
 template <class ParentTy, class... Options>
-struct extract_parent<ilist_node_parent<ParentTy>, Options...> {
+struct extract_parent<ilist_parent<ParentTy>, Options...> {
   typedef ParentTy *type;
 };
 template <class Option1, class... Options>
 struct extract_parent<Option1, Options...> : extract_parent<Options...> {};
 template <> struct extract_parent<> { typedef void type; };
 template <class ParentTy>
-struct is_valid_option<ilist_node_parent<ParentTy>> : std::true_type {};
+struct is_valid_option<ilist_parent<ParentTy>> : std::true_type {};
 
 /// Check whether options are valid.
 ///

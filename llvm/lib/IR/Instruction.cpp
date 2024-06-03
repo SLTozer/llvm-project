@@ -34,7 +34,6 @@ InsertPosition::InsertPosition(BasicBlock *InsertAtEnd)
 Instruction::Instruction(Type *ty, unsigned it, Use *Ops, unsigned NumOps,
                          InsertPosition InsertBefore)
     : User(ty, Value::InstructionVal + it, Ops, NumOps) {
-  setParent(nullptr);
   // When called with an iterator, there must be a block to insert into.
   if (InstListType::iterator InsertIt = InsertBefore; InsertIt.isValid()) {
     BasicBlock *BB = InsertIt.getNodeParent();
@@ -62,8 +61,6 @@ Instruction::~Instruction() {
   // mapping in LLVMContext.
   setMetadata(LLVMContext::MD_DIAssignID, nullptr);
 }
-
-void Instruction::setParent(BasicBlock *P) { setNodeBaseParent(P); }
 
 const Module *Instruction::getModule() const {
   return getParent()->getModule();

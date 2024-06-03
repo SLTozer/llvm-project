@@ -2978,8 +2978,10 @@ CastInst *CastInst::Create(Instruction::CastOps op, Value *S, Type *Ty,
   case PtrToInt:      return new PtrToIntInst      (S, Ty, Name, InsertBefore);
   case IntToPtr:      return new IntToPtrInst      (S, Ty, Name, InsertBefore);
   case BitCast:       return new BitCastInst       (S, Ty, Name, InsertBefore);
-  case AddrSpaceCast: return new AddrSpaceCastInst (S, Ty, Name, InsertBefore);
-  default: llvm_unreachable("Invalid opcode provided");
+  case AddrSpaceCast:
+    return new AddrSpaceCastInst(S, Ty, Name, InsertBefore);
+  default:
+    llvm_unreachable("Invalid opcode provided");
   }
 }
 

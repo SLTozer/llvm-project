@@ -43,6 +43,20 @@ public:
   using type = ilist_iterator_w_bits<Opts, arg1, arg2>;
 };
 
+template <class NodeTy, class ParentPtrTy> class ilist_parent_node_mixin {
+public:
+  inline const ParentPtrTy getParent() const {
+    return static_cast<const NodeTy *>(this)->getNodeBaseParent();
+  }
+  inline ParentPtrTy getParent() {
+    return static_cast<NodeTy *>(this)->getNodeBaseParent();
+  }
+  void setParent(ParentPtrTy Parent) {
+    return static_cast<NodeTy *>(this)->setNodeBaseParent(Parent);
+  }
+};
+template <class NodeTy> class ilist_parent_node_mixin<NodeTy, void> {};
+
 /// Implementation for an ilist node.
 ///
 /// Templated on an appropriate \a ilist_detail::node_options, usually computed
@@ -51,7 +65,11 @@ public:
 /// This is a wrapper around \a ilist_node_base whose main purpose is to
 /// provide type safety: you can't insert nodes of \a ilist_node_impl into the
 /// wrong \a simple_ilist or \a iplist.
-template <class OptionsT> class ilist_node_impl : OptionsT::node_base_type {
+template <class OptionsT>
+class ilist_node_impl
+    : OptionsT::node_base_type,
+      public ilist_parent_node_mixin<ilist_node_impl<OptionsT>,
+                                     typename OptionsT::parent_ptr_ty> {
   using value_type = typename OptionsT::value_type;
   using node_base_type = typename OptionsT::node_base_type;
   using list_base_type = typename OptionsT::list_base_type;
@@ -60,6 +78,8 @@ template <class OptionsT> class ilist_node_impl : OptionsT::node_base_type {
   friend struct ilist_detail::NodeAccess;
   friend class ilist_sentinel<OptionsT>;
 
+  friend class ilist_parent_node_mixin<ilist_node_impl<OptionsT>,
+                                       typename OptionsT::parent_ptr_ty>;
   friend class ilist_iterator<OptionsT, false, false>;
   friend class ilist_iterator<OptionsT, false, true>;
   friend class ilist_iterator<OptionsT, true, false>;
@@ -118,9 +138,7 @@ public:
   }
 
   // Under-approximation, but always available for assertions.
-  using node_base_type::getNodeBaseParent;
   using node_base_type::isKnownSentinel;
-  using node_base_type::setNodeBaseParent;
 
   /// Check whether this is the sentinel node.
   ///
@@ -172,6 +190,15 @@ public:
 ///   ListB.push_back(N1);
 /// }
 /// \endexample
+///
+/// When the \a ilist_parent<ParentTy> option is passed to an ilist_node and the
+/// owning ilist, each node contains a pointer to the ilist's owner. This
+/// pointer does not have any automatic behaviour; set it manually, including
+/// for the sentinel node when the list is created. The primary benefit of this
+/// over declaring and using this pointer in the final node class is that the
+/// pointer will be added in the sentinel, meaning that you can safely use \a
+/// ilist_iterator::getNodeParent() to get the node parent from any valid (i.e.
+/// non-null) iterator, even a sentinel value.
 ///
 /// See \a is_valid_option for steps on adding a new option.
 template <class T, class... Options>
