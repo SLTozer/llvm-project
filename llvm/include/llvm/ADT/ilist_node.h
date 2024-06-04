@@ -24,6 +24,23 @@ namespace ilist_detail {
 
 struct NodeAccess;
 
+/// Mixin base class that is used to add \a getParent() and
+/// \a setParent(ParentPtrTy) methods to \a ilist_node_impl iff \a ilist_parent
+/// has been set in the list options.
+template <class NodeTy, class ParentPtrTy> class node_parent_access {
+public:
+  inline const ParentPtrTy getParent() const {
+    return static_cast<const NodeTy *>(this)->getNodeBaseParent();
+  }
+  inline ParentPtrTy getParent() {
+    return static_cast<NodeTy *>(this)->getNodeBaseParent();
+  }
+  void setParent(ParentPtrTy Parent) {
+    return static_cast<NodeTy *>(this)->setNodeBaseParent(Parent);
+  }
+};
+template <class NodeTy> class node_parent_access<NodeTy, void> {};
+
 } // end namespace ilist_detail
 
 template <class OptionsT, bool IsReverse, bool IsConst> class ilist_iterator;
@@ -43,20 +60,6 @@ public:
   using type = ilist_iterator_w_bits<Opts, arg1, arg2>;
 };
 
-template <class NodeTy, class ParentPtrTy> class ilist_parent_node_mixin {
-public:
-  inline const ParentPtrTy getParent() const {
-    return static_cast<const NodeTy *>(this)->getNodeBaseParent();
-  }
-  inline ParentPtrTy getParent() {
-    return static_cast<NodeTy *>(this)->getNodeBaseParent();
-  }
-  void setParent(ParentPtrTy Parent) {
-    return static_cast<NodeTy *>(this)->setNodeBaseParent(Parent);
-  }
-};
-template <class NodeTy> class ilist_parent_node_mixin<NodeTy, void> {};
-
 /// Implementation for an ilist node.
 ///
 /// Templated on an appropriate \a ilist_detail::node_options, usually computed
@@ -68,8 +71,8 @@ template <class NodeTy> class ilist_parent_node_mixin<NodeTy, void> {};
 template <class OptionsT>
 class ilist_node_impl
     : OptionsT::node_base_type,
-      public ilist_parent_node_mixin<ilist_node_impl<OptionsT>,
-                                     typename OptionsT::parent_ptr_ty> {
+      public ilist_detail::node_parent_access<
+          ilist_node_impl<OptionsT>, typename OptionsT::parent_ptr_ty> {
   using value_type = typename OptionsT::value_type;
   using node_base_type = typename OptionsT::node_base_type;
   using list_base_type = typename OptionsT::list_base_type;
@@ -78,8 +81,8 @@ class ilist_node_impl
   friend struct ilist_detail::NodeAccess;
   friend class ilist_sentinel<OptionsT>;
 
-  friend class ilist_parent_node_mixin<ilist_node_impl<OptionsT>,
-                                       typename OptionsT::parent_ptr_ty>;
+  friend class ilist_detail::node_parent_access<
+      ilist_node_impl<OptionsT>, typename OptionsT::parent_ptr_ty>;
   friend class ilist_iterator<OptionsT, false, false>;
   friend class ilist_iterator<OptionsT, false, true>;
   friend class ilist_iterator<OptionsT, true, false>;
@@ -192,13 +195,18 @@ public:
 /// \endexample
 ///
 /// When the \a ilist_parent<ParentTy> option is passed to an ilist_node and the
-/// owning ilist, each node contains a pointer to the ilist's owner. This
-/// pointer does not have any automatic behaviour; set it manually, including
-/// for the sentinel node when the list is created. The primary benefit of this
-/// over declaring and using this pointer in the final node class is that the
-/// pointer will be added in the sentinel, meaning that you can safely use \a
+/// owning ilist, each node contains a pointer to the ilist's owner. This adds
+/// \a getParent() and \a setParent(ParentTy*) methods to the ilist_node, which
+/// will be used for node access by the ilist if the node class publicly
+/// inherits from \a ilist_node_with_parent. By default, setParent() is not
+/// automatically called by the ilist; a SymbolTableList will call setParent()
+/// on inserted nodes, but the sentinel must still be manually set after the
+/// list is created (e.g. SymTabList.end()->setParent(Parent)).
+///
+/// The primary benefit of using ilist_parent is that a parent
+/// pointer will be stored in the sentinel, meaning that you can safely use \a
 /// ilist_iterator::getNodeParent() to get the node parent from any valid (i.e.
-/// non-null) iterator, even a sentinel value.
+/// non-null) iterator, even one that points to a sentinel value.
 ///
 /// See \a is_valid_option for steps on adding a new option.
 template <class T, class... Options>

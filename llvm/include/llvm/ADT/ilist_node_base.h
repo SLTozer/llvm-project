@@ -13,10 +13,11 @@
 
 namespace llvm {
 
-template <class NodeBase, bool EnableSentinelTracking>
-class ilist_node_base_prevnext;
+namespace ilist_detail {
 
-template <class NodeBase> class ilist_node_base_prevnext<NodeBase, false> {
+template <class NodeBase, bool EnableSentinelTracking> class node_base_prevnext;
+
+template <class NodeBase> class node_base_prevnext<NodeBase, false> {
   NodeBase *Prev = nullptr;
   NodeBase *Next = nullptr;
 
@@ -30,7 +31,7 @@ public:
   void initializeSentinel() {}
 };
 
-template <class NodeBase> class ilist_node_base_prevnext<NodeBase, true> {
+template <class NodeBase> class node_base_prevnext<NodeBase, true> {
   PointerIntPair<NodeBase *, 1> PrevAndSentinel;
   NodeBase *Next = nullptr;
 
@@ -45,7 +46,7 @@ public:
   void initializeSentinel() { PrevAndSentinel.setInt(true); }
 };
 
-template <class ParentPtrTy> class ilist_node_base_parent {
+template <class ParentPtrTy> class node_base_parent {
   ParentPtrTy Parent = nullptr;
 
 public:
@@ -53,17 +54,19 @@ public:
   inline const ParentPtrTy getNodeBaseParent() const { return Parent; }
   inline ParentPtrTy getNodeBaseParent() { return Parent; }
 };
-template <> class ilist_node_base_parent<void> {};
+template <> class node_base_parent<void> {};
+
+} // end namespace ilist_detail
 
 /// Base class for ilist nodes.
 ///
 /// Optionally tracks whether this node is the sentinel.
 template <bool EnableSentinelTracking, class ParentPtrTy>
 class ilist_node_base
-    : public ilist_node_base_prevnext<
+    : public ilist_detail::node_base_prevnext<
           ilist_node_base<EnableSentinelTracking, ParentPtrTy>,
           EnableSentinelTracking>,
-      public ilist_node_base_parent<ParentPtrTy> {};
+      public ilist_detail::node_base_parent<ParentPtrTy> {};
 
 } // end namespace llvm
 
