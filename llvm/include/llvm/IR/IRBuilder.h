@@ -182,6 +182,14 @@ public:
       SetCurrentDebugLocation(InsertPt->getStableDebugLoc());
   }
 
+  /// This specifies that created instructions should be inserted at the
+  /// specified insert position.
+  void SetInsertPoint(BasicBlock *BB, BasicBlock::iterator IP) {
+    InsertPt = IP;
+    if (InsertPt != BB->end())
+      SetCurrentDebugLocation(InsertPt->getStableDebugLoc());
+  }
+
   /// This specifies that created instructions should inserted at the beginning
   /// end of the specified function, but after already existing static alloca
   /// instructions that are at the start.
@@ -2653,11 +2661,27 @@ public:
                      ArrayRef<OperandBundleDef> OpBundles = std::nullopt)
       : IRBuilderBase(C, this->Folder, this->Inserter, FPMathTag, OpBundles) {}
 
+  explicit IRBuilder(BasicBlock *BB, BasicBlock::iterator IP,
+                     MDNode *FPMathTag = nullptr,
+                     ArrayRef<OperandBundleDef> OpBundles = std::nullopt)
+      : IRBuilderBase(BB->getContext(), this->Folder, this->Inserter, FPMathTag,
+                      OpBundles) {
+    SetInsertPoint(BB, IP);
+  }
+
   explicit IRBuilder(InsertPosition IP, MDNode *FPMathTag = nullptr,
                      ArrayRef<OperandBundleDef> OpBundles = std::nullopt)
       : IRBuilderBase(IP.getBasicBlock()->getContext(), this->Folder,
                       this->Inserter, FPMathTag, OpBundles) {
     SetInsertPoint(IP);
+  }
+
+  explicit IRBuilder(BasicBlock *BB, BasicBlock::iterator IP,
+                     MDNode *FPMathTag = nullptr,
+                     ArrayRef<OperandBundleDef> OpBundles = std::nullopt)
+      : IRBuilderBase(BB->getContext(), this->Folder, this->Inserter, FPMathTag,
+                      OpBundles) {
+    SetInsertPoint(BB, IP);
   }
 
   explicit IRBuilder(InsertPosition IP, FolderTy Folder,
