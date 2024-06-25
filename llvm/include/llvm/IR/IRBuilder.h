@@ -184,9 +184,10 @@ public:
 
   /// This specifies that created instructions should be inserted at the
   /// specified insert position.
-  void SetInsertPoint(BasicBlock *BB, BasicBlock::iterator IP) {
+  void SetInsertPoint(BasicBlock *TheBB, BasicBlock::iterator IP) {
+    BB = TheBB;
     InsertPt = IP;
-    if (InsertPt != BB->end())
+    if (InsertPt != TheBB->end())
       SetCurrentDebugLocation(InsertPt->getStableDebugLoc());
   }
 
