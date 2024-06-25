@@ -803,6 +803,29 @@ template <> struct DenseMapInfo<BasicBlock::iterator> {
   }
 };
 
+/// Class used to generate an insert position (ultimately always a
+/// BasicBlock::iterator, which it will implicitly convert to) from either:
+/// - An Instruction, inserting immediately prior. This will soon be marked as
+///   deprecated.
+/// - A BasicBlock, inserting at the end.
+/// - An iterator, inserting at its position.
+/// - Any nullptr value, giving a blank iterator (not valid for insertion).
+class InsertPosition {
+  BasicBlock::iterator InsertAt;
+
+public:
+  InsertPosition(std::nullptr_t) : InsertAt() {}
+  InsertPosition(Instruction *InsertBefore)
+      : InsertAt(InsertBefore ? InsertBefore->getIterator()
+                              : BasicBlock::iterator()) {}
+  InsertPosition(BasicBlock *InsertAtEnd)
+      : InsertAt(InsertAtEnd ? InsertAtEnd->end() : BasicBlock::iterator()) {}
+  InsertPosition(BasicBlock::iterator InsertAt) : InsertAt(InsertAt) {}
+  operator BasicBlock::iterator() const { return InsertAt; }
+  bool isValid() const { return InsertAt.isValid(); }
+  BasicBlock *getBasicBlock() { return InsertAt.getNodeParent(); }
+};
+
 } // end namespace llvm
 
 #endif // LLVM_IR_BASICBLOCK_H

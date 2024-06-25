@@ -36,6 +36,7 @@ class Module;
 struct AAMDNodes;
 class DbgMarker;
 class DbgRecord;
+class InsertPosition;
 
 template <> struct ilist_alloc_traits<Instruction> {
   static inline void deleteNode(Instruction *V);
@@ -43,28 +44,6 @@ template <> struct ilist_alloc_traits<Instruction> {
 
 iterator_range<simple_ilist<DbgRecord>::iterator>
 getDbgRecordRange(DbgMarker *);
-
-/// Class used to generate an insert position (ultimately always a
-/// BasicBlock::iterator, which it will implicitly convert to) from either:
-/// - An Instruction, inserting immediately prior. This will soon be marked as
-///   deprecated.
-/// - A BasicBlock, inserting at the end.
-/// - An iterator, inserting at its position.
-/// - Any nullptr value, giving a blank iterator (not valid for insertion).
-class InsertPosition {
-  using InstListType = SymbolTableList<Instruction, ilist_iterator_bits<true>,
-                                       ilist_parent<BasicBlock>>;
-  InstListType::iterator InsertAt;
-
-public:
-  InsertPosition(std::nullptr_t) : InsertAt() {}
-  InsertPosition(Instruction *InsertBefore);
-  InsertPosition(BasicBlock *InsertAtEnd);
-  InsertPosition(InstListType::iterator InsertAt) : InsertAt(InsertAt) {}
-  operator InstListType::iterator() const { return InsertAt; }
-  bool isValid() const { return InsertAt.isValid(); }
-  BasicBlock *getBasicBlock() { return InsertAt.getNodeParent(); }
-};
 
 class Instruction : public User,
                     public ilist_node_with_parent<Instruction, BasicBlock,
@@ -1039,8 +1018,9 @@ protected:
     setValueSubclassData(Storage);
   }
 
+  Instruction(Type *Ty, unsigned iType, Use *Ops, unsigned NumOps);
   Instruction(Type *Ty, unsigned iType, Use *Ops, unsigned NumOps,
-              InsertPosition InsertBefore = nullptr);
+              InsertPosition InsertBefore);
 
 private:
   /// Create a copy of this instruction.
