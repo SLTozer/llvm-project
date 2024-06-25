@@ -2676,11 +2676,12 @@ public:
     SetInsertPoint(IP);
   }
 
-  explicit IRBuilder(BasicBlock *BB, BasicBlock::iterator IP,
+  explicit IRBuilder(BasicBlock *BB, BasicBlock::iterator IP, FolderTy Folder,
                      MDNode *FPMathTag = nullptr,
                      ArrayRef<OperandBundleDef> OpBundles = std::nullopt)
       : IRBuilderBase(BB->getContext(), this->Folder, this->Inserter, FPMathTag,
-                      OpBundles) {
+                      OpBundles),
+        Folder(Folder) {
     SetInsertPoint(BB, IP);
   }
 
