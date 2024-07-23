@@ -9,7 +9,41 @@
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/Function.h"
 using namespace llvm;
+
+#ifdef ENABLE_DEBUGLOC_COVERAGE_TRACKING
+
+namespace llvm {
+namespace detail {
+DILocOrType::DILocOrType(const DILocation *L)
+    : Loc(const_cast<DILocation *>(L)) {}
+} // namespace detail
+} // namespace llvm
+
+DebugLoc getTemporary(Function *F) {
+  if (F->getSubprogram())
+    return DebugLoc(DebugLocType::Temporary);
+  return DebugLoc();
+}
+DebugLoc getUnknown(Function *F) {
+  if (F->getSubprogram())
+    return DebugLoc(DebugLocType::Unknown);
+  return DebugLoc();
+}
+DebugLoc getLineZero(Function *F) {
+  if (F->getSubprogram())
+    return DebugLoc(DebugLocType::LineZero);
+  return DebugLoc();
+}
+
+#else
+
+DebugLoc getTemporary(Function *F) { return DebugLoc(); }
+DebugLoc getUnknown(Function *F) { return DebugLoc(); }
+DebugLoc getLineZero(Function *F) { return DebugLoc(); }
+
+#endif // ENABLE_DEBUGLOC_COVERAGE_TRACKING
 
 //===----------------------------------------------------------------------===//
 // DebugLoc Implementation

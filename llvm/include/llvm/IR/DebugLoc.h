@@ -23,6 +23,66 @@ namespace llvm {
   class raw_ostream;
   class DILocation;
 
+#define ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#ifdef ENABLE_DEBUGLOC_COVERAGE_TRACKING
+
+  // Must fit into 2 bits. These types are ordered so that merging different loc
+  // types should result in the max of the two, which will be the most
+  // unfavoured of the two. The least favourable however is an empty normal
+  // location.
+  enum class DebugLocType : u_int8_t {
+    Normal = 0b00,
+    LineZero = 0b01,
+    Unknown = 0b11,
+    Temporary = 0b101
+  };
+
+  namespace detail {
+  // Contains either a pointer, whose LSB must be 0, or one of several enum
+  // values corresponding to types of empty DebugLoc.
+  class DILocOrType {
+  public:
+    TrackingMDNodeRef Loc;
+    DebugLocType Type;
+    DILocOrType() : Loc(nullptr), Type(DebugLocType::Normal) {}
+    // Valid or nullptr MDNode*, normal DebugLocType
+    DILocOrType(const MDNode *Loc)
+        : Loc(const_cast<MDNode *>(Loc)), Type(DebugLocType::Normal) {}
+    DILocOrType(const DILocation *Loc);
+    // Always nullptr MDNode*, any DebugLocType
+    DILocOrType(DebugLocType Type) : Loc(nullptr), Type(Type) {}
+
+    operator bool() const { return Loc; }
+    bool hasTrivialDestructor() const { return Loc.hasTrivialDestructor(); }
+
+    bool operator==(const DILocOrType &Other) const { return Loc == Other.Loc; }
+    bool operator!=(const DILocOrType &Other) const { return Loc != Other.Loc; }
+
+    MDNode *get() const { return (MDNode *)Loc.get(); }
+    operator MDNode *() const { return get(); }
+    MDNode *operator->() const { return get(); }
+    MDNode &operator*() const { return *get(); }
+  };
+  } // namespace detail
+
+  template <> struct simplify_type<detail::DILocOrType> {
+    using SimpleType = MDNode *;
+
+    static MDNode *getSimplifiedValue(detail::DILocOrType &MD) {
+      return MD.get();
+    }
+  };
+
+  template <> struct simplify_type<const detail::DILocOrType> {
+    using SimpleType = MDNode *;
+
+    static MDNode *getSimplifiedValue(const detail::DILocOrType &MD) {
+      return MD.get();
+    }
+  };
+
+#endif // ENABLE_DEBUGLOC_COVERAGE_TRACKING
+
   /// A debug info location.
   ///
   /// This class is a wrapper around a tracking reference to an \a DILocation
@@ -31,7 +91,16 @@ namespace llvm {
   /// To avoid extra includes, \a DebugLoc doubles the \a DILocation API with a
   /// one based on relatively opaque \a MDNode pointers.
   class DebugLoc {
+
+#ifdef ENABLE_DEBUGLOC_COVERAGE_TRACKING
+    detail::DILocOrType Loc;
+
+  public:
+    DebugLoc(DebugLocType Type) : Loc(Type) {}
+    DebugLocType getType() { return Loc.Type; }
+#else
     TrackingMDNodeRef Loc;
+#endif
 
   public:
     DebugLoc() = default;
@@ -117,6 +186,11 @@ namespace llvm {
     /// prints source location /path/to/file.exe:line:col @[inlined at]
     void print(raw_ostream &OS) const;
   };
+
+  class Function;
+  DebugLoc getTemporary(Function *F);
+  DebugLoc getUnknown(Function *F);
+  DebugLoc getLineZero(Function *F);
 
 } // end namespace llvm
 
