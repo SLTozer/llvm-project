@@ -21,6 +21,20 @@ namespace llvm {
 class StringRef;
 class raw_ostream;
 
+#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+template <typename T, typename Enable> struct DenseMapInfo;
+template <typename ValueT, typename ValueInfoT> class DenseSet;
+namespace detail {
+template <typename KeyT, typename ValueT> struct DenseMapPair;
+}
+template <typename KeyT, typename ValueT, typename KeyInfoT, typename BucketT>
+class DenseMap;
+using AddressSet = DenseSet<void *, DenseMapInfo<void *, void>>;
+using SymbolizedAddressMap =
+    DenseMap<void *, std::string, DenseMapInfo<void *, void>,
+             detail::DenseMapPair<void *, std::string>>;
+#endif
+
 namespace sys {
 
   /// This function runs all the registered interrupt handlers, including the
@@ -54,6 +68,15 @@ namespace sys {
   /// \param Depth refers to the number of stackframes to print. If not
   ///        specified, the entire frame is printed.
   void PrintStackTrace(raw_ostream &OS, int Depth = 0);
+
+#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+  template <int Depth> int getStackTrace(std::array<void *, Depth> StackTrace);
+
+  /// Takes a set of \p Addresses, symbolizes them and stores the result in the
+  /// provided \p SymbolizedAddresses map.
+  void symbolizeAddresses(AddressSet &Addresses,
+                          SymbolizedAddressMap &SymbolizedAddresses);
+#endif
 
   // Run all registered signal handlers.
   void RunSignalHandlers();

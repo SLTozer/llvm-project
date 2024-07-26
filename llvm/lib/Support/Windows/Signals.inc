@@ -538,6 +538,62 @@ void sys::PrintStackTraceOnErrorSignal(StringRef Argv0,
 extern "C" VOID WINAPI RtlCaptureContext(PCONTEXT ContextRecord);
 #endif
 
+#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+template <int Depth>
+int getStackTrace(std::array<void *, Depth> StackTrace) {
+  STACKFRAME64 StackFrame{};
+  CONTEXT Context{};
+  if (!C) {
+    ::RtlCaptureContext(&Context);
+    C = &Context;
+  }
+#if defined(_M_X64)
+  StackFrame.AddrPC.Offset = Context.Rip;
+  StackFrame.AddrStack.Offset = Context.Rsp;
+  StackFrame.AddrFrame.Offset = Context.Rbp;
+#elif defined(_M_IX86)
+  StackFrame.AddrPC.Offset = Context.Eip;
+  StackFrame.AddrStack.Offset = Context.Esp;
+  StackFrame.AddrFrame.Offset = Context.Ebp;
+#elif defined(_M_ARM64)
+  StackFrame.AddrPC.Offset = Context.Pc;
+  StackFrame.AddrStack.Offset = Context.Sp;
+  StackFrame.AddrFrame.Offset = Context.Fp;
+#elif defined(_M_ARM)
+  StackFrame.AddrPC.Offset = Context.Pc;
+  StackFrame.AddrStack.Offset = Context.Sp;
+  StackFrame.AddrFrame.Offset = Context.R11;
+#endif
+  StackFrame.AddrPC.Mode = AddrModeFlat;
+  StackFrame.AddrStack.Mode = AddrModeFlat;
+  StackFrame.AddrFrame.Mode = AddrModeFlat;
+  
+  HANDLE hProcess = GetCurrentProcess();
+  HANDLE hThread = GetCurrentThread();
+
+  // It's possible that DbgHelp.dll hasn't been loaded yet (e.g. if this
+  // function is called before the main program called `llvm::InitLLVM`).
+  // In this case just return, not stacktrace will be printed.
+  assert(isDebugHelpInitialized() && "getStackTrace must not be called before DbgHelp.dll has been loaded.");
+
+  // Initialize the symbol handler.
+  fSymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
+  fSymInitialize(hProcess, NULL, TRUE);
+  Context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER;
+
+  size_t WalkDepth = 0;
+  while (WalkDepth < Depth &&
+         fStackWalk64(NativeMachineType, hProcess, hThread, &StackFrame,
+                      &Context, 0, fSymFunctionTableAccess64,
+                      fSymGetModuleBase64, 0)) {
+    if (StackFrame.AddrFrame.Offset == 0)
+      break;
+    StackTrace[WalkDepth++] = (void *)(uintptr_t)StackFrame.AddrPC.Offset;
+  }
+  return WalkDepth;
+}
+#endif
+
 static void LocalPrintStackTrace(raw_ostream &OS, PCONTEXT C) {
   STACKFRAME64 StackFrame{};
   CONTEXT Context{};

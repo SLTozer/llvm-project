@@ -2080,6 +2080,10 @@ void DwarfDebug::beginInstruction(const MachineInstr *MI) {
   }
 
   if (!DL) {
+#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+    assert(DL.getType() != DebugLocKind::Temporary &&
+           "Temporary DebugLocs should never be considered for emission!");
+#endif
     // We have an unspecified location, which might want to be line 0.
     // If we have already emitted a line-0 record, don't repeat it.
     if (LastAsmLine == 0)

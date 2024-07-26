@@ -14,6 +14,7 @@
 #ifndef LLVM_IR_DEBUGLOC_H
 #define LLVM_IR_DEBUGLOC_H
 
+#include "llvm/Config/llvm-config.h"
 #include "llvm/IR/TrackingMDRef.h"
 #include "llvm/Support/DataTypes.h"
 
@@ -22,66 +23,60 @@ namespace llvm {
   class LLVMContext;
   class raw_ostream;
   class DILocation;
+  class Function;
 
-#define ENABLE_DEBUGLOC_COVERAGE_TRACKING
-#ifdef ENABLE_DEBUGLOC_COVERAGE_TRACKING
-
-  // Must fit into 2 bits. These types are ordered so that merging different loc
-  // types should result in the max of the two, which will be the most
-  // unfavoured of the two. The least favourable however is an empty normal
-  // location.
-  enum class DebugLocType : u_int8_t {
-    Normal = 0b00,
-    LineZero = 0b01,
-    Unknown = 0b11,
-    Temporary = 0b101
+#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+  struct DbgLocOriginBacktrace {
+    static constexpr int MaxDepth = 8;
+    std::array<void *, MaxDepth> Stacktrace;
+    int Depth = 0;
+    DbgLocOriginBacktrace(bool ShouldCollectTrace);
   };
 
-  namespace detail {
-  // Contains either a pointer, whose LSB must be 0, or one of several enum
-  // values corresponding to types of empty DebugLoc.
-  class DILocOrType {
+  // Used to represent different "kinds" of DebugLoc, expressing that a DebugLoc
+  // is either ordinary, containing a valid DILocation, or otherwise describing
+  // the reason why the DebugLoc does not contain a valid DILocation.
+  enum class DebugLocKind : u_int8_t {
+    // DebugLoc should contain a valid DILocation.
+    Normal,
+    // DebugLoc intentionally does not have a valid DILocation; may be for a
+    // compiler-generated instruction, or an explicitly dropped location.
+    LineZero,
+    // DebugLoc does not have a known or currently knowable source location.
+    Unknown,
+    // Used for instructions that we don't expect to be emitted, and so can omit
+    // a valid DILocation. It is an error to try and emit a Temporary DebugLoc
+    // into the line table.
+    Temporary
+  };
+
+  // Extends TrackingMDNodeRef to also store a DebugLocKind and Backtrace,
+  // allowing Debugify to ignore intentionally-empty DebugLocs and display the
+  // code responsible for generating unintentionally-empty DebugLocs.
+  class DILocAndCoverageTracking : public TrackingMDNodeRef {
   public:
-    TrackingMDNodeRef Loc;
-    DebugLocType Type;
-    DILocOrType() : Loc(nullptr), Type(DebugLocType::Normal) {}
-    // Valid or nullptr MDNode*, normal DebugLocType
-    DILocOrType(const MDNode *Loc)
-        : Loc(const_cast<MDNode *>(Loc)), Type(DebugLocType::Normal) {}
-    DILocOrType(const DILocation *Loc);
-    // Always nullptr MDNode*, any DebugLocType
-    DILocOrType(DebugLocType Type) : Loc(nullptr), Type(Type) {}
-
-    operator bool() const { return Loc; }
-    bool hasTrivialDestructor() const { return Loc.hasTrivialDestructor(); }
-
-    bool operator==(const DILocOrType &Other) const { return Loc == Other.Loc; }
-    bool operator!=(const DILocOrType &Other) const { return Loc != Other.Loc; }
-
-    MDNode *get() const { return (MDNode *)Loc.get(); }
-    operator MDNode *() const { return get(); }
-    MDNode *operator->() const { return get(); }
-    MDNode &operator*() const { return *get(); }
-  };
-  } // namespace detail
-
-  template <> struct simplify_type<detail::DILocOrType> {
-    using SimpleType = MDNode *;
-
-    static MDNode *getSimplifiedValue(detail::DILocOrType &MD) {
-      return MD.get();
+    DebugLocKind Kind;
+    // Currently we only need to track the Origin of this DILoc when using a
+    // normal empty DebugLoc, so only collect the stack trace in those cases.
+    DbgLocOriginBacktrace Origin;
+    DILocAndCoverageTracking()
+        : TrackingMDNodeRef(nullptr), Kind(DebugLocKind::Normal), Origin(true) {
     }
+    // Valid or nullptr MDNode*, normal DebugLocKind
+    DILocAndCoverageTracking(const MDNode *Loc)
+        : TrackingMDNodeRef(const_cast<MDNode *>(Loc)),
+          Kind(DebugLocKind::Normal), Origin(!Loc) {}
+    DILocAndCoverageTracking(const DILocation *Loc);
+    // Always nullptr MDNode*, any DebugLocKind
+    DILocAndCoverageTracking(DebugLocKind Kind)
+        : TrackingMDNodeRef(nullptr), Kind(Kind),
+          Origin(Kind == DebugLocKind::Normal) {}
   };
 
-  template <> struct simplify_type<const detail::DILocOrType> {
-    using SimpleType = MDNode *;
-
-    static MDNode *getSimplifiedValue(const detail::DILocOrType &MD) {
-      return MD.get();
-    }
-  };
-
-#endif // ENABLE_DEBUGLOC_COVERAGE_TRACKING
+  using DebugLocTrackingRef = DILocAndCoverageTracking;
+#else
+  using DebugLocTrackingRef = TrackingMDNodeRef;
+#endif // LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
 
   /// A debug info location.
   ///
@@ -92,15 +87,7 @@ namespace llvm {
   /// one based on relatively opaque \a MDNode pointers.
   class DebugLoc {
 
-#ifdef ENABLE_DEBUGLOC_COVERAGE_TRACKING
-    detail::DILocOrType Loc;
-
-  public:
-    DebugLoc(DebugLocType Type) : Loc(Type) {}
-    DebugLocType getType() { return Loc.Type; }
-#else
-    TrackingMDNodeRef Loc;
-#endif
+    DebugLocTrackingRef Loc;
 
   public:
     DebugLoc() = default;
@@ -115,6 +102,16 @@ namespace llvm {
     /// supported in order to handle forward references when reading textual
     /// IR.
     explicit DebugLoc(const MDNode *N);
+
+#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+    DebugLoc(DebugLocKind Kind) : Loc(Kind) {}
+    DebugLocKind getKind() const { return Loc.Kind; }
+    DbgLocOriginBacktrace getOrigin() const { return Loc.Origin; }
+#endif
+
+    static DebugLoc getTemporary(Function *F);
+    static DebugLoc getUnknown(Function *F);
+    static DebugLoc getLineZero(Function *F);
 
     /// Get the underlying \a DILocation.
     ///
@@ -186,11 +183,6 @@ namespace llvm {
     /// prints source location /path/to/file.exe:line:col @[inlined at]
     void print(raw_ostream &OS) const;
   };
-
-  class Function;
-  DebugLoc getTemporary(Function *F);
-  DebugLoc getUnknown(Function *F);
-  DebugLoc getLineZero(Function *F);
 
 } // end namespace llvm
 

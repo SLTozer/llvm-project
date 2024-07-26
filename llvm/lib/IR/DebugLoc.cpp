@@ -10,40 +10,46 @@
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/Function.h"
+
+#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#include "llvm/Support/Signals.h"
+
 using namespace llvm;
 
-#ifdef ENABLE_DEBUGLOC_COVERAGE_TRACKING
+DILocAndCoverageTracking::DILocAndCoverageTracking(const DILocation *L)
+    : TrackingMDNodeRef(const_cast<DILocation *>(L)),
+      Type(DebugLocKind::Normal) {}
 
-namespace llvm {
-namespace detail {
-DILocOrType::DILocOrType(const DILocation *L)
-    : Loc(const_cast<DILocation *>(L)) {}
-} // namespace detail
-} // namespace llvm
+DbgLocOriginBacktrace::DbgLocOriginBacktrace(bool ShouldCollectTrace)
+    : Depth(0) {
+  if (ShouldCollectTrace)
+    Depth = getStackTrace(Stacktrace, DbgLocOriginBacktrace::MaxDepth);
+}
 
-DebugLoc getTemporary(Function *F) {
+DebugLoc DebugLoc::getTemporary(Function *F) {
   if (F->getSubprogram())
-    return DebugLoc(DebugLocType::Temporary);
+    return DebugLoc(DebugLocKind::Temporary);
   return DebugLoc();
 }
-DebugLoc getUnknown(Function *F) {
+DebugLoc DebugLoc::getUnknown(Function *F) {
   if (F->getSubprogram())
-    return DebugLoc(DebugLocType::Unknown);
+    return DebugLoc(DebugLocKind::Unknown);
   return DebugLoc();
 }
-DebugLoc getLineZero(Function *F) {
+DebugLoc DebugLoc::getLineZero(Function *F) {
   if (F->getSubprogram())
-    return DebugLoc(DebugLocType::LineZero);
+    return DebugLoc(DebugLocKind::LineZero);
   return DebugLoc();
 }
 
 #else
 
-DebugLoc getTemporary(Function *F) { return DebugLoc(); }
-DebugLoc getUnknown(Function *F) { return DebugLoc(); }
-DebugLoc getLineZero(Function *F) { return DebugLoc(); }
+using namespace llvm;
 
-#endif // ENABLE_DEBUGLOC_COVERAGE_TRACKING
+DebugLoc DebugLoc::getTemporary(Function *F) { return DebugLoc(); }
+DebugLoc DebugLoc::getUnknown(Function *F) { return DebugLoc(); }
+DebugLoc DebugLoc::getLineZero(Function *F) { return DebugLoc(); }
+#endif // LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
 
 //===----------------------------------------------------------------------===//
 // DebugLoc Implementation
