@@ -501,9 +501,14 @@ static int dl_iterate_phdr_cb(dl_phdr_info *info, size_t size, void *arg) {
 
 
 #ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
-template <int Depth>
-int getStackTrace(std::array<void *, Depth> StackTrace) {
-  return backtrace(StackTrace, Depth);
+namespace llvm {
+namespace sys {
+template <unsigned long MaxDepth>
+int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
+  return backtrace(StackTrace.data(), MaxDepth);
+}
+template int getStackTrace<8ul>(std::array<void *, 8ul> &);
+}
 }
 #endif
 

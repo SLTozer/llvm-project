@@ -731,7 +731,7 @@ static void moveFunctionData(Function &Old, Function &New,
       // other outlined instructions.
       if (!isa<CallInst>(&Val)) {
         // Remove the debug information for outlined functions.
-        Val.setDebugLoc(DebugLoc());
+        Val.setDebugLoc(DebugLoc::getLineZero());
 
         // Loop info metadata may contain line locations. Update them to have no
         // value in the new subprogram since the outlined code could be from
@@ -1868,7 +1868,7 @@ replaceArgumentUses(OutlinableRegion &Region,
       Value *ValueOperand = SI->getValueOperand();
 
       StoreInst *NewI = cast<StoreInst>(I->clone());
-      NewI->setDebugLoc(DebugLoc());
+      NewI->setDebugLoc(DebugLoc::getLineZero());
       BasicBlock *OutputBB = VBBIt->second;
       NewI->insertInto(OutputBB, OutputBB->end());
       LLVM_DEBUG(dbgs() << "Move store for instruction " << *I << " to "

@@ -18,37 +18,31 @@ using namespace llvm;
 
 DILocAndCoverageTracking::DILocAndCoverageTracking(const DILocation *L)
     : TrackingMDNodeRef(const_cast<DILocation *>(L)),
-      Type(DebugLocKind::Normal) {}
+      Kind(DebugLocKind::Normal), Origin(!L) {}
 
 DbgLocOriginBacktrace::DbgLocOriginBacktrace(bool ShouldCollectTrace)
     : Depth(0) {
   if (ShouldCollectTrace)
-    Depth = getStackTrace(Stacktrace, DbgLocOriginBacktrace::MaxDepth);
+    Depth = sys::getStackTrace(Stacktrace);
 }
 
-DebugLoc DebugLoc::getTemporary(Function *F) {
-  if (F->getSubprogram())
-    return DebugLoc(DebugLocKind::Temporary);
-  return DebugLoc();
+DebugLoc DebugLoc::getTemporary() {
+  return DebugLoc(DebugLocKind::Temporary);
 }
-DebugLoc DebugLoc::getUnknown(Function *F) {
-  if (F->getSubprogram())
-    return DebugLoc(DebugLocKind::Unknown);
-  return DebugLoc();
+DebugLoc DebugLoc::getUnknown() {
+  return DebugLoc(DebugLocKind::Unknown);
 }
-DebugLoc DebugLoc::getLineZero(Function *F) {
-  if (F->getSubprogram())
-    return DebugLoc(DebugLocKind::LineZero);
-  return DebugLoc();
+DebugLoc DebugLoc::getLineZero() {
+  return DebugLoc(DebugLocKind::LineZero);
 }
 
 #else
 
 using namespace llvm;
 
-DebugLoc DebugLoc::getTemporary(Function *F) { return DebugLoc(); }
-DebugLoc DebugLoc::getUnknown(Function *F) { return DebugLoc(); }
-DebugLoc DebugLoc::getLineZero(Function *F) { return DebugLoc(); }
+DebugLoc DebugLoc::getTemporary() { return DebugLoc(); }
+DebugLoc DebugLoc::getUnknown() { return DebugLoc(); }
+DebugLoc DebugLoc::getLineZero() { return DebugLoc(); }
 #endif // LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
 
 //===----------------------------------------------------------------------===//

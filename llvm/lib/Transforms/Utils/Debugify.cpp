@@ -18,6 +18,7 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/Config/config.h"
 #include "llvm/IR/DIBuilder.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/InstIterator.h"
@@ -87,7 +88,7 @@ std::string symbolizeStacktrace(const Instruction *I) {
        << ' ' << SymbolizedAddrs[ST.Stacktrace[Frame]];
   }
   return Result;
-};
+}
 void collectStackAddresses(Instruction &I) {
   DbgLocOriginBacktrace ST = I.getDebugLoc().getOrigin();
   for (int Frame = 0; Frame < ST.Depth; ++Frame) {
@@ -339,17 +340,11 @@ bool llvm::stripDebugifyMetadata(Module &M) {
 bool hasLoc(const Instruction &I) {
   const DILocation *Loc = I.getDebugLoc().get();
 #ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
-  DebugLocKind Type = I.getDebugLoc().getType();
-  return Loc && Type == DebugLocKind::Normal;
+  DebugLocKind Kind = I.getDebugLoc().getKind();
+  return Loc || Kind != DebugLocKind::Normal;
 #else
   return Loc;
 #endif
-}
-
-static FormattedNumber format_ptr(void *PC) {
-  // Each byte is two hex digits plus 2 for the 0x prefix.
-  unsigned PtrWidth = 2 + 2 * sizeof(void *);
-  return format_hex((uint64_t)PC, PtrWidth);
 }
 
 bool llvm::collectDebugInfoMetadata(Module &M,

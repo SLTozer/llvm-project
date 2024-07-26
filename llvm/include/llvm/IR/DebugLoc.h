@@ -14,7 +14,7 @@
 #ifndef LLVM_IR_DEBUGLOC_H
 #define LLVM_IR_DEBUGLOC_H
 
-#include "llvm/Config/llvm-config.h"
+#include "llvm/Config/config.h"
 #include "llvm/IR/TrackingMDRef.h"
 #include "llvm/Support/DataTypes.h"
 
@@ -27,7 +27,7 @@ namespace llvm {
 
 #ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
   struct DbgLocOriginBacktrace {
-    static constexpr int MaxDepth = 8;
+    static constexpr unsigned long MaxDepth = 8;
     std::array<void *, MaxDepth> Stacktrace;
     int Depth = 0;
     DbgLocOriginBacktrace(bool ShouldCollectTrace);
@@ -36,7 +36,7 @@ namespace llvm {
   // Used to represent different "kinds" of DebugLoc, expressing that a DebugLoc
   // is either ordinary, containing a valid DILocation, or otherwise describing
   // the reason why the DebugLoc does not contain a valid DILocation.
-  enum class DebugLocKind : u_int8_t {
+  enum class DebugLocKind : uint8_t {
     // DebugLoc should contain a valid DILocation.
     Normal,
     // DebugLoc intentionally does not have a valid DILocation; may be for a
@@ -59,8 +59,8 @@ namespace llvm {
     // Currently we only need to track the Origin of this DILoc when using a
     // normal empty DebugLoc, so only collect the stack trace in those cases.
     DbgLocOriginBacktrace Origin;
-    DILocAndCoverageTracking()
-        : TrackingMDNodeRef(nullptr), Kind(DebugLocKind::Normal), Origin(true) {
+    DILocAndCoverageTracking(bool NeedsStacktrace = true)
+        : TrackingMDNodeRef(nullptr), Kind(DebugLocKind::Normal), Origin(NeedsStacktrace) {
     }
     // Valid or nullptr MDNode*, normal DebugLocKind
     DILocAndCoverageTracking(const MDNode *Loc)
@@ -71,6 +71,20 @@ namespace llvm {
     DILocAndCoverageTracking(DebugLocKind Kind)
         : TrackingMDNodeRef(nullptr), Kind(Kind),
           Origin(Kind == DebugLocKind::Normal) {}
+  };
+  template <> struct simplify_type<DILocAndCoverageTracking> {
+    using SimpleType = MDNode *;
+
+    static MDNode *getSimplifiedValue(DILocAndCoverageTracking &MD) {
+      return MD.get();
+    }
+  };
+  template <> struct simplify_type<const DILocAndCoverageTracking> {
+    using SimpleType = MDNode *;
+
+    static MDNode *getSimplifiedValue(const DILocAndCoverageTracking &MD) {
+      return MD.get();
+    }
   };
 
   using DebugLocTrackingRef = DILocAndCoverageTracking;
@@ -109,9 +123,9 @@ namespace llvm {
     DbgLocOriginBacktrace getOrigin() const { return Loc.Origin; }
 #endif
 
-    static DebugLoc getTemporary(Function *F);
-    static DebugLoc getUnknown(Function *F);
-    static DebugLoc getLineZero(Function *F);
+    static DebugLoc getTemporary();
+    static DebugLoc getUnknown();
+    static DebugLoc getLineZero();
 
     /// Get the underlying \a DILocation.
     ///

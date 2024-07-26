@@ -9,6 +9,7 @@
 // This file provides the Win32 specific implementation of the Signals class.
 //
 //===----------------------------------------------------------------------===//
+#include "llvm/Config/config.h"
 #include "llvm/Support/ConvertUTF.h"
 #include "llvm/Support/ExitCodes.h"
 #include "llvm/Support/FileSystem.h"
@@ -539,8 +540,10 @@ extern "C" VOID WINAPI RtlCaptureContext(PCONTEXT ContextRecord);
 #endif
 
 #ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
-template <int Depth>
-int getStackTrace(std::array<void *, Depth> StackTrace) {
+namespace llvm {
+namespace sys {
+template <unsigned long MaxDepth>
+int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
   STACKFRAME64 StackFrame{};
   CONTEXT Context{};
   if (!C) {
@@ -567,7 +570,7 @@ int getStackTrace(std::array<void *, Depth> StackTrace) {
   StackFrame.AddrPC.Mode = AddrModeFlat;
   StackFrame.AddrStack.Mode = AddrModeFlat;
   StackFrame.AddrFrame.Mode = AddrModeFlat;
-  
+
   HANDLE hProcess = GetCurrentProcess();
   HANDLE hThread = GetCurrentThread();
 
@@ -582,7 +585,7 @@ int getStackTrace(std::array<void *, Depth> StackTrace) {
   Context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER;
 
   size_t WalkDepth = 0;
-  while (WalkDepth < Depth &&
+  while (WalkDepth < MaxDepth &&
          fStackWalk64(NativeMachineType, hProcess, hThread, &StackFrame,
                       &Context, 0, fSymFunctionTableAccess64,
                       fSymGetModuleBase64, 0)) {
@@ -591,6 +594,9 @@ int getStackTrace(std::array<void *, Depth> StackTrace) {
     StackTrace[WalkDepth++] = (void *)(uintptr_t)StackFrame.AddrPC.Offset;
   }
   return WalkDepth;
+}
+template int llvm::sys::getStackTrace<8ul>(std::array<void *, 8ul> &);
+}
 }
 #endif
 

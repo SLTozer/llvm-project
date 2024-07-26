@@ -31,6 +31,7 @@
 #include "llvm/CodeGen/TargetLowering.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
+#include "llvm/Config/config.h"
 #include "llvm/DebugInfo/DWARF/DWARFDataExtractor.h"
 #include "llvm/DebugInfo/DWARF/DWARFExpression.h"
 #include "llvm/IR/Constants.h"
@@ -2081,7 +2082,7 @@ void DwarfDebug::beginInstruction(const MachineInstr *MI) {
 
   if (!DL) {
 #ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
-    assert(DL.getType() != DebugLocKind::Temporary &&
+    assert(DL.getKind() != DebugLocKind::Temporary &&
            "Temporary DebugLocs should never be considered for emission!");
 #endif
     // We have an unspecified location, which might want to be line 0.

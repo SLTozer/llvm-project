@@ -1111,7 +1111,7 @@ static void CloneInstructionsIntoPredecessorBlockAndUpdateSSAUses(
       // branch, drop it. When we fold the bonus instructions we want to make
       // sure we reset their debug locations in order to avoid stepping on
       // dead code caused by folding dead branches.
-      NewBonusInst->setDebugLoc(DebugLoc());
+      NewBonusInst->dropLocation();
     }
 
     RemapInstruction(NewBonusInst, VMap,
@@ -3183,7 +3183,7 @@ bool SimplifyCFGOpt::SpeculativelyExecuteBB(BranchInst *BI,
     if (!SpeculatedStoreValue || &I != SpeculatedStore) {
       // Don't update the DILocation of dbg.assign intrinsics.
       if (!isa<DbgAssignIntrinsic>(&I))
-        I.setDebugLoc(DebugLoc());
+        I.dropLocation();
     }
     I.dropUBImplyingAttrsAndMetadata();
 

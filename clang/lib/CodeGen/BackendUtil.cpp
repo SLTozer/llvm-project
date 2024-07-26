@@ -924,7 +924,7 @@ void EmitAssemblyHelper::RunOptimizationPipeline(
       for (BasicBlock &BB : F)
         for (Instruction &I : BB)
           if (!I.getDebugLoc())
-            I.setDebugLoc(DebugLoc::getLineZero(&F));
+            I.setDebugLoc(DebugLoc::getLineZero());
     }
 #endif
   }

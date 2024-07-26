@@ -14,6 +14,8 @@
 #ifndef LLVM_SUPPORT_SIGNALS_H
 #define LLVM_SUPPORT_SIGNALS_H
 
+#include "llvm/Config/config.h"
+#include <array>
 #include <cstdint>
 #include <string>
 
@@ -70,7 +72,7 @@ namespace sys {
   void PrintStackTrace(raw_ostream &OS, int Depth = 0);
 
 #ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
-  template <int Depth> int getStackTrace(std::array<void *, Depth> StackTrace);
+  template <unsigned long MaxDepth> int getStackTrace(std::array<void *, MaxDepth> &StackTrace);
 
   /// Takes a set of \p Addresses, symbolizes them and stores the result in the
   /// provided \p SymbolizedAddresses map.
