@@ -499,6 +499,19 @@ static int dl_iterate_phdr_cb(dl_phdr_info *info, size_t size, void *arg) {
   return 0;
 }
 
+
+#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+namespace llvm {
+namespace sys {
+template <unsigned long MaxDepth>
+int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
+  return backtrace(StackTrace.data(), MaxDepth);
+}
+template int getStackTrace<8ul>(std::array<void *, 8ul> &);
+}
+}
+#endif
+
 /// If this is an ELF platform, we can find all loaded modules and their virtual
 /// addresses with dl_iterate_phdr.
 static bool findModulesAndOffsets(void **StackTrace, int Depth,
