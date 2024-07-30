@@ -256,8 +256,8 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
 #ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
 void sys::symbolizeAddresses(AddressSet &Addresses,
                              SymbolizedAddressMap &SymbolizedAddresses) {
-  if (DisableSymbolicationFlag || getenv(DisableSymbolizationEnv))
-    return;
+  assert(!DisableSymbolicationFlag && !getenv(DisableSymbolizationEnv) &&
+         "Debugify origin stacktraces require symbolization to be enabled.");
 
   // Convert Set of Addresses to ordered list.
   SmallVector<void *, 0> AddressList(Addresses.begin(), Addresses.end());
@@ -274,8 +274,8 @@ void sys::symbolizeAddresses(AddressSet &Addresses,
   }
   if (!LLVMSymbolizerPathOrErr)
     LLVMSymbolizerPathOrErr = sys::findProgramByName("llvm-symbolizer");
-  if (!LLVMSymbolizerPathOrErr)
-    return;
+  assert(!!LLVMSymbolizerPathOrErr
+         && "Debugify origin stacktraces require llvm-symbolizer.");
   const std::string &LLVMSymbolizerPath = *LLVMSymbolizerPathOrErr;
 
   // Try to guess the main executable name, since we don't have argv0 available

@@ -546,10 +546,7 @@ template <unsigned long MaxDepth>
 int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
   STACKFRAME64 StackFrame{};
   CONTEXT Context{};
-  if (!C) {
-    ::RtlCaptureContext(&Context);
-    C = &Context;
-  }
+  ::RtlCaptureContext(&Context);
 #if defined(_M_X64)
   StackFrame.AddrPC.Offset = Context.Rip;
   StackFrame.AddrStack.Offset = Context.Rsp;
