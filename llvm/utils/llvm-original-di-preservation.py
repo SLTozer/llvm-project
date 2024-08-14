@@ -118,7 +118,7 @@ def generate_html_report(
                 row.append(x.bb_name)
                 row.append(x.instr_name)
                 row.append(x.action)
-                row.append(f"<pre>{x.origin}</pre>")
+                row.append(f"<details><summary>View Origin Stacktrace</summary><pre>{x.origin}</pre></details>")
                 row.append("    </tr>\n")
             # Dump the bugs info into the table.
             for column in row:
