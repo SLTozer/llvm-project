@@ -27,10 +27,10 @@ namespace llvm {
 
 #ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
   struct DbgLocOriginBacktrace {
-    static constexpr unsigned long MaxDepth = 8;
-    std::array<void *, MaxDepth> Stacktrace;
-    int Depth = 0;
+    static constexpr unsigned long MaxDepth = 16;
+    SmallVector<std::pair<int, std::array<void *, MaxDepth>>, 0> Stacktraces;
     DbgLocOriginBacktrace(bool ShouldCollectTrace);
+    void addTrace();
   };
 
   // Used to represent different "kinds" of DebugLoc, expressing that a DebugLoc
@@ -121,11 +121,23 @@ namespace llvm {
     DebugLoc(DebugLocKind Kind) : Loc(Kind) {}
     DebugLocKind getKind() const { return Loc.Kind; }
     DbgLocOriginBacktrace getOrigin() const { return Loc.Origin; }
+    DebugLoc getCopied() const {
+      DebugLoc NewDL = *this;
+      NewDL.Loc.Origin.addTrace();
+      return NewDL;
+    }
+#else
+    DebugLoc getCopied() const {
+      return *this;
+    }
 #endif
 
     static DebugLoc getTemporary();
     static DebugLoc getUnknown();
     static DebugLoc getLineZero();
+
+    static DebugLoc getMergedLocations(ArrayRef<DebugLoc> Locs);
+    static DebugLoc getMergedLocation(DebugLoc LocA, DebugLoc LocB);
 
     /// Get the underlying \a DILocation.
     ///

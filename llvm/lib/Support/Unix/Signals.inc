@@ -508,6 +508,7 @@ int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
   return backtrace(StackTrace.data(), MaxDepth);
 }
 template int getStackTrace<8ul>(std::array<void *, 8ul> &);
+template int getStackTrace<16ul>(std::array<void *, 16ul> &);
 }
 }
 #endif

@@ -93,9 +93,15 @@ class IRBuilderBase {
   /// created instructions, like !dbg metadata.
   SmallVector<std::pair<unsigned, MDNode *>, 2> MetadataToCopy;
 
+  DebugLoc StoredDL;
+
   /// Add or update the an entry (Kind, MD) to MetadataToCopy, if \p MD is not
   /// null. If \p MD is null, remove the entry with \p Kind.
   void AddOrRemoveMetadataToCopy(unsigned Kind, MDNode *MD) {
+    if (Kind == LLVMContext::MD_dbg) {
+      StoredDL = DebugLoc(MD);
+    }
+
     if (!MD) {
       erase_if(MetadataToCopy, [Kind](const std::pair<unsigned, MDNode *> &KV) {
         return KV.first == Kind;
@@ -216,6 +222,10 @@ public:
   /// Set location information used by debugging information.
   void SetCurrentDebugLocation(DebugLoc L) {
     AddOrRemoveMetadataToCopy(LLVMContext::MD_dbg, L.getAsMDNode());
+    // Although we set StoredDL in the above call, we prefer to use the exact
+    // DebugLoc we were given, so overwrite it here; the call is only needed to
+    // update the entry in MetadataToCopy.
+    StoredDL = std::move(L);
   }
 
   /// Set nosanitize metadata.
@@ -229,8 +239,11 @@ public:
   /// not on \p Src will be dropped from MetadataToCopy.
   void CollectMetadataToCopy(Instruction *Src,
                              ArrayRef<unsigned> MetadataKinds) {
-    for (unsigned K : MetadataKinds)
+    for (unsigned K : MetadataKinds) {
       AddOrRemoveMetadataToCopy(K, Src->getMetadata(K));
+      if (K == LLVMContext::MD_dbg)
+        SetCurrentDebugLocation(Src->getDebugLoc());
+    }
   }
 
   /// Get location information used by debugging information.
@@ -242,8 +255,21 @@ public:
 
   /// Add all entries in MetadataToCopy to \p I.
   void AddMetadataToInst(Instruction *I) const {
-    for (const auto &KV : MetadataToCopy)
+    for (const auto &KV : MetadataToCopy) {
+      if (KV.first == LLVMContext::MD_dbg) {
+        // If `!I->getDebugLoc()` then we will call this below anyway, so skip
+        // a duplicate call here.
+        if (I->getDebugLoc())
+          I->setDebugLoc(StoredDL.getCopied());
+        continue;
+      }
       I->setMetadata(KV.first, KV.second);
+    }
+    // If I does not have an existing DebugLoc and no DebugLoc has been set
+    // here, we copy our DebugLoc to I anyway, because more likely than not I
+    // is a new instruction whose DL should originate from this builder.
+    if (!I->getDebugLoc())
+      I->setDebugLoc(StoredDL.getCopied());
   }
 
   /// Get the return type of the current function that we're emitting

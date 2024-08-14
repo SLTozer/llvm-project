@@ -20,10 +20,17 @@ DILocAndCoverageTracking::DILocAndCoverageTracking(const DILocation *L)
     : TrackingMDNodeRef(const_cast<DILocation *>(L)),
       Kind(DebugLocKind::Normal), Origin(!L) {}
 
-DbgLocOriginBacktrace::DbgLocOriginBacktrace(bool ShouldCollectTrace)
-    : Depth(0) {
-  if (ShouldCollectTrace)
+DbgLocOriginBacktrace::DbgLocOriginBacktrace(bool ShouldCollectTrace) {
+  if (ShouldCollectTrace) {
+    auto &[Depth, Stacktrace] = Stacktraces.emplace_back();
     Depth = sys::getStackTrace(Stacktrace);
+  }
+}
+void DbgLocOriginBacktrace::addTrace() {
+  if (Stacktraces.empty())
+    return;
+  auto &[Depth, Stacktrace] = Stacktraces.emplace_back();
+  Depth = sys::getStackTrace(Stacktrace);
 }
 
 DebugLoc DebugLoc::getTemporary() {
@@ -36,6 +43,26 @@ DebugLoc DebugLoc::getLineZero() {
   return DebugLoc(DebugLocKind::LineZero);
 }
 
+DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
+  if (Locs.empty())
+    return DebugLoc();
+  if (Locs.size() == 1)
+    return Locs[0];
+  DebugLoc Merged = Locs[0];
+  for (const DebugLoc &DL : llvm::drop_begin(Locs)) {
+    Merged = getMergedLocation(Merged, DL);
+    if (!Merged)
+      break;
+  }
+  return Merged;
+}
+DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {
+  if (!LocA)
+    return LocA.getCopied();
+  if (!LocB)
+    return LocB.getCopied();
+  return DILocation::getMergedLocation(LocA, LocB);
+}
 #else
 
 using namespace llvm;
