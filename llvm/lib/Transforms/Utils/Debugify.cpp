@@ -495,6 +495,7 @@ static bool checkInstructions(const DebugInstMap &DILocsBefore,
     auto BB = Instr->getParent();
     auto BBName = BB->hasName() ? BB->getName() : "no-name";
     auto InstName = Instruction::getOpcodeName(Instr->getOpcode());
+    auto InstLabel = Instr->getNameOrAsOperand();
 
     auto InstrIt = DILocsBefore.find(Instr);
     if (InstrIt == DILocsBefore.end()) {
@@ -503,6 +504,7 @@ static bool checkInstructions(const DebugInstMap &DILocsBefore,
             llvm::json::Object({{"metadata", "DILocation"},
                                 {"fn-name", FnName.str()},
                                 {"bb-name", BBName.str()},
+                                {"instr-name", InstLabel},
                                 {"instr", InstName},
                                 {"action", "not-generate"},
                                 {"origin", symbolizeStacktrace(Instr)}}));
@@ -522,6 +524,7 @@ static bool checkInstructions(const DebugInstMap &DILocsBefore,
             llvm::json::Object({{"metadata", "DILocation"},
                                 {"fn-name", FnName.str()},
                                 {"bb-name", BBName.str()},
+                                {"instr-name", InstLabel},
                                 {"instr", InstName},
                                 {"action", "drop"},
                                 {"origin", symbolizeStacktrace(Instr)}}));
