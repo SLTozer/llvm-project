@@ -593,6 +593,7 @@ int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
   return WalkDepth;
 }
 template int llvm::sys::getStackTrace<8ul>(std::array<void *, 8ul> &);
+template int llvm::sys::getStackTrace<16ul>(std::array<void *, 16ul> &);
 }
 }
 #endif

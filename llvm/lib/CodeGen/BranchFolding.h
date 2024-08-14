@@ -50,11 +50,11 @@ class TargetRegisterInfo;
     class MergePotentialsElt {
       unsigned Hash;
       MachineBasicBlock *Block;
-      DebugLoc BranchDebugLoc;
+      MDNode *BranchDebugLoc;
 
     public:
-      MergePotentialsElt(unsigned h, MachineBasicBlock *b, DebugLoc bdl)
-          : Hash(h), Block(b), BranchDebugLoc(std::move(bdl)) {}
+      MergePotentialsElt(unsigned h, MachineBasicBlock *b, MDNode *bdl)
+          : Hash(h), Block(b), BranchDebugLoc(bdl) {}
 
       unsigned getHash() const { return Hash; }
       MachineBasicBlock *getBlock() const { return Block; }
@@ -63,7 +63,7 @@ class TargetRegisterInfo;
         Block = MBB;
       }
 
-      const DebugLoc &getBranchDebugLoc() { return BranchDebugLoc; }
+      const DebugLoc getBranchDebugLoc() { return DebugLoc(BranchDebugLoc); }
 
       bool operator<(const MergePotentialsElt &) const;
     };

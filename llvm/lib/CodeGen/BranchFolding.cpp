@@ -841,7 +841,7 @@ void BranchFolder::mergeCommonTails(unsigned commonTailIndex) {
             "Reached BB end within common tail");
       }
       assert(MI.isIdenticalTo(*Pos) && "Expected matching MIIs!");
-      DL = DILocation::getMergedLocation(DL, Pos->getDebugLoc());
+      DL = DebugLoc::getMergedLocation(DL, Pos->getDebugLoc());
       NextCommonInsts[i] = ++Pos;
     }
     MI.setDebugLoc(DL);
@@ -915,7 +915,7 @@ bool BranchFolder::TryTailMergeBlocks(MachineBasicBlock *SuccBB,
   // Walk through equivalence sets looking for actual exact matches.
   while (MergePotentials.size() > 1) {
     unsigned CurHash = MergePotentials.back().getHash();
-    const DebugLoc &BranchDL = MergePotentials.back().getBranchDebugLoc();
+    const DebugLoc BranchDL = MergePotentials.back().getBranchDebugLoc();
 
     // Build SameTails, identifying the set of blocks with this hash code
     // and with the maximum number of instructions in common.

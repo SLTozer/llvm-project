@@ -62,18 +62,19 @@ Type *IRBuilderBase::getCurrentFunctionReturnType() const {
 }
 
 DebugLoc IRBuilderBase::getCurrentDebugLocation() const {
-  for (auto &KV : MetadataToCopy)
-    if (KV.first == LLVMContext::MD_dbg)
-      return {cast<DILocation>(KV.second)};
-
-  return {};
+  return StoredDL;
 }
 void IRBuilderBase::SetInstDebugLocation(Instruction *I) const {
   for (const auto &KV : MetadataToCopy)
     if (KV.first == LLVMContext::MD_dbg) {
-      I->setDebugLoc(DebugLoc(KV.second));
+      I->setDebugLoc(StoredDL.getCopied());
       return;
     }
+  // If I does not have an existing DebugLoc and no DebugLoc has been set
+  // here, we copy our DebugLoc to I anyway, because more likely than not I
+  // is a new instruction whose DL should originate from this builder.
+  if (!I->getDebugLoc())
+    I->setDebugLoc(StoredDL.getCopied());
 }
 
 CallInst *
