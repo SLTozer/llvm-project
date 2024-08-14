@@ -462,9 +462,9 @@ def Main():
     di_file_args = OrderedDict()
 
     # Use the defaultdict in order to make multidim dicts.
-    di_location_bugs = defaultdict(lambda: defaultdict(dict))
-    di_subprogram_bugs = defaultdict(lambda: defaultdict(dict))
-    di_variable_bugs = defaultdict(lambda: defaultdict(dict))
+    di_location_bugs = defaultdict(lambda: defaultdict(list))
+    di_subprogram_bugs = defaultdict(lambda: defaultdict(list))
+    di_variable_bugs = defaultdict(lambda: defaultdict(list))
 
     # Use the ordered dict to make a summary.
     di_location_bugs_summary = OrderedDict()
@@ -509,9 +509,9 @@ def Main():
                     skipped_lines += 1
                 continue
 
-            di_loc_bugs = []
-            di_sp_bugs = []
-            di_var_bugs = []
+            di_loc_bugs = di_location_bugs[bugs_file][bugs_pass]
+            di_sp_bugs = di_subprogram_bugs[bugs_file][bugs_pass]
+            di_var_bugs = di_variable_bugs[bugs_file][bugs_pass]
 
             # Omit duplicated bugs.
             di_loc_set = set()
