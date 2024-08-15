@@ -361,6 +361,8 @@ InstCombinerImpl::foldPHIArgInsertValueInstructionIntoPHI(PHINode &PN) {
                                          FirstIVI->getIndices(), PN.getName());
 
   PHIArgMergedDebugLoc(NewIVI, PN);
+  for (auto *NewOp : NewOperands)
+    NewOp->setDebugLoc(NewIVI->getDebugLoc());
   ++NumPHIsOfInsertValues;
   return NewIVI;
 }
@@ -398,6 +400,7 @@ InstCombinerImpl::foldPHIArgExtractValueInstructionIntoPHI(PHINode &PN) {
                                           FirstEVI->getIndices(), PN.getName());
 
   PHIArgMergedDebugLoc(NewEVI, PN);
+  NewAggregateOperand->setDebugLoc(NewEVI->getDebugLoc());
   ++NumPHIsOfExtractValues;
   return NewEVI;
 }
@@ -769,6 +772,7 @@ Instruction *InstCombinerImpl::foldPHIArgLoadIntoPHI(PHINode &PN) {
     delete NewPN;
   } else {
     InsertNewInstBefore(NewPN, PN.getIterator());
+    PHIArgMergedDebugLoc(NewPN, PN);
   }
 
   // If this was a volatile load that we are merging, make sure to loop through
@@ -944,6 +948,7 @@ Instruction *InstCombinerImpl::foldPHIArgOpIntoPHI(PHINode &PN) {
   } else {
     InsertNewInstBefore(NewPN, PN.getIterator());
     PhiVal = NewPN;
+    PHIArgMergedDebugLoc(NewPN, PN);
   }
 
   // Insert and return the new operation.

@@ -568,8 +568,10 @@ std::array<Value *, 2> Negator::getSortedOperandsOfBinOp(Instruction *I) {
   NegatorNumInstructionsNegatedSuccess += Res->first.size();
 
   // They are in def-use order, so nothing fancy, just insert them in order.
-  for (Instruction *I : Res->first)
+  for (Instruction *I : Res->first) {
+    IC.Builder.SetCurrentDebugLocation(I->getDebugLoc());
     IC.Builder.Insert(I, I->getName());
+  }
 
   // And return the new root.
   return Res->second;

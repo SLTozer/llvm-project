@@ -110,7 +110,8 @@ static void RewriteUsesOfClonedInstructions(BasicBlock *OrigHeader,
 
   // Now fix up users of the instructions in OrigHeader, inserting PHI nodes
   // as necessary.
-  SSAUpdater SSA(InsertedPHIs);
+  SmallVector<PHINode*> PHIsForInst;
+  SSAUpdater SSA(&PHIsForInst);
   for (I = OrigHeader->begin(); I != E; ++I) {
     Value *OrigHeaderVal = &*I;
 
@@ -204,6 +205,11 @@ static void RewriteUsesOfClonedInstructions(BasicBlock *OrigHeader,
         NewVal = UndefValue::get(OrigHeaderVal->getType());
       DVR->replaceVariableLocationOp(OrigHeaderVal, NewVal);
     }
+    for (PHINode *Phi : PHIsForInst)
+      Phi->setDebugLoc(I->getDebugLoc());
+    if (InsertedPHIs)
+      InsertedPHIs->append(PHIsForInst);
+    PHIsForInst.clear();
   }
 }
 

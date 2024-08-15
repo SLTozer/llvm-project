@@ -2261,6 +2261,8 @@ bool llvm::promoteLoopAccessesToScalars(
   // Rewrite all the loads in the loop and remember all the definitions from
   // stores in the loop.
   Promoter.run(LoopUses);
+  for (PHINode *PN : NewPHIs)
+    PN->setDebugLoc(DL);
 
   if (VerifyMemorySSA)
     MSSAU.getMemorySSA()->verifyMemorySSA();
@@ -2821,6 +2823,7 @@ static bool hoistBOAssociation(Instruction &I, Loop &L,
     auto *NewBO =
         BinaryOperator::Create(Opcode, LV, Inv, BO->getName() + ".reass", BO);
     NewBO->copyIRFlags(BO);
+    NewBO->setDebugLoc(BO->getDebugLoc());
     BO->replaceAllUsesWith(NewBO);
     eraseInstruction(*BO, SafetyInfo, MSSAU);
 

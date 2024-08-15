@@ -585,7 +585,9 @@ void PruningFunctionCloner::CloneBlock(
       // Constant fold to uncond branch!
       if (Cond) {
         BasicBlock *Dest = BI->getSuccessor(!Cond->getZExtValue());
-        VMap[OldTI] = BranchInst::Create(Dest, NewBB);
+        BranchInst *NewBI = BranchInst::Create(Dest, NewBB);
+        NewBI->setDebugLoc(BI->getDebugLoc());
+        VMap[OldTI] = NewBI;
         ToClone.push_back(Dest);
         TerminatorDone = true;
       }

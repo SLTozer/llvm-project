@@ -274,6 +274,9 @@ static void buildPartialUnswitchConditionalBranch(
     BasicBlock &UnswitchedSucc, BasicBlock &NormalSucc, bool InsertFreeze,
     const Instruction *I, AssumptionCache *AC, const DominatorTree &DT) {
   IRBuilder<> IRB(&BB);
+  // Since we're unswitching I, all the instructions we create here should use
+  // I's debug location.
+  IRB.SetCurrentDebugLocation(I->getDebugLoc());
 
   SmallVector<Value *> FrozenInvariants;
   for (Value *Inv : Invariants) {
@@ -292,7 +295,7 @@ static void buildPartialUnswitchConditionalBranch(
 static void buildPartialInvariantUnswitchConditionalBranch(
     BasicBlock &BB, ArrayRef<Value *> ToDuplicate, bool Direction,
     BasicBlock &UnswitchedSucc, BasicBlock &NormalSucc, Loop &L,
-    MemorySSAUpdater *MSSAU) {
+    MemorySSAUpdater *MSSAU, DebugLoc DL) {
   ValueToValueMapTy VMap;
   for (auto *Val : reverse(ToDuplicate)) {
     Instruction *Inst = cast<Instruction>(Val);
@@ -326,6 +329,7 @@ static void buildPartialInvariantUnswitchConditionalBranch(
   }
 
   IRBuilder<> IRB(&BB);
+  IRB.SetCurrentDebugLocation(DL);
   Value *Cond = VMap[ToDuplicate[0]];
   IRB.CreateCondBr(Cond, Direction ? &UnswitchedSucc : &NormalSucc,
                    Direction ? &NormalSucc : &UnswitchedSucc);
@@ -2464,7 +2468,7 @@ static void unswitchNontrivialInvariants(
     // the branch in the split block.
     if (PartiallyInvariant)
       buildPartialInvariantUnswitchConditionalBranch(
-          *SplitBB, Invariants, Direction, *ClonedPH, *LoopPH, L, MSSAU);
+          *SplitBB, Invariants, Direction, *ClonedPH, *LoopPH, L, MSSAU, BI->getDebugLoc());
     else {
       buildPartialUnswitchConditionalBranch(
           *SplitBB, Invariants, Direction, *ClonedPH, *LoopPH,

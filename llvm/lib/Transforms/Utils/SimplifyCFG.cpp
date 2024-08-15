@@ -2087,6 +2087,10 @@ static void sinkLastInstruction(ArrayRef<BasicBlock*> Blocks) {
   // have done it all for us.
   SmallVector<Value*, 4> NewOperands;
   Instruction *I0 = Insts.front();
+  DebugLoc MergedLoc = I0->getDebugLoc();
+  for (auto *I : llvm::drop_begin(Insts)) {
+    MergedLoc = DebugLoc::getMergedLocation(MergedLoc, I->getDebugLoc());
+  }
   for (unsigned O = 0, E = I0->getNumOperands(); O != E; ++O) {
     // This check is different to that in canSinkInstructions. There, we
     // cared about the global view once simplifycfg (and instcombine) have
@@ -2108,6 +2112,7 @@ static void sinkLastInstruction(ArrayRef<BasicBlock*> Blocks) {
     auto *PN =
         PHINode::Create(Op->getType(), Insts.size(), Op->getName() + ".sink");
     PN->insertBefore(BBEnd->begin());
+    PN->setDebugLoc(MergedLoc);
     for (auto *I : Insts)
       PN->addIncoming(I->getOperand(O), I->getParent());
     NewOperands.push_back(PN);
@@ -3137,9 +3142,12 @@ bool SimplifyCFGOpt::SpeculativelyExecuteBB(BranchInst *BI,
       std::swap(TrueV, FalseV);
     Value *S = Builder.CreateSelect(
         BrCond, TrueV, FalseV, "spec.store.select", BI);
+    auto MergedLoc = DebugLoc::getMergedLocation(
+      BI->getDebugLoc(), SpeculatedStore->getDebugLoc());
+    if (auto *SI = dyn_cast<Instruction>(S))
+      SI->setDebugLoc(MergedLoc);
     SpeculatedStore->setOperand(0, S);
-    SpeculatedStore->applyMergedLocation(BI->getDebugLoc(),
-                                         SpeculatedStore->getDebugLoc());
+    SpeculatedStore->setDebugLoc(MergedLoc);
     // The value stored is still conditional, but the store itself is now
     // unconditonally executed, so we must be sure that any linked dbg.assign
     // intrinsics are tracking the new stored value (the result of the

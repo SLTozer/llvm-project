@@ -1055,6 +1055,7 @@ void StrNCmpInliner::inlineCompare(Value *LHS, StringRef RHS, uint64_t N,
                                    bool Swapped) {
   auto &Ctx = CI->getContext();
   IRBuilder<> B(Ctx);
+  B.SetCurrentDebugLocation(CI->getDebugLoc());
 
   BasicBlock *BBCI = CI->getParent();
   BasicBlock *BBTail =
