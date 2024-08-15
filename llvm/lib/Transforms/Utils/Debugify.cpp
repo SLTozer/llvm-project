@@ -397,6 +397,9 @@ bool llvm::collectDebugInfoMetadata(Module &M,
         // Skip PHIs.
         if (isa<PHINode>(I))
           continue;
+        // FIXME: Skip Unreachables too, since they don't actually emit anything?
+        if (isa<UnreachableInst>(I))
+          continue;
 
         // Cllect dbg.values and dbg.declare.
         if (DebugifyLevel > Level::Locations) {
@@ -649,6 +652,9 @@ bool llvm::checkDebugInfoMetadata(Module &M,
       for (Instruction &I : BB) {
         // Skip PHIs.
         if (isa<PHINode>(I))
+          continue;
+        // FIXME: Skip Unreachables too, since they don't actually emit anything?
+        if (isa<UnreachableInst>(I))
           continue;
 
         // Collect dbg.values and dbg.declares.
