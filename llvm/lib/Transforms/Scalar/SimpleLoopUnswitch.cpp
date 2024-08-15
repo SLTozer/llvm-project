@@ -2369,6 +2369,7 @@ static void unswitchNontrivialInvariants(
         // BI (`dyn_cast<BranchInst>(TI)`) is an in-loop instruction hoisted
         // out of the loop.
         Cond = new FreezeInst(Cond, Cond->getName() + ".fr", BI->getIterator());
+        cast<FreezeInst>(Cond)->setDebugLoc(DebugLoc::getLineZero());
       }
       BI->setCondition(Cond);
       DTUpdates.push_back({DominatorTree::Insert, SplitBB, ClonedPH});

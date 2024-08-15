@@ -1476,10 +1476,15 @@ processInternalGlobal(GlobalVariable *GV, const GlobalStatus &GS,
         GS.AccessingFunction->getEntryBlock().begin().getNonConst();
     Type *ElemTy = GV->getValueType();
     // FIXME: Pass Global's alignment when globals have alignment
+    // FIXME: Should these instructions have debug lines, potentially the global
+    // variable's declared line?
     AllocaInst *Alloca = new AllocaInst(ElemTy, DL.getAllocaAddrSpace(),
                                         nullptr, GV->getName(), FirstI);
-    if (!isa<UndefValue>(GV->getInitializer()))
-      new StoreInst(GV->getInitializer(), Alloca, FirstI);
+    Alloca->setDebugLoc(DebugLoc::getLineZero());
+    if (!isa<UndefValue>(GV->getInitializer())) {
+      auto *SI = new StoreInst(GV->getInitializer(), Alloca, FirstI);
+      SI->setDebugLoc(DebugLoc::getLineZero());
+    }
 
     GV->replaceAllUsesWith(Alloca);
     GV->eraseFromParent();
