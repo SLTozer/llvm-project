@@ -678,6 +678,24 @@ bool LoopVectorizationLegality::canVectorizeOuterLoop() {
   return Result;
 }
 
+/// Look for a meaningful debug location on the instruction or it's
+/// operands.
+static DebugLoc getDebugLocFromInstOrOperands(Instruction *I) {
+  if (!I)
+    return DebugLoc();
+
+  if (I->getDebugLoc())
+    return I->getDebugLoc();
+
+  for (Use &Op : I->operands()) {
+    if (Instruction *OpInst = dyn_cast<Instruction>(Op))
+      if (OpInst->getDebugLoc())
+        return OpInst->getDebugLoc();
+  }
+
+  return I->getDebugLoc();
+}
+
 void LoopVectorizationLegality::addInductionPhi(
     PHINode *Phi, const InductionDescriptor &ID,
     SmallPtrSetImpl<Value *> &AllowedExit) {
@@ -714,6 +732,13 @@ void LoopVectorizationLegality::addInductionPhi(
     // steps by one, so this is a canonical induction variable.
     if (!PrimaryInduction || PhiTy == WidestIndTy)
       PrimaryInduction = Phi;
+  }
+
+  // If we know the primary induction PHI, we should use its DebugLoc for any
+  // IV recipes; if there is none, then using the last induction PHI with the
+  // widest type is reasonable.
+  if (PrimaryInduction == Phi || (!PrimaryInduction && convertPointerToIntegerType(DL, PhiTy) == WidestIndTy)) {
+    InductionDL = getDebugLocFromInstOrOperands(Phi);
   }
 
   // Both the PHI node itself, and the "post-increment" value feeding

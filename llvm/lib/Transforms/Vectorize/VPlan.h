@@ -1855,7 +1855,7 @@ public:
   VPWidenPointerInductionRecipe(PHINode *Phi, VPValue *Start, VPValue *Step,
                                 const InductionDescriptor &IndDesc,
                                 bool IsScalarAfterVectorization)
-      : VPHeaderPHIRecipe(VPDef::VPWidenPointerInductionSC, Phi),
+      : VPHeaderPHIRecipe(VPDef::VPWidenPointerInductionSC, Phi, nullptr, Phi->getDebugLoc()),
         IndDesc(IndDesc),
         IsScalarAfterVectorization(IsScalarAfterVectorization) {
     addOperand(Start);

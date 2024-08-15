@@ -1408,6 +1408,8 @@ void VPScalarIVStepsRecipe::execute(VPTransformState &State) {
   Value *BaseIV = State.get(getOperand(0), VPIteration(0, 0));
   Value *Step = State.get(getStepValue(), VPIteration(0, 0));
   IRBuilderBase &Builder = State.Builder;
+  if (getDebugLoc())
+    Builder.SetCurrentDebugLocation(getDebugLoc());
 
   // Ensure step has the same type as that of scalar IV.
   Type *BaseIVTy = BaseIV->getType()->getScalarType();

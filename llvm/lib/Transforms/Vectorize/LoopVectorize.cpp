@@ -854,25 +854,6 @@ protected:
 };
 } // end namespace llvm
 
-/// Look for a meaningful debug location on the instruction or it's
-/// operands.
-static DebugLoc getDebugLocFromInstOrOperands(Instruction *I) {
-  if (!I)
-    return DebugLoc();
-
-  DebugLoc Empty;
-  if (I->getDebugLoc() != Empty)
-    return I->getDebugLoc();
-
-  for (Use &Op : I->operands()) {
-    if (Instruction *OpInst = dyn_cast<Instruction>(Op))
-      if (OpInst->getDebugLoc() != Empty)
-        return OpInst->getDebugLoc();
-  }
-
-  return I->getDebugLoc();
-}
-
 /// Write a \p DebugMsg about vectorization to the debug output stream. If \p I
 /// is passed, the message relates to that particular instruction.
 #ifndef NDEBUG
@@ -1910,13 +1891,15 @@ public:
 
     if (SCEVCheckBlock) {
       SCEVCheckBlock->getTerminator()->moveBefore(Preheader->getTerminator());
-      new UnreachableInst(Preheader->getContext(), SCEVCheckBlock);
+      auto *UI = new UnreachableInst(Preheader->getContext(), SCEVCheckBlock);
       Preheader->getTerminator()->eraseFromParent();
+      UI->setDebugLoc(Preheader->getTerminator()->getDebugLoc());
     }
     if (MemCheckBlock) {
       MemCheckBlock->getTerminator()->moveBefore(Preheader->getTerminator());
-      new UnreachableInst(Preheader->getContext(), MemCheckBlock);
+      auto *UI = new UnreachableInst(Preheader->getContext(), MemCheckBlock);
       Preheader->getTerminator()->eraseFromParent();
+      UI->setDebugLoc(Preheader->getTerminator()->getDebugLoc());
     }
 
     DT->changeImmediateDominator(LoopHeader, Preheader);
@@ -2217,6 +2200,10 @@ emitTransformedIndex(IRBuilderBase &B, Value *Index, Value *StartValue,
                      Value *Step,
                      InductionDescriptor::InductionKind InductionKind,
                      const BinaryOperator *InductionBinOp) {
+  // As we are generating instructions that calculate the new value of Index,
+  // we should use the DebugLoc of the original scalar instruction.
+  if (InductionBinOp)
+    B.SetCurrentDebugLocation(InductionBinOp->getDebugLoc());
   Type *StepTy = Step->getType();
   Value *CastedIndex = StepTy->isIntegerTy()
                            ? B.CreateSExtOrTrunc(Index, StepTy)
@@ -8484,7 +8471,7 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
   for (ElementCount VF : Range)
     IVUpdateMayOverflow |= !isIndvarOverflowCheckKnownFalse(&CM, VF);
 
-  DebugLoc DL = getDebugLocFromInstOrOperands(Legal->getPrimaryInduction());
+  DebugLoc DL = Legal->getInductionDL();
   TailFoldingStyle Style = CM.getTailFoldingStyle(IVUpdateMayOverflow);
   // When not folding the tail, we know that the induction increment will not
   // overflow.

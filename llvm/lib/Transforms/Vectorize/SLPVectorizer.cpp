@@ -13219,8 +13219,14 @@ Value *BoUpSLP::vectorizeTree(TreeEntry *E, bool PostponedPHIs) {
       Value *V = Builder.CreateUnOp(
           static_cast<Instruction::UnaryOps>(E->getOpcode()), Op);
       propagateIRFlags(V, E->Scalars, VL0);
-      if (auto *I = dyn_cast<Instruction>(V))
+      if (auto *I = dyn_cast<Instruction>(V)) {
         V = propagateMetadata(I, E->Scalars);
+        SmallVector<DebugLoc> Locs;
+        for (Value *Scalar : E->Scalars)
+          if (auto *ScalarI = dyn_cast<Instruction>(Scalar))
+            Locs.push_back(ScalarI->getDebugLoc());
+        I->setDebugLoc(DebugLoc::getMergedLocations(Locs));
+      }
 
       V = FinalShuffle(V, E, VecTy);
 

@@ -286,6 +286,8 @@ public:
   /// Returns the primary induction variable.
   PHINode *getPrimaryInduction() { return PrimaryInduction; }
 
+  DebugLoc getInductionDL() { return InductionDL; }
+
   /// Returns the reduction variables found in the loop.
   const ReductionList &getReductionVars() const { return Reductions; }
 
@@ -498,6 +500,8 @@ private:
   /// Holds the primary induction variable. This is the counter of the
   /// loop.
   PHINode *PrimaryInduction = nullptr;
+
+  DebugLoc InductionDL;
 
   /// Holds the reduction variables.
   ReductionList Reductions;
