@@ -43,26 +43,6 @@ DebugLoc DebugLoc::getLineZero() {
   return DebugLoc(DebugLocKind::LineZero);
 }
 
-DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
-  if (Locs.empty())
-    return DebugLoc();
-  if (Locs.size() == 1)
-    return Locs[0];
-  DebugLoc Merged = Locs[0];
-  for (const DebugLoc &DL : llvm::drop_begin(Locs)) {
-    Merged = getMergedLocation(Merged, DL);
-    if (!Merged)
-      break;
-  }
-  return Merged;
-}
-DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {
-  if (!LocA)
-    return LocA.getCopied();
-  if (!LocB)
-    return LocB.getCopied();
-  return DILocation::getMergedLocation(LocA, LocB);
-}
 #else
 
 using namespace llvm;
@@ -195,6 +175,27 @@ DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
         Ctx, MD->getLine(), MD->getColumn(), MD->getScope(), Last);
 
   return Last;
+}
+
+DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
+  if (Locs.empty())
+    return DebugLoc();
+  if (Locs.size() == 1)
+    return Locs[0];
+  DebugLoc Merged = Locs[0];
+  for (const DebugLoc &DL : llvm::drop_begin(Locs)) {
+    Merged = getMergedLocation(Merged, DL);
+    if (!Merged)
+      break;
+  }
+  return Merged;
+}
+DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {
+  if (!LocA)
+    return LocA.getCopied();
+  if (!LocB)
+    return LocB.getCopied();
+  return DILocation::getMergedLocation(LocA, LocB);
 }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
