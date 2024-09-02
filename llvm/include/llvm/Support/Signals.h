@@ -72,10 +72,20 @@ namespace sys {
   void PrintStackTrace(raw_ostream &OS, int Depth = 0);
 
 #ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#ifdef NDEBUG
+#error DebugLoc Coverage Tracking should not be enabled in Release builds.
+#endif
+  /// Populates the given array with a stacktrace of the current program, up to MaxDepth frames.
+  /// Returns the number of frames returned, which will be inserted into \p StackTrace from index 0.
+  /// All entries after the returned depth will be unmodified.
+  /// NB: This is only intended to be used for introspection of LLVM by Debugify, will not be
+  /// enabled in release builds, and should not be relied on for other purposes.
   template <unsigned long MaxDepth> int getStackTrace(std::array<void *, MaxDepth> &StackTrace);
 
   /// Takes a set of \p Addresses, symbolizes them and stores the result in the
   /// provided \p SymbolizedAddresses map.
+  /// NB: This is only intended to be used for introspection of LLVM by Debugify, will not be
+  /// enabled in release builds, and should not be relied on for other purposes.
   void symbolizeAddresses(AddressSet &Addresses,
                           SymbolizedAddressMap &SymbolizedAddresses);
 #endif

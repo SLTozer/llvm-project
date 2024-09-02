@@ -78,13 +78,14 @@ std::string symbolizeStacktrace(const Instruction *I) {
     sys::symbolizeAddresses(UnsymbolizedAddrs, SymbolizedAddrs);
     UnsymbolizedAddrs.clear();
   }
-  DbgLocOriginBacktrace ST = I->getDebugLoc().getOrigin();
+  DbgLocOriginStacktrace ST = I->getDebugLoc().getOrigin();
   std::string Result;
   raw_string_ostream OS(Result);
-  for (size_t TraceIdx = 0; TraceIdx < ST.Stacktraces.size(); ++TraceIdx) {
+  auto Stacktraces = ST.getStacktraces();
+  for (size_t TraceIdx = 0; TraceIdx < Stacktraces.size(); ++TraceIdx) {
     if (TraceIdx != 0)
       OS << "========================================\n";
-    auto &[Depth, Stacktrace] = ST.Stacktraces[TraceIdx];
+    auto &[Depth, Stacktrace] = Stacktraces[TraceIdx];
     for (int Frame = 0; Frame < Depth; ++Frame) {
       assert(SymbolizedAddrs.contains(Stacktrace[Frame]) &&
             "Expected each address to have been symbolized.");
@@ -95,8 +96,9 @@ std::string symbolizeStacktrace(const Instruction *I) {
   return Result;
 }
 void collectStackAddresses(Instruction &I) {
-  DbgLocOriginBacktrace ST = I.getDebugLoc().getOrigin();
-  for (auto &[Depth, Stacktrace] : ST.Stacktraces) {
+  DbgLocOriginStacktrace ST = I.getDebugLoc().getOrigin();
+  auto Stacktraces = ST.getStacktraces();
+  for (auto &[Depth, Stacktrace] : Stacktraces) {
     for (int Frame = 0; Frame < Depth; ++Frame) {
       void *Addr = Stacktrace[Frame];
       if (!SymbolizedAddrs.contains(Addr))
