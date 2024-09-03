@@ -13,14 +13,16 @@ from collections import OrderedDict
 
 
 class DILocBug:
-    def __init__(self, action, bb_name, fn_name, instr):
+    def __init__(self, origin, action, instr_name, bb_name, fn_name, instr):
+        self.origin = origin
         self.action = action
+        self.instr_name = instr_name
         self.bb_name = bb_name
         self.fn_name = fn_name
         self.instr = instr
 
     def __str__(self):
-        return self.action + self.bb_name + self.fn_name + self.instr
+        return self.action + self.bb_name + self.fn_name + self.instr + self.origin
 
 
 class DISPBug:
@@ -50,6 +52,7 @@ def generate_html_report(
     di_location_bugs_summary,
     di_sp_bugs_summary,
     di_var_bugs_summary,
+    di_file_args,
     html_file,
 ):
     fileout = open(html_file, "w")
@@ -85,7 +88,9 @@ def generate_html_report(
         "LLVM IR Instruction",
         "Function Name",
         "Basic Block Name",
+        "Instruction Name",
         "Action",
+        "Origin",
     ]
 
     for column in header_di_loc:
@@ -111,7 +116,9 @@ def generate_html_report(
                 row.append(x.instr)
                 row.append(x.fn_name)
                 row.append(x.bb_name)
+                row.append(x.instr_name)
                 row.append(x.action)
+                row.append(f"<details><summary>View Origin Stacktrace</summary><pre>{x.origin}</pre></details>")
                 row.append("    </tr>\n")
             # Dump the bugs info into the table.
             for column in row:
@@ -338,6 +345,29 @@ def generate_html_report(
     """
     table_di_var_sum += "</table>\n"
 
+    # Create the table for the compiler args for each file.
+    table_title_file_args = "Compiler arguments per file"
+    table_file_args = """<table>
+  <caption><b>{}</b></caption>
+  <tr>
+  """.format(
+        table_title_file_args
+    )
+    header_file_args = ["File", "Args"]
+
+    for column in header_file_args:
+        table_file_args += "    <th>{0}</th>\n".format(column.strip())
+    table_file_args += "  </tr>\n"
+    row = []
+    for file, args in di_file_args.items():
+        row.append("    <tr>\n")
+        row.append("    <td>{0}</td>\n".format(file.strip()))
+        row.append("    <td>{0}</td>\n".format(args.strip()))
+        row.append("    </tr>\n")
+    for column in row:
+        table_file_args += column
+    table_file_args += "  <tr>\n"
+
     # Finish the html page.
     html_footer = """</body>
   </html>"""
@@ -358,6 +388,8 @@ def generate_html_report(
     fileout.writelines(table_di_var)
     fileout.writelines(new_line)
     fileout.writelines(table_di_var_sum)
+    fileout.writelines(new_line)
+    fileout.writelines(table_file_args)
     fileout.writelines(html_footer)
     fileout.close()
 
@@ -427,10 +459,12 @@ def Main():
         print("error: The output file must be '.html'.")
         sys.exit(1)
 
+    di_file_args = OrderedDict()
+
     # Use the defaultdict in order to make multidim dicts.
-    di_location_bugs = defaultdict(lambda: defaultdict(dict))
-    di_subprogram_bugs = defaultdict(lambda: defaultdict(dict))
-    di_variable_bugs = defaultdict(lambda: defaultdict(dict))
+    di_location_bugs = defaultdict(lambda: defaultdict(list))
+    di_subprogram_bugs = defaultdict(lambda: defaultdict(list))
+    di_variable_bugs = defaultdict(lambda: defaultdict(list))
 
     # Use the ordered dict to make a summary.
     di_location_bugs_summary = OrderedDict()
@@ -467,12 +501,17 @@ def Main():
                 bugs_pass = bugs_per_pass["pass"]
                 bugs = bugs_per_pass["bugs"][0]
             except:
-                skipped_lines += 1
+                try:
+                    file = bugs_per_pass["file"]
+                    args = bugs_per_pass["args"]
+                    di_file_args[file] = args
+                except:
+                    skipped_lines += 1
                 continue
 
-            di_loc_bugs = []
-            di_sp_bugs = []
-            di_var_bugs = []
+            di_loc_bugs = di_location_bugs[bugs_file][bugs_pass]
+            di_sp_bugs = di_subprogram_bugs[bugs_file][bugs_pass]
+            di_var_bugs = di_variable_bugs[bugs_file][bugs_pass]
 
             # Omit duplicated bugs.
             di_loc_set = set()
@@ -487,14 +526,16 @@ def Main():
 
                 if bugs_metadata == "DILocation":
                     try:
+                        origin = bug["origin"]
                         action = bug["action"]
+                        instr_name = bug["instr-name"]
                         bb_name = bug["bb-name"]
                         fn_name = bug["fn-name"]
                         instr = bug["instr"]
                     except:
                         skipped_bugs += 1
                         continue
-                    di_loc_bug = DILocBug(action, bb_name, fn_name, instr)
+                    di_loc_bug = DILocBug(origin, action, instr_name, bb_name, fn_name, instr)
                     if not str(di_loc_bug) in di_loc_set:
                         di_loc_set.add(str(di_loc_bug))
                         if opts.compress:
@@ -573,6 +614,7 @@ def Main():
         di_location_bugs_summary,
         di_sp_bugs_summary,
         di_var_bugs_summary,
+        di_file_args,
         opts.html_file,
     )
 

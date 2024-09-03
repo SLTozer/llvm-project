@@ -932,6 +932,9 @@ unsigned llvm::getDebugMetadataVersionFromModule(const Module &M) {
 void Instruction::applyMergedLocation(DILocation *LocA, DILocation *LocB) {
   setDebugLoc(DILocation::getMergedLocation(LocA, LocB));
 }
+void Instruction::applyMergedLocation(DebugLoc LocA, DebugLoc LocB) {
+  setDebugLoc(DebugLoc::getMergedLocation(LocA, LocB));
+}
 
 void Instruction::mergeDIAssignID(
     ArrayRef<const Instruction *> SourceInstructions) {
@@ -979,7 +982,7 @@ void Instruction::dropLocation() {
   }
 
   if (!MayLowerToCall) {
-    setDebugLoc(DebugLoc());
+    setDebugLoc(DebugLoc::getLineZero());
     return;
   }
 
@@ -998,7 +1001,7 @@ void Instruction::dropLocation() {
     //
     // One alternative is to set a line 0 location with the existing scope and
     // inlinedAt info. The location might be sensitive to when inlining occurs.
-    setDebugLoc(DebugLoc());
+    setDebugLoc(DebugLoc::getLineZero());
 }
 
 //===----------------------------------------------------------------------===//

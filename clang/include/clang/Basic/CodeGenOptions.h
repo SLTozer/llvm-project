@@ -221,6 +221,7 @@ public:
   /// The file to use for dumping bug report by `Debugify` for original
   /// debug info.
   std::string DIBugsReportFilePath;
+  std::string DIBugsReportArgString;
 
   /// The floating-point denormal mode to use.
   llvm::DenormalMode FPDenormalMode = llvm::DenormalMode::getIEEE();

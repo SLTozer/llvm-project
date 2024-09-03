@@ -1885,6 +1885,16 @@ bool CompilerInvocation::ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args,
         << Opts.DIBugsReportFilePath;
     Opts.DIBugsReportFilePath = "";
   }
+  if (Opts.EnableDIPreservationVerify && Opts.DIBugsReportFilePath.size()) {
+    std::string ArgString;
+    llvm::raw_string_ostream OS(ArgString);
+    OS << "{\"file\":\"" << OutputFile << "\", \"args\":\"";
+    for (Arg *A : Args) {
+      OS << A->getAsString(Args) << " ";
+    }
+    OS << "\"}\n";
+    Opts.DIBugsReportArgString = ArgString;
+  }
 
   Opts.NewStructPathTBAA = !Args.hasArg(OPT_no_struct_path_tbaa) &&
                            Args.hasArg(OPT_new_struct_path_tbaa);

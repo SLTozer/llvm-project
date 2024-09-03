@@ -9,6 +9,7 @@
 // This file provides the Win32 specific implementation of the Signals class.
 //
 //===----------------------------------------------------------------------===//
+#include "llvm/Config/config.h"
 #include "llvm/Support/ConvertUTF.h"
 #include "llvm/Support/ExitCodes.h"
 #include "llvm/Support/FileSystem.h"
@@ -540,6 +541,67 @@ void sys::PrintStackTraceOnErrorSignal(StringRef Argv0,
 // Provide a prototype for RtlCaptureContext, mingw32 from mingw.org is
 // missing it but mingw-w64 has it.
 extern "C" VOID WINAPI RtlCaptureContext(PCONTEXT ContextRecord);
+#endif
+
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
+namespace llvm {
+namespace sys {
+template <unsigned long MaxDepth>
+int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
+  STACKFRAME64 StackFrame{};
+  CONTEXT Context{};
+  ::RtlCaptureContext(&Context);
+#if defined(_M_X64)
+  StackFrame.AddrPC.Offset = Context.Rip;
+  StackFrame.AddrStack.Offset = Context.Rsp;
+  StackFrame.AddrFrame.Offset = Context.Rbp;
+#elif defined(_M_IX86)
+  StackFrame.AddrPC.Offset = Context.Eip;
+  StackFrame.AddrStack.Offset = Context.Esp;
+  StackFrame.AddrFrame.Offset = Context.Ebp;
+#elif defined(_M_ARM64)
+  StackFrame.AddrPC.Offset = Context.Pc;
+  StackFrame.AddrStack.Offset = Context.Sp;
+  StackFrame.AddrFrame.Offset = Context.Fp;
+#elif defined(_M_ARM)
+  StackFrame.AddrPC.Offset = Context.Pc;
+  StackFrame.AddrStack.Offset = Context.Sp;
+  StackFrame.AddrFrame.Offset = Context.R11;
+#endif
+  StackFrame.AddrPC.Mode = AddrModeFlat;
+  StackFrame.AddrStack.Mode = AddrModeFlat;
+  StackFrame.AddrFrame.Mode = AddrModeFlat;
+
+  HANDLE hProcess = GetCurrentProcess();
+  HANDLE hThread = GetCurrentThread();
+
+  // It's possible that DbgHelp.dll hasn't been loaded yet (e.g. if this
+  // function is called before the main program called `llvm::InitLLVM`).
+  // In this case just return, not stacktrace will be printed.
+  assert(
+      isDebugHelpInitialized() &&
+      "getStackTrace must not be called before DbgHelp.dll has been loaded.");
+
+  // Initialize the symbol handler.
+  fSymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
+  fSymInitialize(hProcess, NULL, TRUE);
+  Context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER;
+
+  size_t WalkDepth = 0;
+  while (WalkDepth < MaxDepth &&
+         fStackWalk64(NativeMachineType, hProcess, hThread, &StackFrame,
+                      &Context, 0, fSymFunctionTableAccess64,
+                      fSymGetModuleBase64, 0)) {
+    if (StackFrame.AddrFrame.Offset == 0)
+      break;
+    StackTrace[WalkDepth++] = (void *)(uintptr_t)StackFrame.AddrPC.Offset;
+  }
+  return WalkDepth;
+}
+template int llvm::sys::getStackTrace<8ul>(std::array<void *, 8ul> &);
+template int llvm::sys::getStackTrace<16ul>(std::array<void *, 16ul> &);
+} // namespace sys
+} // namespace llvm
 #endif
 
 static void LocalPrintStackTrace(raw_ostream &OS, PCONTEXT C) {

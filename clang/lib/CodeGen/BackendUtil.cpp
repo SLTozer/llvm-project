@@ -898,13 +898,43 @@ void EmitAssemblyHelper::RunOptimizationPipeline(
   DebugifyEachInstrumentation Debugify;
   DebugInfoPerPass DebugInfoBeforePass;
   if (CodeGenOpts.EnableDIPreservationVerify) {
+
     Debugify.setDebugifyMode(DebugifyMode::OriginalDebugInfo);
     Debugify.setDebugInfoBeforePass(DebugInfoBeforePass);
 
-    if (!CodeGenOpts.DIBugsReportFilePath.empty())
+    if (!CodeGenOpts.DIBugsReportFilePath.empty()) {
       Debugify.setOrigDIVerifyBugsReportFilePath(
           CodeGenOpts.DIBugsReportFilePath);
+      std::error_code EC;
+      raw_fd_ostream OS_FILE{CodeGenOpts.DIBugsReportFilePath, EC,
+                             sys::fs::OF_Append | sys::fs::OF_TextWithCRLF};
+      if (EC) {
+        errs() << "Could not open file: " << EC.message() << ", "
+               << CodeGenOpts.DIBugsReportFilePath << '\n';
+      } else {
+        if (auto L = OS_FILE.lock()) {
+          OS_FILE << CodeGenOpts.DIBugsReportArgString;
+        }
+        OS_FILE.close();
+      }
+    }
     Debugify.registerCallbacks(PIC, MAM);
+
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
+    // If we're using debug location coverage tracking, mark all the
+    // instructions coming out of the frontend without a DebugLoc as being
+    // intentional line-zero locations, to prevent both those instructions and
+    // new instructions that inherit their location from being treated as
+    // incorrectly empty locations.
+    for (Function &F : *TheModule) {
+      if (!F.getSubprogram())
+        continue;
+      for (BasicBlock &BB : F)
+        for (Instruction &I : BB)
+          if (!I.getDebugLoc())
+            I.setDebugLoc(DebugLoc::getLineZero());
+    }
+#endif
   }
   // Attempt to load pass plugins and register their callbacks with PB.
   for (auto &PluginFN : CodeGenOpts.PassPlugins) {
