@@ -87,9 +87,9 @@ std::string symbolizeStacktrace(const Instruction *I) {
     auto &[Depth, Stacktrace] = ST.Stacktraces[TraceIdx];
     for (int Frame = 0; Frame < Depth; ++Frame) {
       assert(SymbolizedAddrs.contains(Stacktrace[Frame]) &&
-            "Expected each address to have been symbolized.");
+             "Expected each address to have been symbolized.");
       OS << right_justify(formatv("#{0}", Frame).str(), std::log10(Depth) + 2)
-        << ' ' << SymbolizedAddrs[Stacktrace[Frame]];
+         << ' ' << SymbolizedAddrs[Stacktrace[Frame]];
     }
   }
   return Result;

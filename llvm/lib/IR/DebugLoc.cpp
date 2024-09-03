@@ -33,15 +33,9 @@ void DbgLocOriginBacktrace::addTrace() {
   Depth = sys::getStackTrace(Stacktrace);
 }
 
-DebugLoc DebugLoc::getTemporary() {
-  return DebugLoc(DebugLocKind::Temporary);
-}
-DebugLoc DebugLoc::getUnknown() {
-  return DebugLoc(DebugLocKind::Unknown);
-}
-DebugLoc DebugLoc::getLineZero() {
-  return DebugLoc(DebugLocKind::LineZero);
-}
+DebugLoc DebugLoc::getTemporary() { return DebugLoc(DebugLocKind::Temporary); }
+DebugLoc DebugLoc::getUnknown() { return DebugLoc(DebugLocKind::Unknown); }
+DebugLoc DebugLoc::getLineZero() { return DebugLoc(DebugLocKind::LineZero); }
 
 #else
 

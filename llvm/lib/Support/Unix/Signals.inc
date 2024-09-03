@@ -499,7 +499,6 @@ static int dl_iterate_phdr_cb(dl_phdr_info *info, size_t size, void *arg) {
   return 0;
 }
 
-
 #if ENABLE_DEBUGLOC_COVERAGE_TRACKING
 namespace llvm {
 namespace sys {
@@ -509,8 +508,8 @@ int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
 }
 template int getStackTrace<8ul>(std::array<void *, 8ul> &);
 template int getStackTrace<16ul>(std::array<void *, 16ul> &);
-}
-}
+} // namespace sys
+} // namespace llvm
 #endif
 
 /// If this is an ELF platform, we can find all loaded modules and their virtual

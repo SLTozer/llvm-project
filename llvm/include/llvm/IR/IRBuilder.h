@@ -102,7 +102,8 @@ class IRBuilderBase {
   /// Add or update the an entry (Kind, MD) to MetadataToCopy, if \p MD is not
   /// null. If \p MD is null, remove the entry with \p Kind.
   void AddOrRemoveMetadataToCopy(unsigned Kind, MDNode *MD) {
-    assert(Kind != LLVMContext::MD_dbg && "MD_dbg metadata must be stored in StoredDL");
+    assert(Kind != LLVMContext::MD_dbg &&
+           "MD_dbg metadata must be stored in StoredDL");
 
     if (!MD) {
       erase_if(MetadataToCopy, [Kind](const std::pair<unsigned, MDNode *> &KV) {

@@ -574,7 +574,9 @@ int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
   // It's possible that DbgHelp.dll hasn't been loaded yet (e.g. if this
   // function is called before the main program called `llvm::InitLLVM`).
   // In this case just return, not stacktrace will be printed.
-  assert(isDebugHelpInitialized() && "getStackTrace must not be called before DbgHelp.dll has been loaded.");
+  assert(
+      isDebugHelpInitialized() &&
+      "getStackTrace must not be called before DbgHelp.dll has been loaded.");
 
   // Initialize the symbol handler.
   fSymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
@@ -594,8 +596,8 @@ int getStackTrace(std::array<void *, MaxDepth> &StackTrace) {
 }
 template int llvm::sys::getStackTrace<8ul>(std::array<void *, 8ul> &);
 template int llvm::sys::getStackTrace<16ul>(std::array<void *, 16ul> &);
-}
-}
+} // namespace sys
+} // namespace llvm
 #endif
 
 static void LocalPrintStackTrace(raw_ostream &OS, PCONTEXT C) {

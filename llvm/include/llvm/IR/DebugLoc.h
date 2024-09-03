@@ -60,8 +60,8 @@ namespace llvm {
     // normal empty DebugLoc, so only collect the stack trace in those cases.
     DbgLocOriginBacktrace Origin;
     DILocAndCoverageTracking(bool NeedsStacktrace = true)
-        : TrackingMDNodeRef(nullptr), Kind(DebugLocKind::Normal), Origin(NeedsStacktrace) {
-    }
+        : TrackingMDNodeRef(nullptr), Kind(DebugLocKind::Normal),
+          Origin(NeedsStacktrace) {}
     // Valid or nullptr MDNode*, normal DebugLocKind
     DILocAndCoverageTracking(const MDNode *Loc)
         : TrackingMDNodeRef(const_cast<MDNode *>(Loc)),
@@ -127,9 +127,7 @@ namespace llvm {
       return NewDL;
     }
 #else
-    DebugLoc getCopied() const {
-      return *this;
-    }
+    DebugLoc getCopied() const { return *this; }
 #endif
 
     static DebugLoc getTemporary();

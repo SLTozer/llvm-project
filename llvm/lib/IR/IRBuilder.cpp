@@ -61,9 +61,7 @@ Type *IRBuilderBase::getCurrentFunctionReturnType() const {
   return BB->getParent()->getReturnType();
 }
 
-DebugLoc IRBuilderBase::getCurrentDebugLocation() const {
-  return StoredDL;
-}
+DebugLoc IRBuilderBase::getCurrentDebugLocation() const { return StoredDL; }
 void IRBuilderBase::SetInstDebugLocation(Instruction *I) const {
   // If I does not have an existing DebugLoc and no DebugLoc has been set
   // here, we copy our DebugLoc to I anyway, because more likely than not I

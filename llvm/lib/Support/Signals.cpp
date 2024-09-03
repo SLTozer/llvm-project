@@ -274,8 +274,8 @@ void sys::symbolizeAddresses(AddressSet &Addresses,
   }
   if (!LLVMSymbolizerPathOrErr)
     LLVMSymbolizerPathOrErr = sys::findProgramByName("llvm-symbolizer");
-  assert(!!LLVMSymbolizerPathOrErr
-         && "Debugify origin stacktraces require llvm-symbolizer.");
+  assert(!!LLVMSymbolizerPathOrErr &&
+         "Debugify origin stacktraces require llvm-symbolizer.");
   const std::string &LLVMSymbolizerPath = *LLVMSymbolizerPathOrErr;
 
   // Try to guess the main executable name, since we don't have argv0 available

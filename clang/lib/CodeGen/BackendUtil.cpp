@@ -913,10 +913,10 @@ void EmitAssemblyHelper::RunOptimizationPipeline(
           CodeGenOpts.DIBugsReportFilePath);
       std::error_code EC;
       raw_fd_ostream OS_FILE{CodeGenOpts.DIBugsReportFilePath, EC,
-                    sys::fs::OF_Append | sys::fs::OF_TextWithCRLF};
+                             sys::fs::OF_Append | sys::fs::OF_TextWithCRLF};
       if (EC) {
         errs() << "Could not open file: " << EC.message() << ", "
-              << CodeGenOpts.DIBugsReportFilePath << '\n';
+               << CodeGenOpts.DIBugsReportFilePath << '\n';
       } else {
         if (auto L = OS_FILE.lock()) {
           OS_FILE << CodeGenOpts.DIBugsReportArgString;

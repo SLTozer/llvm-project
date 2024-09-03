@@ -53,8 +53,7 @@ CSEMIRBuilder::getDominatingInstrForID(FoldingSetNodeID &ID,
     } else if (!dominates(MI, CurrPos)) {
       // Update the spliced machineinstr's debug location by merging it with the
       // debug location of the instruction at the insertion point.
-      auto Loc = DebugLoc::getMergedLocation(getDebugLoc(),
-                                             MI->getDebugLoc());
+      auto Loc = DebugLoc::getMergedLocation(getDebugLoc(), MI->getDebugLoc());
       MI->setDebugLoc(Loc);
       CurMBB->splice(CurrPos, CurMBB, MI);
     }
