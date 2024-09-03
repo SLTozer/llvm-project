@@ -84,6 +84,8 @@ namespace sys {
 
   /// Takes a set of \p Addresses, symbolizes them and stores the result in the
   /// provided \p SymbolizedAddresses map.
+  /// NB: This is only intended to be used for introspection of LLVM by Debugify, will not be
+  /// enabled in release builds, and should not be relied on for other purposes.
   void symbolizeAddresses(AddressSet &Addresses,
                           SymbolizedAddressMap &SymbolizedAddresses);
 #endif
