@@ -25,12 +25,11 @@ namespace llvm {
   class DILocation;
   class Function;
 
-#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
-  struct DbgLocOriginStacktrace {
+#ifdef ENABLE_DEBUGLOC_COVERAGE_TRACKING
+  struct DbgLocOriginBacktrace {
     static constexpr unsigned long MaxDepth = 16;
-    size_t StacktraceIdx;
-    DbgLocOriginStacktrace(bool ShouldCollectTrace);
-    SmallVector<std::pair<int, std::array<void *, MaxDepth>>, 0> getStacktraces();
+    SmallVector<std::pair<int, std::array<void *, MaxDepth>>, 0> Stacktraces;
+    DbgLocOriginBacktrace(bool ShouldCollectTrace);
     void addTrace();
   };
 
@@ -59,7 +58,7 @@ namespace llvm {
     DebugLocKind Kind;
     // Currently we only need to track the Origin of this DILoc when using a
     // normal empty DebugLoc, so only collect the stack trace in those cases.
-    DbgLocOriginStacktrace Origin;
+    DbgLocOriginBacktrace Origin;
     DILocAndCoverageTracking(bool NeedsStacktrace = true)
         : TrackingMDNodeRef(nullptr), Kind(DebugLocKind::Normal), Origin(NeedsStacktrace) {
     }
@@ -121,7 +120,7 @@ namespace llvm {
 #if ENABLE_DEBUGLOC_COVERAGE_TRACKING
     DebugLoc(DebugLocKind Kind) : Loc(Kind) {}
     DebugLocKind getKind() const { return Loc.Kind; }
-    DbgLocOriginStacktrace getOrigin() const { return Loc.Origin; }
+    DbgLocOriginBacktrace getOrigin() const { return Loc.Origin; }
     DebugLoc getCopied() const {
       DebugLoc NewDL = *this;
       NewDL.Loc.Origin.addTrace();

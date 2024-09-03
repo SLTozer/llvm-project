@@ -6,7 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/ADT/Hashing.h"
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/DebugInfo.h"
@@ -17,127 +16,21 @@
 
 using namespace llvm;
 
-struct StacktraceOrList {
-  union {
-    std::array<void *, DbgLocOriginStacktrace::MaxDepth> Single;
-    std::array<size_t, DbgLocOriginStacktrace::MaxDepth> STList;
-  };
-  uint8_t Size : 7;
-  uint8_t IsList : 1;
-  StacktraceOrList(int Size, std::array<size_t, DbgLocOriginStacktrace::MaxDepth> STList) : STList(STList), Size(Size), IsList(0) {}
-  StacktraceOrList(int Size, std::array<void *, DbgLocOriginStacktrace::MaxDepth> Single) : Single(Single), Size(Size), IsList(1) {}
-  StacktraceOrList(bool Tombstone = false) : Size(Tombstone ? 0x7F : 0), IsList(Tombstone ? 1 : 0) {
-    static_assert(DbgLocOriginStacktrace::MaxDepth < 0x7F, "Size of backtrace array must fit in 7 bits - 1");
-  }
-};
-
-hash_code hash_value(const StacktraceOrList &S) {
-  static_assert(DbgLocOriginStacktrace::MaxDepth < (1 << 7));
-  hash_code Result;
-  if (S.IsList) {
-    Result = hash_combine_range(S.Single.begin(), S.Single.begin() + S.Size);
-  } else {
-    Result = hash_combine_range(S.STList.begin(), S.STList.begin() + S.Size);
-  }
-  return Result;
-}
-namespace llvm {
-template <> struct DenseMapInfo<StacktraceOrList> {
-  static inline StacktraceOrList getEmptyKey() {
-    return StacktraceOrList();
-  }
-
-  static inline StacktraceOrList getTombstoneKey() {
-    return StacktraceOrList(true);
-  }
-
-  static unsigned getHashValue(const StacktraceOrList &Val) {
-    return hash_value(Val);
-  }
-
-  static bool isEqual(const StacktraceOrList &LHS, const StacktraceOrList &RHS) {
-    if (LHS.IsList != RHS.IsList)
-      return false;
-    if (LHS.IsList)
-      return ArrayRef(LHS.Single.begin(), LHS.Single.begin() + LHS.Size) == ArrayRef(RHS.Single.begin(), RHS.Single.begin() + RHS.Size);
-    return ArrayRef(LHS.STList.begin(), LHS.STList.begin() + LHS.Size) == ArrayRef(RHS.STList.begin(), RHS.STList.begin() + RHS.Size);
-  }
-};
-}
-
-// Storage for every unique stacktrace or list of stacktraces collected across this run of the program.
-static std::vector<StacktraceOrList> CollectedStacktraces(1, StacktraceOrList());
-// Mapping from a unique stacktrace or list of stacktraces to an index in the CollectedStacktraces vector.
-static DenseMap<StacktraceOrList, size_t> StacktraceStorageMap;
-
-size_t getIndex(const StacktraceOrList &S) {
-  // Special empty value that can't be inserted into the map.
-  if (S.Size == 0)
-    return 0;
-  auto [It, R] = StacktraceStorageMap.insert({S, CollectedStacktraces.size()});
-  if (R)
-    CollectedStacktraces.push_back(S);
-  return It->second;
-}
-inline StacktraceOrList getStacktraceFromIndex(size_t Idx) {
-  return CollectedStacktraces[Idx];
-}
-// Given an index to an existing stored stacktrace, and a new 
-size_t getIndexForAddedTrace(size_t Idx, StacktraceOrList S) {
-  size_t AddedIdx = getIndex(S);
-  if (Idx == 0)
-    return AddedIdx;
-  StacktraceOrList Current = getStacktraceFromIndex(Idx);
-  StacktraceOrList New;
-  if (Current.IsList) {
-    std::array<size_t, DbgLocOriginStacktrace::MaxDepth> STList = {Idx, AddedIdx};
-    New = StacktraceOrList(2, STList);
-  } else {
-    // There is no way to represent a STList-backtrace containing more than MaxDepth
-    // backtraces, so just leave it unappended.
-    // FIXME: We could rotate it, so that we get the MaxDepth-most recent
-    // backtraces rather than the oldest?
-    if (Current.Size == DbgLocOriginStacktrace::MaxDepth)
-      return Idx;
-    New = StacktraceOrList(Current.Size + 1, Current.STList);
-    New.STList[Current.Size] = AddedIdx;
-  }
-  return getIndex(S);
-}
-
-
 DILocAndCoverageTracking::DILocAndCoverageTracking(const DILocation *L)
     : TrackingMDNodeRef(const_cast<DILocation *>(L)),
       Kind(DebugLocKind::Normal), Origin(!L) {}
 
-DbgLocOriginStacktrace::DbgLocOriginStacktrace(bool ShouldCollectTrace) : StacktraceIdx(0) {
-  if (!ShouldCollectTrace)
-    return;
-  std::array<void *, DbgLocOriginStacktrace::MaxDepth> Stacktrace;
-  int Depth = sys::getStackTrace(Stacktrace);
-  StacktraceIdx = getIndexForAddedTrace(StacktraceIdx, StacktraceOrList(Depth, Stacktrace));
-}
-void DbgLocOriginStacktrace::addTrace() {
-  if (StacktraceIdx == 0)
-    return;
-  std::array<void *, DbgLocOriginStacktrace::MaxDepth> Stacktrace;
-  int Depth = sys::getStackTrace(Stacktrace);
-  StacktraceIdx = getIndex(StacktraceOrList(Depth, Stacktrace));
-}
-SmallVector<std::pair<int, std::array<void *, DbgLocOriginStacktrace::MaxDepth>>, 0> DbgLocOriginStacktrace::getStacktraces() {
-  SmallVector<std::pair<int, std::array<void *, DbgLocOriginStacktrace::MaxDepth>>, 0> Stacktraces;
-  if (StacktraceIdx == 0)
-    return Stacktraces;
-  StacktraceOrList S = getStacktraceFromIndex(StacktraceIdx);
-  if (S.IsList) {
-    Stacktraces.push_back({(int)S.Size, S.Single});
-  } else {
-    for (size_t SingleIdx : ArrayRef(S.STList.data(), S.Size)) {
-      StacktraceOrList SingleS = getStacktraceFromIndex(SingleIdx);
-      Stacktraces.push_back({(int)SingleS.Size, SingleS.Single});
-    }
+DbgLocOriginBacktrace::DbgLocOriginBacktrace(bool ShouldCollectTrace) {
+  if (ShouldCollectTrace) {
+    auto &[Depth, Stacktrace] = Stacktraces.emplace_back();
+    Depth = sys::getStackTrace(Stacktrace);
   }
-  return Stacktraces;
+}
+void DbgLocOriginBacktrace::addTrace() {
+  if (Stacktraces.empty())
+    return;
+  auto &[Depth, Stacktrace] = Stacktraces.emplace_back();
+  Depth = sys::getStackTrace(Stacktrace);
 }
 
 DebugLoc DebugLoc::getTemporary() {
