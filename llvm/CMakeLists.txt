@@ -524,7 +524,12 @@ endif()
 
 option(LLVM_ENABLE_CRASH_DUMPS "Turn on memory dumps on crashes. Currently only implemented on Windows." OFF)
 
-option(LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING "Enhance debugify's line number tracking at the cost of performance; abi-breaking." ON)
+option(LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING "Enhance debugify's line number tracking at the cost of performance; abi-breaking." OFF)
+if(LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING)
+  set(ENABLE_DEBUGLOC_COVERAGE_TRACKING 1)
+else()
+  set(ENABLE_DEBUGLOC_COVERAGE_TRACKING 0)
+endif()
 
 set(WINDOWS_PREFER_FORWARD_SLASH_DEFAULT OFF)
 if (MINGW)

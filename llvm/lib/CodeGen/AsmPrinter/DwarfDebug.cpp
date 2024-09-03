@@ -2081,7 +2081,7 @@ void DwarfDebug::beginInstruction(const MachineInstr *MI) {
   }
 
   if (!DL) {
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
     assert(DL.getKind() != DebugLocKind::Temporary &&
            "Temporary DebugLocs should never be considered for emission!");
 #endif

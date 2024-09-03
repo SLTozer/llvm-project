@@ -31,7 +31,7 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/JSON.h"
 #include <optional>
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
 // We need the Signals header to operate on stacktraces if we're using enhanced
 // coverage tracking.
 #include "llvm/Support/Signals.h"
@@ -65,7 +65,7 @@ cl::opt<Level> DebugifyLevel(
 
 raw_ostream &dbg() { return Quiet ? nulls() : errs(); }
 
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
 // These maps refer to addresses in this instance of LLVM, so we can reuse them
 // everywhere - therefore, we store them at file scope.
 static DenseMap<void *, std::string> SymbolizedAddrs;
@@ -348,7 +348,7 @@ bool llvm::stripDebugifyMetadata(Module &M) {
 
 bool hasLoc(const Instruction &I) {
   const DILocation *Loc = I.getDebugLoc().get();
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
   DebugLocKind Kind = I.getDebugLoc().getKind();
   return Loc || Kind != DebugLocKind::Normal;
 #else

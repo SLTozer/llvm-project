@@ -500,7 +500,7 @@ static int dl_iterate_phdr_cb(dl_phdr_info *info, size_t size, void *arg) {
 }
 
 
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
 namespace llvm {
 namespace sys {
 template <unsigned long MaxDepth>

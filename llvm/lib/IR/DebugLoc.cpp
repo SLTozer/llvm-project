@@ -12,7 +12,7 @@
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/Function.h"
 
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
 #include "llvm/Support/Signals.h"
 
 using namespace llvm;
@@ -41,7 +41,7 @@ hash_code hash_value(const StacktraceOrList &S) {
   }
   return Result;
 }
-
+namespace llvm {
 template <> struct DenseMapInfo<StacktraceOrList> {
   static inline StacktraceOrList getEmptyKey() {
     return StacktraceOrList();
@@ -63,6 +63,7 @@ template <> struct DenseMapInfo<StacktraceOrList> {
     return ArrayRef(LHS.STList.begin(), LHS.STList.begin() + LHS.Size) == ArrayRef(RHS.STList.begin(), RHS.STList.begin() + RHS.Size);
   }
 };
+}
 
 // Storage for every unique stacktrace or list of stacktraces collected across this run of the program.
 static std::vector<StacktraceOrList> CollectedStacktraces(1, StacktraceOrList());
@@ -156,7 +157,7 @@ using namespace llvm;
 DebugLoc DebugLoc::getTemporary() { return DebugLoc(); }
 DebugLoc DebugLoc::getUnknown() { return DebugLoc(); }
 DebugLoc DebugLoc::getLineZero() { return DebugLoc(); }
-#endif // LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#endif // ENABLE_DEBUGLOC_COVERAGE_TRACKING
 
 //===----------------------------------------------------------------------===//
 // DebugLoc Implementation

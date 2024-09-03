@@ -25,7 +25,7 @@ namespace llvm {
   class DILocation;
   class Function;
 
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
   struct DbgLocOriginStacktrace {
     static constexpr unsigned long MaxDepth = 16;
     size_t StacktraceIdx;
@@ -91,7 +91,7 @@ namespace llvm {
   using DebugLocTrackingRef = DILocAndCoverageTracking;
 #else
   using DebugLocTrackingRef = TrackingMDNodeRef;
-#endif // LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#endif // ENABLE_DEBUGLOC_COVERAGE_TRACKING
 
   /// A debug info location.
   ///
@@ -118,7 +118,7 @@ namespace llvm {
     /// IR.
     explicit DebugLoc(const MDNode *N);
 
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
     DebugLoc(DebugLocKind Kind) : Loc(Kind) {}
     DebugLocKind getKind() const { return Loc.Kind; }
     DbgLocOriginStacktrace getOrigin() const { return Loc.Origin; }

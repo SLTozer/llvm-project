@@ -539,7 +539,7 @@ void sys::PrintStackTraceOnErrorSignal(StringRef Argv0,
 extern "C" VOID WINAPI RtlCaptureContext(PCONTEXT ContextRecord);
 #endif
 
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
 namespace llvm {
 namespace sys {
 template <unsigned long MaxDepth>

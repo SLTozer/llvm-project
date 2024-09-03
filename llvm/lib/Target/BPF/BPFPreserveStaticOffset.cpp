@@ -228,7 +228,7 @@ static Instruction *makeGEPAndLoad(Module *M, GEPChainInfo &GEP,
   CallInst *Call = makeIntrinsicCall(M, Intrinsic::bpf_getelementptr_and_load,
                                      {Load->getType()}, Args);
   setParamElementType(Call, 0, GEP.SourceElementType);
-  Call->applyMergedLocation(mergeDILocations(GEP.Members), Load->getDebugLoc());
+  Call->applyMergedLocation(DebugLoc(mergeDILocations(GEP.Members)), Load->getDebugLoc());
   Call->setName((*GEP.Members.rbegin())->getName());
   if (Load->isUnordered()) {
     Call->setOnlyReadsMemory();
@@ -252,7 +252,7 @@ static Instruction *makeGEPAndStore(Module *M, GEPChainInfo &GEP,
   setParamElementType(Call, 1, GEP.SourceElementType);
   if (Store->getValueOperand()->getType()->isPointerTy())
     setParamReadNone(Call, 0);
-  Call->applyMergedLocation(mergeDILocations(GEP.Members),
+  Call->applyMergedLocation(DebugLoc(mergeDILocations(GEP.Members)),
                             Store->getDebugLoc());
   if (Store->isUnordered()) {
     Call->setOnlyWritesMemory();

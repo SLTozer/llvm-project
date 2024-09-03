@@ -23,7 +23,7 @@ namespace llvm {
 class StringRef;
 class raw_ostream;
 
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
 template <typename T, typename Enable> struct DenseMapInfo;
 template <typename ValueT, typename ValueInfoT> class DenseSet;
 namespace detail {
@@ -71,7 +71,7 @@ namespace sys {
   ///        specified, the entire frame is printed.
   void PrintStackTrace(raw_ostream &OS, int Depth = 0);
 
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
 #ifdef NDEBUG
 #error DebugLoc Coverage Tracking should not be enabled in Release builds.
 #endif

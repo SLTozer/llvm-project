@@ -253,7 +253,7 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
   return true;
 }
 
-#ifdef LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if ENABLE_DEBUGLOC_COVERAGE_TRACKING
 void sys::symbolizeAddresses(AddressSet &Addresses,
                              SymbolizedAddressMap &SymbolizedAddresses) {
   assert(!DisableSymbolicationFlag && !getenv(DisableSymbolizationEnv) &&
