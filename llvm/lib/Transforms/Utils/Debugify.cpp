@@ -672,6 +672,13 @@ bool llvm::checkDebugInfoMetadata(Module &M,
   // again in the collectDebugInfoMetadata(), since as an input we can use
   // the debugging information from the previous pass.
   DebugInfoBeforePass = DebugInfoAfterPass;
+  // We should make this conditional on debugify-each, but this has to be done
+  // if we're reusing DebugInfoAfterPass.
+  for (const auto &L : DebugInfoBeforePass.DILocations) {
+    auto Instr = L.first;
+    DebugInfoBeforePass.InstToDelete.insert(
+        {const_cast<Instruction *>(Instr), const_cast<Instruction *>(Instr)});
+  }
 
   LLVM_DEBUG(dbgs() << "\n\n");
   return Result;
