@@ -13,15 +13,23 @@ from collections import OrderedDict
 
 
 class DILocBug:
-    def __init__(self, origin, action, bb_name, fn_name, instr):
+    def __init__(self, origin, action, instr_name, bb_name, fn_name, instr):
         self.origin = origin
         self.action = action
+        self.instr_name = instr_name
         self.bb_name = bb_name
         self.fn_name = fn_name
         self.instr = instr
 
     def __str__(self):
-        return self.action + self.bb_name + self.fn_name + self.instr + self.origin
+        return (
+            self.action
+            + self.bb_name
+            + self.fn_name
+            + self.instr
+            + self.instr_name
+            + self.origin
+        )
 
 
 class DISPBug:
@@ -87,6 +95,7 @@ def generate_html_report(
         "LLVM IR Instruction",
         "Function Name",
         "Basic Block Name",
+        "Instruction Name",
         "Action",
         "Origin",
     ]
@@ -114,6 +123,7 @@ def generate_html_report(
                 row.append(x.instr)
                 row.append(x.fn_name)
                 row.append(x.bb_name)
+                row.append(x.instr_name)
                 row.append(x.action)
                 row.append(f"<details><summary>View Origin StackTrace</summary><pre>{x.origin}</pre></details>")
                 row.append("    </tr>\n")
@@ -528,13 +538,16 @@ def Main():
                     try:
                         origin = bug["origin"]
                         action = bug["action"]
+                        instr_name = bug["instr-name"]
                         bb_name = bug["bb-name"]
                         fn_name = bug["fn-name"]
                         instr = bug["instr"]
                     except:
                         skipped_bugs += 1
                         continue
-                    di_loc_bug = DILocBug(origin, action, bb_name, fn_name, instr)
+                    di_loc_bug = DILocBug(
+                        origin, action, instr_name, bb_name, fn_name, instr
+                    )
                     if not str(di_loc_bug) in di_loc_set:
                         di_loc_set.add(str(di_loc_bug))
                         if opts.compress:
