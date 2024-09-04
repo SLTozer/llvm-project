@@ -159,6 +159,9 @@ namespace llvm {
     static DebugLoc getUnknown();
     static DebugLoc getLineZero();
 
+    static DebugLoc getMergedLocations(ArrayRef<DebugLoc> Locs);
+    static DebugLoc getMergedLocation(DebugLoc LocA, DebugLoc LocB);
+
     /// Get the underlying \a DILocation.
     ///
     /// \pre !*this or \c isa<DILocation>(getAsMDNode()).
