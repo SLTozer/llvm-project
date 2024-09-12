@@ -507,6 +507,7 @@ static bool checkInstructions(const DebugInstMap &DILocsBefore,
     auto BB = Instr->getParent();
     auto BBName = BB->hasName() ? BB->getName() : "no-name";
     auto InstName = Instruction::getOpcodeName(Instr->getOpcode());
+    auto InstLabel = Instr->getNameOrAsOperand();
 
     auto CreateJSONBugEntry = [&](const char *Action) {
       Bugs.push_back(llvm::json::Object({
