@@ -11,20 +11,32 @@
 #include "llvm/IR/DebugInfo.h"
 
 #if LLVM_ENABLE_DEBUGLOC_ORIGIN_TRACKING
+#include "llvm/IR/OptBisect.h"
 #include "llvm/Support/Signals.h"
 
 namespace llvm {
 DbgLocOrigin::DbgLocOrigin(bool ShouldCollectTrace) {
-  if (ShouldCollectTrace) {
-    auto &[Depth, StackTrace] = StackTraces.emplace_back();
-    Depth = sys::getStackTrace(StackTrace);
-  }
+  if (!ShouldCollectTrace)
+    return;
+  auto &[OptBisectCount, Depth, Frames] = StackTraces.emplace_back();
+  Depth = sys::getStackTrace(Frames);
+  // FIXME: Right now we must use `getGlobalPassGate()` to access the OptBisect
+  // singleton, and it always returns that singleton. If that access pattern
+  // changes, so must this code.
+  OptBisect &Bisect = static_cast<OptBisect &>(getGlobalPassGate());
+  // We subtract one because we want OptBisectCount to be the value needed for
+  // generating a reproducer case using --opt-bisect-limit, i.e. we want to
+  // *not* run the pass that we are currently running.
+  OptBisectCount = Bisect.getBisectNum() - 1;
 }
 void DbgLocOrigin::addTrace() {
   if (StackTraces.empty())
     return;
-  auto &[Depth, StackTrace] = StackTraces.emplace_back();
-  Depth = sys::getStackTrace(StackTrace);
+  auto &[OptBisectCount, Depth, Frames] = StackTraces.emplace_back();
+  Depth = sys::getStackTrace(Frames);
+  // See comment above.
+  OptBisect &Bisect = static_cast<OptBisect &>(getGlobalPassGate());
+  OptBisectCount = Bisect.getBisectNum() - 1;
 }
 } // namespace llvm
 #endif

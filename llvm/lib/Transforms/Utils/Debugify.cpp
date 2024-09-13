@@ -84,23 +84,24 @@ std::string symbolizeStackTrace(const Instruction *I) {
   std::string Result;
   raw_string_ostream OS(Result);
   for (size_t TraceIdx = 0; TraceIdx < OriginStackTraces.size(); ++TraceIdx) {
-    if (TraceIdx != 0)
-      OS << "========================================\n";
-    auto &[Depth, StackTrace] = OriginStackTraces[TraceIdx];
-    for (int Frame = 0; Frame < Depth; ++Frame) {
-      assert(SymbolizedAddrs.contains(StackTrace[Frame]) &&
+    auto StackTrace = OriginStackTraces[TraceIdx];
+    OS << "Stack Trace " << TraceIdx
+       << " (--opt-bisect-limit=" << StackTrace.OptBisectCount << "):\n";
+    for (int FrameIdx = 0; FrameIdx < StackTrace.Depth; ++FrameIdx) {
+      assert(SymbolizedAddrs.contains(StackTrace.Frames[FrameIdx]) &&
              "Expected each address to have been symbolized.");
-      OS << right_justify(formatv("#{0}", Frame).str(), std::log10(Depth) + 2)
-         << ' ' << SymbolizedAddrs[StackTrace[Frame]];
+      OS << right_justify(formatv("#{0}", FrameIdx).str(),
+                          std::log10(StackTrace.Depth) + 2)
+         << ' ' << SymbolizedAddrs[StackTrace.Frames[FrameIdx]];
     }
   }
   return Result;
 }
 void collectStackAddresses(Instruction &I) {
   auto &OriginStackTraces = I.getDebugLoc().getOriginStackTraces();
-  for (auto &[Depth, StackTrace] : OriginStackTraces) {
-    for (int Frame = 0; Frame < Depth; ++Frame) {
-      void *Addr = StackTrace[Frame];
+  for (auto StackTrace : OriginStackTraces) {
+    for (int FrameIdx = 0; FrameIdx < StackTrace.Depth; ++FrameIdx) {
+      void *Addr = StackTrace.Frames[FrameIdx];
       if (!SymbolizedAddrs.contains(Addr))
         UnsymbolizedAddrs.insert(Addr);
     }

@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/IR/OptBisect.h"
+#include "llvm/Config/config.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
@@ -25,8 +26,23 @@ static OptBisect &getOptBisector() {
   return OptBisector;
 }
 
+namespace {
+#ifdef LLVM_ENABLE_DEBUGLOC_ORIGIN_TRACKING
+// When origin tracking is enabled, we choose to set OptBisect to "-1" by
+// default and to run in quiet mode. This means that it will not stop any
+// optimizations or produce any output, but it will be enabled and continue to
+// count optimizations, which we use in the debugify reports.
+constexpr int DefaultLimit = -1;
+constexpr bool DefaultVerbose = false;
+#else
+// In normal builds, we disable OptBisect by default and produce verbose output.
+constexpr int DefaultLimit = OptBisect::Disabled;
+constexpr bool DefaultVerbose = true;
+#endif
+}
+
 static cl::opt<int> OptBisectLimit("opt-bisect-limit", cl::Hidden,
-                                   cl::init(OptBisect::Disabled), cl::Optional,
+                                   cl::init(DefaultLimit), cl::Optional,
                                    cl::cb<void, int>([](int Limit) {
                                      getOptBisector().setLimit(Limit);
                                    }),
@@ -35,7 +51,7 @@ static cl::opt<int> OptBisectLimit("opt-bisect-limit", cl::Hidden,
 static cl::opt<bool> OptBisectVerbose(
     "opt-bisect-verbose",
     cl::desc("Show verbose output when opt-bisect-limit is set"), cl::Hidden,
-    cl::init(true), cl::Optional);
+    cl::init(DefaultVerbose), cl::Optional);
 
 static void printPassMessage(const StringRef &Name, int PassNum,
                              StringRef TargetDesc, bool Running) {
