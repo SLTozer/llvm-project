@@ -2302,7 +2302,7 @@ void DwarfDebug::beginFunctionImpl(const MachineFunction *MF) {
     {
       MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
       SmallVector<MachineOperand, 4> Cond;
-      bool AnalyzeFailed = TII->analyzeBranch(*MBB, TBB, FBB, Cond);
+      bool AnalyzeFailed = true; //TII->analyzeBranch(*MBB, TBB, FBB, Cond);
       // For a conditional branch followed by unconditional branch where the
       // unconditional branch has a DebugLoc, that loc is the outgoing loc to
       // the the false destination only; otherwise, both destinations share an
