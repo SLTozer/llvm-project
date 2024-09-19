@@ -2517,7 +2517,6 @@ void CodeGenModule::SetLLVMFunctionAttributesForDefinition(const Decl *D,
   // We can't add optnone in the following cases, it won't pass the verifier.
   ShouldAddOptNone &= !D->hasAttr<MinSizeAttr>();
   ShouldAddOptNone &= !D->hasAttr<AlwaysInlineAttr>();
-
   // Non-entry HLSL functions must always be inlined.
   if (getLangOpts().HLSL && !F->hasFnAttribute(llvm::Attribute::NoInline) &&
       !D->hasAttr<NoInlineAttr>()) {
@@ -2536,6 +2535,7 @@ void CodeGenModule::SetLLVMFunctionAttributesForDefinition(const Decl *D,
       B.addAttribute(llvm::Attribute::Naked);
 
     // OptimizeNone wins over OptimizeForSize and MinSize.
+    F->removeFnAttr(llvm::Attribute::OptimizeForDebugging);
     F->removeFnAttr(llvm::Attribute::OptimizeForSize);
     F->removeFnAttr(llvm::Attribute::MinSize);
   } else if (D->hasAttr<NakedAttr>()) {
@@ -2586,7 +2586,8 @@ void CodeGenModule::SetLLVMFunctionAttributesForDefinition(const Decl *D,
 
   // Add other optimization related attributes if we are optimizing this
   // function.
-  if (!D->hasAttr<OptimizeNoneAttr>()) {
+  if (!D->hasAttr<OptimizeNoneAttr>() &&
+      !F->hasFnAttribute(llvm::Attribute::OptimizeForDebugging)) {
     if (D->hasAttr<ColdAttr>()) {
       if (!ShouldAddOptNone)
         B.addAttribute(llvm::Attribute::OptimizeForSize);
