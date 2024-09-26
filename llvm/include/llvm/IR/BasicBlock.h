@@ -31,6 +31,7 @@
 namespace llvm {
 
 class AssemblyAnnotationWriter;
+class BasicBlock;
 class CallInst;
 class DataLayout;
 class Function;
@@ -818,6 +819,9 @@ template <> struct DenseMapInfo<BasicBlock::iterator> {
     return LHS == RHS && LHS.getHeadBit() == RHS.getHeadBit();
   }
 };
+
+inline InsertPosition::InsertPosition(BasicBlock *InsertAtEnd)
+    : InsertAt(InsertAtEnd ? InsertAtEnd->end() : InstListType::iterator()) {}
 
 } // end namespace llvm
 

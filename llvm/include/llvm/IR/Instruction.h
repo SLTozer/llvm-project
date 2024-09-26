@@ -1042,6 +1042,10 @@ inline void ilist_alloc_traits<Instruction>::deleteNode(Instruction *V) {
   V->deleteValue();
 }
 
+inline InsertPosition::InsertPosition(Instruction *InsertBefore)
+    : InsertAt(InsertBefore ? InsertBefore->getIterator()
+                            : InstListType::iterator()) {}
+
 } // end namespace llvm
 
 #endif // LLVM_IR_INSTRUCTION_H

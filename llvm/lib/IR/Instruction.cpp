@@ -26,12 +26,6 @@
 #include "llvm/IR/Type.h"
 using namespace llvm;
 
-InsertPosition::InsertPosition(Instruction *InsertBefore)
-    : InsertAt(InsertBefore ? InsertBefore->getIterator()
-                            : InstListType::iterator()) {}
-InsertPosition::InsertPosition(BasicBlock *InsertAtEnd)
-    : InsertAt(InsertAtEnd ? InsertAtEnd->end() : InstListType::iterator()) {}
-
 Instruction::Instruction(Type *ty, unsigned it, AllocInfo AllocInfo,
                          InsertPosition InsertBefore)
     : User(ty, Value::InstructionVal + it, AllocInfo) {
