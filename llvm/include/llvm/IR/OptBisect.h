@@ -15,6 +15,7 @@
 #define LLVM_IR_OPTBISECT_H
 
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Config/llvm-config.h"
 #include "llvm/Support/Compiler.h"
 #include <limits>
 
@@ -36,6 +37,19 @@ public:
   /// isEnabled() should return true before calling shouldRunPass().
   virtual bool isEnabled() const { return false; }
 };
+
+#ifdef LLVM_ENABLE_DEBUGLOC_ORIGIN_TRACKING
+// When origin tracking is enabled, we choose to set OptBisect to "-1" by
+// default and to run in quiet mode. This means that it will not stop any
+// optimizations or produce any output, but it will be enabled and continue to
+// count optimizations, which we use in the debugify reports.
+constexpr int DefaultOptBisectLimit = -1;
+constexpr bool DefaultOptBisectVerbose = false;
+#else
+// In normal builds, we disable OptBisect by default and produce verbose output.
+constexpr int DefaultOptBisectLimit = OptBisect::Disabled;
+constexpr bool DefaultOptBisectVerbose = true;
+#endif
 
 /// This class implements a mechanism to disable passes and individual
 /// optimizations at compile time based on a command line option
@@ -80,7 +94,7 @@ public:
   static const int Disabled = std::numeric_limits<int>::max();
 
 private:
-  int BisectLimit = Disabled;
+  int BisectLimit = DefaultOptBisectLimit;
   int LastBisectNum = 0;
 };
 
