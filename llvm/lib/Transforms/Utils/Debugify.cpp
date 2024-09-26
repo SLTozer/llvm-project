@@ -35,7 +35,7 @@ using namespace llvm;
 
 namespace {
 
-cl::opt<bool> Quiet("debugify-quiet",
+cl::opt<bool> Quiet("debugify-quiet", cl::init(true),
                     cl::desc("Suppress verbose debugify output"));
 
 cl::opt<uint64_t> DebugifyFunctionsLimit(

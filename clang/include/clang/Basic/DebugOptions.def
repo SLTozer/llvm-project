@@ -49,7 +49,7 @@ ENUM_DEBUGOPT(Name, Type, Bits, Default)
 BENIGN_ENUM_DEBUGOPT(CompressDebugSections, llvm::DebugCompressionType, 2,
                      llvm::DebugCompressionType::None)
 DEBUGOPT(Dwarf64, 1, 0) ///< -gdwarf64.
-BENIGN_DEBUGOPT(EnableDIPreservationVerify, 1, 0) ///< Enable di preservation
+BENIGN_DEBUGOPT(EnableDIPreservationVerify, 1, 1) ///< Enable di preservation
                                                   ///< verify each (it means
                                                   ///< check the original debug
                                                   ///< info metadata
