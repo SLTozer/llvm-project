@@ -1956,6 +1956,14 @@ bool CompilerInvocation::ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args,
     llvm::raw_string_ostream OS(ArgString);
     OS << "{\"file\":\"" << OutputFile << "\", \"args\":\"";
     for (Arg *A : Args) {
+      if (A->getOption().matches(options::OPT_fverify_debuginfo_preserve) ||
+          A->getOption().matches(options::OPT_fverify_debuginfo_preserve_export))
+        continue;
+      // Fake line
+      if (A->getOption().getGroup().isValid() && A->getOption().getGroup().matches(options::OPT_Action_Group)) {
+        OS << "-emit-llvm ";
+        continue;
+      }
       OS << A->getAsString(Args) << " ";
     }
     OS << "\"}\n";
