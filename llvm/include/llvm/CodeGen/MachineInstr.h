@@ -1342,7 +1342,9 @@ public:
   }
 
   // True if the instruction represents a position in the function.
-  bool isPosition() const { return isLabel() || isCFIInstruction(); }
+  bool isPosition() const {
+    return isLabel() || isCFIInstruction() || isFakeUse();
+  }
 
   bool isNonListDebugValue() const {
     return getOpcode() == TargetOpcode::DBG_VALUE;

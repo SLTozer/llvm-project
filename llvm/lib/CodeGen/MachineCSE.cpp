@@ -404,8 +404,7 @@ bool MachineCSEImpl::PhysRegDefsReach(MachineInstr *CSMI, MachineInstr *MI,
 
 bool MachineCSEImpl::isCSECandidate(MachineInstr *MI) {
   if (MI->isPosition() || MI->isPHI() || MI->isImplicitDef() || MI->isKill() ||
-      MI->isInlineAsm() || MI->isDebugInstr() || MI->isJumpTableDebugInfo() ||
-      MI->isFakeUse())
+      MI->isInlineAsm() || MI->isDebugInstr() || MI->isJumpTableDebugInfo())
     return false;
 
   // Ignore copies.

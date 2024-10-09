@@ -211,7 +211,9 @@ MachineBasicBlock::SkipPHIsAndLabels(MachineBasicBlock::iterator I) {
   const TargetInstrInfo *TII = getParent()->getSubtarget().getInstrInfo();
 
   iterator E = end();
-  while (I != E && (I->isPHI() || I->isPosition() ||
+  // Fake Uses are considerd positions, but they may also use registers and so
+  // should not be skipped over when inserting at the start of the block.
+  while (I != E && (I->isPHI() || (I->isPosition() && !I->isFakeUse()) ||
                     TII->isBasicBlockPrologue(*I)))
     ++I;
   // FIXME: This needs to change if we wish to bundle labels
@@ -227,7 +229,10 @@ MachineBasicBlock::SkipPHIsLabelsAndDebug(MachineBasicBlock::iterator I,
   const TargetInstrInfo *TII = getParent()->getSubtarget().getInstrInfo();
 
   iterator E = end();
-  while (I != E && (I->isPHI() || I->isPosition() || I->isDebugInstr() ||
+  // Fake Uses are considerd positions for most purposes, but they may also use
+  // registers and so should not be skipped over when inserting at the start of
+  // the block.
+  while (I != E && (I->isPHI() || (I->isPosition() && !I->isFakeUse()) || I->isDebugInstr() ||
                     (SkipPseudoOp && I->isPseudoProbe()) ||
                     TII->isBasicBlockPrologue(*I, Reg)))
     ++I;

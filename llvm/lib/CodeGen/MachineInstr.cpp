@@ -1329,11 +1329,6 @@ bool MachineInstr::wouldBeTriviallyDead() const {
   if (getOpcode() == TargetOpcode::LOCAL_ESCAPE)
     return false;
 
-  // Don't delete FAKE_USE.
-  // FIXME: Why is FAKE_USE not considered in MachineInstr::isPosition?
-  if (isFakeUse())
-    return false;
-
   // LIFETIME markers should be preserved.
   // FIXME: Why are LIFETIME markers not considered in MachineInstr::isPosition?
   if (isLifetimeMarker())
