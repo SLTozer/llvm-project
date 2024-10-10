@@ -1440,7 +1440,7 @@ bool PEI::replaceFrameIndexDebugInstr(MachineFunction &MF, MachineInstr &MI,
     return true;
   }
 
-  if (MI.isDebugPHI()) {
+  if (MI.isDebugPHI() || MI.isFakeUse()) {
     // Allow stack ref to continue onwards.
     return true;
   }

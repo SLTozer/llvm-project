@@ -919,7 +919,8 @@ foldMemoryOperand(ArrayRef<std::pair<MachineInstr *, unsigned>> Ops,
   bool SpillSubRegs = TII.isSubregFoldable() ||
                       MI->getOpcode() == TargetOpcode::STATEPOINT ||
                       MI->getOpcode() == TargetOpcode::PATCHPOINT ||
-                      MI->getOpcode() == TargetOpcode::STACKMAP;
+                      MI->getOpcode() == TargetOpcode::STACKMAP ||
+                      MI->isFakeUse();
 
   // TargetInstrInfo::foldMemoryOperand only expects explicit, non-tied
   // operands.

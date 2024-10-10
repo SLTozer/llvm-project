@@ -1434,6 +1434,7 @@ def FAKE_USE : StandardPseudoInstruction {
   let AsmString = "FAKE_USE";
   let hasSideEffects = 0;
   let isMeta = true;
+  let canFoldAsLoad = true;
 }
 def PATCHABLE_OP : StandardPseudoInstruction {
   let OutOperandList = (outs);

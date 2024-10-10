@@ -753,6 +753,14 @@ MachineInstr *TargetInstrInfo::foldMemoryOperand(MachineInstr &MI,
       NewMI = &*MBB.insert(MI, NewMI);
   } else if (MI.isInlineAsm() && isLoadFromStackSlot(LoadMI, FrameIndex)) {
     return foldInlineAsmMemOperand(MI, Ops, FrameIndex, *this);
+  } else if (MI.isFakeUse() && isLoadFromStackSlot(LoadMI, FrameIndex)) {
+    // Fake uses are a simple case as instructions that, if they use a register,
+    // can always directly replace it with a stack slot instead.
+    NewMI =
+        MF.CreateMachineInstr(get(MI.getOpcode()), MI.getDebugLoc(), true);
+    MachineInstrBuilder MIB(MF, NewMI);
+    MIB.addFrameIndex(FrameIndex);
+    MBB.insert(MI, NewMI);
   } else {
     // Ask the target to do the actual folding.
     NewMI = foldMemoryOperandImpl(MF, MI, Ops, MI, LoadMI, LIS);
