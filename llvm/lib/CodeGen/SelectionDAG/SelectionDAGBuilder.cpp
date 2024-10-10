@@ -7712,7 +7712,6 @@ void SelectionDAGBuilder::visitIntrinsicCall(const CallInst &I,
 
   case Intrinsic::fake_use: {
     Value *V = I.getArgOperand(0);
-    SDValue Ops[2];
     // For Values not declared or previously used in this basic block, the
     // NodeMap will not have an entry, and `getValue` will assert if V has no
     // valid register value.
@@ -7725,13 +7724,11 @@ void SelectionDAGBuilder::visitIntrinsicCall(const CallInst &I,
       // value, use it.
       if (SDValue copyFromReg = getCopyFromRegs(V, V->getType()))
         return copyFromReg;
-      // FIXME: Do we want to preserve constants? It seems pointless.
-      if (isa<Constant>(V))
-        return getValue(V);
       return SDValue();
     }();
-    if (!FakeUseValue || FakeUseValue.isUndef())
+    if (!FakeUseValue || FakeUseValue.isUndef() || isa<Constant>(V))
       return;
+    SDValue Ops[2];
     Ops[0] = getRoot();
     Ops[1] = FakeUseValue;
     // Also, do not translate a fake use with an undef operand, or any other
