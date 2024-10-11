@@ -1134,6 +1134,9 @@ public:
   /// Instructions with this flag set are not necessarily simple load
   /// instructions, they may load a value and modify it, for example.
   bool mayLoad(QueryType Type = AnyInBundle) const {
+    // FIXME: put this in the instruction properties later.
+    if (isFakeUse())
+      return true;
     if (isInlineAsm()) {
       unsigned ExtraInfo = getOperand(InlineAsm::MIOp_ExtraInfo).getImm();
       if (ExtraInfo & InlineAsm::Extra_MayLoad)
