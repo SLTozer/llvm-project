@@ -1206,7 +1206,6 @@ void TargetPassConfig::addMachinePasses() {
   // addPreEmitPass.  Maybe only pass "false" here for those targets?
   addPass(&FuncletLayoutID);
 
-  addPass(&RemoveLoadsIntoFakeUsesID);
   addPass(&StackMapLivenessID);
   addPass(&LiveDebugValuesID);
   addPass(&MachineSanitizerBinaryMetadataID);
