@@ -775,7 +775,7 @@ protected:
 /// Look for a meaningful debug location on the instruction or its operands.
 static DebugLoc getDebugLocFromInstOrOperands(Instruction *I) {
   if (!I)
-    return DebugLoc();
+    return DebugLoc::getUnknown();
 
   DebugLoc Empty;
   if (I->getDebugLoc() != Empty)
@@ -787,7 +787,7 @@ static DebugLoc getDebugLocFromInstOrOperands(Instruction *I) {
         return OpInst->getDebugLoc();
   }
 
-  return I->getDebugLoc();
+  return I->getDebugLoc().getCopied();
 }
 
 /// Write a \p DebugMsg about vectorization to the debug output stream. If \p I
@@ -1884,13 +1884,15 @@ public:
     if (SCEVCheckBlock) {
       SCEVCheckBlock->getTerminator()->moveBefore(
           Preheader->getTerminator()->getIterator());
-      new UnreachableInst(Preheader->getContext(), SCEVCheckBlock);
+      auto *UI = new UnreachableInst(Preheader->getContext(), SCEVCheckBlock);
+      UI->setDebugLoc(DebugLoc::getTemporary());
       Preheader->getTerminator()->eraseFromParent();
     }
     if (MemCheckBlock) {
       MemCheckBlock->getTerminator()->moveBefore(
           Preheader->getTerminator()->getIterator());
-      new UnreachableInst(Preheader->getContext(), MemCheckBlock);
+      auto *UI = new UnreachableInst(Preheader->getContext(), MemCheckBlock);
+      UI->setDebugLoc(DebugLoc::getTemporary());
       Preheader->getTerminator()->eraseFromParent();
     }
 
@@ -7726,6 +7728,190 @@ void EpilogueVectorizerEpilogueLoop::printDebugTracesAtEnd() {
   });
 }
 
+<<<<<<< HEAD
+=======
+void VPRecipeBuilder::createSwitchEdgeMasks(SwitchInst *SI) {
+  BasicBlock *Src = SI->getParent();
+  assert(!OrigLoop->isLoopExiting(Src) &&
+         all_of(successors(Src),
+                [this](BasicBlock *Succ) {
+                  return OrigLoop->getHeader() != Succ;
+                }) &&
+         "unsupported switch either exiting loop or continuing to header");
+  // Create masks where the terminator in Src is a switch. We create mask for
+  // all edges at the same time. This is more efficient, as we can create and
+  // collect compares for all cases once.
+  VPValue *Cond = getVPValueOrAddLiveIn(SI->getCondition());
+  BasicBlock *DefaultDst = SI->getDefaultDest();
+  MapVector<BasicBlock *, SmallVector<VPValue *>> Dst2Compares;
+  for (auto &C : SI->cases()) {
+    BasicBlock *Dst = C.getCaseSuccessor();
+    assert(!EdgeMaskCache.contains({Src, Dst}) && "Edge masks already created");
+    // Cases whose destination is the same as default are redundant and can be
+    // ignored - they will get there anyhow.
+    if (Dst == DefaultDst)
+      continue;
+    auto &Compares = Dst2Compares[Dst];
+    VPValue *V = getVPValueOrAddLiveIn(C.getCaseValue());
+    Compares.push_back(Builder.createICmp(CmpInst::ICMP_EQ, Cond, V));
+  }
+
+  // We need to handle 2 separate cases below for all entries in Dst2Compares,
+  // which excludes destinations matching the default destination.
+  VPValue *SrcMask = getBlockInMask(Src);
+  VPValue *DefaultMask = nullptr;
+  for (const auto &[Dst, Conds] : Dst2Compares) {
+    // 1. Dst is not the default destination. Dst is reached if any of the cases
+    // with destination == Dst are taken. Join the conditions for each case
+    // whose destination == Dst using an OR.
+    VPValue *Mask = Conds[0];
+    for (VPValue *V : ArrayRef<VPValue *>(Conds).drop_front())
+      Mask = Builder.createOr(Mask, V);
+    if (SrcMask)
+      Mask = Builder.createLogicalAnd(SrcMask, Mask);
+    EdgeMaskCache[{Src, Dst}] = Mask;
+
+    // 2. Create the mask for the default destination, which is reached if none
+    // of the cases with destination != default destination are taken. Join the
+    // conditions for each case where the destination is != Dst using an OR and
+    // negate it.
+    DefaultMask = DefaultMask ? Builder.createOr(DefaultMask, Mask) : Mask;
+  }
+
+  if (DefaultMask) {
+    DefaultMask = Builder.createNot(DefaultMask);
+    if (SrcMask)
+      DefaultMask = Builder.createLogicalAnd(SrcMask, DefaultMask);
+  }
+  EdgeMaskCache[{Src, DefaultDst}] = DefaultMask;
+}
+
+VPValue *VPRecipeBuilder::createEdgeMask(BasicBlock *Src, BasicBlock *Dst) {
+  assert(is_contained(predecessors(Dst), Src) && "Invalid edge");
+
+  // Look for cached value.
+  std::pair<BasicBlock *, BasicBlock *> Edge(Src, Dst);
+  EdgeMaskCacheTy::iterator ECEntryIt = EdgeMaskCache.find(Edge);
+  if (ECEntryIt != EdgeMaskCache.end())
+    return ECEntryIt->second;
+
+  if (auto *SI = dyn_cast<SwitchInst>(Src->getTerminator())) {
+    createSwitchEdgeMasks(SI);
+    assert(EdgeMaskCache.contains(Edge) && "Mask for Edge not created?");
+    return EdgeMaskCache[Edge];
+  }
+
+  VPValue *SrcMask = getBlockInMask(Src);
+
+  // The terminator has to be a branch inst!
+  BranchInst *BI = dyn_cast<BranchInst>(Src->getTerminator());
+  assert(BI && "Unexpected terminator found");
+  if (!BI->isConditional() || BI->getSuccessor(0) == BI->getSuccessor(1))
+    return EdgeMaskCache[Edge] = SrcMask;
+
+  // If source is an exiting block, we know the exit edge is dynamically dead
+  // in the vector loop, and thus we don't need to restrict the mask.  Avoid
+  // adding uses of an otherwise potentially dead instruction unless we are
+  // vectorizing a loop with uncountable exits. In that case, we always
+  // materialize the mask.
+  if (OrigLoop->isLoopExiting(Src) &&
+      Src != Legal->getUncountableEarlyExitingBlock())
+    return EdgeMaskCache[Edge] = SrcMask;
+
+  VPValue *EdgeMask = getVPValueOrAddLiveIn(BI->getCondition());
+  assert(EdgeMask && "No Edge Mask found for condition");
+
+  if (BI->getSuccessor(0) != Dst)
+    EdgeMask = Builder.createNot(EdgeMask, BI->getDebugLoc());
+
+  if (SrcMask) { // Otherwise block in-mask is all-one, no need to AND.
+    // The bitwise 'And' of SrcMask and EdgeMask introduces new UB if SrcMask
+    // is false and EdgeMask is poison. Avoid that by using 'LogicalAnd'
+    // instead which generates 'select i1 SrcMask, i1 EdgeMask, i1 false'.
+    EdgeMask = Builder.createLogicalAnd(SrcMask, EdgeMask, BI->getDebugLoc());
+  }
+
+  return EdgeMaskCache[Edge] = EdgeMask;
+}
+
+VPValue *VPRecipeBuilder::getEdgeMask(BasicBlock *Src, BasicBlock *Dst) const {
+  assert(is_contained(predecessors(Dst), Src) && "Invalid edge");
+
+  // Look for cached value.
+  std::pair<BasicBlock *, BasicBlock *> Edge(Src, Dst);
+  EdgeMaskCacheTy::const_iterator ECEntryIt = EdgeMaskCache.find(Edge);
+  assert(ECEntryIt != EdgeMaskCache.end() &&
+         "looking up mask for edge which has not been created");
+  return ECEntryIt->second;
+}
+
+void VPRecipeBuilder::createHeaderMask() {
+  BasicBlock *Header = OrigLoop->getHeader();
+
+  // When not folding the tail, use nullptr to model all-true mask.
+  if (!CM.foldTailByMasking()) {
+    BlockMaskCache[Header] = nullptr;
+    return;
+  }
+
+  // Introduce the early-exit compare IV <= BTC to form header block mask.
+  // This is used instead of IV < TC because TC may wrap, unlike BTC. Start by
+  // constructing the desired canonical IV in the header block as its first
+  // non-phi instructions.
+
+  VPBasicBlock *HeaderVPBB = Plan.getVectorLoopRegion()->getEntryBasicBlock();
+  auto NewInsertionPoint = HeaderVPBB->getFirstNonPhi();
+  auto *IV = new VPWidenCanonicalIVRecipe(Plan.getCanonicalIV());
+  HeaderVPBB->insert(IV, NewInsertionPoint);
+
+  VPBuilder::InsertPointGuard Guard(Builder);
+  Builder.setInsertPoint(HeaderVPBB, NewInsertionPoint);
+  VPValue *BlockMask = nullptr;
+  VPValue *BTC = Plan.getOrCreateBackedgeTakenCount();
+  BlockMask =
+      Builder.createICmp(CmpInst::ICMP_ULE, IV, BTC, DebugLoc::getUnknown());
+  BlockMaskCache[Header] = BlockMask;
+}
+
+VPValue *VPRecipeBuilder::getBlockInMask(BasicBlock *BB) const {
+  // Return the cached value.
+  BlockMaskCacheTy::const_iterator BCEntryIt = BlockMaskCache.find(BB);
+  assert(BCEntryIt != BlockMaskCache.end() &&
+         "Trying to access mask for block without one.");
+  return BCEntryIt->second;
+}
+
+void VPRecipeBuilder::createBlockInMask(BasicBlock *BB) {
+  assert(OrigLoop->contains(BB) && "Block is not a part of a loop");
+  assert(BlockMaskCache.count(BB) == 0 && "Mask for block already computed");
+  assert(OrigLoop->getHeader() != BB &&
+         "Loop header must have cached block mask");
+
+  // All-one mask is modelled as no-mask following the convention for masked
+  // load/store/gather/scatter. Initialize BlockMask to no-mask.
+  VPValue *BlockMask = nullptr;
+  // This is the block mask. We OR all unique incoming edges.
+  for (auto *Predecessor :
+       SetVector<BasicBlock *>(llvm::from_range, predecessors(BB))) {
+    VPValue *EdgeMask = createEdgeMask(Predecessor, BB);
+    if (!EdgeMask) { // Mask of predecessor is all-one so mask of block is too.
+      BlockMaskCache[BB] = EdgeMask;
+      return;
+    }
+
+    if (!BlockMask) { // BlockMask has its initialized nullptr value.
+      BlockMask = EdgeMask;
+      continue;
+    }
+
+    BlockMask =
+        Builder.createOr(BlockMask, EdgeMask, DebugLoc::getCompilerGenerated());
+  }
+
+  BlockMaskCache[BB] = BlockMask;
+}
+
+>>>>>>> 724abc441c4d ([Annotate][DLCov] Annotate intentionally dropped/empty DebugLocs in existing code)
 VPWidenMemoryRecipe *
 VPRecipeBuilder::tryToWidenMemory(Instruction *I, ArrayRef<VPValue *> Operands,
                                   VFRange &Range) {
