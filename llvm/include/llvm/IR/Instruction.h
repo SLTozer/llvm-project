@@ -507,7 +507,8 @@ public:
   LLVM_ABI bool extractProfTotalWeight(uint64_t &TotalVal) const;
 
   /// Set the debug location information for this instruction.
-  void setDebugLoc(DebugLoc Loc) { DbgLoc = std::move(Loc); }
+  /// FIXME: We could actually make use of std::move into getCopied here.
+  void setDebugLoc(DebugLoc Loc) { DbgLoc = std::move(Loc).getCopied(); }
 
   /// Return the debug location for this node as a DebugLoc.
   const DebugLoc &getDebugLoc() const { return DbgLoc; }

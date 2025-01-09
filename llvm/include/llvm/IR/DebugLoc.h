@@ -27,6 +27,22 @@ namespace llvm {
   class Function;
 
 #if LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#if LLVM_ENABLE_DEBUGLOC_ORIGIN_TRACKING
+  struct DbgLocOrigin {
+    static constexpr unsigned long MaxDepth = 16;
+    using StackTracesTy =
+        SmallVector<std::pair<int, std::array<void *, MaxDepth>>, 0>;
+    StackTracesTy StackTraces;
+    DbgLocOrigin(bool ShouldCollectTrace);
+    void addTrace();
+    const StackTracesTy &getOriginStackTraces() const { return StackTraces; };
+  };
+#else
+  struct DbgLocOrigin {
+    DbgLocOrigin(bool) {}
+  };
+#endif
+
   // Used to represent different "kinds" of DebugLoc, expressing that the
   // instruction it is part of is either normal and should contain a valid
   // DILocation, or otherwise describing the reason why the instruction does
@@ -55,22 +71,29 @@ namespace llvm {
     Temporary
   };
 
-  // Extends TrackingMDNodeRef to also store a DebugLocKind, allowing Debugify
-  // to ignore intentionally-empty DebugLocs.
-  class DILocAndCoverageTracking : public TrackingMDNodeRef {
+  // Extends TrackingMDNodeRef to also store a DebugLocKind and Origin,
+  // allowing Debugify to ignore intentionally-empty DebugLocs and display the
+  // code responsible for generating unintentionally-empty DebugLocs.
+  // Currently we only need to track the Origin of this DILoc when using a
+  // DebugLoc that is Normal and empty, so only collect the origin stacktrace in
+  // those cases.
+  class DILocAndCoverageTracking : public TrackingMDNodeRef,
+                                   public DbgLocOrigin {
   public:
     DebugLocKind Kind;
     // Default constructor for empty DebugLocs.
     DILocAndCoverageTracking()
-        : TrackingMDNodeRef(nullptr), Kind(DebugLocKind::Normal) {}
-    // Valid or nullptr MDNode*, normal DebugLocKind.
+        : TrackingMDNodeRef(nullptr), DbgLocOrigin(true),
+          Kind(DebugLocKind::Normal) {}
+    // Valid or nullptr MDNode*, normal DebugLocKind
     DILocAndCoverageTracking(const MDNode *Loc)
-        : TrackingMDNodeRef(const_cast<MDNode *>(Loc)),
+        : TrackingMDNodeRef(const_cast<MDNode *>(Loc)), DbgLocOrigin(!Loc),
           Kind(DebugLocKind::Normal) {}
     LLVM_ABI DILocAndCoverageTracking(const DILocation *Loc);
     // Explicit DebugLocKind, which always means a nullptr MDNode*.
     DILocAndCoverageTracking(DebugLocKind Kind)
-        : TrackingMDNodeRef(nullptr), Kind(Kind) {}
+        : TrackingMDNodeRef(nullptr),
+          DbgLocOrigin(Kind == DebugLocKind::Normal), Kind(Kind) {}
   };
   template <> struct simplify_type<DILocAndCoverageTracking> {
     using SimpleType = MDNode *;
@@ -122,19 +145,28 @@ namespace llvm {
     DebugLocKind getKind() const { return Loc.Kind; }
 #endif
 
+#if LLVM_ENABLE_DEBUGLOC_ORIGIN_TRACKING
+#if !LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+#error Cannot enable DebugLoc origin-tracking without coverage-tracking!
+#endif // LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
+
+    const DbgLocOrigin::StackTracesTy &getOriginStackTraces() const {
+      return Loc.getOriginStackTraces();
+    }
+    DebugLoc getCopied() const {
+      DebugLoc NewDL = *this;
+      NewDL.Loc.addTrace();
+      return NewDL;
+    }
+#else
+    DebugLoc getCopied() const { return *this; }
+#endif // LLVM_ENABLE_DEBUGLOC_ORIGIN_TRACKING
+
 #if LLVM_ENABLE_DEBUGLOC_COVERAGE_TRACKING
-    static inline DebugLoc getTemporary() {
-      return DebugLoc(DebugLocKind::Temporary);
-    }
-    static inline DebugLoc getUnknown() {
-      return DebugLoc(DebugLocKind::Unknown);
-    }
-    static inline DebugLoc getCompilerGenerated() {
-      return DebugLoc(DebugLocKind::CompilerGenerated);
-    }
-    static inline DebugLoc getDropped() {
-      return DebugLoc(DebugLocKind::Dropped);
-    }
+    static inline DebugLoc getTemporary() { return DebugLoc(DebugLocKind::Temporary); }
+    static inline DebugLoc getUnknown() { return DebugLoc(DebugLocKind::Unknown); }
+    static inline DebugLoc getCompilerGenerated() { return DebugLoc(DebugLocKind::CompilerGenerated); }
+    static inline DebugLoc getDropped() { return DebugLoc(DebugLocKind::Dropped); }
 #else
     static inline DebugLoc getTemporary() { return DebugLoc(); }
     static inline DebugLoc getUnknown() { return DebugLoc(); }

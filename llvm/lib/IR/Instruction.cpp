@@ -1389,5 +1389,6 @@ Instruction *Instruction::clone() const {
 
   New->SubclassOptionalData = SubclassOptionalData;
   New->copyMetadata(*this);
+  New->setDebugLoc(getDebugLoc().getCopied());
   return New;
 }
