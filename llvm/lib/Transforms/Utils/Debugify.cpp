@@ -429,11 +429,9 @@ bool llvm::collectDebugInfoMetadata(Module &M,
           continue;
 
         LLVM_DEBUG(dbgs() << "  Collecting info for inst: " << I << '\n');
-        DebugInfoBeforePass.InstToDelete.insert({&I, &I});
 
         // Track the addresses to symbolize, if the feature is enabled.
         collectStackAddresses(I);
-        DebugInfoBeforePass.DILocations.insert({&I, hasLoc(I)});
       }
     }
   }
@@ -623,6 +621,7 @@ bool llvm::checkDebugInfoMetadata(Module &M,
 
   // Map the debug info holding DIs after a pass.
   DebugInfoPerPass DebugInfoAfterPass;
+  SmallVector<Instruction *> MissingCoverageInsts;
 
   // Visit each instruction.
   for (Function &F : Functions) {
@@ -682,7 +681,9 @@ bool llvm::checkDebugInfoMetadata(Module &M,
 
         // Track the addresses to symbolize, if the feature is enabled.
         collectStackAddresses(I);
-        DebugInfoAfterPass.DILocations.insert({&I, hasLoc(I)});
+        // COVERAGE_TEMP: Removing normal location tracking, and exclusively using coverage tracking to remove false positive.
+        if (!hasLoc(I))
+          MissingCoverageInsts.push_back(&I);
       }
     }
   }
@@ -695,11 +696,6 @@ bool llvm::checkDebugInfoMetadata(Module &M,
   auto DIFunctionsBefore = DebugInfoBeforePass.DIFunctions;
   auto DIFunctionsAfter = DebugInfoAfterPass.DIFunctions;
 
-  auto DILocsBefore = DebugInfoBeforePass.DILocations;
-  auto DILocsAfter = DebugInfoAfterPass.DILocations;
-
-  auto InstToDelete = DebugInfoBeforePass.InstToDelete;
-
   auto DIVarsBefore = DebugInfoBeforePass.DIVariables;
   auto DIVarsAfter = DebugInfoAfterPass.DIVariables;
 
@@ -709,9 +705,34 @@ bool llvm::checkDebugInfoMetadata(Module &M,
   bool ResultForFunc =
       checkFunctions(DIFunctionsBefore, DIFunctionsAfter, NameOfWrappedPass,
                      FileNameFromCU, ShouldWriteIntoJSON, Bugs);
-  bool ResultForInsts = checkInstructions(
-      DILocsBefore, DILocsAfter, InstToDelete, NameOfWrappedPass,
-      FileNameFromCU, ShouldWriteIntoJSON, Bugs);
+
+  // COVERAGE_TEMP: Removing normal location tracking, and exclusively using coverage tracking to remove false positive.
+  bool ResultForInsts = true;
+  for (auto *Instr : MissingCoverageInsts) {
+    auto FnName = Instr->getFunction()->getName();
+    auto BB = Instr->getParent();
+    auto BBName = BB->hasName() ? BB->getName() : "no-name";
+    auto InstName = Instruction::getOpcodeName(Instr->getOpcode());
+    auto InstLabel = Instr->getNameOrAsOperand();
+
+    if (ShouldWriteIntoJSON) {
+      Bugs.push_back(llvm::json::Object({
+        {"metadata", "DILocation"}, {"fn-name", FnName.str()},
+            {"bb-name", BBName.str()}, {"instr-name", InstLabel},
+            {"instr", InstName}, {"action", "missing-loc"},
+#if ENABLE_DEBUGLOC_ORIGIN_TRACKING
+            {"origin", symbolizeStackTrace(Instr)},
+#endif
+      }));
+    } else {
+      dbg() << "WARNING: " << NameOfWrappedPass
+            << " did not generate DILocation for " << *Instr
+            << " (BB: " << BBName << ", Fn: " << FnName
+            << ", File: " << FileNameFromCU << ")\n";
+    }
+    Instr->setDebugLoc(DebugLoc::getCompilerGenerated());
+    ResultForInsts = false;
+  }
 
   bool ResultForVars = checkVars(DIVarsBefore, DIVarsAfter, NameOfWrappedPass,
                                  FileNameFromCU, ShouldWriteIntoJSON, Bugs);
@@ -734,11 +755,6 @@ bool llvm::checkDebugInfoMetadata(Module &M,
   DebugInfoBeforePass = DebugInfoAfterPass;
   // We should make this conditional on debugify-each, but this has to be done
   // if we're reusing DebugInfoAfterPass.
-  for (const auto &L : DebugInfoBeforePass.DILocations) {
-    auto Instr = L.first;
-    DebugInfoBeforePass.InstToDelete.insert(
-        {const_cast<Instruction *>(Instr), const_cast<Instruction *>(Instr)});
-  }
 
   LLVM_DEBUG(dbgs() << "\n\n");
   return Result;

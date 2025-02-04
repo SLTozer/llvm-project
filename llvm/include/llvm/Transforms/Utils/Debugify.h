@@ -36,11 +36,6 @@ using WeakInstValueMap =
 struct DebugInfoPerPass {
   // This maps a function name to its associated DISubprogram.
   DebugFnMap DIFunctions;
-  // This maps an instruction and the info about whether it has !dbg attached.
-  DebugInstMap DILocations;
-  // This tracks value (instruction) deletion. If an instruction gets deleted,
-  // WeakVH nulls itself.
-  WeakInstValueMap InstToDelete;
   // Maps variable into dbg users (#dbg values/declares for this variable).
   DebugVarMap DIVariables;
 };
