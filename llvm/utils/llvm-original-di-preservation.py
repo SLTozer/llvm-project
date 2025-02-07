@@ -444,6 +444,9 @@ def parse_program_args(parser):
     parser.add_argument(
         "-compress", action="store_true", help="create reduced html report"
     )
+    parser.add_argument(
+        "--summary-file", type=str, help="file to print optional summary stats to"
+    )
 
     return parser.parse_args()
 
@@ -613,6 +616,14 @@ def Main():
         di_file_args,
         opts.html_file,
     )
+
+    if opts.summary_file:
+        with open(opts.summary_file, "w") as fileout:
+            total = 0
+            for llvm_pass, num in sorted(di_location_bugs_summary.items()):
+                fileout.write(f"{llvm_pass},{num}\n")
+                total += num
+            fileout.write(f"total,{total}")
 
     if skipped_lines > 0:
         print("Skipped lines: " + str(skipped_lines))
