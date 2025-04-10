@@ -566,7 +566,10 @@ std::array<Value *, 2> Negator::getSortedOperandsOfBinOp(Instruction *I) {
 
   // We must temporarily unset the 'current' insertion point and DebugLoc of the
   // InstCombine's IRBuilder so that it won't interfere with the ones we have
-  // already specified when producing negated instructions.
+  // already specified when producing negated instructions; if we have not
+  // assigned a DebugLoc to any of the new instructions however, then the
+  // DebugLoc already in the builder should be used for them.
+  DebugLoc IncomingDebugLoc = IC.Builder.getCurrentDebugLocation();
   InstCombiner::BuilderTy::InsertPointGuard Guard(IC.Builder);
   IC.Builder.ClearInsertionPoint();
   IC.Builder.SetCurrentDebugLocation(DebugLoc());
@@ -579,8 +582,13 @@ std::array<Value *, 2> Negator::getSortedOperandsOfBinOp(Instruction *I) {
   NegatorNumInstructionsNegatedSuccess += Res->first.size();
 
   // They are in def-use order, so nothing fancy, just insert them in order.
-  for (Instruction *I : Res->first)
+  for (Instruction *I : Res->first) {
     IC.Builder.Insert(I, I->getName());
+    // If we didn't already set a DebugLoc for the new instructions, copy the
+    // incoming DebugLoc to them.
+    if (!I->getDebugLoc())
+      I->setDebugLoc(IncomingDebugLoc);
+  }
 
   // And return the new root.
   return Res->second;
