@@ -720,7 +720,7 @@ bool llvm::checkDebugInfoMetadata(Module &M,
         {"metadata", "DILocation"}, {"fn-name", FnName.str()},
             {"bb-name", BBName.str()}, {"instr-name", InstLabel},
             {"instr", InstName}, {"action", "missing-loc"},
-#if ENABLE_DEBUGLOC_ORIGIN_TRACKING
+#if LLVM_ENABLE_DEBUGLOC_ORIGIN_TRACKING
             {"origin", symbolizeStackTrace(Instr)},
 #endif
       }));
