@@ -611,6 +611,7 @@ void TailRecursionEliminator::copyByValueOperandIntoLocalTemp(CallInst *CI,
   Value *NewAlloca = new AllocaInst(
       AggTy, DL.getAllocaAddrSpace(), nullptr, Alignment,
       CI->getArgOperand(OpndIdx)->getName(), F.getEntryBlock().begin());
+  cast<AllocaInst>(NewAlloca)->setDebugLoc(DebugLoc::getCompilerGenerated());
 
   IRBuilder<> Builder(CI);
   Value *Size = Builder.getInt64(DL.getTypeAllocSize(AggTy));

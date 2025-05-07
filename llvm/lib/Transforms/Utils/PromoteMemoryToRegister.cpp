@@ -32,6 +32,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DIBuilder.h"
 #include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
@@ -497,8 +498,10 @@ static void addAssumeNonNull(AssumptionCache *AC, LoadInst *LI) {
       Intrinsic::getOrInsertDeclaration(LI->getModule(), Intrinsic::assume);
   ICmpInst *LoadNotNull = new ICmpInst(ICmpInst::ICMP_NE, LI,
                                        Constant::getNullValue(LI->getType()));
+  LoadNotNull->setDebugLoc(DebugLoc::getCompilerGenerated());
   LoadNotNull->insertAfter(LI->getIterator());
   CallInst *CI = CallInst::Create(AssumeIntrinsic, {LoadNotNull});
+  CI->setDebugLoc(DebugLoc::getCompilerGenerated());
   CI->insertAfter(LoadNotNull->getIterator());
   AC->registerAssumption(cast<AssumeInst>(CI));
 }
@@ -509,9 +512,10 @@ static void convertMetadataToAssumes(LoadInst *LI, Value *Val,
   if (isa<UndefValue>(Val) && LI->hasMetadata(LLVMContext::MD_noundef)) {
     // Insert non-terminator unreachable.
     LLVMContext &Ctx = LI->getContext();
-    new StoreInst(ConstantInt::getTrue(Ctx),
+    auto *SI = new StoreInst(ConstantInt::getTrue(Ctx),
                   PoisonValue::get(PointerType::getUnqual(Ctx)),
                   /*isVolatile=*/false, Align(1), LI->getIterator());
+    SI->setDebugLoc(DebugLoc::getTemporary());
     return;
   }
 

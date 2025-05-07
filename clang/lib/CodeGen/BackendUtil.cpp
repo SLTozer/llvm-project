@@ -984,8 +984,6 @@ void EmitAssemblyHelper::RunOptimizationPipeline(
     // instructions that inherit their location from being treated as
     // incorrectly empty locations.
     for (Function &F : *TheModule) {
-      if (!F.getSubprogram())
-        continue;
       for (BasicBlock &BB : F)
         for (Instruction &I : BB)
           if (!I.getDebugLoc())

@@ -310,6 +310,7 @@ bool InstCombinerImpl::foldIntegerTypedPHI(PHINode &PN) {
     if (!CI) {
       CI = CastInst::CreateBitOrPointerCast(IncomingVal, IntToPtr->getType(),
                                             IncomingVal->getName() + ".ptr");
+      CI->setDebugLoc(IntToPtr->getDebugLoc());
       if (auto *IncomingI = dyn_cast<Instruction>(IncomingVal)) {
         BasicBlock::iterator InsertPos(IncomingI);
         InsertPos++;

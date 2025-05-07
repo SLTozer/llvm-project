@@ -1437,9 +1437,21 @@ bool JumpThreadingPass::simplifyPartiallyRedundantLoad(LoadInst *LoadI) {
     // AvailablePreds vector as we go so that all of the PHI entries for this
     // predecessor use the same bitcast.
     Value *&PredV = I->second;
-    if (PredV->getType() != LoadI->getType())
-      PredV = CastInst::CreateBitOrPointerCast(
+    if (PredV->getType() != LoadI->getType()) {
+      Instruction *PredCast = CastInst::CreateBitOrPointerCast(
           PredV, LoadI->getType(), "", P->getTerminator()->getIterator());
+      PredV = PredCast;
+      // PredV is an input for LoadI, but is inside a different basic block,
+      // therefore it may not be valid to use LoadI's DebugLoc for PredV; we can
+      // use PredV *iff* P branches unconditionally to LoadBB, otherwise we must
+      // drop the DebugLoc.
+      if (auto *BI = dyn_cast<BranchInst>(P->getTerminator());
+          BI && BI->isUnconditional()) {
+        PredCast->setDebugLoc(LoadI->getDebugLoc());
+      } else {
+        PredCast->setDebugLoc(DebugLoc::getDropped());
+      }
+    }
 
     PN->addIncoming(PredV, I->first);
   }

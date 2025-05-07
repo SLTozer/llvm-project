@@ -313,7 +313,8 @@ bool SCCPSolver::removeNonFeasibleEdges(BasicBlock *BB, DomTreeUpdater &DTU,
         Updates.push_back({DominatorTree::Delete, BB, Succ});
     }
     TI->eraseFromParent();
-    new UnreachableInst(BB->getContext(), BB);
+    auto *UI = new UnreachableInst(BB->getContext(), BB);
+    UI->setDebugLoc(DebugLoc::getTemporary());
     DTU.applyUpdatesPermissive(Updates);
   } else if (FeasibleSuccessors.size() == 1) {
     // Replace with an unconditional branch to the only feasible successor.

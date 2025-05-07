@@ -2038,6 +2038,7 @@ bool GVNPass::processAssumeIntrinsic(AssumeInst *IntrinsicI) {
       auto *NewS =
           new StoreInst(PoisonValue::get(Int8Ty), Constant::getNullValue(PtrTy),
                         IntrinsicI->getIterator());
+      NewS->setDebugLoc(DebugLoc::getTemporary());
       if (MSSAU) {
         const MemoryUseOrDef *FirstNonDom = nullptr;
         const auto *AL =
