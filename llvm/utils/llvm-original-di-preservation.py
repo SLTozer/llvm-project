@@ -22,14 +22,15 @@ class DILocBug:
         self.instr = instr
 
     def __str__(self):
-        return (
-            self.action
-            + self.bb_name
-            + self.fn_name
-            + self.instr
-            + self.instr_name
-            + self.origin
-        )
+        if self.origin is None or not self.origin:
+            return (
+                self.action
+                + self.bb_name
+                + self.fn_name
+                + self.instr
+                + self.instr_name
+            )
+        return '\n'.join([line[23:].strip() for line in self.origin.splitlines() if line and not line.startswith("Stack Trace")])
 
 
 class DISPBug:
@@ -59,6 +60,7 @@ def generate_html_report(
     di_location_bugs_summary,
     di_sp_bugs_summary,
     di_var_bugs_summary,
+    di_file_set,
     di_file_args,
     html_file,
 ):
@@ -152,7 +154,7 @@ def generate_html_report(
         table_title_di_loc_sum
     )
 
-    header_di_loc_sum = ["LLVM Pass Name", "Number of bugs"]
+    header_di_loc_sum = ["LLVM Pass Name", "Number of bugs", "Number of unique bugs"]
 
     for column in header_di_loc_sum:
         table_di_loc_sum += "    <th>{0}</th>\n".format(column.strip())
@@ -160,10 +162,11 @@ def generate_html_report(
 
     # Print the summary.
     row = []
-    for llvm_pass, num in sorted(di_location_bugs_summary.items()):
+    for llvm_pass, nums in sorted(di_location_bugs_summary.items()):
         row.append("    <tr>\n")
         row.append(llvm_pass)
-        row.append(str(num))
+        row.append(str(nums[0]))
+        row.append(str(nums[1]))
         row.append("    </tr>\n")
     for column in row:
         if column == "    <tr>\n" or column == "    </tr>\n":
@@ -353,27 +356,35 @@ def generate_html_report(
     table_di_var_sum += "</table>\n"
 
     # Create the table for the compiler args for each file.
-    table_title_file_args = "Compiler arguments per file"
-    table_file_args = """<table>
-  <caption><b>{}</b></caption>
-  <tr>
-  """.format(
-        table_title_file_args
-    )
-    header_file_args = ["File", "Args"]
+    if di_file_set:
+        table_title_file_args = "Compiler arguments per file"
+        table_file_args = """<table>
+    <caption><b>{}</b></caption>
+    <tr>
+    """.format(
+            table_title_file_args
+        )
+        header_file_args = ["File", "Args"]
 
-    for column in header_file_args:
-        table_file_args += "    <th>{0}</th>\n".format(column.strip())
-    table_file_args += "  </tr>\n"
-    row = []
-    for file, args in di_file_args.items():
-        row.append("    <tr>\n")
-        row.append("    <td>{0}</td>\n".format(file.strip()))
-        row.append("    <td>{0}</td>\n".format(args.strip()))
-        row.append("    </tr>\n")
-    for column in row:
-        table_file_args += column
-    table_file_args += "  <tr>\n"
+        for column in header_file_args:
+            table_file_args += "    <th>{0}</th>\n".format(column.strip())
+        table_file_args += "  </tr>\n"
+        row = []
+        for file, args in di_file_args.items():
+            should_use = False
+            for used_file in di_file_set:
+                if used_file in args:
+                    should_use = True
+                    break
+            if not should_use:
+                continue
+            row.append("    <tr>\n")
+            row.append("    <td>{0}</td>\n".format(file.strip()))
+            row.append("    <td>{0}</td>\n".format(args.strip()))
+            row.append("    </tr>\n")
+        for column in row:
+            table_file_args += column
+        table_file_args += "  <tr>\n"
 
     # Finish the html page.
     html_footer = """</body>
@@ -494,6 +505,7 @@ def Main():
     end_line = chunk_size - 1
     skipped_lines = 0
     skipped_bugs = 0
+    num_chunks = 0
     # Process each chunk of 1 million JSON lines.
     while True:
         if start_line > end_line:
@@ -501,9 +513,12 @@ def Main():
         (debug_info_bugs, skipped, end_line) = get_json_chunk(
             opts.file_name, start_line, chunk_size
         )
+        num_chunks += 1
         start_line += chunk_size
         skipped_lines += skipped
 
+        di_loc_set = set()
+        di_file_set = set()
         # Map the bugs into the file-pass pairs.
         for bugs_per_pass in debug_info_bugs:
             try:
@@ -524,7 +539,6 @@ def Main():
             di_var_bugs = di_variable_bugs[bugs_file][bugs_pass]
 
             # Omit duplicated bugs.
-            di_loc_set = set()
             di_sp_set = set()
             di_var_set = set()
             for bug in bugs:
@@ -550,6 +564,7 @@ def Main():
                     )
                     if not str(di_loc_bug) in di_loc_set:
                         di_loc_set.add(str(di_loc_bug))
+                        di_file_set.add(bugs_file)
                         if opts.compress:
                             pass_instr = bugs_pass + instr
                             if not pass_instr in di_loc_pass_instr_set:
@@ -557,12 +572,17 @@ def Main():
                                 di_loc_bugs.append(di_loc_bug)
                         else:
                             di_loc_bugs.append(di_loc_bug)
+                        if bugs_pass in di_location_bugs_summary:
+                            di_location_bugs_summary[bugs_pass][1] += 1
+                        else:
+                            di_location_bugs_summary[bugs_pass] = [0, 1]
 
                     # Fill the summary dict.
                     if bugs_pass in di_location_bugs_summary:
-                        di_location_bugs_summary[bugs_pass] += 1
+                        di_location_bugs_summary[bugs_pass][0] += 1
                     else:
-                        di_location_bugs_summary[bugs_pass] = 1
+                        # This should never happen, but patch over it for now!
+                        di_location_bugs_summary[bugs_pass] = [1, 0]
                 elif bugs_metadata == "DISubprogram":
                     try:
                         action = bug["action"]
@@ -615,6 +635,10 @@ def Main():
                     skipped_bugs += 1
                     continue
 
+            for item in di_loc_set:
+                print('-------')
+                print(item)
+
             di_location_bugs[bugs_file][bugs_pass] = di_loc_bugs
             di_subprogram_bugs[bugs_file][bugs_pass] = di_sp_bugs
             di_variable_bugs[bugs_file][bugs_pass] = di_var_bugs
@@ -626,17 +650,21 @@ def Main():
         di_location_bugs_summary,
         di_sp_bugs_summary,
         di_var_bugs_summary,
+        di_file_set,
         di_file_args,
         opts.html_file,
     )
 
+    print(f"num_chunks: {num_chunks}")
+
     if opts.summary_file:
         with open(opts.summary_file, "w") as fileout:
-            total = 0
-            for llvm_pass, num in sorted(di_location_bugs_summary.items()):
-                fileout.write(f"{llvm_pass},{num}\n")
-                total += num
-            fileout.write(f"total,{total}")
+            total = [0, 0]
+            for llvm_pass, nums in sorted(di_location_bugs_summary.items()):
+                fileout.write(f"{llvm_pass},{nums[0]},{nums[1]}\n")
+                total[0] += nums[0]
+                total[1] += nums[1]
+            fileout.write(f"total,{total[0]},{total[1]}")
 
     if skipped_lines > 0:
         print("Skipped lines: " + str(skipped_lines))
