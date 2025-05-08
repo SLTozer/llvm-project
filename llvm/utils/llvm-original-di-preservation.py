@@ -635,10 +635,6 @@ def Main():
                     skipped_bugs += 1
                     continue
 
-            for item in di_loc_set:
-                print('-------')
-                print(item)
-
             di_location_bugs[bugs_file][bugs_pass] = di_loc_bugs
             di_subprogram_bugs[bugs_file][bugs_pass] = di_sp_bugs
             di_variable_bugs[bugs_file][bugs_pass] = di_var_bugs
@@ -654,8 +650,6 @@ def Main():
         di_file_args,
         opts.html_file,
     )
-
-    print(f"num_chunks: {num_chunks}")
 
     if opts.summary_file:
         with open(opts.summary_file, "w") as fileout:
