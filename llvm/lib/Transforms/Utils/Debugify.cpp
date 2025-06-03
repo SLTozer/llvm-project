@@ -582,7 +582,8 @@ static bool checkVars(const DebugVarMap &DIVarsBefore,
 // Write the json data into the specifed file.
 static void writeJSON(StringRef OrigDIVerifyBugsReportFilePath,
                       StringRef FileNameFromCU, StringRef NameOfWrappedPass,
-                      llvm::json::Array &Bugs) {
+                      llvm::json::Array &Bugs,
+                      std::optional<StringRef> ArgStringOpt) {
   std::error_code EC;
   raw_fd_ostream OS_FILE{OrigDIVerifyBugsReportFilePath, EC,
                          sys::fs::OF_Append | sys::fs::OF_TextWithCRLF};
@@ -593,6 +594,10 @@ static void writeJSON(StringRef OrigDIVerifyBugsReportFilePath,
   }
 
   if (auto L = OS_FILE.lock()) {
+    if (ArgStringOpt) {
+      OS_FILE << *ArgStringOpt;
+    }
+
     OS_FILE << "{\"file\":\"" << FileNameFromCU << "\", ";
 
     StringRef PassName =
@@ -611,7 +616,8 @@ bool llvm::checkDebugInfoMetadata(Module &M,
                                   iterator_range<Module::iterator> Functions,
                                   DebugInfoPerPass &DebugInfoBeforePass,
                                   StringRef Banner, StringRef NameOfWrappedPass,
-                                  StringRef OrigDIVerifyBugsReportFilePath) {
+                                  StringRef OrigDIVerifyBugsReportFilePath,
+                                  std::optional<StringRef> *OrigDIVerifyBugsReportArgString) {
   LLVM_DEBUG(dbgs() << Banner << ": (after) " << NameOfWrappedPass << '\n');
 
   if (!M.getNamedMetadata("llvm.dbg.cu")) {
@@ -740,9 +746,13 @@ bool llvm::checkDebugInfoMetadata(Module &M,
   bool Result = ResultForFunc && ResultForInsts && ResultForVars;
 
   StringRef ResultBanner = NameOfWrappedPass != "" ? NameOfWrappedPass : Banner;
-  if (ShouldWriteIntoJSON && !Bugs.empty())
+  if (ShouldWriteIntoJSON && !Bugs.empty()) {
+    std::optional<StringRef> ArgString = OrigDIVerifyBugsReportArgString ? *OrigDIVerifyBugsReportArgString : std::nullopt;
     writeJSON(OrigDIVerifyBugsReportFilePath, FileNameFromCU, NameOfWrappedPass,
-              Bugs);
+              Bugs, ArgString);
+    if (OrigDIVerifyBugsReportArgString)
+      OrigDIVerifyBugsReportArgString->reset();
+  }
 
   if (Result)
     dbg() << ResultBanner << ": PASS\n";
@@ -1185,7 +1195,8 @@ void DebugifyEachInstrumentation::registerCallbacks(
             checkDebugInfoMetadata(M, make_range(It, std::next(It)),
                                    *DebugInfoBeforePass,
                                    "CheckModuleDebugify (original debuginfo)",
-                                   P, OrigDIVerifyBugsReportFilePath);
+                                   P, OrigDIVerifyBugsReportFilePath,
+                                   &OrigDIVerifyBugsReportArgsString);
           MAM.getResult<FunctionAnalysisManagerModuleProxy>(*F.getParent())
               .getManager()
               .invalidate(F, PA);
@@ -1197,7 +1208,8 @@ void DebugifyEachInstrumentation::registerCallbacks(
           else
             checkDebugInfoMetadata(M, M.functions(), *DebugInfoBeforePass,
                                    "CheckModuleDebugify (original debuginfo)",
-                                   P, OrigDIVerifyBugsReportFilePath);
+                                   P, OrigDIVerifyBugsReportFilePath,
+                                   &OrigDIVerifyBugsReportArgsString);
           MAM.invalidate(M, PA);
         }
       });

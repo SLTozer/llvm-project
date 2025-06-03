@@ -24,6 +24,7 @@
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/ValueHandle.h"
 #include "llvm/Pass.h"
+#include <optional>
 
 using DebugFnMap =
     llvm::MapVector<const llvm::Function *, const llvm::DISubprogram *>;
@@ -83,7 +84,8 @@ bool checkDebugInfoMetadata(Module &M,
                             iterator_range<Module::iterator> Functions,
                             DebugInfoPerPass &DebugInfoBeforePass,
                             StringRef Banner, StringRef NameOfWrappedPass,
-                            StringRef OrigDIVerifyBugsReportFilePath);
+                            StringRef OrigDIVerifyBugsReportFilePath,
+                            std::optional<StringRef> *OrigDIVerifyBugsReportArgString = nullptr);
 } // namespace llvm
 
 /// Used to check whether we track synthetic or original debug info.
@@ -184,6 +186,7 @@ void exportDebugifyStats(StringRef Path, const DebugifyStatsMap &Map);
 
 class DebugifyEachInstrumentation {
   llvm::StringRef OrigDIVerifyBugsReportFilePath = "";
+  std::optional<llvm::StringRef> OrigDIVerifyBugsReportArgsString;
   DebugInfoPerPass *DebugInfoBeforePass = nullptr;
   enum DebugifyMode Mode = DebugifyMode::NoDebugify;
   DebugifyStatsMap *DIStatsMap = nullptr;
@@ -205,6 +208,10 @@ public:
   }
   StringRef getOrigDIVerifyBugsReportFilePath() const {
     return OrigDIVerifyBugsReportFilePath;
+  }
+
+  void setOrigDIVerifyBugsReportArgString(StringRef BugsReportArgString) {
+    OrigDIVerifyBugsReportArgsString = BugsReportArgString;
   }
 
   void setDebugifyMode(enum DebugifyMode M) { Mode = M; }
