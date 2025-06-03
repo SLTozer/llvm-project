@@ -60,7 +60,6 @@ def generate_html_report(
     di_location_bugs_summary,
     di_sp_bugs_summary,
     di_var_bugs_summary,
-    di_file_set,
     di_file_args,
     html_file,
 ):
@@ -356,35 +355,27 @@ def generate_html_report(
     table_di_var_sum += "</table>\n"
 
     # Create the table for the compiler args for each file.
-    if di_file_set:
-        table_title_file_args = "Compiler arguments per file"
-        table_file_args = """<table>
-    <caption><b>{}</b></caption>
-    <tr>
-    """.format(
-            table_title_file_args
-        )
-        header_file_args = ["File", "Args"]
+    table_title_file_args = "Compiler arguments per file"
+    table_file_args = """<table>
+  <caption><b>{}</b></caption>
+  <tr>
+  """.format(
+        table_title_file_args
+    )
+    header_file_args = ["File", "Args"]
 
-        for column in header_file_args:
-            table_file_args += "    <th>{0}</th>\n".format(column.strip())
-        table_file_args += "  </tr>\n"
-        row = []
-        for file, args in di_file_args.items():
-            should_use = False
-            for used_file in di_file_set:
-                if used_file in args:
-                    should_use = True
-                    break
-            if not should_use:
-                continue
-            row.append("    <tr>\n")
-            row.append("    <td>{0}</td>\n".format(file.strip()))
-            row.append("    <td>{0}</td>\n".format(args.strip()))
-            row.append("    </tr>\n")
-        for column in row:
-            table_file_args += column
-        table_file_args += "  <tr>\n"
+    for column in header_file_args:
+        table_file_args += "    <th>{0}</th>\n".format(column.strip())
+    table_file_args += "  </tr>\n"
+    row = []
+    for file, args in di_file_args.items():
+        row.append("    <tr>\n")
+        row.append("    <td>{0}</td>\n".format(file.strip()))
+        row.append("    <td>{0}</td>\n".format(args.strip()))
+        row.append("    </tr>\n")
+    for column in row:
+        table_file_args += column
+    table_file_args += "  <tr>\n"
 
     # Finish the html page.
     html_footer = """</body>
@@ -505,7 +496,6 @@ def Main():
     end_line = chunk_size - 1
     skipped_lines = 0
     skipped_bugs = 0
-    num_chunks = 0
     # Process each chunk of 1 million JSON lines.
     while True:
         if start_line > end_line:
@@ -513,12 +503,10 @@ def Main():
         (debug_info_bugs, skipped, end_line) = get_json_chunk(
             opts.file_name, start_line, chunk_size
         )
-        num_chunks += 1
         start_line += chunk_size
         skipped_lines += skipped
 
         di_loc_set = set()
-        di_file_set = set()
         # Map the bugs into the file-pass pairs.
         for bugs_per_pass in debug_info_bugs:
             try:
@@ -564,7 +552,6 @@ def Main():
                     )
                     if not str(di_loc_bug) in di_loc_set:
                         di_loc_set.add(str(di_loc_bug))
-                        di_file_set.add(bugs_file)
                         if opts.compress:
                             pass_instr = bugs_pass + instr
                             if not pass_instr in di_loc_pass_instr_set:
@@ -646,7 +633,6 @@ def Main():
         di_location_bugs_summary,
         di_sp_bugs_summary,
         di_var_bugs_summary,
-        di_file_set,
         di_file_args,
         opts.html_file,
     )
