@@ -181,7 +181,7 @@ class ConditionalController(DebuggerControllerBase):
                     )
                     timed_out = True
 
-            if timed_out:
+            if timed_out or self.debugger.is_finished:
                 break
 
             step_info = self.debugger.get_step_info(self._watches, self._step_index)
@@ -194,6 +194,7 @@ class ConditionalController(DebuggerControllerBase):
 
             bp_to_delete = []
             for bp_id in self.debugger.get_triggered_breakpoint_ids():
+                print(f"Triggered BP: {bp_id}")
                 try:
                     # See if this is one of our leading breakpoints.
                     bpr = self._leading_bp_handles[bp_id]

@@ -118,6 +118,7 @@ class LLDB(DebuggerBase):
                 "could not add breakpoint [{}:{}]".format(file_, line)
             )
         id = bp.GetID()
+        print(f"added bp {id} at line {line}")
         if condition:
             bp.SetCondition(condition)
             assert id not in self._breakpoint_conditions
@@ -232,6 +233,7 @@ class LLDB(DebuggerBase):
                     ):
                         stepped_to_breakpoint = True
             if stepped_to_breakpoint:
+                print(f"Stepped to BP at addr {pc}, stepping again")
                 self._thread.StepInto()
 
     def go(self) -> ReturnCode:
@@ -413,6 +415,24 @@ class LLDBDAP(DAP):
     @property
     def frames_below_main(self):
         return ["__scrt_common_main_seh", "__libc_start_main", "__libc_start_call_main"]
+
+    def _post_step_hook(self):
+        """Hook to be executed after completing a step request."""
+        if self._debugger_state.stopped_reason == "step":
+            trace_req_id = self.send_message(self.make_request("stackTrace", {"threadId": self._debugger_state.thread, "levels": 1}))
+            trace_response = self._await_response(trace_req_id)
+            if not trace_response["success"]:
+                raise DebuggerException("failed to get stack frames")
+            stackframes = trace_response["body"]["stackFrames"]
+            path = stackframes[0]["source"]["path"]
+            addr = stackframes[0]["instructionPointerReference"]
+            if any(self._debugger_state.bp_addr_map.get(bp_id) == addr for (bp_id, _) in self.breakpoints.get(path, [])):
+                print(f"Stepped to BP at addr {addr}, stepping again")
+                # Step again now to get to the breakpoint.
+                step_req_id = self.send_message(self.make_request("stepIn", {"threadId": self._debugger_state.thread}))
+                response = self._await_response(step_req_id)
+                if not response["success"]:
+                    raise DebuggerException("failed to step")
 
     def _get_launch_params(self, cmdline):
         if self.context.options.target_run_args:

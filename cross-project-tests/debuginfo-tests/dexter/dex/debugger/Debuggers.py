@@ -85,7 +85,7 @@ def add_debugger_tool_base_arguments(parser, defaults):
     dap_group.add_argument(
         "--format-dap-log",
         type=str,
-        default="oneline",
+        default="pretty",
         choices=["oneline", "pretty"],
     )
 
