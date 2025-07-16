@@ -13,6 +13,7 @@ from subprocess import CalledProcessError, check_output, STDOUT
 import sys
 
 from dex.debugger.DebuggerBase import DebuggerBase, watch_is_active
+from dex.debugger.DAP import DAP
 from dex.dextIR import FrameIR, LocIR, StepIR, StopReason, ValueIR
 from dex.dextIR import StackFrame, SourceLocation, ProgramState
 from dex.utils.Exceptions import DebuggerException, LoadDebuggerException
@@ -377,6 +378,95 @@ class LLDB(DebuggerBase):
             expression=expression,
             value=value,
             type_name=type_name,
+            error_string=error_string,
+            could_evaluate=could_evaluate,
+            is_optimized_away=is_optimized_away,
+            is_irretrievable=is_irretrievable,
+        )
+
+
+class LLDBDAP(DAP):
+    def __init__(self, context, *args):
+        self.lldb_dap_executable = context.options.lldb_executable
+        super(LLDBDAP, self).__init__(context, *args)
+
+    @classmethod
+    def get_name(cls):
+        return "lldb-dap"
+
+    @classmethod
+    def get_option_name(cls):
+        return "lldb-dap"
+
+    @property
+    def version(self):
+        return 1
+
+    @property
+    def _debug_adapter_name(self) -> str:
+        return "lldb-dap"
+
+    @property
+    def _debug_adapter_executable(self) -> str:
+        return self.lldb_dap_executable
+
+    @property
+    def frames_below_main(self):
+        return ["__scrt_common_main_seh", "__libc_start_main", "__libc_start_call_main"]
+
+    def _get_launch_params(self, cmdline):
+        if self.context.options.target_run_args:
+            cmdline += shlex.split(self.context.options.target_run_args)
+        cwd = os.getcwd()
+        return {
+            "cwd": cwd,
+            "args": cmdline,
+            "program": self.context.options.executable,
+            "stopOnEntry": True
+        }
+
+    @staticmethod
+    def _evaluate_result_value(expression: str, result_string: str, type_string: str | None) -> ValueIR:
+        could_evaluate = not any(
+            s in result_string
+            for s in [
+                "Can't run the expression locally",
+                "use of undeclared identifier",
+                "no member named",
+                "Couldn't lookup symbols",
+                "Couldn't look up symbols",
+                "reference to local variable",
+                "invalid use of 'this' outside of a non-static member function",
+            ]
+        )
+
+        is_optimized_away = any(
+            s in result_string
+            for s in [
+                "value may have been optimized out",
+            ]
+        )
+
+        is_irretrievable = any(
+            s in result_string
+            for s in [
+                "couldn't get the value of variable",
+                "couldn't read its memory",
+                "couldn't read from memory",
+                "Cannot access memory at address",
+                "invalid address (fault address:",
+            ]
+        )
+        
+        if could_evaluate and not is_irretrievable and not is_optimized_away:
+            error_string = None
+        else:
+            error_string = result_string
+
+        return ValueIR(
+            expression=expression,
+            value=result_string,
+            type_name=type_string,
             error_string=error_string,
             could_evaluate=could_evaluate,
             is_optimized_away=is_optimized_away,
