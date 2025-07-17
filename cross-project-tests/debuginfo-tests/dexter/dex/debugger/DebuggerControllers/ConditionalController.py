@@ -137,12 +137,16 @@ class ConditionalController(DebuggerControllerBase):
                     id = self.debugger.add_conditional_breakpoint(
                         bpr.path, bpr.range_from, cond_expr
                     )
-                    self.context.logger.warning(f"Set leading breakpoint {id} at {bpr.range_from}")
+                    self.context.logger.warning(
+                        f"Set leading breakpoint {id} at {bpr.range_from}"
+                    )
                     self._leading_bp_handles[id] = bpr
             else:
                 # Add an unconditional breakpoint.
                 id = self.debugger.add_breakpoint(bpr.path, bpr.range_from)
-                self.context.logger.warning(f"Set leading breakpoint {id} at {bpr.range_from}")
+                self.context.logger.warning(
+                    f"Set leading breakpoint {id} at {bpr.range_from}"
+                )
                 self._leading_bp_handles[id] = bpr
 
     def _run_debugger_custom(self, cmdline):
@@ -217,7 +221,9 @@ class ConditionalController(DebuggerControllerBase):
                 # final line.
                 for line in range(bpr.range_from + 1, bpr.range_to + 1):
                     id = self.debugger.add_breakpoint(bpr.path, line)
-                    self.context.logger.warning(f"Set trailing breakpoint {id} at {line}")
+                    self.context.logger.warning(
+                        f"Set trailing breakpoint {id} at {line}"
+                    )
 
             # Remove any trailing or expired leading breakpoints we just hit.
             self.debugger.delete_breakpoints(bp_to_delete)

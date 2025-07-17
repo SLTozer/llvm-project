@@ -80,7 +80,7 @@ def add_debugger_tool_base_arguments(parser, defaults):
         "--colorize-dap-log",
         action="store_true",
         default=False,
-        help="apply colors to the logged DAP messages"
+        help="apply colors to the logged DAP messages",
     )
     dap_group.add_argument(
         "--format-dap-log",
@@ -187,7 +187,7 @@ def handle_debugger_tool_base_options(context, defaults):  # noqa
             )
 
     if options.dap_message_log is not None and options.dap_message_log != "-":
-            options.dap_message_log = os.path.abspath(options.dap_message_log)
+        options.dap_message_log = os.path.abspath(options.dap_message_log)
 
 
 def handle_debugger_tool_options(context, defaults):  # noqa

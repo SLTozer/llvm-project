@@ -414,22 +414,39 @@ class LLDBDAP(DAP):
 
     @property
     def frames_below_main(self):
-        return ["__scrt_common_main_seh", "__libc_start_main", "__libc_start_call_main", "_start"]
+        return [
+            "__scrt_common_main_seh",
+            "__libc_start_main",
+            "__libc_start_call_main",
+            "_start",
+        ]
 
     def _post_step_hook(self):
         """Hook to be executed after completing a step request."""
         if self._debugger_state.stopped_reason == "step":
-            trace_req_id = self.send_message(self.make_request("stackTrace", {"threadId": self._debugger_state.thread, "levels": 1}))
+            trace_req_id = self.send_message(
+                self.make_request(
+                    "stackTrace", {"threadId": self._debugger_state.thread, "levels": 1}
+                )
+            )
             trace_response = self._await_response(trace_req_id)
             if not trace_response["success"]:
                 raise DebuggerException("failed to get stack frames")
             stackframes = trace_response["body"]["stackFrames"]
             path = stackframes[0]["source"]["path"]
             addr = stackframes[0]["instructionPointerReference"]
-            if any(self._debugger_state.bp_addr_map.get(self.dex_id_to_dap_id[dex_bp_id]) == addr for dex_bp_id in self.file_to_bp.get(path, [])):
+            if any(
+                self._debugger_state.bp_addr_map.get(self.dex_id_to_dap_id[dex_bp_id])
+                == addr
+                for dex_bp_id in self.file_to_bp.get(path, [])
+            ):
                 print(f"Stepped to BP at addr {addr}, stepping again")
                 # Step again now to get to the breakpoint.
-                step_req_id = self.send_message(self.make_request("stepIn", {"threadId": self._debugger_state.thread}))
+                step_req_id = self.send_message(
+                    self.make_request(
+                        "stepIn", {"threadId": self._debugger_state.thread}
+                    )
+                )
                 response = self._await_response(step_req_id)
                 if not response["success"]:
                     raise DebuggerException("failed to step")
@@ -442,11 +459,13 @@ class LLDBDAP(DAP):
             "cwd": cwd,
             "args": cmdline,
             "program": self.context.options.executable,
-            "stopOnEntry": True
+            "stopOnEntry": True,
         }
 
     @staticmethod
-    def _evaluate_result_value(expression: str, result_string: str, type_string: str | None) -> ValueIR:
+    def _evaluate_result_value(
+        expression: str, result_string: str, type_string: str | None
+    ) -> ValueIR:
         could_evaluate = not any(
             s in result_string
             for s in [
@@ -477,7 +496,7 @@ class LLDBDAP(DAP):
                 "invalid address (fault address:",
             ]
         )
-        
+
         if could_evaluate and not is_irretrievable and not is_optimized_away:
             error_string = None
         else:
@@ -493,8 +512,10 @@ class LLDBDAP(DAP):
             is_irretrievable=is_irretrievable,
         )
 
-    def _update_requested_bp_list(self, bp_list: list[DAP.BreakpointRequest]) -> list[DAP.BreakpointRequest]:
-        """"As lldb-dap cannot have multiple breakpoints at the same location with different conditions, we must
+    def _update_requested_bp_list(
+        self, bp_list: list[DAP.BreakpointRequest]
+    ) -> list[DAP.BreakpointRequest]:
+        """ "As lldb-dap cannot have multiple breakpoints at the same location with different conditions, we must
         manually merge conditions here."""
         line_to_cond: dict[int, str | None] = {}
         for bp in bp_list:
@@ -511,7 +532,7 @@ class LLDBDAP(DAP):
         return bp_list
 
     def _confirm_triggered_breakpoint_ids(self, dex_bp_ids):
-        """"As lldb returns every breakpoint at the current PC regardless of whether their condition was met, we must
+        """ "As lldb returns every breakpoint at the current PC regardless of whether their condition was met, we must
         manually check conditions here."""
         confirmed_breakpoint_ids = set()
         for dex_bp_id in dex_bp_ids:
@@ -520,7 +541,9 @@ class LLDBDAP(DAP):
                 confirmed_breakpoint_ids.add(dex_bp_id)
                 continue
             valueIR = self.evaluate_expression(cond)
-            self.context.logger.warning(f"Evaluated conditional breakpoint: {str(valueIR)}")
+            self.context.logger.warning(
+                f"Evaluated conditional breakpoint: {str(valueIR)}"
+            )
             if valueIR.type_name == "bool" and valueIR.value == "true":
                 confirmed_breakpoint_ids.add(dex_bp_id)
         return confirmed_breakpoint_ids
