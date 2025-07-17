@@ -426,7 +426,7 @@ class LLDBDAP(DAP):
             stackframes = trace_response["body"]["stackFrames"]
             path = stackframes[0]["source"]["path"]
             addr = stackframes[0]["instructionPointerReference"]
-            if any(self._debugger_state.bp_addr_map.get(bp_id) == addr for (bp_id, _) in self.breakpoints.get(path, [])):
+            if any(self._debugger_state.bp_addr_map.get(self.dex_id_to_dap_id[dex_bp_id]) == addr for dex_bp_id in self.file_to_bp.get(path, [])):
                 print(f"Stepped to BP at addr {addr}, stepping again")
                 # Step again now to get to the breakpoint.
                 step_req_id = self.send_message(self.make_request("stepIn", {"threadId": self._debugger_state.thread}))
