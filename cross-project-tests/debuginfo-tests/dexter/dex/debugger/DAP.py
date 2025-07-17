@@ -18,7 +18,6 @@ import sys
 import threading
 import time
 from enum import Enum
-from typing import IO
 
 from dex.debugger.DebuggerBase import DebuggerBase, watch_is_active
 from dex.dextIR import FrameIR, LocIR, StepIR, StopReason, ValueIR
