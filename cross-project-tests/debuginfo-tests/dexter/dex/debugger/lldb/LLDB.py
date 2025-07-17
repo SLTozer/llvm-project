@@ -118,7 +118,6 @@ class LLDB(DebuggerBase):
                 "could not add breakpoint [{}:{}]".format(file_, line)
             )
         id = bp.GetID()
-        print(f"added bp {id} at line {line}")
         if condition:
             bp.SetCondition(condition)
             assert id not in self._breakpoint_conditions
@@ -233,7 +232,6 @@ class LLDB(DebuggerBase):
                     ):
                         stepped_to_breakpoint = True
             if stepped_to_breakpoint:
-                print(f"Stepped to BP at addr {pc}, stepping again")
                 self._thread.StepInto()
 
     def go(self) -> ReturnCode:
@@ -440,7 +438,6 @@ class LLDBDAP(DAP):
                 == addr
                 for dex_bp_id in self.file_to_bp.get(path, [])
             ):
-                print(f"Stepped to BP at addr {addr}, stepping again")
                 # Step again now to get to the breakpoint.
                 step_req_id = self.send_message(
                     self.make_request(
@@ -541,9 +538,6 @@ class LLDBDAP(DAP):
                 confirmed_breakpoint_ids.add(dex_bp_id)
                 continue
             valueIR = self.evaluate_expression(cond)
-            self.context.logger.warning(
-                f"Evaluated conditional breakpoint: {str(valueIR)}"
-            )
             if valueIR.type_name == "bool" and valueIR.value == "true":
                 confirmed_breakpoint_ids.add(dex_bp_id)
         return confirmed_breakpoint_ids

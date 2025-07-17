@@ -544,7 +544,7 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
             dap_bp_ids = [bp["id"] for bp in result["body"]["breakpoints"]]
             if len(dex_bp_ids) != len(dap_bp_ids):
                 self.context.logger.error(
-                    f"Difference in sent vs received lengths: {len(dex_bp_ids)}<->{len(dap_bp_ids)}"
+                    f"Sent request to set {len(dex_bp_ids)} breakpoints, but received {len(dap_bp_ids)} in response."
                 )
             visited_dap_ids = set()
             for i, dex_bp_id in enumerate(dex_bp_ids):
