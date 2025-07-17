@@ -440,9 +440,17 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
             return self.file_to_bp[source]
         return []
 
-    # For a source file, returns the list of BreakpointRequests for the breakpoints in that file.
-    def _get_desired_bps(self, file: str) -> list[(BreakpointRequest)]:
-        return [DAP.BreakpointRequest(line, cond) for (_, line, cond) in map(lambda dex_bp_id: self.bp_info[dex_bp_id], self.get_current_bps(file))]
+    def _update_requested_bp_list(self, bp_list: list[BreakpointRequest]) -> list[BreakpointRequest]:
+        """Can be overridden for any specific implementations that need further processing before sending breakpoints to
+        the debug server, e.g. in LLDB we cannot store multiple breakpoints at a single location, and therefore must
+        combine conditions for breakpoints at the same location."""
+        return bp_list
+
+    # For a source file, returns the list of BreakpointRequests for the breakpoints in that file, which can be sent to
+    # the debug server.
+    def _get_desired_bps(self, file: str) -> list[BreakpointRequest]:
+        bp_list = [DAP.BreakpointRequest(line, cond) for (_, line, cond) in map(lambda dex_bp_id: self.bp_info[dex_bp_id], self.get_current_bps(file))]
+        return self._update_requested_bp_list(bp_list)
 
     def clear_breakpoints(self):
         # We don't actually need to do anything here - even if breakpoints were preserved between runs, we will
@@ -490,26 +498,19 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
                     visited_dap_ids.add(dap_bp_id)
         self.pending_breakpoints = False
 
+    def _confirm_triggered_breakpoint_ids(self, dex_bp_ids):
+        """Can be overridden for any specific implementations that need further processing from the debug server's
+        reported 'hitBreakpointIds', e.g. in LLDB where we the ID for every breakpoint at the current PC, even if some
+        are conditional and their condition is not met."""
+        return dex_bp_ids
+
     def get_triggered_breakpoint_ids(self):
         # Breakpoints can only have been triggered if we've hit one.
         stop_reason = self._translate_stop_reason(self._debugger_state.stopped_reason)
         if stop_reason != StopReason.BREAKPOINT:
             return []
         breakpoint_ids = set([dex_id for dap_id in self._debugger_state.stopped_bps for dex_id in self.dap_id_to_dex_ids[dap_id]])
-        # TODO: Verify whether or not the debugger will verify that the condition of a conditional breakpoint is met
-        # as a precondition for adding it to the 'hit_breakpoints' array.
-        # Protip: It won't.
-        confirmed_breakpoint_ids = set()
-        for dex_bp_id in breakpoint_ids:
-            _, _, cond = self.bp_info[dex_bp_id]
-            if cond is None:
-                confirmed_breakpoint_ids.add(dex_bp_id)
-                continue
-            valueIR = self.evaluate_expression(cond)
-            self.context.logger.warning(f"Evaluated conditional breakpoint: {str(valueIR)}")
-            if valueIR.type_name == "bool" and valueIR.value == "true":
-                confirmed_breakpoint_ids.add(dex_bp_id)
-        return confirmed_breakpoint_ids
+        return self._confirm_triggered_breakpoint_ids(breakpoint_ids)
 
     def delete_breakpoints(self, ids):
         per_file_deletions: dict[str, list[int]] = defaultdict(list)
@@ -521,11 +522,6 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
             self.file_to_bp[file] = [bp_id for bp_id in self.file_to_bp[file] if bp_id not in deleted_ids]
             if len(self.file_to_bp[file]) != old_len:
                 self.pending_breakpoints = True
-            # desired_bps = self._get_desired_bps(file)
-            # request_id = self.send_message(self.make_set_breakpoint_request(file, desired_bps))
-            # result = self._await_response(request_id, 10)
-            # if not result["success"]:
-            #     raise DebuggerException(f"could not delete breakpoints in {file}")
 
     ## End of breakpoint methods
     ############################################################################
@@ -689,8 +685,9 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
         }))
         eval_response = self._await_response(eval_req_id)
         if not eval_response["success"]:
-            raise DebuggerException(f"Failed to evaluate {expression}")
-        result: str = eval_response["body"]["result"]
+            result: str = eval_response["message"]
+        else:
+            result: str = eval_response["body"]["result"]
         type_str: str | None = eval_response["body"].get("type")
 
         return self._evaluate_result_value(expression, result, type_str)

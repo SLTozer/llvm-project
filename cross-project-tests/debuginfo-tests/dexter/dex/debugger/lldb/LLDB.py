@@ -414,7 +414,7 @@ class LLDBDAP(DAP):
 
     @property
     def frames_below_main(self):
-        return ["__scrt_common_main_seh", "__libc_start_main", "__libc_start_call_main"]
+        return ["__scrt_common_main_seh", "__libc_start_main", "__libc_start_call_main", "_start"]
 
     def _post_step_hook(self):
         """Hook to be executed after completing a step request."""
@@ -492,3 +492,35 @@ class LLDBDAP(DAP):
             is_optimized_away=is_optimized_away,
             is_irretrievable=is_irretrievable,
         )
+
+    def _update_requested_bp_list(self, bp_list: list[DAP.BreakpointRequest]) -> list[DAP.BreakpointRequest]:
+        """"As lldb-dap cannot have multiple breakpoints at the same location with different conditions, we must
+        manually merge conditions here."""
+        line_to_cond: dict[int, str | None] = {}
+        for bp in bp_list:
+            if bp.condition is None:
+                line_to_cond[bp.line] = None
+                continue
+            # If we have a condition, we merge it with the existing condition if one exists, unless the known condition
+            # is None in which case we preserve the None condition (as the underlying breakpoint should always be hit).
+            if bp.line not in line_to_cond:
+                line_to_cond[bp.line] = f"({bp.condition})"
+            elif line_to_cond[bp.line] is not None:
+                line_to_cond[bp.line] = f"{line_to_cond[bp.line]} || ({bp.condition})"
+            bp.condition = line_to_cond[bp.line]
+        return bp_list
+
+    def _confirm_triggered_breakpoint_ids(self, dex_bp_ids):
+        """"As lldb returns every breakpoint at the current PC regardless of whether their condition was met, we must
+        manually check conditions here."""
+        confirmed_breakpoint_ids = set()
+        for dex_bp_id in dex_bp_ids:
+            _, _, cond = self.bp_info[dex_bp_id]
+            if cond is None:
+                confirmed_breakpoint_ids.add(dex_bp_id)
+                continue
+            valueIR = self.evaluate_expression(cond)
+            self.context.logger.warning(f"Evaluated conditional breakpoint: {str(valueIR)}")
+            if valueIR.type_name == "bool" and valueIR.value == "true":
+                confirmed_breakpoint_ids.add(dex_bp_id)
+        return confirmed_breakpoint_ids
