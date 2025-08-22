@@ -41,7 +41,7 @@ class Where:
     def __init__(self, attributes: dict):
         self.file: str | None = attributes.get("file")
         self.function: list[str] | str | None = attributes.get("function")
-        self.lines: int | tuple[int, int] | range[int] | None = attributes.get("lines")
+        self.lines: int | tuple[int, int] | range | None = attributes.get("lines")
         self.conditions: dict = attributes.get("conditions")
 
     def __repr__(self):
@@ -83,11 +83,19 @@ class Where:
         return lines
 
 class Scope:
-    def __init__(self, file, labels, fn=None, lines=None):
+    def __init__(self, file: str, labels: dict, fn: str | None = None, lines: int | range | list | None = None):
         self.file = file
         self.labels = labels
         self.fn = fn
         self.lines = lines
+
+    def as_tuple(self):
+        return (
+            self.file,
+            self.fn,
+            tuple(self.get_lines())
+        )
+
 
     # Returns a new Scope resulting from applying the new Where to this scope.
     # Note that the 'Where' does not need to be contained within the current scope; for example, if 'where' is in a
@@ -110,6 +118,7 @@ class Scope:
         return Scope(scope_file, scope_labels, scope_fn, scope_lines)
 
     def get_lines(self):
+        # This should use self.labels to resolve "lines" to something concrete, when we have proper label support.
         if not self.lines:
             return []
         if isinstance(self.lines, int):
@@ -246,15 +255,21 @@ class Unknown:
         yaml.add_representer(Unknown, Unknown.representer)
 
 def range_constructor(loader, node):
-    range_dict = loader.construct_mapping(node)
-    return range(range_dict["from"], range_dict["to"])
+    range_seq = loader.construct_sequence(node)
+    if len(range_seq) != 2 or not all([isinstance(elt, int) for elt in range_seq]):
+        raise DexterScriptError(range_seq, "!range must have exactly 2 int elements")
+    return range(range_seq[0], range_seq[1])
+
+def range_representer(dumper, data: range):
+    return dumper.represent_sequence('!range', data.start, data.stop)
 
 class DexterScriptError(Exception):
     pass
 
 class DexterScript:
-    def __init__(self, script_obj):
+    def __init__(self, script_obj, scope: Scope):
         self.script_obj = script_obj
+        self.root_scope = scope
 
     # Verifies that the contents of the script are valid.
     def validate(self):
@@ -287,79 +302,85 @@ class DexterScript:
                 else:
                     raise DexterScriptError(key)
 
-    def _visit_script(self, script, where_scopes=None, visit_where=None, visit_expect=None):
-        if where_scopes is None:
-            where_scopes = []
+    def _visit_script(self, script, scope: Scope, visit_where=None, visit_expect=None):
         if isinstance(script, list):
             for item in script:
-                self._visit_script(item, where_scopes, visit_where, visit_expect)
+                self._visit_script(item, scope, visit_where, visit_expect)
         elif isinstance(script, dict):
             for key, value in script.items():
                 if isinstance(key, Where):
                     if visit_where:
-                        visit_where(key, where_scopes)
-                    new_parents = where_scopes + [key]
-                    self._visit_script(value, new_parents, visit_where, visit_expect)
+                        visit_where(key, scope)
+                    new_scope = scope.add_where(key)
+                    self._visit_script(value, new_scope, visit_where, visit_expect)
                 elif isinstance(key, Expect):
                     if visit_expect:
-                        visit_expect(key, value, where_scopes)
+                        visit_expect(key, value, scope)
                 else:
-                    self._visit_script(value, where_scopes, visit_where, visit_expect)
+                    # If we have `where {...}: {scalar: value}`, it's not clear what that should mean, but we visit
+                    # 'value' here as a default since we'll probably use that at some point.
+                    self._visit_script(value, scope, visit_where, visit_expect)
         else:
-            # Other macros may be present here, ignore them for now however.
+            # If we have `where {...}: scalar`, it's not clear what that should mean, but we visit
+            # 'value' here as a default since we'll probably use that at some point.
             pass
 
     def visit_script(self, visit_where=None, visit_expect=None):
-        self._visit_script(self.script_obj, None, visit_where, visit_expect)
+        self._visit_script(self.script_obj, self.root_scope, visit_where, visit_expect)
 
     def get_breakpoint_locations(self):
         bp_locs = []
-        def add_bp_locs(where: Where, scopes: list[Where]):
-            scope_file = None
-            scope_fn = None
-            # Determine our immediate scope (this could be done more efficiently).
-            for scope in scopes + [where]:
-                if scope.file:
-                    scope_file = scope.file
-                    scope_fn = None
-                if scope.function:
-                    scope_fn = scope.function
-            # Now get the actual breakpoints requested by this Where.
+        def add_bp_locs(where: Where, scope: Scope):
+            scope = scope.add_where(where)
+            # 'where' can set either:
+            # - Source breakpoints over a set of lines.
+            # - A single function breakpoint.
+            # - No breakpoints at all, if it is only defining a file scope.
             if where.lines:
-                assert scope_fn, "Can't set line breakpoints without a file scope"
+                assert scope.file, "Can't set line breakpoints without a file scope"
                 for line in where.get_lines():
-                    bp_locs.append(("source", scope_file, line))
+                    bp_locs.append(("source", scope.file, line))
             elif where.function:
-                if scope_file:
-                    bp_locs.append(("function", scope_file, scope_fn))
+                if scope.file:
+                    bp_locs.append(("function", scope.file, scope.fn))
                 else:
-                    bp_locs.append(("function", scope_fn))
+                    bp_locs.append(("function", scope.fn))
 
         self.visit_script(visit_where=add_bp_locs)
         return bp_locs
 
+    # Alternative version of the above fn that only gets breakpoints directly required by expects.
+    def get_breakpoint_locations2(self):
+        visited_scopes = set()
+        bp_locs = []
+        def add_bp_locs(expect: Expect, value, scope: Scope):
+            if scope.as_tuple() in visited_scopes:
+                return
+            visited_scopes.add(scope.as_tuple())
+            # The current scope should set either:
+            # - Source breakpoints over a set of lines.
+            # - A single function breakpoint.
+            if scope.lines:
+                assert scope.file, "Can't set line breakpoints without a file scope"
+                for line in scope.get_lines():
+                    bp_locs.append(("source", scope.file, line))
+            elif scope.fn:
+                if scope.file:
+                    bp_locs.append(("function", scope.file, scope.fn))
+                else:
+                    bp_locs.append(("function", scope.fn))
+            else:
+                raise DexterScriptError(expect, "Expect set without a valid function or line scope")
+
+        self.visit_script(visit_expect=add_bp_locs)
+        return bp_locs
+
     def get_watches(self):
         watches = []
-        def get_expect_watches(expect: Expect, values, scopes: list[Where]):
+        def get_expect_watches(expect: Expect, values, scope: Scope):
             exprs = expect.get_watched_exprs()
-            if not exprs:
-                return
-            scope_file = None
-            scope_fn = None
-            scope_lines = None
-            # Determine our immediate scope (this could be done more efficiently).
-            for scope in scopes:
-                if scope.file:
-                    scope_file = scope.file
-                    scope_fn = None
-                    scope_lines = None
-                if scope.function:
-                    scope_fn = scope.function
-                    scope_lines = None
-                if scope.lines:
-                    scope_lines = scope.lines
             for expr in exprs:
-                watches.append(StepExpectInfo(expr, scope_file, 0, scope_lines))
+                watches.append(StepExpectInfo(expr, scope.file, 0, scope.lines))
         self.visit_script(visit_expect=get_expect_watches)
         return watches
 
@@ -393,7 +414,7 @@ class DexterScript:
             print("Script:")
             self.print()
             print("Breakpoints:")
-            for bp in self.get_breakpoint_locations():
+            for bp in self.get_breakpoint_locations2():
                 print(f"  {bp}")
             print("Watches:")
             for watch in self.get_watches():
@@ -433,34 +454,75 @@ class ScriptVisitor:
 # Takes as an argument a YAML document representing a dexter test, and returns the test script object resulting from
 # parsing it.
 def parse_test(contents: str) -> DexterScript:
-    return DexterScript(yaml.load(contents, yaml.CLoader))
+    return DexterScript(yaml.load(contents, yaml.CLoader), Scope(__file__, []))
 
-def setup_yaml_parser():
-    yaml.add_constructor('!where', Where.constructor, yaml.CLoader)
-    for keyword in ScriptKeyword.keywords():
-        yaml.add_constructor(f"!{keyword}", ScriptKeyword.get_constructor(keyword), yaml.CLoader)
-    yaml.add_constructor("!value", Value.constructor, yaml.CLoader)
-    yaml.add_constructor("!type", Type.constructor, yaml.CLoader)
-    yaml.add_constructor("!steps", Steps.constructor, yaml.CLoader)
-    yaml.add_constructor("!label", Label.constructor, yaml.CLoader)
-    yaml.add_constructor("!unknown", Unknown.constructor, yaml.CLoader)
-    yaml.add_constructor("!range", range_constructor, yaml.CLoader)
+def setup_yaml_parser(loader):
+    reg_classes = [
+        Where,
+        Value,
+        Type,
+        Steps,
+        Label,
+        Unknown,
+        ScriptKeyword,
+    ]
+    for c in reg_classes:
+        c.register_yaml(loader)
+    yaml.add_constructor("!range", range_constructor, loader)
+    yaml.add_representer(range, range_representer)
 
-test_script = """---
+old_test_script = """---
 !where {file: "Bullet-2.76/Demos/Benchmarks/main.cpp", function: main}:
     !where {lines: 88}: {!value d: 0}
     !where {file: "Bullet-2.76/src/LinearMath/btAlignedAllocator.cpp", function: btAlignedAllocInternal}:
-        !where {lines: !range {from: 165, to: 173}}:
+        !where {lines: !range [165, 173]}:
             !value gNumAlignedAllocs: [0, 1, 2]
             !where {lines: 173}:
                 !value alignment: 16
                 !value size: 360
             !steps : [165, 166, 167, 168, 169, 170, 171, 172, 173]
 """
+test_script = """---
+!where {lines: !range [22, 23]}:
+  !type m_member: [int, double]
+!where {lines: !range [27, 29]}:
+  !type to_double: [const int &, const double &]
+!where {lines: !range [37, 44]}:
+  !type myInt                   : Doubled<int>
+  !type myDouble                : Doubled<double>
+  !type staticallyDoubledInt    : int...
+  !type staticallyDoubledDouble : double
+...
+"""
 
-setup_yaml_parser()
-dex_script = parse_test(test_script)
-dex_script.print_info()
+print_script_source_file = False
+
+def get_scripts(file, loader) -> list[DexterScript]:
+    with open(file, 'r') as r:
+        lines = r.read().splitlines()
+    assert lines, "Read no valid lines?"
+    scope_file = str(file)
+    scripts = []
+    curr_yaml_doc = []
+    for idx, line in enumerate(lines):
+        if print_script_source_file:
+            print(f"{str(idx).rjust(3)}: {line}")
+        if line == '---':
+            curr_yaml_doc.append(line)
+        elif curr_yaml_doc:
+            curr_yaml_doc.append(line)
+            # We expect yaml docs to end with '...'
+            if line == '...':
+                scripts.append(DexterScript(yaml.load('\n'.join(curr_yaml_doc), loader), Scope(scope_file, [])))
+                curr_yaml_doc = []
+    if curr_yaml_doc:
+        scripts.append(DexterScript(yaml.load('\n'.join(curr_yaml_doc), loader), Scope(scope_file, [])))
+    return scripts
+
+setup_yaml_parser(yaml.CLoader)
+dex_scripts = get_scripts("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", yaml.CLoader)
+for s in dex_scripts:
+    s.print_info()
 
 class TraceTimes:
     def __init__(self, min: int | None = 1, max: int | None = 1):

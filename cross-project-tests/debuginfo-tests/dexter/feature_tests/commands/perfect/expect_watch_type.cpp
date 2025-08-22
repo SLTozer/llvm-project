@@ -19,14 +19,14 @@ public:
     : m_member(to_double * 2) {}
 
   T GetVal() {
-    T to_return = m_member; // DexLabel('gv_start')
-    return to_return;       // DexLabel('gv_end')
+    T to_return = m_member; // !dex_label gv_start
+    return to_return;       // !dex_label gv_end
   }
 
   static T static_doubler(const T & to_double) {
-    T result = 0;           // DexLabel('sd_start')
+    T result = 0;           // !dex_label sd_start
     result = to_double * 2;
-    return result;          // DexLabel('sd_end')
+    return result;          // !dex_label sd_end
   }
 
 private:
@@ -34,22 +34,27 @@ private:
 };
 
 int main() {
-  auto myInt = Doubled<int>(5); // DexLabel('main_start')
+  auto myInt = Doubled<int>(5); // !dex_label main_start
   auto myDouble = Doubled<double>(5.5);
   auto staticallyDoubledInt = Doubled<int>::static_doubler(5);
   auto staticallyDoubledDouble = Doubled<double>::static_doubler(5.5);
   return int(double(myInt.GetVal())
          + double(staticallyDoubledInt)
          + myDouble.GetVal()
-         + staticallyDoubledDouble); // DexLabel('main_end')
+         + staticallyDoubledDouble); // !dex_label main_end
 }
 
-// DexExpectWatchType('m_member', 'int', 'double', from_line=ref('gv_start'), to_line=ref('gv_end'))
-
-// DexExpectWatchType('to_double', 'const int &', 'const double &', from_line=ref('sd_start'), to_line=ref('sd_end'))
-
-// DexExpectWatchType('myInt', 'Doubled<int>', from_line=ref('main_start'), to_line=ref('main_end'))
-// DexExpectWatchType('myDouble', 'Doubled<double>', from_line=ref('main_start'), to_line=ref('main_end'))
-// DexExpectWatchType('staticallyDoubledInt', 'int', from_line=ref('main_start'), to_line=ref('main_end'))
-// DexExpectWatchType('staticallyDoubledDouble', 'double', from_line=ref('main_start'), to_line=ref('main_end'))
+/*
+---
+!where {lines: !range [22, 23]}:
+  !type m_member: [int, double]
+!where {lines: !range [27, 29]}:
+  !type to_double: [const int &, const double &]
+!where {lines: !range [37, 44]}:
+  !type myInt                   : Doubled<int>
+  !type myDouble                : Doubled<double>
+  !type staticallyDoubledInt    : int
+  !type staticallyDoubledDouble : double
+...
+*/
 
