@@ -18,6 +18,8 @@ from pathlib import PurePath
 
 from dex.command.CommandBase import CommandBase, StepExpectInfo
 from dex.command.StepValueInfo import StepValueInfo
+from dex.dextIR.StepIR import StepIR
+from dex.evaluate.evaluator import Metric, ScalarMetric, FractionMetric
 from dex.utils.Exceptions import NonFloatValueInCommand
 
 
@@ -313,3 +315,30 @@ class DexExpectWatchBase(CommandBase):
                 value_change_watches,
                 [v for v in resolved_values if v in all_expected_values],
             )
+
+    # Designed to fit the new Dexter metric model; differs in the following ways:
+    # - Expects to receive only the collection of steps where this watch applies, i.e. no step-filtering logic is needed
+    #   here.
+    # - Returns a value containing a dict of metrics, rather than setting values directly on this object.
+    def eval2(self, step_collection: list[StepIR]) -> dict[str, Metric]:
+
+        results = {
+            # The number of steps. Though this is not a useful metric in itself, it may be useful to see in tandem with
+            # other variables.
+            "total_steps": ScalarMetric(len(step_collection)),
+            # The number of steps where the expected value sequence was observed.
+            "correct_steps": ScalarMetric(0),
+            # The number of steps which did not match the expected value sequence.
+            "incorrect_steps": ScalarMetric(0, improves_asc=False),
+            # The number of steps where the watched variable/expression was not available in the debugger.
+            "missing_value_steps": ScalarMetric(0, improves_asc=False),
+            # The number of steps where the watched variable/expression had a value not in the set of expected values.
+            "unexpected_value_steps": ScalarMetric(0, improves_asc=False),
+            # The number of steps where the watched variable/expression had a value in the set of expected values, but
+            # out-of-order with the expected sequence.
+            "misordered_value_steps": ScalarMetric(0, improves_asc=False),
+            # The % of steps where the expected value sequence was observed.
+            "correct_step_coverage": FractionMetric(0, len(step_collection)),
+            # The edit distance between the expected and observed value sequences.
+            "difference_from_expected": ScalarMetric(0, improves_asc=False),
+        }

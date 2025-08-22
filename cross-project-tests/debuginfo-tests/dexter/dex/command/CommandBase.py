@@ -13,6 +13,8 @@ import abc
 from collections import namedtuple
 from typing import List
 
+from dex.dextIR.StepIR import StepIR
+
 StepExpectInfo = namedtuple("StepExpectInfo", "expression, path, frame_idx, line_range")
 
 
@@ -48,6 +50,12 @@ class CommandBase(object, metaclass=abc.ABCMeta):
             The logic for handling the result of CommandBase.eval() must be
             defined in Heuristic.__init__() so a consitent return type between
             commands is not enforced.
+        """
+
+    @abc.abstractmethod
+    def relevant_step(self, step: StepIR) -> bool:
+        """Returns 'true' if this step is relevant to this command; otherwise, this step cannot have any impact on the
+        evaluation of this command.
         """
 
     @staticmethod
