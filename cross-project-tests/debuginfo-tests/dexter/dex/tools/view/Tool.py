@@ -9,10 +9,8 @@
 import os
 
 import pickle
-from dex.heuristic import Heuristic
-from dex.heuristic.Heuristic import add_heuristic_tool_arguments
 from dex.tools import ToolBase
-from dex.utils.Exceptions import Error, HeuristicException
+from dex.utils.Exceptions import Error
 from dex.utils.ReturnCode import ReturnCode
 
 
@@ -24,7 +22,6 @@ class Tool(ToolBase):
         return "DExTer view"
 
     def add_tool_arguments(self, parser, defaults):
-        add_heuristic_tool_arguments(parser)
         parser.add_argument(
             "input_path",
             metavar="dextIR-file",
@@ -49,15 +46,6 @@ class Tool(ToolBase):
         with open(options.input_path, "rb") as fp:
             steps = pickle.load(fp)
 
-        try:
-            heuristic = Heuristic(self.context, steps)
-        except HeuristicException as e:
-            raise Error("could not apply heuristic: {}".format(e))
-
-        self.context.o.auto(
-            "{}\n\n{}\n\n{}\n\n".format(
-                heuristic.summary_string, steps, heuristic.verbose_output
-            )
-        )
+        # FIXME: Generate metric output via evluator.
 
         return ReturnCode.OK

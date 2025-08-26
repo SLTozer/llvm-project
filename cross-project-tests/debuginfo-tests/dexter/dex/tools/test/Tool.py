@@ -13,15 +13,14 @@ import pickle
 import shutil
 import platform
 
-from dex.command.ParseCommand import get_command_infos
 from dex.debugger.Debuggers import run_debugger_subprocess
 from dex.debugger.DebuggerControllers.DefaultController import DefaultController
 from dex.debugger.DebuggerControllers.ConditionalController import ConditionalController
 from dex.dextIR.DextIR import DextIR
-from dex.heuristic import Heuristic
 from dex.tools import TestToolBase
+from dex.test_script.Script import get_dexter_script
 from dex.utils.Exceptions import DebuggerException
-from dex.utils.Exceptions import BuildScriptException, HeuristicException
+from dex.utils.Exceptions import BuildScriptException
 from dex.utils.PrettyOutputBase import Stream
 from dex.utils.ReturnCode import ReturnCode
 
@@ -115,17 +114,14 @@ class Tool(TestToolBase):
             dexter_version=self.context.version,
         )
 
-        step_collection.commands, new_source_files = get_command_infos(
+        step_collection.script, new_source_files = get_dexter_script(
             self.context.options.test_files, self.context.options.source_root_dir
         )
 
         self.context.options.source_files.extend(list(new_source_files))
 
-        cond_controller_cmds = ["DexLimitSteps", "DexStepFunction", "DexContinue"]
-        if any(c in step_collection.commands for c in cond_controller_cmds):
-            debugger_controller = ConditionalController(self.context, step_collection)
-        else:
-            debugger_controller = DefaultController(self.context, step_collection)
+        # FIXME: Figure out how we distinguish conditional vs default stepping in the real thing.
+        debugger_controller = DefaultController(self.context, step_collection)
 
         return debugger_controller
 
@@ -211,7 +207,7 @@ class Tool(TestToolBase):
         self._record_test_and_display(test_case)
         if self.context.options.verbose:
             self.context.o.auto("\n{}\n".format(steps))
-            self.context.o.auto(heuristic.verbose_output)
+            # self.context.o.auto(heuristic.verbose_output)
 
     def _run_test(self, test_name):
         """Attempt to run test files specified in options.source_files. Store
@@ -228,13 +224,12 @@ class Tool(TestToolBase):
                 )
             steps = self._get_steps()
             self._record_steps(test_name, steps)
-            heuristic_score = Heuristic(self.context, steps)
-            self._record_score(test_name, heuristic_score)
-        except (BuildScriptException, DebuggerException, HeuristicException) as e:
+            # FIXME: Record metrics via the evaluator.
+        except (BuildScriptException, DebuggerException) as e:
             self._record_failed_test(test_name, e)
             return
 
-        self._record_successful_test(test_name, steps, heuristic_score)
+        self._record_successful_test(test_name, steps, None)
         return
 
     def _handle_results(self) -> ReturnCode:

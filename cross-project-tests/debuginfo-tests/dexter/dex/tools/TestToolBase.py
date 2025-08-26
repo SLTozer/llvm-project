@@ -13,7 +13,6 @@ import sys
 
 from dex.debugger.Debuggers import add_debugger_tool_arguments
 from dex.debugger.Debuggers import handle_debugger_tool_options
-from dex.heuristic.Heuristic import add_heuristic_tool_arguments
 from dex.tools.ToolBase import ToolBase
 from dex.utils import get_root_directory
 from dex.utils.Exceptions import Error, ToolArgumentError
@@ -40,7 +39,6 @@ class TestToolBase(ToolBase):
         parser.description = self.__doc__
         add_debugger_tool_arguments(parser, self.context, defaults)
         add_executable_arguments(parser)
-        add_heuristic_tool_arguments(parser)
 
         parser.add_argument(
             "test_path",
@@ -117,7 +115,7 @@ class TestToolBase(ToolBase):
             self.context.working_directory.path, "tmp.exe"
         )
 
-        # Test files contain dexter commands.
+        # Test files contain dexter scripts.
         options.test_files = [options.test_path]
         # Source files are the files that the program was built from, and are
         # used to determine whether a breakpoint is external to the program

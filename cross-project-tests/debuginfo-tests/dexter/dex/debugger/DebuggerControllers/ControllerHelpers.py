@@ -30,22 +30,3 @@ def have_hit_line(watch, loc):
         return True
     return False
 
-
-def update_step_watches(step_info, watches, commands):
-    watch_cmds = ["DexUnreachable", "DexExpectStepOrder"]
-    towatch = chain.from_iterable(commands[x] for x in watch_cmds if x in commands)
-    try:
-        # Iterate over all watches of the types named in watch_cmds
-        for watch in towatch:
-            loc = step_info.current_location
-            if (
-                loc.path is not None
-                and os.path.exists(loc.path)
-                and os.path.samefile(watch.path, loc.path)
-                and have_hit_line(watch, loc)
-            ):
-                result = watch.eval(step_info)
-                step_info.watches.update(result)
-                break
-    except KeyError:
-        pass

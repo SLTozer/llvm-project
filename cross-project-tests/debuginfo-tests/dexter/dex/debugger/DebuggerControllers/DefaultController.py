@@ -15,14 +15,17 @@ from dex.debugger.DebuggerControllers.DebuggerControllerBase import (
 )
 from dex.debugger.DebuggerControllers.ControllerHelpers import (
     in_source_file,
-    update_step_watches,
 )
+from dex.test_script.Rules import Scope, Then
+from dex.test_script.Script import DexterScript
 from dex.utils.Exceptions import DebuggerException, LoadDebuggerException
 from dex.utils.Timeout import Timeout
 
 
+
 class EarlyExitCondition(object):
-    def __init__(self, on_line, hit_count, expression, values):
+    def __init__(self, file, on_line, hit_count, expression, values):
+        self.file = file
         self.on_line = on_line
         self.hit_count = hit_count
         self.expression = expression
@@ -46,24 +49,9 @@ class DefaultController(DebuggerControllerBase):
                 except DebuggerException:
                     raise LoadDebuggerException(DebuggerException.msg)
 
-    def _get_early_exit_conditions(self):
-        commands = self.step_collection.commands
-        early_exit_conditions = []
-        if "DexFinishTest" in commands:
-            finish_commands = commands["DexFinishTest"]
-            for fc in finish_commands:
-                condition = EarlyExitCondition(
-                    on_line=fc.on_line,
-                    hit_count=fc.hit_count,
-                    expression=fc.expression,
-                    values=fc.values,
-                )
-                early_exit_conditions.append(condition)
-        return early_exit_conditions
-
     def _should_exit(self, early_exit_conditions, line_no):
         for condition in early_exit_conditions:
-            if condition.on_line == line_no:
+            if line_no in condition.on_line:
                 exit_condition_hit = condition.expression is None
                 if condition.expression is not None:
                     # For the purposes of consistent behaviour with the
@@ -83,13 +71,22 @@ class DefaultController(DebuggerControllerBase):
                         condition.hit_count -= 1
         return False
 
+    def _get_early_exits(self, script: DexterScript):
+        early_exits: list[EarlyExitCondition] = []
+        def get_then_finish_scopes(then: Then, scope: Scope):
+            if then.command != "finish":
+                return
+            early_exits.append(EarlyExitCondition(scope.file, scope.get_lines(), scope.after_hits, scope.get_single_condition()[0], scope.get_single_condition()[1]))
+        script.visit_script(visit_then=get_then_finish_scopes)
+        return early_exits
+
     def _run_debugger_custom(self, cmdline):
         self.step_collection.debugger = self.debugger.debugger_info
         self._break_point_all_lines()
         self.debugger.launch(cmdline)
-        for command_obj in chain.from_iterable(self.step_collection.commands.values()):
-            self.watches.update(command_obj.get_watches())
-        early_exit_conditions = self._get_early_exit_conditions()
+        script: DexterScript = self.step_collection.script
+        self.watches.update(s for s in script.get_watches())
+        early_exit_conditions = self._get_early_exits(script)
         timed_out = False
         total_timeout = Timeout(self.context.options.timeout_total)
         max_steps = self.context.options.max_steps
@@ -118,9 +115,10 @@ class DefaultController(DebuggerControllerBase):
             step_info = self.debugger.get_step_info(self.watches, self.step_index)
 
             if step_info.current_frame:
-                update_step_watches(
-                    step_info, self.watches, self.step_collection.commands
-                )
+                # FIXME: Figure out if this is necessary for the script-model.
+                # update_step_watches(
+                #     step_info, self.watches, ...
+                # )
                 self.step_collection.new_step(self.context, step_info)
                 if self._should_exit(
                     early_exit_conditions, step_info.current_frame.loc.lineno

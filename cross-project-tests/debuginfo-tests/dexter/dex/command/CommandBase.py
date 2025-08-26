@@ -52,12 +52,6 @@ class CommandBase(object, metaclass=abc.ABCMeta):
             commands is not enforced.
         """
 
-    @abc.abstractmethod
-    def relevant_step(self, step: StepIR) -> bool:
-        """Returns 'true' if this step is relevant to this command; otherwise, this step cannot have any impact on the
-        evaluation of this command.
-        """
-
     @staticmethod
     def get_subcommands() -> dict:
         """Returns a dictionary of subcommands in the form {name: command} or

@@ -27,8 +27,16 @@ int main()
 !where {lines: 12}:
   !value n: 8
 !where {lines: 15}:
-  !value i: ['1', '2', '3', '4', '5', '6', '7', '8']
-  !value fac: ['1', '2', '6', '24', '120', '720', '5040']
+  !value i: !unknown i
+  !value fac: 
+    - 1
+    - 1
+    - 2
+    - 6
+    - 24
+    - 120
+    - 720
+    - 5040
   !value n: 8
 !where {lines: 17}:
   !value fac: 40320

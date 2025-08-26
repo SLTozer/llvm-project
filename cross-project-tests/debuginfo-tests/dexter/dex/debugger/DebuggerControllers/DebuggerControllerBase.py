@@ -7,6 +7,7 @@
 """Abstract Base class for controlling debuggers."""
 
 import abc
+from itertools import chain
 
 
 class DebuggerControllerBase(object, metaclass=abc.ABCMeta):
@@ -27,12 +28,9 @@ class DebuggerControllerBase(object, metaclass=abc.ABCMeta):
 
         # Fetch command line options, if any.
         the_cmdline = []
-        commands = self.step_collection.commands
-        if "DexCommandLine" in commands:
-            cmd_line_objs = commands["DexCommandLine"]
-            assert len(cmd_line_objs) == 1
-            cmd_line_obj = cmd_line_objs[0]
-            the_cmdline = cmd_line_obj.the_cmdline
+        cmd_lines = self.step_collection.script.get_cmd_line_directives()
+        if cmd_lines:
+            the_cmdline = list(chain.from_iterable(cmd_lines))
 
         with self.debugger:
             if not self.debugger.loading_error:

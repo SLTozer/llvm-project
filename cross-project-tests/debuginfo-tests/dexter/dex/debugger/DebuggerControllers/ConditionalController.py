@@ -14,12 +14,13 @@ from itertools import chain
 
 from dex.debugger.DebuggerControllers.ControllerHelpers import (
     in_source_file,
-    update_step_watches,
 )
 from dex.debugger.DebuggerControllers.DebuggerControllerBase import (
     DebuggerControllerBase,
 )
 from dex.debugger.DebuggerBase import DebuggerBase
+from dex.test_script.Rules import Scope, Then
+from dex.test_script.Script import DexterScript
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.Timeout import Timeout
 from dex.dextIR import LocIR
@@ -46,6 +47,7 @@ class BreakpointRange:
         self,
         expression: str,
         path: str,
+        function: str,
         range_from: int,
         range_to: int,
         values: list,
@@ -57,6 +59,7 @@ class BreakpointRange:
     ):
         self.expression = expression
         self.path = path
+        self.function = function
         self.range_from = range_from
         self.range_to = range_to
         self.conditional_values = values
@@ -160,9 +163,10 @@ class ConditionalController(DebuggerControllerBase):
         # Map {id: BreakpointRange}
         self._leading_bp_handles = {}
         super(ConditionalController, self).__init__(context, step_collection)
-        self._build_bp_ranges()
+        script: DexterScript = self.step_collection.script
+        self._get_bp_ranges()
 
-    def _build_bp_ranges(self):
+    def _get_bp_ranges(self):
         commands = self.step_collection.commands
         self._bp_ranges = []
 
@@ -171,24 +175,6 @@ class ConditionalController(DebuggerControllerBase):
             raise DebuggerException(
                 f"No conditional commands {cond_controller_cmds}, cannot conditionally step."
             )
-
-        if "DexLimitSteps" in commands:
-            for c in commands["DexLimitSteps"]:
-                bpr = BreakpointRange.limit_steps(
-                    c.expression,
-                    c.path,
-                    c.from_line,
-                    c.to_line,
-                    c.values,
-                    c.hit_count,
-                )
-                self._bp_ranges.append(bpr)
-        if "DexFinishTest" in commands:
-            for c in commands["DexFinishTest"]:
-                bpr = BreakpointRange.finish_test(
-                    c.expression, c.path, c.on_line, c.values, c.hit_count + 1
-                )
-                self._bp_ranges.append(bpr)
         if "DexContinue" in commands:
             for c in commands["DexContinue"]:
                 bpr = BreakpointRange.continue_from_to(
@@ -201,6 +187,23 @@ class ConditionalController(DebuggerControllerBase):
                     c.get_function(), c.path, c.hit_count
                 )
                 self._bp_ranges.append(bpr)
+
+        visited_expect_scopes = set()
+        visited_finish_scopes = set()
+        def add_bp_locs(obj, visited_set: set, scope: Scope):
+            if scope.as_tuple() in visited_set:
+                return
+            visited_set.add(scope.as_tuple())
+            should_finish = isinstance(obj, Then)
+            self._bp_ranges.append(BreakpointRange(None, scope.file, scope.fn, scope.get_lines()[0], scope.get_lines()[-1], None, scope.after_hits, should_finish))
+
+        def add_expect_bp_locs(expect, value, scope):
+            add_bp_locs(expect, visited_expect_scopes, scope)
+        def add_then_bp_locs(then, scope):
+            add_bp_locs(then, visited_finish_scopes, scope)
+        
+        script: DexterScript = self.step_collection.script
+        script.visit_script(visit_expect=add_expect_bp_locs, visit_then=add_then_bp_locs)
 
     def _set_leading_bps(self):
         # Set a leading breakpoint for each BreakpointRange, building a
@@ -225,14 +228,14 @@ class ConditionalController(DebuggerControllerBase):
         # TODO: Add conditional and unconditional breakpoint support to dbgeng.
         if self.debugger.get_name() == "dbgeng":
             raise DebuggerException(
-                "DexLimitSteps commands are not supported by dbgeng"
+                "Conditional stepping not supported by dbgeng"
             )
 
         self.step_collection.clear_steps()
-        self._set_leading_bps()
 
-        for command_obj in chain.from_iterable(self.step_collection.commands.values()):
-            self._watches.update(command_obj.get_watches())
+        script: DexterScript = self.step_collection.script
+        self.watches.update(script.get_watches())
+        self._set_leading_bps()
 
         self.debugger.launch(cmdline)
         time.sleep(self._pause_between_steps)
@@ -370,9 +373,10 @@ class ConditionalController(DebuggerControllerBase):
             if record_step and step_info.current_frame:
                 self._step_index += 1
                 # Record the step.
-                update_step_watches(
-                    step_info, self._watches, self.step_collection.commands
-                )
+                # FIXME: Figure out if this is necessary for the script-model.
+                # update_step_watches(
+                #     step_info, self._watches, self.step_collection.commands
+                # )
                 self.step_collection.new_step(self.context, step_info)
 
             if exit_desired:

@@ -9,6 +9,7 @@ import os
 from typing import List
 
 from dex.dextIR.DebuggerIR import DebuggerIR
+from dex.test_script.Script import DexterScript
 from dex.dextIR.StepIR import StepIR, StepKind
 
 
@@ -48,12 +49,14 @@ class DextIR:
         source_paths: List[str],
         debugger: DebuggerIR = None,
         commands: OrderedDict = None,
+        script: DexterScript = None,
     ):
         self.dexter_version = dexter_version
         self.executable_path = executable_path
         self.source_paths = source_paths
         self.debugger = debugger
         self.commands = commands
+        self.script = script
         self.steps: List[StepIR] = []
 
     def __str__(self):

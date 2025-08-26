@@ -13,7 +13,6 @@ from enum import IntEnum
 from pathlib import PurePath, Path
 from collections import defaultdict, namedtuple
 
-from dex.command.CommandBase import StepExpectInfo
 from dex.debugger.DebuggerBase import DebuggerBase, watch_is_active
 from dex.dextIR import FrameIR, LocIR, StepIR, StopReason, ValueIR
 from dex.dextIR import StackFrame, SourceLocation, ProgramState

@@ -14,7 +14,6 @@ import subprocess
 import sys
 from tempfile import NamedTemporaryFile
 
-from dex.command import get_command_infos
 from dex.dextIR import DextIR
 from dex.utils import get_root_directory, Timer
 from dex.utils.Environment import is_native_windows
