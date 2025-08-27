@@ -6,8 +6,6 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 """Default class for controlling debuggers."""
 
-from itertools import chain
-import os
 import time
 
 from dex.debugger.DebuggerControllers.DebuggerControllerBase import (
@@ -85,7 +83,7 @@ class DefaultController(DebuggerControllerBase):
         self._break_point_all_lines()
         self.debugger.launch(cmdline)
         script: DexterScript = self.step_collection.script
-        self.watches.update(s for s in script.get_watches())
+        self.watches.update(script.get_watches())
         early_exit_conditions = self._get_early_exits(script)
         timed_out = False
         total_timeout = Timeout(self.context.options.timeout_total)

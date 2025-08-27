@@ -28,15 +28,7 @@ int main()
   !value n: 8
 !where {lines: 15}:
   !value i: !unknown i
-  !value fac: 
-    - 1
-    - 1
-    - 2
-    - 6
-    - 24
-    - 120
-    - 720
-    - 5040
+  !value fac: [1, 1, 2, 6, 24, 120, 720, 5040]
   !value n: 8
 !where {lines: 17}:
   !value fac: 40320

@@ -17,8 +17,9 @@ from dex.debugger.Debuggers import run_debugger_subprocess
 from dex.debugger.DebuggerControllers.DefaultController import DefaultController
 from dex.debugger.DebuggerControllers.ConditionalController import ConditionalController
 from dex.dextIR.DextIR import DextIR
+from dex.evaluate.Evaluator import DexEvaluator
 from dex.tools import TestToolBase
-from dex.test_script.Script import get_dexter_script
+from dex.test_script.Script import DexterScript, get_dexter_script
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.Exceptions import BuildScriptException
 from dex.utils.PrettyOutputBase import Stream
@@ -185,6 +186,14 @@ class Tool(TestToolBase):
             with open(output_text_path, "a") as fp:
                 self.context.o.auto(heuristic.verbose_output, stream=Stream(fp))
 
+    def _write_updated_script(self, test_name, script: DexterScript):
+        """Write out the original script file, modified to replace any unknown expects with the actual observed values.
+        """
+        if self.context.options.results_directory:
+            output_text_path = self._get_results_path(test_name)
+            with open(output_text_path, "w") as fp:
+                self.context.o.auto(script.write_script(), stream=Stream(fp))
+
     def _record_test_and_display(self, test_case):
         """Output test case to o stream and record test case internally for
         handling later.
@@ -199,15 +208,15 @@ class Tool(TestToolBase):
         test_case = TestCase(self.context, test_name, None, exception)
         self._record_test_and_display(test_case)
 
-    def _record_successful_test(self, test_name, steps, heuristic):
+    def _record_successful_test(self, test_name, steps, evaluator):
         """Instantiate a successful test run, store test for handling later.
         Display verbose output for test case if required.
         """
-        test_case = TestCase(self.context, test_name, heuristic, None)
+        test_case = TestCase(self.context, test_name, evaluator, None)
         self._record_test_and_display(test_case)
         if self.context.options.verbose:
             self.context.o.auto("\n{}\n".format(steps))
-            # self.context.o.auto(heuristic.verbose_output)
+            self.context.o.auto(evaluator.get_verbose_output())
 
     def _run_test(self, test_name):
         """Attempt to run test files specified in options.source_files. Store
@@ -224,12 +233,17 @@ class Tool(TestToolBase):
                 )
             steps = self._get_steps()
             self._record_steps(test_name, steps)
-            # FIXME: Record metrics via the evaluator.
+            evaluator = DexEvaluator(self.context, steps)
+            if any(v is None for v in evaluator.wildcard_updates.values()):
+                self.context.o.auto("\n<y>Failed to find values for one or more unknowns.</>\n")
+            elif len(evaluator.wildcard_updates) > 0:
+                self.context.o.auto("\n<g>Found values for all unknowns.</>\n")
+                self._write_updated_script(test_name, steps.script)
         except (BuildScriptException, DebuggerException) as e:
             self._record_failed_test(test_name, e)
             return
 
-        self._record_successful_test(test_name, steps, None)
+        self._record_successful_test(test_name, steps, evaluator)
         return
 
     def _handle_results(self) -> ReturnCode:

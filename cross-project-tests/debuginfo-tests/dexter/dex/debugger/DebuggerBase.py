@@ -13,7 +13,7 @@ import traceback
 import unittest
 
 from types import SimpleNamespace
-from dex.command.CommandBase import StepExpectInfo
+from dex.test_script.DataTypes import StepExpectInfo
 from dex.dextIR import DebuggerIR, FrameIR, LocIR, StepIR, ValueIR
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.ReturnCode import ReturnCode

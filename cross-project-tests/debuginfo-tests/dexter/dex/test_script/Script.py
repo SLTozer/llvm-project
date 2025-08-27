@@ -18,6 +18,7 @@ from itertools import chain
 from pathlib import PurePath
 import pprint
 import os
+from typing import Any
 import yaml
 from enum import Enum
 
@@ -74,6 +75,8 @@ class DexterScript:
         self.script_obj = script_obj
         self.root_scope = scope
         self.has_unknowns = False
+        self.opening_line = None
+        self.closing_line = None
 
     # Verifies that the contents of the script are valid.
     def validate(self):
@@ -172,6 +175,21 @@ class DexterScript:
             return result
         print(print_subscript(self.script_obj, 0))
 
+    def write_script(self, whole_file: bool = True) -> str:
+        script = yaml.dump(self.script_obj)
+        if not whole_file:
+            return script
+        assert self.opening_line is not None and self.closing_line is not None, "Can't print the full test file without knowing where the script is contained inside it"
+        script_lines = ['---'] + script.splitlines() + ['...']
+        # FIXME: Is this always correct, or do we need to trakc this better? We should probably do away with the current
+        # logic for merging scripts too, each one will need to write itself out individually.
+        original_file = self.root_scope.file
+        with open(original_file, 'r') as r:
+            original_file_lines = r.read().splitlines()
+        assert original_file_lines, "Read no valid lines?"
+        original_file_lines[self.opening_line:self.closing_line] = script_lines
+        return '\n'.join(original_file_lines)
+
 def merge_scripts(scripts: list[DexterScript]) -> DexterScript:
     assert len(scripts) > 0, "Need actual scripts to merge"
     if len(scripts) == 1:
@@ -202,20 +220,28 @@ def get_scripts(file, loader) -> list[DexterScript]:
     scope_file = str(file)
     scripts = []
     curr_yaml_doc = []
+    start_line = None
     for idx, line in enumerate(lines):
         line = line.rstrip()
-        if True: # Toggle for debugging
+        if False: # Toggle for debugging
             print(f"{str(idx).rjust(3)}: {line}")
         if line == '---':
             curr_yaml_doc.append(line)
+            start_line = idx
         elif curr_yaml_doc:
             curr_yaml_doc.append(line)
             # We expect yaml docs to end with '...'
             if line.startswith('...'):
-                scripts.append(DexterScript(yaml.load('\n'.join(curr_yaml_doc), loader), Scope(scope_file, [])))
+                new_script = DexterScript(yaml.load('\n'.join(curr_yaml_doc), loader), Scope(scope_file, []))
+                new_script.opening_line = start_line
+                new_script.closing_line = idx + 1
+                scripts.append(new_script)
                 curr_yaml_doc = []
     if curr_yaml_doc:
-        scripts.append(DexterScript(yaml.load('\n'.join(curr_yaml_doc), loader), Scope(scope_file, [])))
+        new_script = DexterScript(yaml.load('\n'.join(curr_yaml_doc), loader), Scope(scope_file, []))
+        new_script.opening_line = start_line
+        new_script.closing_line = len(lines)
+        scripts.append(new_script)
     return scripts
 
 def get_dexter_script(test_files, source_root_dir):
@@ -270,41 +296,3 @@ def check_results(expect: Expect, expected_values, scope: Scope):
     print(f"  Actual: {actuals}")
     result = expect.evaluate(expected_values, actuals)
     print(f"  Result: {result}")
-
-
-# old_test_script = """---
-# !where {file: "Bullet-2.76/Demos/Benchmarks/main.cpp", function: main}:
-#     !where {lines: 88}: {!value d: 0}
-#     !where {file: "Bullet-2.76/src/LinearMath/btAlignedAllocator.cpp", function: btAlignedAllocInternal}:
-#         !where {lines: !range [165, 173]}:
-#             !value gNumAlignedAllocs: [0, 1, 2]
-#             !where {lines: 173}:
-#                 !value alignment: 16
-#                 !value size: 360
-#             !steps : [165, 166, 167, 168, 169, 170, 171, 172, 173]
-# """
-# test_script = """---
-# !where {lines: !range [22, 23]}:
-#   !type m_member: [int, double]
-# !where {lines: !range [27, 29]}:
-#   !type to_double: [const int &, const double &]
-# !where {lines: !range [37, 44]}:
-#   !type myInt                   : Doubled<int>
-#   !type myDouble                : Doubled<double>
-#   !type staticallyDoubledInt    : int...
-#   !type staticallyDoubledDouble : double
-# ...
-# """
-
-# print_script_source_file = False
-
-# setup_yaml_parser(yaml.CLoader)
-# dex_scripts = get_scripts("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", yaml.CLoader)
-# for s in dex_scripts:
-#     s.print_info()
-
-# the_script = dex_scripts[0]
-# the_script.visit_script(visit_expect=check_results)
-
-# print("\nUpdated script:")
-# print(yaml.dump(the_script.script_obj))
