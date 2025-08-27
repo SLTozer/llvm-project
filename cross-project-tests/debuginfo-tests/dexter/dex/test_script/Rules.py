@@ -267,17 +267,16 @@ class Value(Expect):
         return values
 
     def evaluate(self, expected, actual: list[ValueIR]) -> dict[str, Metric]:
-        # Cannot get meaningful metrics from a wildcard input.
-        if isinstance(expected, Unknown):
-            return {}
+        assert not isinstance(expected, Unknown), "Cannot evaluate against unknown expected value!"
         if not isinstance(expected, list):
             expected = [expected]
         expected = [str(e) for e in expected]
 
         correct_steps = len([a for a in actual if a.value in expected])
         incorrect_steps = len([a for a in actual if a.value not in expected])
-        missing_value_steps = len([a for a in actual if not a.could_evaluate or a.is_irretrievable or a.is_optimized_away])
+        missing_var_steps = len([a for a in actual if not a.could_evaluate or a.is_irretrievable or a.is_optimized_away])
         unexpected_value_steps = len([a for a in actual if a.could_evaluate and a.value is not None and a.value not in expected])
+        seen_values = len([e for e in expected if any(a.value == e for a in actual)])
         missing_values = len([e for e in expected if not any(a.value == e for a in actual)])
         return {
             # The number of steps. Though this is not a useful metric in itself, it may be useful to see in tandem with
@@ -288,7 +287,7 @@ class Value(Expect):
             # The number of steps which did not match the expected value sequence.
             "incorrect_steps": ScalarMetric(incorrect_steps, improves_asc=False),
             # The number of steps where the watched variable/expression was not available in the debugger.
-            "missing_value_steps": ScalarMetric(missing_value_steps, improves_asc=False),
+            "missing_var_steps": ScalarMetric(missing_var_steps, improves_asc=False),
             # The number of steps where the watched variable/expression had a value not in the set of expected values.
             "unexpected_value_steps": ScalarMetric(unexpected_value_steps, improves_asc=False),
             # The number of steps where the watched variable/expression had a value in the set of expected values, but
@@ -298,6 +297,8 @@ class Value(Expect):
             "correct_step_coverage": FractionMetric(correct_steps, len(actual)),
             # The edit distance between the expected and observed value sequences.
             "difference_from_expected": ScalarMetric(0, improves_asc=False),
+            # The number of expected values that were observed at least once.
+            "seen_values": ScalarMetric(seen_values),
             # The number of expected values that were not observed.
             "missing_values": ScalarMetric(missing_values, improves_asc=False),
         }
@@ -321,6 +322,63 @@ class Value(Expect):
 class Type(Expect):
     def __init__(self, variable_name: str):
         self.variable_name = variable_name
+
+    # For a list of steps in which this expectation is in-scope, returns all the information required to evaluate it.
+    def get_actual_value(self, steps: list[StepIR]):
+        values = []
+        for step in steps:
+            values.append(step.program_state.frames[0].watches[self.variable_name])
+        return values
+
+    # Similar to `get_actual_value`, but returns a value suitable for serializing directly to YAML instead of being
+    # usable for evaluation, for the purposes of substituting unknown values.
+    def get_unknown_substitute_value(self, steps: list[StepIR]) -> str | list[str]:
+        # If we observed no values at all, something has gone wrong.
+        if not steps:
+            return None
+        values = []
+        for step in steps:
+            step_result: ValueIR = step.program_state.frames[0].watches[self.variable_name]
+            # If we could not evaluate this variable, we have failed to find a substitute.
+            if not step_result.type_name:
+                return None
+            values.append(step_result.type_name)
+        # Prefer a scalar result if possible!
+        if len(values) == 1:
+            values = values[0]
+        return values
+
+    def evaluate(self, expected, actual: list[ValueIR]) -> dict[str, Metric]:
+        assert not isinstance(expected, Unknown), "Cannot evaluate against unknown expected value!"
+        if not isinstance(expected, list):
+            expected = [expected]
+        expected = [str(e) for e in expected]
+
+        correct_steps = len([a for a in actual if a.type_name in expected])
+        incorrect_steps = len([a for a in actual if a.type_name not in expected])
+        missing_var_steps = len([a for a in actual if not a.could_evaluate or a.is_irretrievable or a.is_optimized_away])
+        unexpected_type_steps = len([a for a in actual if a.could_evaluate and a.type_name is not None and a.type_name not in expected])
+        seen_types = len([e for e in expected if any(a.type_name == e for a in actual)])
+        missing_types = len([e for e in expected if not any(a.type_name == e for a in actual)])
+        return {
+            # The number of steps. Though this is not a useful metric in itself, it may be useful to see in tandem with
+            # other variables.
+            "total_steps": ScalarMetric(len(actual)),
+            # The number of steps where the expected types were observed.
+            "correct_steps": ScalarMetric(correct_steps),
+            # The number of steps where the expected types were not observed.
+            "incorrect_steps": ScalarMetric(incorrect_steps, improves_asc=False),
+            # The number of steps where the watched variable/expression was not available in the debugger.
+            "missing_var_steps": ScalarMetric(missing_var_steps, improves_asc=False),
+            # The number of steps where the watched variable/expression had a value not in the set of expected values.
+            "unexpected_type_steps": ScalarMetric(unexpected_type_steps, improves_asc=False),
+            # The fraction of steps where the expected types were observed.
+            "correct_step_coverage": FractionMetric(correct_steps, len(actual)),
+            # The number of expected types that observed at least once.
+            "seen_types": ScalarMetric(seen_types, improves_asc=False),
+            # The number of expected types that were not observed at all.
+            "missing_types": ScalarMetric(missing_types, improves_asc=False),
+        }
 
     def get_watched_exprs(self) -> list[str]:
         return [self.variable_name]

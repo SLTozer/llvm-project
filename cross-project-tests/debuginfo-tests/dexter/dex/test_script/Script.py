@@ -31,41 +31,15 @@ from dex.dextIR.FrameIR import FrameIR
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.Timer import Timer
 
-
-
-actual_values = [
-    StepIR(1, [FrameIR("main", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 22, 12))], {}),
-    StepIR(2, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 12, 28))], {'n': 8}),
-    StepIR(3, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 14, 14))], {}),
-    StepIR(4, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 15, 16))], {'i': 1, 'fac': 1, 'n': 8}),
-    StepIR(5, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 14, 29))], {}),
-    StepIR(6, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 15, 16))], {'i': 1, 'fac': 1, 'n': 8}),
-    StepIR(7, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 14, 29))], {}),
-    StepIR(8, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 15, 16))], {'i': 1, 'fac': 2, 'n': 8}),
-    StepIR(9, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 14, 29))], {}),
-    StepIR(10, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 15, 16))], {'i': 1, 'fac': 6, 'n': 8}),
-    StepIR(11, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 14, 29))], {}),
-    StepIR(12, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 15, 16))], {'i': 1, 'fac': 24, 'n': 8}),
-    StepIR(13, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 14, 29))], {}),
-    StepIR(14, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 15, 16))], {'i': 1, 'fac': 120, 'n': 8}),
-    StepIR(15, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 14, 29))], {}),
-    StepIR(16, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 15, 16))], {'i': 1, 'fac': 720, 'n': 8}),
-    StepIR(17, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 14, 29))], {}),
-    StepIR(18, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 15, 16))], {'i': 1, 'fac': 5040, 'n': 8}),
-    StepIR(19, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 14, 29))], {}),
-    StepIR(20, [FrameIR("Factorial(int)", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 17, 12))], {'n': 8, 'fac': 40320}),
-    StepIR(21, [FrameIR("main", False, LocIR("/home/gbtozers/dev/upstream-llvm/cross-project-tests/debuginfo-tests/dexter/feature_tests/commands/perfect/expect_watch_value.cpp", 22, 5))], {}),
-]
-
-
+# We use an inclusive range in Dexter scripts, while python ranges are exclusive.
 def range_constructor(loader, node):
     range_seq = loader.construct_sequence(node)
     if len(range_seq) != 2 or not all([isinstance(elt, int) for elt in range_seq]):
         raise DexterScriptError(range_seq, "!range must have exactly 2 int elements")
-    return range(range_seq[0], range_seq[1])
+    return range(range_seq[0], range_seq[1] + 1)
 
 def range_representer(dumper, data: range):
-    return dumper.represent_sequence('!range', data.start, data.stop)
+    return dumper.represent_sequence('!range', data.start, data.stop - 1)
 
 class DexterScriptError(Exception):
     pass
@@ -269,30 +243,3 @@ def get_dexter_script(test_files, source_root_dir):
         except DexterScriptError as e:
             msg = f"parser error: {e}\n"
             raise DebuggerException(msg)
-
-def scope_matches_step(scope: Scope, step: StepIR):
-    if scope.file is not None and scope.file != step.frames[0].loc.path:
-        return False
-    if scope.fn is not None and scope.fn != step.frames[0].function:
-        return False
-    return step.frames[0].loc.lineno in scope.get_lines()
-
-def check_results(expect: Expect, expected_values, scope: Scope):
-    if not isinstance(expect, Value):
-        return
-    print(f"Evaluating: {expect}")
-    steps = [step for step in actual_values if scope_matches_step(scope, step)]
-    print(f"  Steps: {[step.step_index for step in steps]}")
-    actuals = expect.get_actual_value(steps)
-    actuals = [str(v) for v in actuals]
-    if isinstance(expected_values, Unknown):
-        print(f"Updated actual values: {actuals}")
-        expected_values.set_actual_values(actuals)
-        return
-    if not isinstance(expected_values, list):
-        expected_values = [expected_values]
-    expected_values = [str(v) for v in expected_values]
-    print(f"  Expected: {expected_values}")
-    print(f"  Actual: {actuals}")
-    result = expect.evaluate(expected_values, actuals)
-    print(f"  Result: {result}")
