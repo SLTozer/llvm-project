@@ -5,6 +5,23 @@ from dex.dextIR.ValueIR import ValueIR
 from dex.test_script.DataTypes import Metric, ScalarMetric, FractionMetric
 import difflib
 
+
+def setup_yaml_parser(loader):
+    reg_classes = [
+        Where,
+        Then,
+        Value,
+        Type,
+        Steps,
+        Label,
+        Unknown,
+        ScriptKeyword,
+        DexRange,
+        Address,
+    ]
+    for c in reg_classes:
+        c.register_yaml(loader)
+
 class Where:
     """"One or more instances of this class define a range of steps in a debugging session. Any expects in the script
     within scope of a "Where" will only be evaluated for the steps where the Where applies.
@@ -109,9 +126,8 @@ class Scope:
     # Note that the 'Where' does not need to be contained within the current scope; for example, if 'where' is in a
     # different file to this scope, we take that as the new file and invalidate any existing fn/line info since it no
     # longer applies to the new scope.
-    def add_where(self, where: Where):
+    def add_where(self, where: Where, per_file_labels: dict[str, int] = {}):
         scope_file = self.file
-        scope_labels = self.labels
         scope_fn = self.fn
         scope_lines = self.lines
         scope_conditions = self.conditions
@@ -134,6 +150,7 @@ class Scope:
             scope_conditions = where.conditions
         if where.after_hits:
             scope_after_hits = where.after_hits
+        scope_labels = per_file_labels.get(scope_file, {})
         return Scope(scope_file, scope_labels, scope_fn, scope_lines, scope_conditions, scope_after_hits)
 
     def as_where(self) -> Where:
@@ -152,18 +169,24 @@ class Scope:
             return []
         if isinstance(self.lines, int):
             return [self.lines]
-        return self.lines
+        if isinstance(self.lines, Label):
+            return [self.labels[self.lines.name]]
+        assert isinstance(self.lines, DexRange)
+        return self.lines.to_range(self.labels)
     
     def get_line_range(self):
         if not self.lines:
             return None
         if isinstance(self.lines, int):
             return range(self.lines, self.lines + 1)
+        if isinstance(self.lines, Label):
+            label_line = self.labels[self.lines.name]
+            return range(label_line, label_line + 1)
         # FIXME: For non-contiguous ranges this is incorrect, as is returning a range here at all - fix it later.
         if isinstance(self.lines, list):
             return range(self.lines[0], self.lines[-1] + 1)
-        assert isinstance(self.lines, range)
-        return self.lines
+        assert isinstance(self.lines, DexRange)
+        return self.lines.to_range(self.labels)
 
     # Awkward design to match current Dexter interface.
     def get_single_condition(self):
@@ -191,6 +214,9 @@ class ScriptKeyword:
             yaml.add_constructor(f"!{keyword}", ScriptKeyword.get_constructor(keyword), loader)
         yaml.add_representer(ScriptKeyword, ScriptKeyword.representer)
 
+class EvaluationContext:
+    def __init__(self):
+        self.address_resolutions: dict[str, str] = {}
 
 # An expectation of some debugger state that will be compared to actual observed debugger state and generate one or more
 # metrics as a measurement of the difference.
@@ -208,7 +234,9 @@ class Expect:
     def get_unknown_substitute_value(self, steps: list[StepIR]):
         raise NotImplementedError()
 
-    def evaluate(self, expected, actual) -> dict[str, Metric]:
+    def evaluate(
+        self, expected, actual, context: EvaluationContext
+    ) -> dict[str, Metric]:
         raise NotImplementedError()
 
     def get_watched_exprs(self) -> list[str]:
@@ -266,8 +294,23 @@ class Value(Expect):
             values = values[0]
         return values
 
-    def evaluate(self, expected, actual: list[ValueIR]) -> dict[str, Metric]:
-        assert not isinstance(expected, Unknown), "Cannot evaluate against unknown expected value!"
+    def evaluate(
+        self, expected, actual: list[ValueIR], context: EvaluationContext
+    ) -> dict[str, Metric]:
+        assert not isinstance(
+            expected, Unknown
+        ), "Cannot evaluate against unknown expected value!"
+        # FIXME: Support lists and offsets.
+        if isinstance(expected, Address):
+            if expected.name in context.address_resolutions:
+                expected = context.address_resolutions[expected.name]
+            else:
+                resolved_addr = next(
+                    (a.value for a in actual if a.value is not None), None
+                )
+                if resolved_addr is not None:
+                    context.address_resolutions[expected.name] = resolved_addr
+                    expected = resolved_addr
         if not isinstance(expected, list):
             expected = [expected]
         expected = [str(e) for e in expected]
@@ -348,8 +391,12 @@ class Type(Expect):
             values = values[0]
         return values
 
-    def evaluate(self, expected, actual: list[ValueIR]) -> dict[str, Metric]:
-        assert not isinstance(expected, Unknown), "Cannot evaluate against unknown expected value!"
+    def evaluate(
+        self, expected, actual: list[ValueIR], context: EvaluationContext
+    ) -> dict[str, Metric]:
+        assert not isinstance(
+            expected, Unknown
+        ), "Cannot evaluate against unknown expected value!"
         if not isinstance(expected, list):
             expected = [expected]
         expected = [str(e) for e in expected]
@@ -420,6 +467,9 @@ class Label:
     def __init__(self, name: str):
         self.name = name
 
+    def __repr__(self):
+        return f"Label({self.name})"
+
     def constructor(loader, node):
         return Label(loader.construct_scalar(node))
 
@@ -449,3 +499,50 @@ class Unknown:
     def register_yaml(loader):
         yaml.add_constructor("!unknown", Unknown.constructor, loader)
         yaml.add_representer(Unknown, Unknown.representer)
+
+
+class DexRange:
+    def __init__(self, start: int | Label, stop: int | Label):
+        self.start = start
+        self.stop = stop
+
+    # We use an inclusive range in Dexter scripts, while python ranges are exclusive.
+    def to_range(self, labels: dict[str, int]) -> range:
+        start = self.start if isinstance(self.start, int) else labels[self.start.name]
+        stop = self.stop if isinstance(self.stop, int) else labels[self.stop.name]
+        return range(start, stop + 1)
+
+    def constructor(loader, node):
+        range_seq = loader.construct_sequence(node)
+        if len(range_seq) != 2 or not all(
+            [isinstance(elt, (int, Label)) for elt in range_seq]
+        ):
+            raise Exception(
+                range_seq, "!range must have exactly 2 int or !label elements"
+            )
+        return DexRange(range_seq[0], range_seq[1])
+
+    def representer(dumper, data: range):
+        return dumper.represent_sequence("!range", [data.start, data.stop])
+
+    def register_yaml(loader):
+        yaml.add_constructor("!range", DexRange.constructor, loader)
+        yaml.add_representer(DexRange, DexRange.representer)
+
+
+class Address:
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self):
+        return f"Address({self.name})"
+
+    def constructor(loader, node):
+        return Address(loader.construct_scalar(node))
+
+    def representer(dumper, data):
+        return dumper.represent_scalar("!address", data.name)
+
+    def register_yaml(loader):
+        yaml.add_constructor("!address", Address.constructor, loader)
+        yaml.add_representer(Address, Address.representer)

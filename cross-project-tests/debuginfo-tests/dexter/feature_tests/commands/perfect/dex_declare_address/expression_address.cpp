@@ -9,9 +9,13 @@
 int main() {
     int x = 5;
     int &y = x;
-    x = 3; // DexLabel('test_line')
+    x = 3; // !dex_label test_line
 }
 
-// DexDeclareAddress('x_addr', '&x', on_line=ref('test_line'))
-// DexExpectWatchValue('&x', address('x_addr'), on_line=ref('test_line'))
-// DexExpectWatchValue('y', address('x_addr'), on_line=ref('test_line'))
+/*
+---
+!where {lines: !label test_line}:
+    !value "&x": !address x_addr
+    !value "y": !address x_addr
+...
+*/

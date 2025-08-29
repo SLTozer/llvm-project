@@ -2,7 +2,7 @@
 from typing import Any
 from dex.test_script.Rules import Expect, Scope, Unknown, Where
 from dex.dextIR.DextIR import DextIR, StepIR
-from dex.test_script.Rules import Metric
+from dex.test_script.Rules import EvaluationContext, Metric
 
 
 class EvaluationState(object):
@@ -25,27 +25,16 @@ class DexEvaluator(object):
         self.expect_results = []
         self.metrics: dict[str, Metric] = {}
         self.wildcard_updates: dict[str, Any] = {}
+        self.eval_context = EvaluationContext()
         self.evaluate()
 
     def evaluate(self):
         script = self.steps.script
-        relevant_wheres = []
-        for idx, step in enumerate(self.steps.steps):
-            step_wheres = set()
-            def check_where(where: Where, scope: Scope):
-                scope = scope.add_where(where)
-                if scope.file is not None and scope.file != step.frames[0].loc.path:
-                    return
-                if scope.fn is not None and scope.fn != step.frames[0].function:
-                    return
-                if step.frames[0].loc.lineno in scope.get_lines():
-                    step_wheres.add(where)
-            script.visit_script(visit_where=check_where)
-            relevant_wheres.append((idx + 1, step_wheres))
         expects_and_scopes: list[tuple[Expect, Any, Scope]] = []
         def accumulate_expects(expect: Expect, value, scope: Scope):
             expects_and_scopes.append((expect, value, scope))
         script.visit_script(visit_expect=accumulate_expects)
+
         for expect, value, scope in expects_and_scopes:
             relevant_steps = [step for step in self.steps.steps if scope_matches_step(scope, step)]
             # Updating wildcards is a separate matter...
@@ -55,7 +44,7 @@ class DexEvaluator(object):
                 value.set_actual_values(substitute_value)
                 continue
             actual = expect.get_actual_value(relevant_steps)
-            expect_metrics = expect.evaluate(value, actual)
+            expect_metrics = expect.evaluate(value, actual, self.eval_context)
             for metric_type, metric in expect_metrics.items():
                 if metric_type not in self.metrics:
                     self.metrics[metric_type] = metric

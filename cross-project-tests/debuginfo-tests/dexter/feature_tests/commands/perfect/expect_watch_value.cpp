@@ -9,12 +9,12 @@
 // CHECK: expect_watch_value.cpp:
 
 unsigned long Factorial(int n) {
-    volatile unsigned long fac = 1; // DexLabel('entry')
+    volatile unsigned long fac = 1; // !dex_label entry
 
     for (int i = 1; i <= n; ++i)
-        fac *= i;                   // DexLabel('loop')
+        fac *= i;                   // !dex_label loop
 
-    return fac;                     // DexLabel('ret')
+    return fac;                     // !dex_label ret
 }
 
 int main()
@@ -24,13 +24,13 @@ int main()
 
 /*
 ---
-!where {lines: 12}:
+!where {lines: !label entry}:
   !value n: 8
-!where {lines: 15}:
+!where {lines: !range [!label loop, !label loop]}:
   !value i: !unknown i
   !value fac: [1, 1, 2, 6, 24, 120, 720, 5040]
   !value n: 8
-!where {lines: 17}:
+!where {lines: !label ret}:
   !value fac: 40320
   !value n: 8
 ...

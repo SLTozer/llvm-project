@@ -12,37 +12,39 @@
 # split apart function-level scoping from line-level scoping.
 
 
-from collections import OrderedDict, namedtuple
-import difflib
 from itertools import chain
 from pathlib import PurePath
-import pprint
 import os
-from typing import Any
+import re
 import yaml
-from enum import Enum
 
-from dex.test_script.Rules import Expect, Label, Scope, ScriptKeyword, Steps, Then, Type, Unknown, Value, Where
+from dex.test_script.Rules import Expect, Scope, Then, Where, setup_yaml_parser
 from dex.test_script.DataTypes import StepExpectInfo
 
-from dex.dextIR.StepIR import StepIR
-from dex.dextIR.LocIR import LocIR
-from dex.dextIR.FrameIR import FrameIR
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.Timer import Timer
 
-# We use an inclusive range in Dexter scripts, while python ranges are exclusive.
-def range_constructor(loader, node):
-    range_seq = loader.construct_sequence(node)
-    if len(range_seq) != 2 or not all([isinstance(elt, int) for elt in range_seq]):
-        raise DexterScriptError(range_seq, "!range must have exactly 2 int elements")
-    return range(range_seq[0], range_seq[1] + 1)
-
-def range_representer(dumper, data: range):
-    return dumper.represent_sequence('!range', data.start, data.stop - 1)
-
 class DexterScriptError(Exception):
     pass
+
+
+# Assumes no more than one label per line.
+def get_labels_from_lines(lines: list[str]) -> dict[str, int]:
+    dex_label_re = re.compile(r"!dex_label ([^\s!]+)")
+    dex_labels = {}
+
+    for idx, line in enumerate(lines):
+        label_str_match = dex_label_re.search(line)
+        if label_str_match:
+            dex_labels[label_str_match.group(1)] = idx + 1
+
+    return dex_labels
+
+
+def get_labels_from_file(file: str) -> dict[str, int]:
+    with open(file, "r") as r:
+        lines = r.readlines()
+    return get_labels_from_lines(lines)
 
 class DexterScript:
     def __init__(self, script_obj, scope: Scope):
@@ -51,19 +53,16 @@ class DexterScript:
         self.has_unknowns = False
         self.opening_line = None
         self.closing_line = None
+        self.per_file_labels = {}
+        if scope.file and scope.labels:
+            self.per_file_labels[scope.file] = scope.labels
+        self.validate()
+        self.gather_labels()
 
-    # Verifies that the contents of the script are valid.
+    # Verifies that the contents of the script are valid, and performs some initialization.
     def validate(self):
         if not isinstance(self.script_obj, list) and not isinstance(self.script_obj, dict):
             raise DexterScriptError(self.script_obj)
-        if isinstance(self.script_obj, dict):
-            labels = self.script_obj.get("labels")
-            if labels is not None:
-                if not isinstance(labels, list):
-                    raise DexterScriptError(labels)
-                for label in labels:
-                    if not isinstance(label, Label):
-                        raise DexterScriptError(label)
         # script is either a list of scripts, or a dict containing declarations.
         def validate_subscript(script):
             if isinstance(script, list):
@@ -92,7 +91,7 @@ class DexterScript:
                 if isinstance(key, Where):
                     if visit_where:
                         visit_where(key, scope)
-                    new_scope = scope.add_where(key)
+                    new_scope = scope.add_where(key, self.per_file_labels)
                     self._visit_script(value, new_scope, visit_where, visit_expect, visit_then)
                 elif isinstance(key, Expect):
                     if visit_expect:
@@ -109,6 +108,19 @@ class DexterScript:
 
     def visit_script(self, visit_where=None, visit_expect=None, visit_then=None):
         self._visit_script(self.script_obj, self.root_scope, visit_where, visit_expect, visit_then)
+
+    def gather_labels(self):
+        def add_where_file_labels(where: Where, scope: Scope):
+            if not where.file:
+                return
+            if where.file in self.per_file_labels:
+                return
+            # FIXME: We'll eventually need to use source_root_dir here.
+            if not os.path.isfile(where.file):
+                return
+            self.per_file_labels[where.file] = get_labels_from_file(where.file)
+
+        self.visit_script(visit_where=add_where_file_labels)
 
     # FIXME: Represent DexCommandLine in the new script format.
     def get_cmd_line_directives(self):
@@ -171,26 +183,37 @@ def merge_scripts(scripts: list[DexterScript]) -> DexterScript:
     new_script_obj = {s.root_scope.as_where(): s.script_obj for s in scripts}
     return DexterScript(new_script_obj, Scope.empty_scope())
 
-def setup_yaml_parser(loader):
-    reg_classes = [
-        Where,
-        Then,
-        Value,
-        Type,
-        Steps,
-        Label,
-        Unknown,
-        ScriptKeyword,
-    ]
-    for c in reg_classes:
-        c.register_yaml(loader)
-    yaml.add_constructor("!range", range_constructor, loader)
-    yaml.add_representer(range, range_representer)
+
+# Helper function to apply a line offset to the errors reported by YAML while loading, to account for the YAML documents
+# being embedded in part of a file.
+def try_load_yaml(yaml_doc, loader, line_offset=0):
+    try:
+        return yaml.load(yaml_doc, loader)
+    except yaml.MarkedYAMLError as e:
+        # We can't modify `e.problem_mark.line` in-place, as Mark may be immutable, so we overwrite with a
+        # new mark.
+        def adjust_mark_loc(mark: yaml.Mark | None) -> yaml.Mark | None:
+            if mark is None:
+                return None
+            return yaml.Mark(
+                mark.name,
+                mark.index,
+                mark.line + line_offset,
+                mark.column,
+                mark.buffer,
+                mark.pointer,
+            )
+
+        e.context_mark = adjust_mark_loc(e.context_mark)
+        e.problem_mark = adjust_mark_loc(e.problem_mark)
+        raise e
+
 
 def get_scripts(file, loader) -> list[DexterScript]:
     with open(file, 'r') as r:
         lines = r.readlines()
     assert lines, "Read no valid lines?"
+    labels = get_labels_from_lines(lines)
     scope_file = str(file)
     scripts = []
     curr_yaml_doc = []
@@ -205,14 +228,20 @@ def get_scripts(file, loader) -> list[DexterScript]:
         elif curr_yaml_doc:
             curr_yaml_doc.append(line)
             # We expect yaml docs to end with '...'
-            if line.startswith('...'):
-                new_script = DexterScript(yaml.load('\n'.join(curr_yaml_doc), loader), Scope(scope_file, []))
+            if line.startswith("..."):
+                new_script = DexterScript(
+                    try_load_yaml("\n".join(curr_yaml_doc), loader, start_line),
+                    Scope(scope_file, labels),
+                )
                 new_script.opening_line = start_line
                 new_script.closing_line = idx + 1
                 scripts.append(new_script)
                 curr_yaml_doc = []
     if curr_yaml_doc:
-        new_script = DexterScript(yaml.load('\n'.join(curr_yaml_doc), loader), Scope(scope_file, []))
+        new_script = DexterScript(
+            try_load_yaml("\n".join(curr_yaml_doc), loader, start_line),
+            Scope(scope_file, labels),
+        )
         new_script.opening_line = start_line
         new_script.closing_line = len(lines)
         scripts.append(new_script)
