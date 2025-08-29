@@ -19,7 +19,7 @@ import re
 import yaml
 
 from dex.test_script.Rules import Expect, Scope, Then, Where, setup_yaml_parser
-from dex.test_script.DataTypes import StepExpectInfo
+from dex.test_script.DataTypes import ScopeStepExpectInfo, StepExpectInfo
 
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.Timer import Timer
@@ -132,6 +132,16 @@ class DexterScript:
             exprs = expect.get_watched_exprs()
             for expr in exprs:
                 watches.append(StepExpectInfo(expr, scope.file, 0, scope.get_line_range()))
+        self.visit_script(visit_expect=get_expect_watches)
+        return watches
+
+    # FIXME: This is very specialized, figure it out later.
+    def get_scope_watches(self) -> list[ScopeStepExpectInfo]:
+        watches = []
+        def get_expect_watches(expect: Expect, values, scope: Scope):
+            exprs = expect.get_watched_scope_exprs()
+            for expr in exprs:
+                watches.append(ScopeStepExpectInfo(expr, scope.file, 0, scope.get_line_range()))
         self.visit_script(visit_expect=get_expect_watches)
         return watches
 

@@ -9,6 +9,10 @@
 int main() {
     int x = 5;
     int &y = x;
+    if (x > 2) {
+        int z = 3;
+        y += z;
+    }
     x = 3; // !dex_label test_line
 }
 

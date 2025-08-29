@@ -238,7 +238,7 @@ class LLDB(DebuggerBase):
         self._process.Continue()
         return ReturnCode.OK
 
-    def _get_step_info(self, watches, step_index):
+    def _get_step_info(self, watches, scope_watches, step_index):
         frames = []
         state_frames = []
 

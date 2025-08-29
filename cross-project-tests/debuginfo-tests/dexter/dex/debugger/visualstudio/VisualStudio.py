@@ -341,7 +341,7 @@ class VisualStudio(
         assert reason <= DbgEvent.last and reason >= DbgEvent.first
         return StopReason.OTHER
 
-    def _get_step_info(self, watches, step_index):
+    def _get_step_info(self, watches, scope_watches, step_index):
         thread = self._debugger.CurrentThread
         stackframes = thread.StackFrames
 

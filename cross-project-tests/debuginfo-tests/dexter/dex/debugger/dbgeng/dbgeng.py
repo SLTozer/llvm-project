@@ -124,7 +124,7 @@ class DbgEng(DebuggerBase):
         # freely. This isn't very efficient, but at least makes progress.
         self.step_in()
 
-    def _get_step_info(self, watches, step_index):
+    def _get_step_info(self, watches, scope_watches, step_index):
         frames = self.step_info
         state_frames = []
 

@@ -157,6 +157,7 @@ class ConditionalController(DebuggerControllerBase):
     def __init__(self, context, step_collection):
         self._bp_ranges = None
         self._watches = set()
+        self._scope_watches = set()
         self._step_index = 0
         self._pause_between_steps = context.options.pause_between_steps
         self._max_steps = context.options.max_steps
@@ -234,7 +235,8 @@ class ConditionalController(DebuggerControllerBase):
         self.step_collection.clear_steps()
 
         script: DexterScript = self.step_collection.script
-        self.watches.update(script.get_watches())
+        self._watches.update(script.get_watches())
+        self._scope_watches.update(script.get_scope_watches())
         self._set_leading_bps()
 
         self.debugger.launch(cmdline)
@@ -268,7 +270,7 @@ class ConditionalController(DebuggerControllerBase):
             if timed_out or self.debugger.is_finished:
                 break
 
-            step_info = self.debugger.get_step_info(self._watches, self._step_index)
+            step_info = self.debugger.get_step_info(self._watches, self._scope_watches, self._step_index)
             backtrace = None
             if step_info.current_frame:
                 backtrace = [f.function for f in step_info.frames]

@@ -537,6 +537,16 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
             time.sleep(0.001)
         return self._debugger_state.get_response(seq)
 
+    # Helper method that sends the request defined by "command" + "arguments", awaits the response, and returns the
+    # response when it arrives. An optional timeout for the response may be passed.
+    def _communicate_request(self, command: str, arguments=None, timeout: float = 0.0) -> dict:
+        req_id = self.send_message(self.make_request(command, arguments))
+        response = self._await_response(req_id, timeout)
+        if not response["success"]:
+            raise DebuggerException(f"timed out awaiting '{command}' response")
+        return response["body"]
+
+
     ## End of DAP communication methods
     ############################################################################
 
@@ -820,7 +830,7 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
         # Assuming the request to continue succeeded, we still need to wait to receive an event back from the debugger
         # indicating that we have successfully resumed.
 
-    def _get_step_info(self, watches, step_index):
+    def _get_step_info(self, watches, scope_watches, step_index):
         assert (
             not self._debugger_state.is_running
         ), "Cannot get step info while debugger is running!"
@@ -843,6 +853,7 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
                 or stackframe["source"].get("path") is None
             ):
                 break
+
             loc_dict = {
                 "path": stackframe["source"]["path"],
                 "lineno": stackframe["line"],
@@ -870,6 +881,15 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
                 watches={},
             )
             if valid_loc_for_watch:
+                frame_id = stackframe["id"]
+                frame_scopes = self._communicate_request("scopes", {"frameId": frame_id})
+                for scope_watch in scope_watches:
+                    if not watch_is_active(scope_watch, idx, loc.lineno, loc.path):
+                        continue
+                    
+                    for scope in frame_scopes["scopes"]:
+                        variables_ref = scope["variablesReference"]
+                        scope_vars = self._communicate_request("variables", {"variablesReference": variables_ref})
                 for expr in map(
                     # Filter out watches that are not active in the current frame,
                     # and then evaluate all the active watches.

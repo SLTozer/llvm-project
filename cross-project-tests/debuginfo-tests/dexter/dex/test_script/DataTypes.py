@@ -3,7 +3,7 @@ from collections import OrderedDict, namedtuple
 import os
 
 StepExpectInfo = namedtuple("StepExpectInfo", "expression, path, frame_idx, line_range")
-
+ScopeStepExpectInfo = namedtuple("ScopeStepExpectInfo", "scope, path, frame_idx, line_range")
 
 # For each command, there is a set of metrics that can be generated. Metrics across multiple identical commands can be
 # aggregated, and each individual metric can be expressed in a scalar form that is considered "better" as it either

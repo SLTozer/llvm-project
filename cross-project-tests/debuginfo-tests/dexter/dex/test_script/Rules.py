@@ -15,9 +15,9 @@ def setup_yaml_parser(loader):
         Steps,
         Label,
         Unknown,
-        ScriptKeyword,
         DexRange,
         Address,
+        All,
     ]
     for c in reg_classes:
         c.register_yaml(loader)
@@ -194,26 +194,6 @@ class Scope:
             return (None, None)
         return (self.conditions.keys()[0], self.conditions.values()[0])
 
-# Represents generic macros in the YAML script format, which take no arguments and expand out to ; they are represented here by
-# just their name, e.g. !locals -> ScriptKeyword("locals").
-class ScriptKeyword:
-    def __init__(self, keyword: str):
-        self.keyword = keyword
-
-    def keywords():
-        return ["locals", "params"]
-
-    def get_constructor(keyword: str):
-        return lambda loader, node: ScriptKeyword(keyword)
-
-    def representer(dumper, data):
-        return dumper.represent_scalar(f'!{data.keyword}', None)
-
-    def register_yaml(loader):
-        for keyword in ScriptKeyword.keywords():
-            yaml.add_constructor(f"!{keyword}", ScriptKeyword.get_constructor(keyword), loader)
-        yaml.add_representer(ScriptKeyword, ScriptKeyword.representer)
-
 class EvaluationContext:
     def __init__(self):
         self.address_resolutions: dict[str, str] = {}
@@ -242,6 +222,9 @@ class Expect:
     def get_watched_exprs(self) -> list[str]:
         raise NotImplementedError()
 
+    def get_watched_scope_exprs(self) -> list[str]:
+        raise NotImplementedError()
+
 class Result:
     def __init__(self, result: str, is_error: bool = False):
         self.result = result if not is_error else None
@@ -268,8 +251,34 @@ class Result:
             return Result("optimized out", True)
         return Result("unknown error", True)
 
+# A special class that can be used in place of a variable/expression in an expect, to indicate that we wish to apply the
+# expect to all vars that match the provided category.
+class All:
+    def __init__(self, category: str):
+        self.category = category
+
+    def __repr__(self):
+        return f"All({self.category})"
+
+    def get_scope(self):
+        return "Locals"
+
+    # Given a list of actual steps, returns a list containing lists of steps for each item that this All expands to.
+    def expand(self, steps: list[StepIR]) -> list[list[StepIR]]:
+        assert self.category == "locals"
+
+    def constructor(loader, node):
+        return All(loader.construct_scalar(node))
+
+    def representer(dumper, data):
+        return dumper.represent_scalar("!all", data.category)
+
+    def register_yaml(loader):
+        yaml.add_constructor("!all", All.constructor, loader)
+        yaml.add_representer(All, All.representer)
+
 class Value(Expect):
-    def __init__(self, variable_name: str):
+    def __init__(self, variable_name: str | All):
         self.variable_name = variable_name
 
     def get_actual_value(self, steps: list[StepIR]) -> list[ValueIR]:
@@ -347,7 +356,14 @@ class Value(Expect):
         }
 
     def get_watched_exprs(self) -> list[str]:
+        if self.variable_name is All:
+            return []
         return [self.variable_name]
+
+    def get_watched_scope_exprs(self) -> list[str]:
+        if self.variable_name is All:
+            return [self.variable_name.get_scope()]
+        return []
 
     def __repr__(self):
         return f"Value({self.variable_name})"
@@ -428,7 +444,14 @@ class Type(Expect):
         }
 
     def get_watched_exprs(self) -> list[str]:
+        if self.variable_name is All:
+            return []
         return [self.variable_name]
+
+    def get_watched_scope_exprs(self) -> list[str]:
+        if self.variable_name is All:
+            return [self.variable_name.get_scope()]
+        return []
 
     def __repr__(self):
         return f"Type({self.variable_name})"
@@ -448,6 +471,9 @@ class Steps(Expect):
         pass
 
     def get_watched_exprs(self) -> list[str]:
+        return []
+
+    def get_watched_scope_exprs(self) -> list[str]:
         return []
 
     def __repr__(self):

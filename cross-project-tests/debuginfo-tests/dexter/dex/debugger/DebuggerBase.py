@@ -13,13 +13,13 @@ import traceback
 import unittest
 
 from types import SimpleNamespace
-from dex.test_script.DataTypes import StepExpectInfo
+from dex.test_script.DataTypes import ScopeStepExpectInfo, StepExpectInfo
 from dex.dextIR import DebuggerIR, FrameIR, LocIR, StepIR, ValueIR
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.ReturnCode import ReturnCode
 
 
-def watch_is_active(watch_info: StepExpectInfo, path, frame_idx, line_no):
+def watch_is_active(watch_info: StepExpectInfo | ScopeStepExpectInfo, path, frame_idx, line_no):
     _, watch_path, watch_frame_idx, watch_line_range = watch_info
     # If this watch should only be active for a specific file...
     if watch_path and os.path.isfile(watch_path):
@@ -207,8 +207,8 @@ class DebuggerBase(object, metaclass=abc.ABCMeta):
     def go(self) -> ReturnCode:
         pass
 
-    def get_step_info(self, watches, step_index):
-        step_info = self._get_step_info(watches, step_index)
+    def get_step_info(self, watches, scope_watches, step_index):
+        step_info = self._get_step_info(watches, scope_watches, step_index)
         for frame in step_info.frames:
             frame.loc.path = self._debug_to_external_path(frame.loc.path)
         return step_info

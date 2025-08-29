@@ -34,6 +34,7 @@ class DefaultController(DebuggerControllerBase):
     def __init__(self, context, step_collection):
         self.source_files = context.options.source_files
         self.watches = set()
+        self.scope_watches = set()
         self.step_index = 0
         super(DefaultController, self).__init__(context, step_collection)
 
@@ -84,6 +85,7 @@ class DefaultController(DebuggerControllerBase):
         self.debugger.launch(cmdline)
         script: DexterScript = self.step_collection.script
         self.watches.update(script.get_watches())
+        self.scope_watches.update(script.get_scope_watches())
         early_exit_conditions = self._get_early_exits(script)
         timed_out = False
         total_timeout = Timeout(self.context.options.timeout_total)
@@ -110,7 +112,7 @@ class DefaultController(DebuggerControllerBase):
                 break
 
             self.step_index += 1
-            step_info = self.debugger.get_step_info(self.watches, self.step_index)
+            step_info = self.debugger.get_step_info(self.watches, self.scope_watches, self.step_index)
 
             if step_info.current_frame:
                 # FIXME: Figure out if this is necessary for the script-model.
