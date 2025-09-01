@@ -29,7 +29,7 @@ class Where:
     def __init__(self, attributes: dict):
         self.file: str | None = attributes.get("file")
         self.function: list[str] | str | None = attributes.get("function")
-        self.lines: int | tuple[int, int] | range | None = attributes.get("lines")
+        self.lines: int | tuple[int, int] | DexRange | None = attributes.get("lines")
         self.after_hits: int | None = attributes.get("after_hits")
         self.conditions: dict = attributes.get("conditions")
         assert self.function or self.lines or not self.after_hits, "Can't have after_hits without also having lines or a function"
@@ -66,15 +66,15 @@ class Where:
         yaml.add_constructor("!where", Where.constructor, loader)
         yaml.add_representer(Where, Where.representer)
 
-    def get_lines(self) -> list[int]:
-        if not self.lines:
-            return []
-        if isinstance(self.lines, int):
-            return [self.lines]
-        lines = []
-        for line in self.lines:
-            lines.append(line)
-        return lines
+    # def get_lines(self) -> list[int]:
+    #     if not self.lines:
+    #         return []
+    #     if isinstance(self.lines, int):
+    #         return [self.lines]
+    #     lines = []
+    #     for line in self.lines:
+    #         lines.append(line)
+    #     return lines
 
 class Then:
     """Used to perform actions, such as finishing the test or running a command. Will trigger when it is first in-scope
@@ -222,7 +222,7 @@ class Expect:
     def get_watched_exprs(self) -> list[str]:
         raise NotImplementedError()
 
-    def get_watched_scope_exprs(self) -> list[str]:
+    def get_watched_scope(self) -> str:
         raise NotImplementedError()
 
 class Result:
@@ -251,34 +251,8 @@ class Result:
             return Result("optimized out", True)
         return Result("unknown error", True)
 
-# A special class that can be used in place of a variable/expression in an expect, to indicate that we wish to apply the
-# expect to all vars that match the provided category.
-class All:
-    def __init__(self, category: str):
-        self.category = category
-
-    def __repr__(self):
-        return f"All({self.category})"
-
-    def get_scope(self):
-        return "Locals"
-
-    # Given a list of actual steps, returns a list containing lists of steps for each item that this All expands to.
-    def expand(self, steps: list[StepIR]) -> list[list[StepIR]]:
-        assert self.category == "locals"
-
-    def constructor(loader, node):
-        return All(loader.construct_scalar(node))
-
-    def representer(dumper, data):
-        return dumper.represent_scalar("!all", data.category)
-
-    def register_yaml(loader):
-        yaml.add_constructor("!all", All.constructor, loader)
-        yaml.add_representer(All, All.representer)
-
 class Value(Expect):
-    def __init__(self, variable_name: str | All):
+    def __init__(self, variable_name: str):
         self.variable_name = variable_name
 
     def get_actual_value(self, steps: list[StepIR]) -> list[ValueIR]:
@@ -356,14 +330,10 @@ class Value(Expect):
         }
 
     def get_watched_exprs(self) -> list[str]:
-        if self.variable_name is All:
-            return []
         return [self.variable_name]
 
-    def get_watched_scope_exprs(self) -> list[str]:
-        if self.variable_name is All:
-            return [self.variable_name.get_scope()]
-        return []
+    def get_watched_scope(self) -> str:
+        return None
 
     def __repr__(self):
         return f"Value({self.variable_name})"
@@ -377,6 +347,53 @@ class Value(Expect):
     def register_yaml(loader):
         yaml.add_constructor("!value", Value.constructor, loader)
         yaml.add_representer(Value, Value.representer)
+
+# A special class that can be used in place of a variable/expression in an expect, to indicate that we wish to apply the
+# expect to all vars that match the provided category.
+class All(Value):
+    def __init__(self, category: str):
+        self.category = category
+        # The set resolved variables and their associated values, grouped by scopes, using an empty Where as the key for
+        # any vars that don't need scope narrowing.
+        self.scopes_and_vars: dict[Where, dict[str, list[str]]]
+
+    def __repr__(self):
+        return f"All({self.category})"
+
+    def get_watched_exprs(self) -> list[str]:
+        return []
+
+    def get_watched_scope(self) -> str:
+        return self.get_scope()
+
+
+    def get_actual_value(self, steps: list[StepIR]) -> list[ValueIR]:
+        return []
+
+    def get_unknown_substitute_value(self, steps: list[StepIR]):
+        return []
+
+    def evaluate(
+        self, expected, actual: list[ValueIR], context: EvaluationContext
+    ) -> dict[str, Metric]:
+        return {}
+
+    def get_scope(self):
+        return "Locals"
+
+    # Given a list of actual steps, returns a list containing lists of steps for each item that this All expands to.
+    def expand(self, steps: list[StepIR]) -> list[list[StepIR]]:
+        assert self.category == "locals"
+
+    def constructor(loader, node):
+        return All(loader.construct_scalar(node))
+
+    def representer(dumper, data):
+        return dumper.represent_scalar("!value/all", data.category)
+
+    def register_yaml(loader):
+        yaml.add_constructor("!value/all", All.constructor, loader)
+        yaml.add_representer(All, All.representer)
 
 class Type(Expect):
     def __init__(self, variable_name: str):
@@ -448,10 +465,8 @@ class Type(Expect):
             return []
         return [self.variable_name]
 
-    def get_watched_scope_exprs(self) -> list[str]:
-        if self.variable_name is All:
-            return [self.variable_name.get_scope()]
-        return []
+    def get_watched_scope(self) -> str:
+        return None
 
     def __repr__(self):
         return f"Type({self.variable_name})"
@@ -473,8 +488,8 @@ class Steps(Expect):
     def get_watched_exprs(self) -> list[str]:
         return []
 
-    def get_watched_scope_exprs(self) -> list[str]:
-        return []
+    def get_watched_scope(self) -> str:
+        return None
 
     def __repr__(self):
         return f"Steps"

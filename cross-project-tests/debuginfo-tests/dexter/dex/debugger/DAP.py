@@ -12,6 +12,7 @@ from collections import defaultdict
 import copy
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -878,18 +879,30 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
                 function=frame.function,
                 is_inlined=frame.is_inlined,
                 location=SourceLocation(**loc_dict),
-                watches={},
             )
             if valid_loc_for_watch:
                 frame_id = stackframe["id"]
                 frame_scopes = self._communicate_request("scopes", {"frameId": frame_id})
                 for scope_watch in scope_watches:
-                    if not watch_is_active(scope_watch, idx, loc.lineno, loc.path):
+                    if not watch_is_active(scope_watch, loc.path, idx, loc.lineno):
                         continue
-                    
-                    for scope in frame_scopes["scopes"]:
-                        variables_ref = scope["variablesReference"]
-                        scope_vars = self._communicate_request("variables", {"variablesReference": variables_ref})
+                    scope_vars_ref = next((scope["variablesReference"] for scope in frame_scopes["scopes"] if scope["name"] == scope_watch.scope), None)
+                    if scope_vars_ref is not None:
+                        scope_vars = self._communicate_request("variables", {"variablesReference": scope_vars_ref})
+                        # FIXME: This is actually LLDB-specific, work it out later.
+                        def parse_var_result(var: dict) -> ValueIR:
+                            result = var["value"]
+                            error_match = re.fullmatch(r"<error:\s*(.+?)>", result)
+                            # FIXME: actually handle the error strings properly.
+                            if error_match:
+                                value, error = None, error_match.group(1)
+                            else:
+                                value, error = result, None
+                            return ValueIR(var["evaluateName"], value, var["type"], True, error)
+                        state_frame.scope_watches[scope_watch.scope] = [
+                            parse_var_result(var) for var in scope_vars["variables"]
+                        ]
+
                 for expr in map(
                     # Filter out watches that are not active in the current frame,
                     # and then evaluate all the active watches.

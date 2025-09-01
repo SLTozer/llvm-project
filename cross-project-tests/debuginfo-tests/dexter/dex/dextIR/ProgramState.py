@@ -54,14 +54,18 @@ class StackFrame:
         is_inlined: bool = None,
         location: SourceLocation = None,
         watches: OrderedDict = None,
+        scope_watches: OrderedDict = None,
     ):
         if watches is None:
             watches = {}
+        if scope_watches is None:
+            scope_watches = {}
 
         self.function = function
         self.is_inlined = is_inlined
         self.location = location
         self.watches = watches
+        self.scope_watches = watches
 
     def __str__(self):
         return "{}{}: {} | {}".format(

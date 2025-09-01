@@ -21,5 +21,6 @@ int main() {
 !where {lines: !label test_line}:
     !value "&x": !address x_addr
     !value "y": !address x_addr
+    !value/all locals: 0
 ...
 */

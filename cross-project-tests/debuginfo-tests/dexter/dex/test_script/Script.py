@@ -139,8 +139,8 @@ class DexterScript:
     def get_scope_watches(self) -> list[ScopeStepExpectInfo]:
         watches = []
         def get_expect_watches(expect: Expect, values, scope: Scope):
-            exprs = expect.get_watched_scope_exprs()
-            for expr in exprs:
+            expr = expect.get_watched_scope()
+            if expr is not None:
                 watches.append(ScopeStepExpectInfo(expr, scope.file, 0, scope.get_line_range()))
         self.visit_script(visit_expect=get_expect_watches)
         return watches

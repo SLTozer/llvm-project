@@ -1,7 +1,9 @@
 
+import pprint
 from typing import Any
-from dex.test_script.Rules import Expect, Scope, Unknown, Where
+from dex.test_script.Rules import All, DexRange, Expect, Scope, Unknown, Where
 from dex.dextIR.DextIR import DextIR, StepIR
+from dex.dextIR.ValueIR import ValueIR
 from dex.test_script.Rules import EvaluationContext, Metric
 
 
@@ -37,6 +39,52 @@ class DexEvaluator(object):
 
         for expect, value, scope in expects_and_scopes:
             relevant_steps = [step for step in self.steps.steps if scope_matches_step(scope, step)]
+            if isinstance(expect, All):
+                watched_scope = expect.get_watched_scope()
+                class ScopeVarValues:
+                    def __init__(self, val: ValueIR, line: int):
+                        self.values = [val]
+                        self.min = line
+                        self.max = line
+                        # FIXME: I'm pretty sure we'll need this later to figure out cases where we want all local
+                        # variables in a function, rather than between line ranges; checking the min/max lines won't
+                        # help us figure out whether a given variable is available for the whole function, so we'll need
+                        # to directly check whether there were any steps it wasn't in scope for.
+                        self.any_not_in_scope = False
+                    def add_step(self, val: ValueIR, line: int):
+                        self.values.append(val)
+                        self.min = min(self.min, line)
+                        self.max = max(self.max, line)
+                    def print(self):
+                        print(f"[{self.min} - {self.max}]:")
+                        for v in self.values:
+                            print(f"  {str(v)}")
+
+                # Find for each scope variable the the least Where containing valid evaluations of each scope variable.
+                # FIXME: For simplicity's sake, we assume here that we never track the variables of the same name across
+                # multiple functions. 95% of the time this will be the case, but we'll need to handle it in future
+                # maybe.
+                scope_var_ranges: dict[str, ScopeVarValues] = {}
+                for step in relevant_steps:
+                    step_scope_vars: list[ValueIR] = step.program_state.frames[0].scope_watches.get(watched_scope)
+                    for val in step_scope_vars:
+                        # FIXME: We ignore errors outright here because we're assuming there won't be any when we use
+                        # this at O0 to generate a test script; later on we'll have to actually think about this.
+                        if not val.could_evaluate or val.error_string:
+                            continue
+                        var_name = val.expression
+                        if not var_name in scope_var_ranges:
+                            scope_var_ranges[var_name] = ScopeVarValues(val, step.frames[0].loc.lineno)
+                        else:
+                            scope_var_ranges[var_name].add_step(val, step.frames[0].loc.lineno)
+                for var, ranges in scope_var_ranges.items():
+                    scope_line_range = scope.get_line_range()
+                    if scope_line_range is not None and ranges.min == scope_line_range.start and ranges.max + 1 == scope_line_range.stop:
+                        lines = None
+                    else:
+                        lines = DexRange(ranges.min, ranges.max)
+                    where = Where({"lines": lines})
+                    ranges.print()
             # Updating wildcards is a separate matter...
             if isinstance(value, Unknown):
                 substitute_value = expect.get_unknown_substitute_value(relevant_steps)
