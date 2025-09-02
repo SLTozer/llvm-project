@@ -19,6 +19,7 @@ from dex.debugger.DebuggerControllers.ConditionalController import ConditionalCo
 from dex.dextIR.DextIR import DextIR
 from dex.evaluate.Evaluator import DexEvaluator
 from dex.tools import TestToolBase
+from dex.test_script.Rules import Expect, Scope, Then, Where
 from dex.test_script.Script import DexterScript, get_dexter_script
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.Exceptions import BuildScriptException
@@ -121,8 +122,26 @@ class Tool(TestToolBase):
 
         self.context.options.source_files.extend(list(new_source_files))
 
-        # FIXME: Figure out how we distinguish conditional vs default stepping in the real thing.
-        debugger_controller = DefaultController(self.context, step_collection)
+        seen_files = set()
+        # If we have a then/expect that checks for a whole function, or if we have multiple files, assume we need the
+        # conditional controller.
+        def check_nontrivial_stepping(scope: Scope) -> bool:
+            seen_files.add(scope.file)
+            if len(seen_files) > 1:
+                return True
+            return scope.fn and not scope.lines
+        def check_nontrivial_expect(expect: Expect, value, scope: Scope) -> bool:
+            return check_nontrivial_stepping(scope)
+        # If we have a `!then continue`, we need the conditional controller.
+        def check_nontrivial_then(then: Then, scope: Scope) -> bool:
+            return check_nontrivial_stepping(scope) or then.command == "continue"
+        has_nontrivial_stepping = step_collection.script.visit_script(
+            visit_expect=check_nontrivial_expect,
+            visit_then=check_nontrivial_then)
+        if has_nontrivial_stepping:
+            debugger_controller = ConditionalController(self.context, step_collection)
+        else:
+            debugger_controller = DefaultController(self.context, step_collection)
 
         return debugger_controller
 
@@ -192,7 +211,7 @@ class Tool(TestToolBase):
         if self.context.options.results_directory:
             output_text_path = self._get_results_path(test_name)
             with open(output_text_path, "w") as fp:
-                self.context.o.auto(script.write_script(), stream=Stream(fp))
+                self.context.o.auto(script.resolve_script().write_script(), stream=Stream(fp))
 
     def _record_test_and_display(self, test_case):
         """Output test case to o stream and record test case internally for

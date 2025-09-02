@@ -1,7 +1,7 @@
 
 import pprint
 from typing import Any
-from dex.test_script.Rules import All, DexRange, Expect, Scope, Unknown, Where
+from dex.test_script.Rules import All, DexRange, Expect, Scope, Unknown, Value, Where
 from dex.dextIR.DextIR import DextIR, StepIR
 from dex.dextIR.ValueIR import ValueIR
 from dex.test_script.Rules import EvaluationContext, Metric
@@ -18,7 +18,9 @@ def scope_matches_step(scope: Scope, step: StepIR):
         return False
     if scope.fn is not None and scope.fn != step.frames[0].function:
         return False
-    return step.frames[0].loc.lineno in scope.get_lines()
+    if scope.lines is not None and step.frames[0].loc.lineno not in scope.get_lines():
+        return False
+    return True
 
 class DexEvaluator(object):
     def __init__(self, context, steps: DextIR):
@@ -42,6 +44,7 @@ class DexEvaluator(object):
             if isinstance(expect, All):
                 watched_scope = expect.get_watched_scope()
                 class ScopeVarValues:
+                    # FIXME: Figure out how to filter out uninitialized values.
                     def __init__(self, val: ValueIR, line: int):
                         self.values = [val]
                         self.min = line
@@ -77,14 +80,30 @@ class DexEvaluator(object):
                             scope_var_ranges[var_name] = ScopeVarValues(val, step.frames[0].loc.lineno)
                         else:
                             scope_var_ranges[var_name].add_step(val, step.frames[0].loc.lineno)
+                def map_value_range(vals: list[ValueIR]):
+                    # If we observed no values at all, something has gone wrong.
+                    if not vals:
+                        return None
+                    values = []
+                    for val in vals:
+                        # If we could not evaluate this variable, we have failed to find a substitute.
+                        if not val.value:
+                            return None
+                        values.append(val.value)
+                    # Prefer a scalar result if possible!
+                    if len(values) == 1:
+                        values = values[0]
+                    return values
                 for var, ranges in scope_var_ranges.items():
                     scope_line_range = scope.get_line_range()
                     if scope_line_range is not None and ranges.min == scope_line_range.start and ranges.max + 1 == scope_line_range.stop:
                         lines = None
                     else:
                         lines = DexRange(ranges.min, ranges.max)
-                    where = Where({"lines": lines})
-                    ranges.print()
+                    scope_vars = expect.scopes_and_vars.setdefault(lines, {})
+                    scope_vars[var] = map_value_range(ranges.values)
+                pprint.pp(expect.scopes_and_vars)
+                self.wildcard_updates[value] = expect.scopes_and_vars
             # Updating wildcards is a separate matter...
             if isinstance(value, Unknown):
                 substitute_value = expect.get_unknown_substitute_value(relevant_steps)

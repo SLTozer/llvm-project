@@ -12,13 +12,15 @@
 # split apart function-level scoping from line-level scoping.
 
 
+import copy
 from itertools import chain
 from pathlib import PurePath
 import os
 import re
+from typing import Any, Callable, Iterable
 import yaml
 
-from dex.test_script.Rules import Expect, Scope, Then, Where, setup_yaml_parser
+from dex.test_script.Rules import All, Expect, Scope, Then, Unknown, Value, Where, setup_yaml_parser
 from dex.test_script.DataTypes import ScopeStepExpectInfo, StepExpectInfo
 
 from dex.utils.Exceptions import DebuggerException
@@ -82,32 +84,44 @@ class DexterScript:
                 else:
                     raise DexterScriptError(key)
 
-    def _visit_script(self, script, scope: Scope, visit_where=None, visit_expect=None, visit_then=None):
+    # If a truthy value is returned, abort further visiting and return that value..
+    def _visit_script(self, script, scope: Scope, visit_where=None, visit_expect=None, visit_then=None) -> Any:
+        def do(visitor, *args):
+            if visitor:
+                return visitor(*args)
+            return None
         if isinstance(script, list):
             for item in script:
-                self._visit_script(item, scope, visit_where, visit_expect, visit_then)
+                if result := self._visit_script(item, scope, visit_where, visit_expect, visit_then):
+                    return result
         elif isinstance(script, dict):
             for key, value in script.items():
                 if isinstance(key, Where):
-                    if visit_where:
-                        visit_where(key, scope)
+                    if result := do(visit_where, key, scope):
+                        return result
                     new_scope = scope.add_where(key, self.per_file_labels)
-                    self._visit_script(value, new_scope, visit_where, visit_expect, visit_then)
+                    if result := self._visit_script(value, new_scope, visit_where, visit_expect, visit_then):
+                        return result
                 elif isinstance(key, Expect):
-                    if visit_expect:
-                        visit_expect(key, value, scope)
+                    if result := do(visit_expect, key, value, scope):
+                        return result
                 else:
                     # If we have `where {...}: {scalar: value}`, it's not clear what that should mean, but we visit
                     # 'value' here as a default since we'll probably use that at some point.
-                    self._visit_script(value, scope, visit_where, visit_expect, visit_then)
+                    if result := self._visit_script(value, scope, visit_where, visit_expect, visit_then):
+                        return result
         elif isinstance(script, Then):
             # `Then` is a special case in that it is a scalar node that may be directly mapped to by a !where, since
             # !then does not need any mapped arguments.
-            if visit_then:
-                visit_then(script, scope)
+            if result := do(visit_then, script, scope):
+                return result
 
-    def visit_script(self, visit_where=None, visit_expect=None, visit_then=None):
-        self._visit_script(self.script_obj, self.root_scope, visit_where, visit_expect, visit_then)
+    # Any visitor function provided may return a truthy value to abort the visit and return that value.
+    def visit_script(self,
+                     visit_where: Callable[[Where, Scope], Any] | None = None,
+                     visit_expect: Callable[[Expect, Any, Scope], Any] | None = None,
+                     visit_then: Callable[[Then, Scope], Any] | None = None) -> Any:
+        return self._visit_script(self.script_obj, self.root_scope, visit_where, visit_expect, visit_then)
 
     def gather_labels(self):
         def add_where_file_labels(where: Where, scope: Scope):
@@ -185,6 +199,64 @@ class DexterScript:
         assert original_file_lines, "Read no valid lines?"
         original_file_lines[self.opening_line:self.closing_line] = script_lines
         return '\n'.join(original_file_lines)
+
+    # Creates a copy of this script, with any wildcard elements resolved to concrete values. This requires a variation
+    # of the existing visitor logic:
+    # - A script comprises dicts, lists, objects, and scalars. For these rules, a list cannot contain scalars unless it
+    #   consists entirely of scalars and is the value of an object key in a dict, and in such cases the list is itself
+    #   treated itself as a scalar.
+    # - The root of the script is always a dict.
+    # - A dict maps object keys to any other type, though most objects are restricted in what types they can map to.
+    #   When we map a dict, we visit each (k, v) entry, and the visitor returns an iterable of entries that are inserted
+    #   into the resolved dict.
+    # - A list contains any combination of dicts, objects, and lists; we visit each individually, and accumulate the
+    #   results into the list, so there is not a way to map one original entry into multiple new entries.
+    # - Objects can either be visited as standalone, as when they are in a list or the value in a dict entry, or as keys
+    #   in a dict.
+    # - Scalars are not visited as standalone items, since they don't resolve to anything different.
+    # - The only elements that currently need to be resolved are:
+    #   - `Unknown` objects, when used as a value in a dict, will resolve to a scalar.
+    #   - `All` objects, when used as a key in a dict, will resolve to one or more new entries in the resolved dict.
+    def resolve_script(self):
+        # Returns an iterable of (k, v).
+        def visit_dict_entry(k: object, v) -> Iterable[tuple]:
+            # Possible resolutions:
+            if isinstance(k, All):
+                entries = []
+                for lines, expects in k.scopes_and_vars.items():
+                    if lines is None:
+                        for var, expected in expects.items():
+                            entries.append((Value(var), expected))
+                    else:
+                        where = Where({"lines": lines})
+                        new_expects = {}
+                        for var, expected in expects.items():
+                            new_expects[Value(var)] = expected
+                        entries.append((where, new_expects))
+                return entries
+            if isinstance(v, Unknown):
+                return []
+            # Otherwise, we only need to resolve recursively.
+            return [(copy.deepcopy(k), visit(v))]
+        def visit_dict(d: dict) -> dict:
+            return {
+                new_k: new_v
+                for k, v in d.items()
+                for new_k, new_v in visit_dict_entry(k, v)
+            }
+        def visit_list(l: list) -> list:
+            return [visit(item) for item in l]
+        def visit(item):
+            if isinstance(item, dict):
+                return visit_dict(item)
+            if isinstance(item, list):
+                return visit_list(item)
+            # Assume item is a node or scalar in a context that does not need resolving.
+            return copy.deepcopy(item)
+        new_script = DexterScript(visit(self.script_obj), self.root_scope)
+        new_script.opening_line = self.opening_line
+        new_script.closing_line = self.closing_line
+        return new_script
 
 def merge_scripts(scripts: list[DexterScript]) -> DexterScript:
     assert len(scripts) > 0, "Need actual scripts to merge"

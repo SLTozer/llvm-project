@@ -75,7 +75,7 @@ class DefaultController(DebuggerControllerBase):
         def get_then_finish_scopes(then: Then, scope: Scope):
             if then.command != "finish":
                 return
-            early_exits.append(EarlyExitCondition(scope.file, scope.get_lines(), scope.after_hits, scope.get_single_condition()[0], scope.get_single_condition()[1]))
+            early_exits.append(EarlyExitCondition(scope.file, scope.get_lines(), scope.after_hits or 0, scope.get_single_condition()[0], scope.get_single_condition()[1]))
         script.visit_script(visit_then=get_then_finish_scopes)
         return early_exits
 

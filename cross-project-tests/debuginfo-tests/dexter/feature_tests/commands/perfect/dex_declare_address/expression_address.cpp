@@ -9,7 +9,7 @@
 int main() {
     int x = 5;
     int &y = x;
-    if (x > 2) {
+    if (x > 2) { // !dex_label start_line
         int z = 3;
         y += z;
     }
@@ -18,9 +18,11 @@ int main() {
 
 /*
 ---
-!where {lines: !label test_line}:
+!where {function: main}:
     !value "&x": !address x_addr
     !value "y": !address x_addr
-    !value/all locals: 0
+    !where {lines: 12}: !then continue
+    !where {lines: 14}: !then finish
+    !value/all locals: yay
 ...
 */

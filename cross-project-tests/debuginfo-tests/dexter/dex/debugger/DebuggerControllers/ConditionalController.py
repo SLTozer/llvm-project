@@ -19,7 +19,7 @@ from dex.debugger.DebuggerControllers.DebuggerControllerBase import (
     DebuggerControllerBase,
 )
 from dex.debugger.DebuggerBase import DebuggerBase
-from dex.test_script.Rules import Scope, Then
+from dex.test_script.Rules import Expect, Scope, Then
 from dex.test_script.Script import DexterScript
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.Timeout import Timeout
@@ -47,7 +47,6 @@ class BreakpointRange:
         self,
         expression: str,
         path: str,
-        function: str,
         range_from: int,
         range_to: int,
         values: list,
@@ -69,6 +68,34 @@ class BreakpointRange:
         self.is_continue = is_continue
         self.function = function
         self.addr = addr
+
+    def __repr__(self) -> str:
+        items = []
+        if self.expression:
+            items.append(f"expression={self.expression}")
+        if self.path:
+            items.append(f"path={self.path}")
+        if self.function:
+            items.append(f"function={self.function}")
+        if self.range_from:
+            items.append(f"range_from={self.range_from}")
+        if self.range_to:
+            items.append(f"range_to={self.range_to}")
+        if self.conditional_values:
+            items.append(f"conditional_values={self.conditional_values}")
+        if self.max_hit_count:
+            items.append(f"max_hit_count={self.max_hit_count}")
+        if self.current_hit_count:
+            items.append(f"current_hit_count={self.current_hit_count}")
+        if self.finish_on_remove:
+            items.append(f"finish_on_remove={self.finish_on_remove}")
+        if self.is_continue:
+            items.append(f"is_continue={self.is_continue}")
+        if self.function:
+            items.append(f"function={self.function}")
+        if self.addr:
+            items.append(f"addr={self.addr}")
+        return f"BP({', '.join(items)})"
 
     def limit_steps(
         expression: str,
@@ -168,40 +195,42 @@ class ConditionalController(DebuggerControllerBase):
         self._get_bp_ranges()
 
     def _get_bp_ranges(self):
-        commands = self.step_collection.commands
         self._bp_ranges = []
-
-        cond_controller_cmds = ["DexLimitSteps", "DexStepFunction", "DexContinue"]
-        if not any(c in commands for c in cond_controller_cmds):
-            raise DebuggerException(
-                f"No conditional commands {cond_controller_cmds}, cannot conditionally step."
-            )
-        if "DexContinue" in commands:
-            for c in commands["DexContinue"]:
-                bpr = BreakpointRange.continue_from_to(
-                    c.expression, c.path, c.from_line, c.to_line, c.values, c.hit_count
-                )
-                self._bp_ranges.append(bpr)
-        if "DexStepFunction" in commands:
-            for c in commands["DexStepFunction"]:
-                bpr = BreakpointRange.step_function(
-                    c.get_function(), c.path, c.hit_count
-                )
-                self._bp_ranges.append(bpr)
 
         visited_expect_scopes = set()
         visited_finish_scopes = set()
-        def add_bp_locs(obj, visited_set: set, scope: Scope):
-            if scope.as_tuple() in visited_set:
-                return
-            visited_set.add(scope.as_tuple())
-            should_finish = isinstance(obj, Then)
-            self._bp_ranges.append(BreakpointRange(None, scope.file, scope.fn, scope.get_lines()[0], scope.get_lines()[-1], None, scope.after_hits, should_finish))
+        visited_continue_scopes = set()
 
-        def add_expect_bp_locs(expect, value, scope):
-            add_bp_locs(expect, visited_expect_scopes, scope)
-        def add_then_bp_locs(then, scope):
-            add_bp_locs(then, visited_finish_scopes, scope)
+        def add_expect_bp_locs(expect: Expect, value, scope: Scope):
+            if scope.as_tuple() in visited_expect_scopes:
+                return
+            visited_expect_scopes.add(scope.as_tuple())
+            if scope.fn and not scope.lines:
+                # FIXME: By our design it should be possible to use conditional breakpoints here, and conditional
+                # function breakpoints are supported by (at least some) debuggers.
+                self._bp_ranges.append(
+                    BreakpointRange.step_function(scope.fn, scope.file, scope.after_hits))
+            else:
+                self._bp_ranges.append(
+                    BreakpointRange.limit_steps(None, scope.file, scope.get_lines()[0], scope.get_lines()[-1], None,
+                                                scope.after_hits))
+        def add_then_bp_locs(then: Then, scope: Scope):
+            if then.command == "finish":
+                if scope.as_tuple() in visited_finish_scopes:
+                    return
+                visited_finish_scopes.add(scope.as_tuple())
+                self._bp_ranges.append(
+                    BreakpointRange.finish_test(None, scope.file, scope.get_lines()[0], None, scope.after_hits))
+            elif then.command == "continue":
+                if scope.as_tuple() in visited_continue_scopes:
+                    return
+                visited_continue_scopes.add(scope.as_tuple())
+                # Continue commands should allow a "to" argument that determines where they continue up to.
+                self._bp_ranges.append(
+                    BreakpointRange.continue_from_to(None, scope.file, scope.get_lines()[0], None,
+                                                        None, scope.after_hits))
+            else:
+                raise Exception(f"Bad command value for Then: {then.command}")
         
         script: DexterScript = self.step_collection.script
         script.visit_script(visit_expect=add_expect_bp_locs, visit_then=add_then_bp_locs)
@@ -249,6 +278,9 @@ class ConditionalController(DebuggerControllerBase):
         step_function_backtraces: list[list[str]] = []
         self.instr_bp_ids = set()
 
+        print("BPs:")
+        for bp in self._bp_ranges:
+            print(f"  {bp}")
         while not self.debugger.is_finished:
             breakpoint_timeout = Timeout(self.context.options.timeout_breakpoint)
             while self.debugger.is_running and not timed_out:
@@ -320,6 +352,7 @@ class ConditionalController(DebuggerControllerBase):
                             self.instr_bp_ids.add(instr_id)
 
                 elif bpr.is_continue:
+                    print("debugger continue")
                     debugger_continue = True
                     if bpr.range_to is not None:
                         self.debugger.add_breakpoint(bpr.path, bpr.range_to)
@@ -381,6 +414,13 @@ class ConditionalController(DebuggerControllerBase):
                 # )
                 self.step_collection.new_step(self.context, step_info)
 
+            print ("end of step:")
+            if step_info.frames:
+                print (f"  step={step_info.frames[0].loc.lineno}")
+            print (f"  exit_desired={exit_desired}")
+            print (f"  debugger_continue={debugger_continue}")
+            print (f"  debugger_next={debugger_next}")
+            print (f"  debugger_out={debugger_out}")
             if exit_desired:
                 break
             elif debugger_next:

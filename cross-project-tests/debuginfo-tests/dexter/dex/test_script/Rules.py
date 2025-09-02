@@ -1,4 +1,5 @@
 
+from typing import Any
 import yaml
 from dex.dextIR.StepIR import StepIR
 from dex.dextIR.ValueIR import ValueIR
@@ -81,20 +82,39 @@ class Then:
     for a step, so a typical usage pattern is to map to it directly from a "Where", e.g.
     `!where {line: 4, after_hits: 2}: !then finish`.
     """
-    def __init__(self, command: str):
+    def __init__(self, command: str, attrs: dict = {}):
         self.command = command
+        # FIXME: should we use subclasses instead of keeping this dict?
+        self.attrs = attrs
+
+    def from_dict(attrs: dict):
+        attrs = attrs.copy()
+        command = attrs.pop("do")
+        return Then(command, attrs)
+
+    def to_dict(self) -> dict:
+        attrs = self.attrs.copy()
+        attrs["do"] = self.command
+        return attrs
 
     def is_valid(self) -> bool:
-        return self.command == "finish"
+        return self.command == "finish" or self.command == "continue"
 
     def __repr__(self):
         return f"Then({self.command})"
 
     def constructor(loader, node):
-        return Then(loader.construct_scalar(node))
+        if isinstance(node, yaml.ScalarNode):
+            return Then(loader.construct_scalar(node))
+        elif isinstance(node, yaml.MappingNode):
+            return Then.from_dict(loader.construct_mapping(node))
+        raise Exception("Invalid args to !then")
 
     def representer(dumper, data):
-        return dumper.represent_scalar('!then', data.command)
+        if data.attrs:
+            return dumper.represent_mapping('!then', data.to_dict())
+        else:
+            return dumper.represent_scalar('!then', data.command)
 
     def register_yaml(loader):
         yaml.add_constructor("!then", Then.constructor, loader)
@@ -355,7 +375,7 @@ class All(Value):
         self.category = category
         # The set resolved variables and their associated values, grouped by scopes, using an empty Where as the key for
         # any vars that don't need scope narrowing.
-        self.scopes_and_vars: dict[Where, dict[str, list[str]]]
+        self.scopes_and_vars: dict[DexRange, dict[str, Any]] = {}
 
     def __repr__(self):
         return f"All({self.category})"
@@ -546,6 +566,9 @@ class DexRange:
     def __init__(self, start: int | Label, stop: int | Label):
         self.start = start
         self.stop = stop
+
+    def __repr__(self) -> str:
+        return f"[{self.start} - {self.stop}]"
 
     # We use an inclusive range in Dexter scripts, while python ranges are exclusive.
     def to_range(self, labels: dict[str, int]) -> range:
