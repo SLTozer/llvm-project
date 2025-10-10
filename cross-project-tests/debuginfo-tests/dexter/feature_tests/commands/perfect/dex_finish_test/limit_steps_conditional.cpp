@@ -13,9 +13,14 @@
 
 int main() {
     for (int x = 0; x < 10; ++x)
-        (void)0; // DexLabel('finish_line')
+        (void)0; // !dex_label finish_line
 }
 
-// DexLimitSteps(on_line=ref('finish_line'))
-// DexFinishTest('x', 5, on_line=ref('finish_line'))
-// DexExpectWatchValue('x', 0, 1, 2, 3, 4, 5)
+/*
+---
+!where {function: main}:
+    !where {lines: !label finish_line}:
+        !where {cond: "x == 5"}: !then finish
+        !value x: [0, 1, 2, 3, 4, 5]
+...
+*/

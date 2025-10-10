@@ -344,7 +344,7 @@ def get_dexter_script(test_files, source_root_dir):
                         source_dir = (
                             source_root_dir
                             if source_root_dir
-                            else os.path.dirname(script.root_scope)
+                            else os.path.dirname(script.root_scope.file)
                         )
                         declared_path = os.path.join(source_dir, declared_path)
                     source_files.add(str(PurePath(declared_path)))

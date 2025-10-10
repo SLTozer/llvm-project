@@ -26,6 +26,7 @@ class ValueIR:
         self.error_string = error_string
         self.is_optimized_away = is_optimized_away
         self.is_irretrievable = is_irretrievable
+        self.sub_values: list[ValueIR] = []
 
     def __str__(self):
         prefix = '"{}": '.format(self.expression)

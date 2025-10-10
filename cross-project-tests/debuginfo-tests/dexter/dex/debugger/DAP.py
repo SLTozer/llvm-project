@@ -540,11 +540,14 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
 
     # Helper method that sends the request defined by "command" + "arguments", awaits the response, and returns the
     # response when it arrives. An optional timeout for the response may be passed.
-    def _communicate_request(self, command: str, arguments=None, timeout: float = 0.0) -> dict:
+    # If allow_failure is passed, then the result may instead be a str containing the fail reason if the request failed.
+    def _communicate_request(self, command: str, arguments=None, timeout: float = 0.0, allow_failure = False) -> dict | str:
         req_id = self.send_message(self.make_request(command, arguments))
         response = self._await_response(req_id, timeout)
         if not response["success"]:
-            raise DebuggerException(f"timed out awaiting '{command}' response")
+            if not allow_failure:
+                raise DebuggerException(f"received failure response for command {command}")
+            return response["message"]
         return response["body"]
 
 
@@ -786,6 +789,8 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
         # has finished launching.
         while self._debugger_state.thread is None or not self._debugger_state.launched:
             time.sleep(0.001)
+        # FIXME: If the program doesn't actually stop for any breakpoint, it could finish running immediately; we need
+        # to handle that somewhere.
 
     # LLDB has unique stepping behaviour w.r.t. breakpoints that needs to be handled after completing a step, so we use
     # an overridable hook to enable debugger-specific behaviour.
@@ -881,15 +886,15 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
                 location=SourceLocation(**loc_dict),
             )
             if valid_loc_for_watch:
-                frame_id = stackframe["id"]
-                frame_scopes = self._communicate_request("scopes", {"frameId": frame_id})
                 for scope_watch in scope_watches:
                     if not watch_is_active(scope_watch, loc.path, idx, loc.lineno):
                         continue
+                    frame_id = stackframe["id"]
+                    frame_scopes = self._communicate_request("scopes", {"frameId": frame_id})
                     scope_vars_ref = next((scope["variablesReference"] for scope in frame_scopes["scopes"] if scope["name"] == scope_watch.scope), None)
                     if scope_vars_ref is not None:
                         scope_vars = self._communicate_request("variables", {"variablesReference": scope_vars_ref})
-                        # FIXME: This is actually LLDB-specific, work it out later.
+                        # FIXME: This is actually partially LLDB-specific, work it out later.
                         def parse_var_result(var: dict) -> ValueIR:
                             result = var["value"]
                             error_match = re.fullmatch(r"<error:\s*(.+?)>", result)
@@ -898,25 +903,26 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
                                 value, error = None, error_match.group(1)
                             else:
                                 value, error = result, None
-                            return ValueIR(var["evaluateName"], value, var["type"], True, error)
+                            # Check to see if this variable has been initialized yet.
+                            # FIXME: This is just the best solution I can see right now, but we may want better in
+                            # future (especially for languages with non-C-like declaration/scoping semantics).
+                            if "declarationLocationReference" in var:
+                                declaration_loc = self._communicate_request("locations", {"locationReference": var["declarationLocationReference"]})
+                                if declaration_loc["line"] >= loc.lineno:
+                                    return None
+                            value = ValueIR(var["evaluateName"], value, var["type"], True, error)
+                            self._evaluate_subvariables(value, var["variablesReference"])
+                            return value
+
                         state_frame.scope_watches[scope_watch.scope] = [
-                            parse_var_result(var) for var in scope_vars["variables"]
+                            value for var in scope_vars["variables"] if (value := parse_var_result(var)) is not None
                         ]
 
-                for expr in map(
-                    # Filter out watches that are not active in the current frame,
-                    # and then evaluate all the active watches.
-                    lambda watch_info, idx=idx: self.evaluate_expression(
-                        watch_info.expression, idx
-                    ),
-                    filter(
-                        lambda watch_info, idx=idx, line_no=loc.lineno, loc_path=loc.path: watch_is_active(
-                            watch_info, loc_path, idx, line_no
-                        ),
-                        watches,
-                    ),
-                ):
-                    state_frame.watches[expr.expression] = expr
+                active_exprs = [watch.expression for watch in watches if watch_is_active(watch, loc.path, idx, loc.lineno)]
+                for expr in active_exprs:
+                    value = self.evaluate_expression(expr, idx)
+                    state_frame.watches[expr] = value
+
             state_frames.append(state_frame)
 
         if len(frames) == 1 and frames[0].function is None:
@@ -949,6 +955,27 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
     def _evaluate_result_value(expression: str, result_string: str) -> ValueIR:
         """For the result of an "evaluate" message, return a ValueIR. Implementation must be debugger-specific."""
 
+    # For the given `value` and associated `variables_reference`, recursively requests "variables" information for all
+    # child variables and adds them as sub_values to `value`.
+    def _evaluate_subvariables(self, value: ValueIR, variables_reference: int):
+        if variables_reference == 0:
+            return
+        # DFS subvariables recursively, adding them as sub_values to their parent ValueIRs.
+        variables_irs = {variables_reference: value}
+        search_vars = [variables_reference]
+        while search_vars:
+            next_var = search_vars.pop()
+            # The ValueIR for the variable/subvariable whose children we are examining.
+            variable_ir: ValueIR = variables_irs[next_var]
+            result_vars = self._communicate_request("variables", {"variablesReference": next_var})
+            for var in result_vars["variables"]:
+                new_ir = self._evaluate_result_value(var["name"], var["value"], var.get("type"))
+                variable_ir.sub_values.append(new_ir)
+                if "variablesReference" in var and var["variablesReference"] != 0:
+                    new_ref = var["variablesReference"]
+                    variables_irs[new_ref] = new_ir
+                    search_vars.append(new_ref)
+
     def evaluate_expression(self, expression, frame_idx=0) -> ValueIR:
         # The frame_idx passed in here needs to be translated to the debug adapter's internal frame ID.
         dap_frame_id = self._debugger_state.frame_map[frame_idx]
@@ -965,8 +992,13 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
         eval_response = self._await_response(eval_req_id)
         if not eval_response["success"]:
             result: str = eval_response["message"]
+            variables_ref = 0
         else:
             result: str = eval_response["body"]["result"]
+            variables_ref = eval_response["body"].get("variablesReference", 0)
         type_str = eval_response["body"].get("type")
 
-        return self._evaluate_result_value(expression, result, type_str)
+        value_ir = self._evaluate_result_value(expression, result, type_str)
+        self._evaluate_subvariables(value_ir, variables_ref)
+
+        return value_ir

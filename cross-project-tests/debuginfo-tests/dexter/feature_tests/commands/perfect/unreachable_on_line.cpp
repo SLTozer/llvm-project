@@ -6,14 +6,17 @@
 //
 // RUN: %dexter_regression_test_cxx_build %s -o %t
 // RUN: %dexter_regression_test_run --binary %t -- %s | FileCheck %s
-// CHECK: unreachable_on_line.cpp:
+// CHECK: unseen_undesired_lines: 1
 
 int main()
 {
   return 0;
-  return 1; // DexLabel('this_one')
+  return 1; // !dex_label this_one
 }
 
-
-// DexUnreachable(on_line=ref('this_one'))
-// DexUnreachable(from_line=ref('this_one'), to_line=ref('this_one'))
+/*
+---
+!where {function: main}:
+  !steps never: !label this_one
+...
+*/

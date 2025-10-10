@@ -1,3 +1,5 @@
+// XFAIL: *
+// Not relevant to the new Dexter model.
 // Purpose:
 //    Check that \DexUnreachable doesn't trigger on the line it's specified
 //    on, if it has a specifier indicating which lines should be unreachable.

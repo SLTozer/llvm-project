@@ -9,20 +9,13 @@
 int main() {
     int x = 5;
     int &y = x;
-    if (x > 2) { // !dex_label start_line
-        int z = 3;
-        y += z;
-    }
     x = 3; // !dex_label test_line
 }
 
 /*
 ---
-!where {function: main}:
+!where {function: main, lines: !label test_line}:
     !value "&x": !address x_addr
     !value "y": !address x_addr
-    !where {lines: 12}: !then continue
-    !where {lines: 14}: !then finish
-    !value/all locals: yay
 ...
 */

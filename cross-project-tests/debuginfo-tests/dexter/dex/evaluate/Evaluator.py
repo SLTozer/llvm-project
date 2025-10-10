@@ -16,7 +16,12 @@ class EvaluationState(object):
 def scope_matches_step(scope: Scope, step: StepIR):
     if scope.file is not None and scope.file != step.frames[0].loc.path:
         return False
-    if scope.fn is not None and scope.fn != step.frames[0].function:
+    # The recorded function name may be a full signature, which won't exactly equal the function name; remove the
+    # arguments list if one exists for matching purposes.
+    fn = step.frames[0].function
+    if '(' in fn:
+        fn = fn.split('(')[0]
+    if scope.fn is not None and scope.fn != fn:
         return False
     if scope.lines is not None and step.frames[0].loc.lineno not in scope.get_lines():
         return False
@@ -40,8 +45,10 @@ class DexEvaluator(object):
         script.visit_script(visit_expect=accumulate_expects)
 
         for expect, value, scope in expects_and_scopes:
+            self.eval_context.labels = scope.labels
             relevant_steps = [step for step in self.steps.steps if scope_matches_step(scope, step)]
             if isinstance(expect, All):
+                print(value)
                 watched_scope = expect.get_watched_scope()
                 class ScopeVarValues:
                     # FIXME: Figure out how to filter out uninitialized values.
@@ -89,7 +96,19 @@ class DexEvaluator(object):
                         # If we could not evaluate this variable, we have failed to find a substitute.
                         if not val.value:
                             return None
-                        values.append(val.value)
+                        # For a given ValueIR, returns its value if it has no subvalues, or a dict containing its
+                        # mapped subvalues if it has any.
+                        def get_subvalue(value: ValueIR):
+                            if not value.sub_values:
+                                return value.value
+                            return {subv.expression: get_subvalue(subv) for subv in value.sub_values}
+                        # Where a and b are either strings, or dicts containing string keys and values that are similar
+                        # types.
+                        new_val = get_subvalue(val)
+                        if values and str(new_val) == str(values[-1]):
+                            continue
+                        values.append(new_val)
+
                     # Prefer a scalar result if possible!
                     if len(values) == 1:
                         values = values[0]
@@ -105,7 +124,7 @@ class DexEvaluator(object):
                 pprint.pp(expect.scopes_and_vars)
                 self.wildcard_updates[value] = expect.scopes_and_vars
             # Updating wildcards is a separate matter...
-            if isinstance(value, Unknown):
+            if value is None or isinstance(value, Unknown):
                 substitute_value = expect.get_unknown_substitute_value(relevant_steps)
                 self.wildcard_updates[value.index] = substitute_value
                 value.set_actual_values(substitute_value)

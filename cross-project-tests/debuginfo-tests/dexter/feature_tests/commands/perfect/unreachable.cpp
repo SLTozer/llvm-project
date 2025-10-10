@@ -6,10 +6,17 @@
 //
 // RUN: %dexter_regression_test_cxx_build %s -o %t
 // RUN: %dexter_regression_test_run --binary %t -- %s | FileCheck %s
-// CHECK: unreachable.cpp:
+// CHECK: unseen_undesired_lines: 1
 
 int main()
 {
   return 0;
   return 1; // DexUnreachable()
 }
+
+/*
+---
+!where {function: main}:
+  !steps never: 14
+...
+*/

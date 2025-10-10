@@ -202,25 +202,35 @@ class ConditionalController(DebuggerControllerBase):
         visited_continue_scopes = set()
 
         def add_expect_bp_locs(expect: Expect, value, scope: Scope):
+            checked_scope = scope
+            # FIXME: This is trying to get around the case where we have a !where{fn}, with !where{lines} children that
+            # are used simply to scope variable expects, but we set breakpoints for those lines that may not be
+            # appropriate. We probably need some kind of continuous traversal up the chain of parent scopes to find the
+            # outermost scope that should be used for breakpoints.
+            # What we're trying to figure out here is whether the current scope is *subsumed* by a parent scope; in the
+            # long term this should allow for nested function breakpoints, but I've yet to work out the full logic for
+            # that.
+            if scope.fn and scope.lines and scope.parent_scope.fn and not scope.parent_scope.lines:
+                checked_scope = scope.parent_scope
             if scope.as_tuple() in visited_expect_scopes:
                 return
             visited_expect_scopes.add(scope.as_tuple())
-            if scope.fn and not scope.lines:
+            if checked_scope.fn and not checked_scope.lines:
                 # FIXME: By our design it should be possible to use conditional breakpoints here, and conditional
                 # function breakpoints are supported by (at least some) debuggers.
                 self._bp_ranges.append(
-                    BreakpointRange.step_function(scope.fn, scope.file, scope.after_hits))
+                    BreakpointRange.step_function(checked_scope.fn, checked_scope.file, checked_scope.for_hit_count))
             else:
                 self._bp_ranges.append(
-                    BreakpointRange.limit_steps(None, scope.file, scope.get_lines()[0], scope.get_lines()[-1], None,
-                                                scope.after_hits))
+                    BreakpointRange.limit_steps(None, checked_scope.file, checked_scope.get_lines()[0],
+                                                checked_scope.get_lines()[-1], None, checked_scope.for_hit_count))
         def add_then_bp_locs(then: Then, scope: Scope):
             if then.command == "finish":
                 if scope.as_tuple() in visited_finish_scopes:
                     return
                 visited_finish_scopes.add(scope.as_tuple())
                 self._bp_ranges.append(
-                    BreakpointRange.finish_test(None, scope.file, scope.get_lines()[0], None, scope.after_hits))
+                    BreakpointRange.finish_test(None, scope.file, scope.get_lines()[0], None, scope.for_hit_count))
             elif then.command == "continue":
                 if scope.as_tuple() in visited_continue_scopes:
                     return
@@ -228,7 +238,7 @@ class ConditionalController(DebuggerControllerBase):
                 # Continue commands should allow a "to" argument that determines where they continue up to.
                 self._bp_ranges.append(
                     BreakpointRange.continue_from_to(None, scope.file, scope.get_lines()[0], None,
-                                                        None, scope.after_hits))
+                                                        None, scope.for_hit_count))
             else:
                 raise Exception(f"Bad command value for Then: {then.command}")
         
@@ -341,11 +351,28 @@ class ConditionalController(DebuggerControllerBase):
                             len(step_function_backtraces) == 0
                             or backtrace != step_function_backtraces[-1]
                         ):
-                            step_function_backtraces.append(backtrace)
+                            # FIXME: This is a quick temp fix, may need an improved solution later on.
+                            # If the function breakpoint for a target function lands in a function inlined into that
+                            # target function, should remove the inlined function(s) from the step_function_backtrace,
+                            # and adjust the instruction breakpoint accordingly.
+                            def expected_matches_frame_fn(expected_fn, frame_fn):
+                                if '(' in expected_fn and not '(' in frame_fn:
+                                    expected_fn = expected_fn.split('(')[0]
+                                if '(' in frame_fn and not '(' in expected_fn:
+                                    frame_fn = frame_fn.split('(')[0]
+                                return expected_fn == frame_fn
+                            target_frame_idx = 0
+                            print(bpr.function)
+                            print(backtrace[target_frame_idx])
+                            while not expected_matches_frame_fn(bpr.function, backtrace[target_frame_idx]):
+                                target_frame_idx += 1
+                                print(backtrace[target_frame_idx])
+
+                            step_function_backtraces.append(backtrace[target_frame_idx:])
 
                             # Add an address breakpoint so we don't fall out
                             # the end of nested DexStepFunctions with a DexContinue.
-                            addr = self.debugger.get_pc(frame_idx=1)
+                            addr = self.debugger.get_pc(frame_idx=target_frame_idx+1)
                             instr_id = self.debugger.add_instruction_breakpoint(addr)
                             # Note the breakpoint so we don't log the source location
                             # it in the trace later.
@@ -417,6 +444,7 @@ class ConditionalController(DebuggerControllerBase):
             print ("end of step:")
             if step_info.frames:
                 print (f"  step={step_info.frames[0].loc.lineno}")
+            print (f"  record_step={record_step}")
             print (f"  exit_desired={exit_desired}")
             print (f"  debugger_continue={debugger_continue}")
             print (f"  debugger_next={debugger_next}")

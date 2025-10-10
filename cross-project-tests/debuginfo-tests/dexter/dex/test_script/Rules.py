@@ -1,10 +1,11 @@
 
+from dataclasses import dataclass
+import re
 from typing import Any
 import yaml
 from dex.dextIR.StepIR import StepIR
 from dex.dextIR.ValueIR import ValueIR
 from dex.test_script.DataTypes import Metric, ScalarMetric, FractionMetric
-import difflib
 
 
 def setup_yaml_parser(loader):
@@ -19,9 +20,50 @@ def setup_yaml_parser(loader):
         DexRange,
         Address,
         All,
+        Float,
     ]
     for c in reg_classes:
         c.register_yaml(loader)
+
+class Float:
+    """Used as part of an expect for float values that may have an approximate range."""
+    def __init__(self, values, range=None):
+        if not isinstance(values, list):
+            values = [values]
+        self.values = [float(v) for v in values]
+        self.range = range
+
+    def matches(self, value):
+        try:
+            value = float(value)
+        except ValueError:
+            return False
+        if self.range is None:
+            return value in self.values
+        return any(abs(expected - value) <= self.range for expected in self.values)
+
+    def constructor(loader, node):
+        if isinstance(node, yaml.ScalarNode):
+            return Float(loader.construct_scalar(node))
+        if isinstance(node, yaml.SequenceNode):
+            return Float(loader.construct_sequence(node))
+        elif isinstance(node, yaml.MappingNode):
+            return Float(**loader.construct_mapping(node, deep=True))
+        raise Exception("Invalid args to !float")
+
+    def representer(dumper: yaml.Dumper, data):
+        values = data.values
+        if data.range is None:
+            return dumper.represent_sequence('!float', values, flow_style=True)
+        mapping = {
+            "values": values,
+            "range": data.range,
+        }
+        return dumper.represent_mapping('!float', mapping, flow_style=True)
+
+    def register_yaml(loader):
+        yaml.add_constructor("!float", Float.constructor, loader)
+        yaml.add_representer(Float, Float.representer)
 
 class Where:
     """"One or more instances of this class define a range of steps in a debugging session. Any expects in the script
@@ -31,9 +73,9 @@ class Where:
         self.file: str | None = attributes.get("file")
         self.function: list[str] | str | None = attributes.get("function")
         self.lines: int | tuple[int, int] | DexRange | None = attributes.get("lines")
-        self.after_hits: int | None = attributes.get("after_hits")
+        self.for_hit_count: int | None = attributes.get("for_hit_count")
         self.conditions: dict = attributes.get("conditions")
-        assert self.function or self.lines or not self.after_hits, "Can't have after_hits without also having lines or a function"
+        assert self.function or self.lines or not self.for_hit_count, "Can't have for_hit_count without also having lines or a function"
 
     def __repr__(self):
         elts = []
@@ -43,8 +85,11 @@ class Where:
             elts.append(f"fn={self.function}")
         if self.lines:
             elts.append(f"lines={str(self.lines)}")
-        if self.after_hits:
-            elts.append(f"after_hits={str(self.after_hits)}")
+        if self.for_hit_count:
+            elts.append(f"for_hit_count={str(self.for_hit_count)}")
+        if self.conditions:
+            conds = [f"{var}={val}" for var, val in self.conditions.items()]
+            elts.append(f"conditions={{{', '.join(conds)}}}")
         return "Where(" + ", ".join(elts) + ")"
 
 
@@ -56,31 +101,21 @@ class Where:
         if data.file:
             mapping["file"] = data.file
         if data.function:
-            mapping["fn"] = data.function
+            mapping["function"] = data.function
         if data.lines:
             mapping["lines"] = data.lines
-        if data.after_hits:
-            mapping["after_hits"] = str(data.after_hits)
+        if data.for_hit_count:
+            mapping["for_hit_count"] = str(data.for_hit_count)
         return dumper.represent_mapping('!where', mapping, flow_style=True)
 
     def register_yaml(loader):
         yaml.add_constructor("!where", Where.constructor, loader)
         yaml.add_representer(Where, Where.representer)
 
-    # def get_lines(self) -> list[int]:
-    #     if not self.lines:
-    #         return []
-    #     if isinstance(self.lines, int):
-    #         return [self.lines]
-    #     lines = []
-    #     for line in self.lines:
-    #         lines.append(line)
-    #     return lines
-
 class Then:
     """Used to perform actions, such as finishing the test or running a command. Will trigger when it is first in-scope
     for a step, so a typical usage pattern is to map to it directly from a "Where", e.g.
-    `!where {line: 4, after_hits: 2}: !then finish`.
+    `!where {line: 4, for_hit_count: 2}: !then finish`.
     """
     def __init__(self, command: str, attrs: dict = {}):
         self.command = command
@@ -122,24 +157,26 @@ class Then:
 
 class Scope:
     def __init__(self, file: str, labels: dict, fn: str | None = None, lines: int | range | list | None = None,
-                 conditions: dict | None = None, after_hits: int | None = None):
+                 conditions: dict | None = None, for_hit_count: int | None = None, parent_scope = None):
         self.file = file
         self.labels = labels
         self.fn = fn
         self.lines = lines
         self.conditions = conditions
-        self.after_hits = after_hits
+        self.for_hit_count = for_hit_count
+        self.parent_scope = parent_scope
 
     def empty_scope():
         return Scope(None, dict())
 
+    # FIXME: Figure out whether "parentScope" should be contained in this.
     def as_tuple(self):
         return (
             self.file,
             self.fn,
             tuple(self.get_lines()),
             self.conditions,
-            self.after_hits,
+            self.for_hit_count,
         )
 
     # Returns a new Scope resulting from applying the new Where to this scope.
@@ -151,27 +188,27 @@ class Scope:
         scope_fn = self.fn
         scope_lines = self.lines
         scope_conditions = self.conditions
-        scope_after_hits = self.after_hits
+        scope_for_hit_count = self.for_hit_count
         if where.file:
             scope_file = where.file
             scope_fn = None
             scope_lines = None
-            scope_after_hits = None
+            scope_for_hit_count = None
         if where.function:
             scope_fn = where.function
             scope_lines = None
-            scope_after_hits = None
+            scope_for_hit_count = None
             scope_conditions = None
         if where.lines:
             scope_lines = where.lines
-            scope_after_hits = None
+            scope_for_hit_count = None
             scope_conditions = None
         if where.conditions:
             scope_conditions = where.conditions
-        if where.after_hits:
-            scope_after_hits = where.after_hits
+        if where.for_hit_count:
+            scope_for_hit_count = where.for_hit_count
         scope_labels = per_file_labels.get(scope_file, {})
-        return Scope(scope_file, scope_labels, scope_fn, scope_lines, scope_conditions, scope_after_hits)
+        return Scope(scope_file, scope_labels, scope_fn, scope_lines, scope_conditions, scope_for_hit_count, parent_scope=self)
 
     def as_where(self) -> Where:
         attributes = {
@@ -179,9 +216,9 @@ class Scope:
             "function": self.fn,
             "lines": self.lines,
             "conditions": self.conditions,
-            "after_hits": self.after_hits,
+            "for_hit_count": self.for_hit_count,
         }
-        return Where({k: v for k, v in attributes if v is not None})
+        return Where({k: v for k, v in attributes.items() if v is not None})
 
     def get_lines(self):
         # This should use self.labels to resolve "lines" to something concrete, when we have proper label support.
@@ -214,9 +251,13 @@ class Scope:
             return (None, None)
         return (self.conditions.keys()[0], self.conditions.values()[0])
 
+# Class used for holding any context that applies across individual expects. Currently, this includes addresses, where
+# instead of expecting exact values we expect matching or relative values across steps/variables, and labels, which may
+# appear as expected values for expects that contain line numbers.
 class EvaluationContext:
     def __init__(self):
         self.address_resolutions: dict[str, str] = {}
+        self.labels: dict[str, int] = {}
 
 # An expectation of some debugger state that will be compared to actual observed debugger state and generate one or more
 # metrics as a measurement of the difference.
@@ -224,6 +265,10 @@ class EvaluationContext:
 class Expect:
     def __init__(self):
         pass
+
+    # For a list of steps in which this expectation is in-scope, returns all the information required to evaluate it.
+    def get_actual_value(self, steps: list[StepIR]):
+        raise NotImplementedError()
 
     # For a list of steps in which this expectation is in-scope, returns all the information required to evaluate it.
     def get_actual_value(self, steps: list[StepIR]):
@@ -274,6 +319,7 @@ class Result:
 class Value(Expect):
     def __init__(self, variable_name: str):
         self.variable_name = variable_name
+        self.actual_values = None
 
     def get_actual_value(self, steps: list[StepIR]) -> list[ValueIR]:
         values = []
@@ -316,18 +362,53 @@ class Value(Expect):
                     expected = resolved_addr
         if not isinstance(expected, list):
             expected = [expected]
-        expected = [str(e) for e in expected]
 
-        correct_steps = len([a for a in actual if a.value in expected])
-        incorrect_steps = len([a for a in actual if a.value not in expected])
-        missing_var_steps = len([a for a in actual if not a.could_evaluate or a.is_irretrievable or a.is_optimized_away])
-        unexpected_value_steps = len([a for a in actual if a.could_evaluate and a.value is not None and a.value not in expected])
-        seen_values = len([e for e in expected if any(a.value == e for a in actual)])
-        missing_values = len([e for e in expected if not any(a.value == e for a in actual)])
+        # Compare the expected value to the observed value, recursively traversing any subvalues.
+        def expected_matches_observed(expected, observed: ValueIR):
+            if isinstance(expected, dict):
+                # We are looking for subvalues of this expected value.
+                for subv_name, subv_expected in expected.items():
+                    try:
+                        subv_observed = next(v for v in observed.sub_values if v.expression == subv_name)
+                    except StopIteration:
+                        print(f"Missing {subv_name}")
+                        # Missing observed value for this subvalue.
+                        return False
+                    if not expected_matches_observed(subv_expected, subv_observed):
+                        return False
+                return True
+            # FIXME: Find some way to generalize this "matcher" logic at some point.
+            if isinstance(expected, Float):
+                return expected.matches(observed.value)
+            return str(expected) == observed.value
+
+        seen_value_idxs = set()
+        step_matches = []
+        correct_steps = 0
+        incorrect_steps = 0
+        missing_var_steps = 0
+        unexpected_value_steps = 0
+        for a_idx, a in enumerate(actual):
+            if not a.could_evaluate:
+                if a.is_irretrievable or a.is_optimized_away:
+                    missing_var_steps += 1
+                incorrect_steps += 1
+                continue
+            matching_expected_idxs = [idx for idx, e in enumerate(expected) if expected_matches_observed(e, a)]
+            if matching_expected_idxs:
+                correct_steps += 1
+                for e_idx in matching_expected_idxs:
+                    seen_value_idxs.add(e_idx)
+                    step_matches.append((a_idx, e_idx))
+            else:
+                incorrect_steps += 1
+                unexpected_value_steps += 1
+        seen_values = len(seen_value_idxs)
+        missing_values = len(expected) - len(seen_value_idxs)
         return {
             # The number of steps. Though this is not a useful metric in itself, it may be useful to see in tandem with
             # other variables.
-            "total_steps": ScalarMetric(len(actual)),
+            "total_watched_steps": ScalarMetric(len(actual)),
             # The number of steps where the expected value sequence was observed.
             "correct_steps": ScalarMetric(correct_steps),
             # The number of steps which did not match the expected value sequence.
@@ -463,7 +544,7 @@ class Type(Expect):
         return {
             # The number of steps. Though this is not a useful metric in itself, it may be useful to see in tandem with
             # other variables.
-            "total_steps": ScalarMetric(len(actual)),
+            "total_watched_steps": ScalarMetric(len(actual)),
             # The number of steps where the expected types were observed.
             "correct_steps": ScalarMetric(correct_steps),
             # The number of steps where the expected types were not observed.
@@ -502,8 +583,37 @@ class Type(Expect):
         yaml.add_representer(Type, Type.representer)
 
 class Steps(Expect):
-    def __init__(self):
-        pass
+    def __init__(self, kind: str):
+        assert kind == "order" or kind == "never"
+        self.kind = kind
+
+    # For a list of steps in which this expectation is in-scope, returns all the information required to evaluate it.
+    def get_actual_value(self, steps: list[StepIR]):
+        return [step.frames[0].loc.lineno for step in steps]
+
+    # Similar to `get_actual_value`, but returns a value suitable for serializing directly to YAML instead of being
+    # usable for evaluation, for the purposes of substituting unknown values.
+    def get_unknown_substitute_value(self, steps: list[StepIR]):
+        return [step.frames[0].loc.lineno for step in steps]
+
+    def evaluate(
+        self, expected, actual, context: EvaluationContext
+    ) -> dict[str, Metric]:
+        if not isinstance(expected, list):
+            expected = [expected]
+        expected = [l.to_line(context.labels) if isinstance(l, Label) else int(l) for l in expected]
+        if self.kind == "order":
+            return {
+                "correct_line_steps": len([a for a in actual if a in expected]),
+                "missing_expected_lines": len([e for e in expected if e not in actual]),
+                "unexpected_line_steps": len([a for a in actual if a not in expected]),
+            }
+        else:
+            return {
+                "unseen_undesired_lines": len([e for e in expected if e not in actual]),
+                "seen_undesired_lines": len([e for e in expected if e in actual]),
+                "undesired_line_steps": len([a for a in actual if a in expected]),
+            }
 
     def get_watched_exprs(self) -> list[str]:
         return []
@@ -512,21 +622,30 @@ class Steps(Expect):
         return None
 
     def __repr__(self):
-        return f"Steps"
+        return f"Step({self.kind})"
 
     def constructor(loader, node):
-        return Steps()
+        return Steps(loader.construct_scalar(node))
 
     def representer(dumper, data):
-        return dumper.represent_scalar('!steps', None)
+        return dumper.represent_scalar('!steps', data.kind)
 
     def register_yaml(loader):
         yaml.add_constructor("!steps", Steps.constructor, loader)
         yaml.add_representer(Steps, Steps.representer)
 
+@dataclass(frozen=True)
 class Label:
-    def __init__(self, name: str):
-        self.name = name
+    name: str
+
+    def to_line(self, labels: dict[str, int]) -> int:
+        # Labels may contain offsets, which is accounted for here.
+        raw_label = self.name.strip()
+        if match := re.match(r'^([a-zA-Z_]\w*)\s*([+-])\s*(\d+)$', raw_label):
+            identifier, sign, number = match.groups()
+            value = int(number) if sign == '+' else -int(number)
+            return labels[identifier] + value
+        return labels[raw_label]
 
     def __repr__(self):
         return f"Label({self.name})"
@@ -561,19 +680,18 @@ class Unknown:
         yaml.add_constructor("!unknown", Unknown.constructor, loader)
         yaml.add_representer(Unknown, Unknown.representer)
 
-
+@dataclass(frozen=True)
 class DexRange:
-    def __init__(self, start: int | Label, stop: int | Label):
-        self.start = start
-        self.stop = stop
+    start: int | Label
+    stop: int | Label
 
     def __repr__(self) -> str:
         return f"[{self.start} - {self.stop}]"
 
     # We use an inclusive range in Dexter scripts, while python ranges are exclusive.
     def to_range(self, labels: dict[str, int]) -> range:
-        start = self.start if isinstance(self.start, int) else labels[self.start.name]
-        stop = self.stop if isinstance(self.stop, int) else labels[self.stop.name]
+        start = self.start if isinstance(self.start, int) else self.start.to_line(labels)
+        stop = self.stop if isinstance(self.stop, int) else self.stop.to_line(labels)
         return range(start, stop + 1)
 
     def constructor(loader, node):

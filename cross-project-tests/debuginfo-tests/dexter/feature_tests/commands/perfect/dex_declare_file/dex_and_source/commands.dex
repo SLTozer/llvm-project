@@ -1,2 +1,4 @@
-DexDeclareFile('test.cpp')
-DexExpectWatchValue('result', 0, on_line=14)
+---
+!where {file: test.cpp, lines: 14}:
+    !value result: 0
+...

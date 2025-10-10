@@ -5,7 +5,7 @@
 # UNSUPPORTED: system-darwin
 #
 # RUN: %dexter_regression_test_cxx_build %S/test.cpp -o %t
-# RUN: %dexter_regression_base --binary %t %s | FileCheck %s
+# RUN: %dexter_regression_test_run --binary %t %s | FileCheck %s
 # CHECK: commands.dex
 #
 # test.cpp
@@ -14,5 +14,8 @@
 # 3.   return result;
 # 4. }
 
-DexDeclareFile('test.cpp')
-DexExpectWatchValue('result', 0, on_line=3)
+---
+!where {file: test.cpp, lines: 3}:
+    !value result: 0
+...
+
