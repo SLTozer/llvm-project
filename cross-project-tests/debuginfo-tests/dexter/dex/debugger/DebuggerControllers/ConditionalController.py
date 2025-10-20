@@ -19,7 +19,7 @@ from dex.debugger.DebuggerControllers.DebuggerControllerBase import (
     DebuggerControllerBase,
 )
 from dex.debugger.DebuggerBase import DebuggerBase
-from dex.test_script.Rules import Expect, Scope, Then
+from dex.test_script.Nodes import Expect, Scope, Then
 from dex.test_script.Script import DexterScript
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.Timeout import Timeout

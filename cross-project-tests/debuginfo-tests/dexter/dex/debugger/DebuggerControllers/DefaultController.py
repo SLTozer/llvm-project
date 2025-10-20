@@ -14,7 +14,7 @@ from dex.debugger.DebuggerControllers.DebuggerControllerBase import (
 from dex.debugger.DebuggerControllers.ControllerHelpers import (
     in_source_file,
 )
-from dex.test_script.Rules import Scope, Then
+from dex.test_script.Nodes import Scope, Then
 from dex.test_script.Script import DexterScript
 from dex.utils.Exceptions import DebuggerException, LoadDebuggerException
 from dex.utils.Timeout import Timeout

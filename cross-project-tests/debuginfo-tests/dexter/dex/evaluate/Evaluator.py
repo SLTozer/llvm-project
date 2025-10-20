@@ -1,10 +1,10 @@
 
 import pprint
 from typing import Any
-from dex.test_script.Rules import All, DexRange, Expect, Scope, Unknown, Value, Where
+from dex.test_script.Nodes import All, DexRange, Expect, Scope, Unknown, Value, Where
 from dex.dextIR.DextIR import DextIR, StepIR
 from dex.dextIR.ValueIR import ValueIR
-from dex.test_script.Rules import EvaluationContext, Metric
+from dex.test_script.Nodes import EvaluationContext, Metric
 
 
 class EvaluationState(object):

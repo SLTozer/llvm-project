@@ -19,7 +19,7 @@ from dex.debugger.DebuggerControllers.ConditionalController import ConditionalCo
 from dex.dextIR.DextIR import DextIR
 from dex.evaluate.Evaluator import DexEvaluator
 from dex.tools import TestToolBase
-from dex.test_script.Rules import Expect, Scope, Then, Where
+from dex.test_script.Nodes import Expect, Scope, Then, Where
 from dex.test_script.Script import DexterScript, get_dexter_script
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.Exceptions import BuildScriptException

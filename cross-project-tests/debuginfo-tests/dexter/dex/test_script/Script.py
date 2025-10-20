@@ -20,7 +20,7 @@ import re
 from typing import Any, Callable, Iterable
 import yaml
 
-from dex.test_script.Rules import All, Expect, Scope, Then, Unknown, Value, Where, setup_yaml_parser
+from dex.test_script.Nodes import All, Expect, Scope, Then, Unknown, Value, Where, setup_yaml_parser
 from dex.test_script.DataTypes import ScopeStepExpectInfo, StepExpectInfo
 
 from dex.utils.Exceptions import DebuggerException
@@ -202,7 +202,7 @@ class DexterScript:
 
     # Creates a copy of this script, with any wildcard elements resolved to concrete values. This requires a variation
     # of the existing visitor logic:
-    # - A script comprises dicts, lists, objects, and scalars. For these rules, a list cannot contain scalars unless it
+    # - A script comprises dicts, lists, objects, and scalars. For these nodes, a list cannot contain scalars unless it
     #   consists entirely of scalars and is the value of an object key in a dict, and in such cases the list is itself
     #   treated itself as a scalar.
     # - The root of the script is always a dict.
