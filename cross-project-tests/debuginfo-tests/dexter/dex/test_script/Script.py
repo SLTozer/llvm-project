@@ -20,7 +20,17 @@ import re
 from typing import Any, Callable, Iterable
 import yaml
 
-from dex.test_script.Nodes import All, Expect, Scope, Then, Unknown, Value, Where, setup_yaml_parser
+from dex.test_script.Nodes import (
+    All,
+    ValueAll,
+    Expect,
+    Scope,
+    Then,
+    Unknown,
+    Value,
+    Where,
+    setup_yaml_parser,
+)
 from dex.test_script.DataTypes import ScopeStepExpectInfo, StepExpectInfo
 
 from dex.utils.Exceptions import DebuggerException
@@ -217,25 +227,25 @@ class DexterScript:
     # - The only elements that currently need to be resolved are:
     #   - `Unknown` objects, when used as a value in a dict, will resolve to a scalar.
     #   - `All` objects, when used as a key in a dict, will resolve to one or more new entries in the resolved dict.
-    def resolve_script(self):
+    def resolve_script(self, reified_map):
         # Returns an iterable of (k, v).
         def visit_dict_entry(k: object, v) -> Iterable[tuple]:
             # Possible resolutions:
             if isinstance(k, All):
                 entries = []
-                for lines, expects in k.scopes_and_vars.items():
+                for lines, expects in reified_map[k].items():
                     if lines is None:
                         for var, expected in expects.items():
-                            entries.append((Value(var), expected))
+                            entries.append((var, expected))
                     else:
                         where = Where({"lines": lines})
                         new_expects = {}
                         for var, expected in expects.items():
-                            new_expects[Value(var)] = expected
+                            new_expects[var] = expected
                         entries.append((where, new_expects))
                 return entries
-            if isinstance(v, Unknown):
-                return []
+            if isinstance(k, Value) and v is None and reified_map[k] is not None:
+                return [copy.deepcopy(k), copy.deepcopy(reified_map[k])]
             # Otherwise, we only need to resolve recursively.
             return [(copy.deepcopy(k), visit(v))]
         def visit_dict(d: dict) -> dict:

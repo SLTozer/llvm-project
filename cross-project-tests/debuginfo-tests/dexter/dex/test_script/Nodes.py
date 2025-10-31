@@ -19,7 +19,8 @@ def setup_yaml_parser(loader):
         Unknown,
         DexRange,
         Address,
-        All,
+        ValueAll,
+        TypeAll,
         Float,
     ]
     for c in reg_classes:
@@ -449,9 +450,118 @@ class Value(Expect):
         yaml.add_constructor("!value", Value.constructor, loader)
         yaml.add_representer(Value, Value.representer)
 
+class All:
+    def get_watched_scope(self) -> str:
+        raise NotImplementedError()
+
+    def get_observed_value(self, value: ValueIR):
+        raise NotImplementedError()
+
+    def get_var_expect(self, var_name):
+        raise NotImplementedError()
+
+    def get_scope_values(self, scope: Scope, relevant_steps: list[StepIR]):
+        watched_scope = self.get_watched_scope()
+
+        class ScopeVarValues:
+            # FIXME: Figure out how to filter out uninitialized values.
+            def __init__(self, val: ValueIR, line: int):
+                self.values = [val]
+                self.min = line
+                self.max = line
+                # FIXME: I'm pretty sure we'll need this later to figure out cases where we want all local
+                # variables in a function, rather than between line ranges; checking the min/max lines won't
+                # help us figure out whether a given variable is available for the whole function, so we'll need
+                # to directly check whether there were any steps it wasn't in scope for.
+                self.any_not_in_scope = False
+
+            def add_step(self, val: ValueIR, line: int):
+                self.values.append(val)
+                self.min = min(self.min, line)
+                self.max = max(self.max, line)
+
+            def print(self):
+                print(f"[{self.min} - {self.max}]:")
+                for v in self.values:
+                    print(f"  {str(v)}")
+
+        # Find for each scope variable the the least Where containing valid evaluations of each scope variable.
+        # FIXME: For simplicity's sake, we assume here that we never track the variables of the same name across
+        # multiple functions. 95% of the time this will be the case, but we'll need to handle it in future
+        # maybe.
+        scope_var_ranges: dict[str, ScopeVarValues] = {}
+        for step in relevant_steps:
+            step_scope_vars: list[ValueIR] = step.program_state.frames[
+                0
+            ].scope_watches.get(watched_scope)
+            for val in step_scope_vars:
+                # FIXME: We ignore errors outright here because we're assuming there won't be any when we use
+                # this at O0 to generate a test script; later on we'll have to actually think about this.
+                if not val.could_evaluate or val.error_string:
+                    continue
+                var_name = val.expression
+                if not var_name in scope_var_ranges:
+                    scope_var_ranges[var_name] = ScopeVarValues(
+                        val, step.frames[0].loc.lineno
+                    )
+                else:
+                    scope_var_ranges[var_name].add_step(val, step.frames[0].loc.lineno)
+
+        def map_value_range(vals: list[ValueIR]):
+            # If we observed no values at all, something has gone wrong.
+            if not vals:
+                return None
+            values = []
+            for val in vals:
+                # If we could not evaluate this variable, we have failed to find a substitute.
+                if not val.value:
+                    return None
+
+                # For a given ValueIR, returns its value if it has no subvalues, or a dict containing its
+                # mapped subvalues if it has any.
+                def get_subvalue(value: ValueIR):
+                    if not value.sub_values:
+                        return self.get_observed_value(value)
+                    return {
+                        "_": self.get_observed_value(value),
+                        **{
+                            subv.expression: get_subvalue(subv)
+                            for subv in value.sub_values
+                        },
+                    }
+
+                # Where a and b are either strings, or dicts containing string keys and values that are similar
+                # types.
+                new_val = get_subvalue(val)
+                if values and str(new_val) == str(values[-1]):
+                    continue
+                values.append(new_val)
+
+            # Prefer a scalar result if possible!
+            if len(values) == 1:
+                values = values[0]
+            return values
+
+        scope_vars = {}
+        for var, ranges in scope_var_ranges.items():
+            print(var)
+            scope_line_range = scope.get_line_range()
+            if (
+                scope_line_range is not None
+                and ranges.min == scope_line_range.start
+                and ranges.max + 1 == scope_line_range.stop
+            ):
+                lines = None
+            else:
+                lines = DexRange(ranges.min, ranges.max)
+            scope_line_vars = scope_vars.setdefault(lines, {})
+            scope_line_vars[self.get_var_expect(var)] = map_value_range(ranges.values)
+        return scope_vars
+
+
 # A special class that can be used in place of a variable/expression in an expect, to indicate that we wish to apply the
 # expect to all vars that match the provided category.
-class All(Value):
+class ValueAll(Expect, All):
     def __init__(self, category: str):
         self.category = category
         # The set resolved variables and their associated values, grouped by scopes, using an empty Where as the key for
@@ -459,7 +569,13 @@ class All(Value):
         self.scopes_and_vars: dict[DexRange, dict[str, Any]] = {}
 
     def __repr__(self):
-        return f"All({self.category})"
+        return f"ValueAll({self.category})"
+
+    def get_var_expect(self, var_name):
+        return Value(var_name)
+
+    def get_observed_value(self, value: ValueIR):
+        return value.value
 
     def get_watched_exprs(self) -> list[str]:
         return []
@@ -482,19 +598,72 @@ class All(Value):
     def get_scope(self):
         return "Locals"
 
-    # Given a list of actual steps, returns a list containing lists of steps for each item that this All expands to.
+    # Given a list of actual steps, returns a list containing lists of steps for each item that this ValueAll expands to.
     def expand(self, steps: list[StepIR]) -> list[list[StepIR]]:
         assert self.category == "locals"
 
     def constructor(loader, node):
-        return All(loader.construct_scalar(node))
+        return ValueAll(loader.construct_scalar(node))
 
     def representer(dumper, data):
         return dumper.represent_scalar("!value/all", data.category)
 
     def register_yaml(loader):
-        yaml.add_constructor("!value/all", All.constructor, loader)
-        yaml.add_representer(All, All.representer)
+        yaml.add_constructor("!value/all", ValueAll.constructor, loader)
+        yaml.add_representer(ValueAll, ValueAll.representer)
+
+
+# A special class that can be used in place of a variable/expression in an expect, to indicate that we wish to apply the
+# expect to all vars that match the provided category.
+class TypeAll(Expect, All):
+    def __init__(self, category: str):
+        self.category = category
+        # The set resolved variables and their associated values, grouped by scopes, using an empty Where as the key for
+        # any vars that don't need scope narrowing.
+        self.scopes_and_vars: dict[DexRange, dict[str, Any]] = {}
+
+    def __repr__(self):
+        return f"TypeAll({self.category})"
+
+    def get_var_expect(self, var_name):
+        return Type(var_name)
+
+    def get_watched_exprs(self) -> list[str]:
+        return []
+
+    def get_watched_scope(self) -> str:
+        return self.get_scope()
+
+    def get_actual_value(self, steps: list[StepIR]) -> list[ValueIR]:
+        return []
+
+    def get_observed_value(self, value: ValueIR):
+        return value.type_name
+
+    def get_unknown_substitute_value(self, steps: list[StepIR]):
+        return []
+
+    def evaluate(
+        self, expected, actual: list[ValueIR], context: EvaluationContext
+    ) -> dict[str, Metric]:
+        return {}
+
+    def get_scope(self):
+        return "Locals"
+
+    # Given a list of actual steps, returns a list containing lists of steps for each item that this TypeAll expands to.
+    def expand(self, steps: list[StepIR]) -> list[list[StepIR]]:
+        assert self.category == "locals"
+
+    def constructor(loader, node):
+        return TypeAll(loader.construct_scalar(node))
+
+    def representer(dumper, data):
+        return dumper.represent_scalar("!type/all", data.category)
+
+    def register_yaml(loader):
+        yaml.add_constructor("!type/all", TypeAll.constructor, loader)
+        yaml.add_representer(TypeAll, TypeAll.representer)
 
 class Type(Expect):
     def __init__(self, variable_name: str):
@@ -562,7 +731,7 @@ class Type(Expect):
         }
 
     def get_watched_exprs(self) -> list[str]:
-        if self.variable_name is All:
+        if self.variable_name is ValueAll:
             return []
         return [self.variable_name]
 

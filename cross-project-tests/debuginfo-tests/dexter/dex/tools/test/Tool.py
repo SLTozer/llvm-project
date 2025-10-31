@@ -205,13 +205,17 @@ class Tool(TestToolBase):
             with open(output_text_path, "a") as fp:
                 self.context.o.auto(heuristic.verbose_output, stream=Stream(fp))
 
-    def _write_updated_script(self, test_name, script: DexterScript):
-        """Write out the original script file, modified to replace any unknown expects with the actual observed values.
-        """
+    def _write_updated_script(
+        self, test_name, evaluator: DexEvaluator, script: DexterScript
+    ):
+        """Write out the original script file, modified to replace any unknown expects with the actual observed values."""
         if self.context.options.results_directory:
             output_text_path = self._get_results_path(test_name)
             with open(output_text_path, "w") as fp:
-                self.context.o.auto(script.resolve_script().write_script(), stream=Stream(fp))
+                self.context.o.auto(
+                    script.resolve_script(evaluator.reified_map).write_script(),
+                    stream=Stream(fp),
+                )
 
     def _record_test_and_display(self, test_case):
         """Output test case to o stream and record test case internally for
@@ -253,11 +257,11 @@ class Tool(TestToolBase):
             steps = self._get_steps()
             self._record_steps(test_name, steps)
             evaluator = DexEvaluator(self.context, steps)
-            if any(v is None for v in evaluator.wildcard_updates.values()):
+            if evaluator.unsuccessful_wildcard_updates > 0:
                 self.context.o.auto("\n<y>Failed to find values for one or more unknowns.</>\n")
-            elif len(evaluator.wildcard_updates) > 0:
+            elif evaluator.successful_wildcard_updates > 0:
                 self.context.o.auto("\n<g>Found values for all unknowns.</>\n")
-                self._write_updated_script(test_name, steps.script)
+                self._write_updated_script(test_name, evaluator, steps.script)
         except (BuildScriptException, DebuggerException) as e:
             self._record_failed_test(test_name, e)
             return

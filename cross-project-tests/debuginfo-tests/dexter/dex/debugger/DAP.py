@@ -886,9 +886,13 @@ class DAP(DebuggerBase, metaclass=abc.ABCMeta):
                 location=SourceLocation(**loc_dict),
             )
             if valid_loc_for_watch:
+                visited_scopes = set()
                 for scope_watch in scope_watches:
+                    if scope_watch.scope in visited_scopes:
+                        continue
                     if not watch_is_active(scope_watch, loc.path, idx, loc.lineno):
                         continue
+                    visited_scopes.add(scope_watch.scope)
                     frame_id = stackframe["id"]
                     frame_scopes = self._communicate_request("scopes", {"frameId": frame_id})
                     scope_vars_ref = next((scope["variablesReference"] for scope in frame_scopes["scopes"] if scope["name"] == scope_watch.scope), None)
