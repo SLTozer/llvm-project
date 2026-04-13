@@ -11,7 +11,13 @@ import sys
 import ctypes
 import ctypes.wintypes
 
-from ..PrettyOutputBase import PrettyOutputBase, Stream, _lock, _null_lock
+from ..PrettyOutputBase import (
+    PrettyOutputBase,
+    PrettyOutputColor,
+    Stream,
+    _lock,
+    _null_lock,
+)
 
 
 class _CONSOLE_SCREEN_BUFFER_INFO(ctypes.Structure):
@@ -66,18 +72,33 @@ class PrettyOutput(PrettyOutputBase):
                 if stream.color_enabled:
                     self._restore_orig_color(stream, lock=_null_lock)
 
-    def red_impl(self, text, stream=None, **kwargs):
-        self._color(text, 12, stream, **kwargs)
+    def _get_color_code(color: PrettyOutputColor):
+        if color == PrettyOutputColor.RED:
+            return 12
+        if color == PrettyOutputColor.YELLOW:
+            return 14
+        if color == PrettyOutputColor.GREEN:
+            return 10
+        if color == PrettyOutputColor.BLUE:
+            return 11
+        if color == PrettyOutputColor.GREY:
+            return 8
+        return 0
 
-    def yellow_impl(self, text, stream=None, **kwargs):
-        self._color(text, 14, stream, **kwargs)
-
-    def green_impl(self, text, stream=None, **kwargs):
-        self._color(text, 10, stream, **kwargs)
-
-    def blue_impl(self, text, stream=None, **kwargs):
-        self._color(text, 11, stream, **kwargs)
-
-    def default_impl(self, text, stream=None, **kwargs):
+    def with_color(
+        self, color: PrettyOutputColor, text: str, stream: Stream = None, lock=_lock
+    ):
         stream = self._set_valid_stream(stream)
-        self._color(text, stream.orig_color, stream, **kwargs)
+        with lock:
+            if stream.color_enabled:
+                if color == PrettyOutputColor.DEFAULT:
+                    ctypes.windll.kernel32.SetConsoleTextAttribute(
+                        stream.os, stream.orig_color
+                    )
+                else:
+                    ctypes.windll.kernel32.SetConsoleTextAttribute(
+                        stream.os, PrettyOutput._get_color_code(color)
+                    )
+            stream.py.write(text)
+        if stream.color_enabled:
+            self.flush(stream)

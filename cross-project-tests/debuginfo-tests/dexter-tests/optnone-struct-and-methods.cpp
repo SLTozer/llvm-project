@@ -67,16 +67,20 @@ public:
   __attribute__((optnone))
   A() {
     __builtin_memset(this, 0xFF, sizeof(*this));
-  } //DexLabel('break_0')
-  // DexExpectWatchValue('a', '-1', on_line=ref('break_0'))
-  //// Check b is NaN by comparing it to itself.
-  // DexExpectWatchValue('this->b == this->b', 'false', on_line=ref('break_0'))
-  // DexExpectWatchValue('_data.a.raw_ptr == -1', 'true', on_line=ref('break_0'))
-  // DexExpectWatchValue('_data.a.float_ptr == -1', 'true', on_line=ref('break_0'))
-  // DexExpectWatchValue('_data.a.float_ptr == -1', 'true', on_line=ref('break_0'))
-  // DexExpectWatchValue('a_global_ptr[0]', 0xcafebabe, on_line=ref('break_0'))
-  // DexExpectWatchValue('a_global_ptr[1]', 0xfeedbeef, on_line=ref('break_0'))
-
+  } // !dex_label break_0
+/*
+---
+!where {function: A, line: !label break_0}:
+  !value 'a': '-1'
+  # Check b is NaN by comparing it to itself.
+  !value 'this->b == this->b': 'false'
+  !value '_data.a.raw_ptr == -1': 'true'
+  !value '_data.a.float_ptr == -1': 'true'
+  !value '_data.a.float_ptr == -1': 'true'
+  !value 'a_global_ptr[0]': 0xcafebabe
+  !value 'a_global_ptr[1]': 0xfeedbeef
+...
+*/
   __attribute__((optnone))
   ~A() {
     *getOtherData()->a.long_ptr = 0xADDF00DL;

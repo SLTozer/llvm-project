@@ -7,6 +7,7 @@
 """Interface for communicating with the LLDB debugger via its python interface.
 """
 
+import importlib
 import os
 import shlex
 from subprocess import CalledProcessError, check_output, STDOUT
@@ -18,7 +19,6 @@ from dex.dextIR import FrameIR, LocIR, StepIR, StopReason, ValueIR
 from dex.dextIR import StackFrame, SourceLocation, ProgramState
 from dex.utils.Exceptions import DebuggerException, LoadDebuggerException
 from dex.utils.ReturnCode import ReturnCode
-from dex.utils.Imports import load_module
 
 
 class LLDB(DebuggerBase):
@@ -77,6 +77,7 @@ class LLDB(DebuggerBase):
         try:
             args = [self.lldb_executable, "-P"]
             pythonpath = check_output(args, stderr=STDOUT).rstrip().decode("utf-8")
+            sys.path.insert(0, pythonpath)
         except CalledProcessError as e:
             raise LoadDebuggerException(str(e), sys.exc_info())
         except OSError as e:
@@ -91,7 +92,7 @@ class LLDB(DebuggerBase):
             )
 
         try:
-            return load_module("lldb", pythonpath)
+            return importlib.import_module("lldb")
         except ImportError as e:
             msg = str(e)
             if msg.endswith("not a valid Win32 application."):
@@ -246,7 +247,15 @@ class LLDB(DebuggerBase):
         self._process.Continue()
         return ReturnCode.OK
 
-    def _get_step_info(self, watches, step_index):
+    # Returns a minimal StepIR with just frame-related information recorded.
+    def get_stack_frames(self, step_index: int):
+        pass
+
+    # Evaluates the provided watches, and stores the results into the given StepIR.
+    def collect_watches(self, step: StepIR, watches: list, scope_watches: list):
+        pass
+
+    def _get_step_info(self, watches, scope_watches, step_index):
         frames = []
         state_frames = []
 

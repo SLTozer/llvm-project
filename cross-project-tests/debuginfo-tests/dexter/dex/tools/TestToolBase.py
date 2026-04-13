@@ -13,9 +13,7 @@ import sys
 
 from dex.debugger.Debuggers import add_debugger_tool_arguments
 from dex.debugger.Debuggers import handle_debugger_tool_options
-from dex.heuristic.Heuristic import add_heuristic_tool_arguments
 from dex.tools.ToolBase import ToolBase
-from dex.utils import get_root_directory
 from dex.utils.Exceptions import Error, ToolArgumentError
 from dex.utils.ReturnCode import ReturnCode
 
@@ -40,14 +38,12 @@ class TestToolBase(ToolBase):
         parser.description = self.__doc__
         add_debugger_tool_arguments(parser, self.context, defaults)
         add_executable_arguments(parser)
-        add_heuristic_tool_arguments(parser)
 
         parser.add_argument(
             "test_path",
             type=str,
             metavar="<test-path>",
             nargs="?",
-            default=os.path.abspath(os.path.join(get_root_directory(), "..", "tests")),
             help="directory containing test(s)",
         )
 
@@ -64,6 +60,13 @@ class TestToolBase(ToolBase):
             metavar="<directory>",
             default=None,
             help="if passed, result names will include relative path from this directory",
+        )
+        parser.add_argument(
+            "--repeated-runs",
+            type=int,
+            metavar="<times>",
+            default=None,
+            help="run the test <times> times and join the results to resolved script wildcards",
         )
 
     def handle_options(self, defaults):
@@ -117,7 +120,7 @@ class TestToolBase(ToolBase):
             self.context.working_directory.path, "tmp.exe"
         )
 
-        # Test files contain dexter commands.
+        # Test files contain dexter scripts.
         options.test_files = [options.test_path]
         # Source files are the files that the program was built from, and are
         # used to determine whether a breakpoint is external to the program
@@ -125,9 +128,12 @@ class TestToolBase(ToolBase):
         options.source_files = []
         if not options.test_path.endswith(".dex"):
             options.source_files = [options.test_path]
-        self._run_test(self._get_test_name(options.test_path))
+        if options.repeated_runs:
+            self._run_repeated_test(self._get_test_name(options.test_path), options.repeated_runs)
+        else:
+            self._run_test(self._get_test_name(options.test_path))
 
-        return self._handle_results()
+        return ReturnCode.OK
 
     @staticmethod
     def _is_current_directory(test_directory):
@@ -149,5 +155,5 @@ class TestToolBase(ToolBase):
         pass
 
     @abc.abstractmethod
-    def _handle_results(self) -> ReturnCode:
+    def _run_repeated_test(self, test_name, num_times):
         pass

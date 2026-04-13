@@ -9,8 +9,13 @@ import os
 from typing import List
 
 from dex.dextIR.DebuggerIR import DebuggerIR
+from dex.test_script.Script import DexterScript
 from dex.dextIR.StepIR import StepIR, StepKind
 
+def file_matches(a, b):
+    if os.path.exists(a) and os.path.exists(b):
+        return os.path.samefile(a, b)
+    return os.path.normpath(os.path.normcase(a)) == os.path.normpath(os.path.normcase(b))
 
 def _step_kind_func(context, step):
     if step.current_location.path is None or not os.path.exists(
@@ -19,7 +24,7 @@ def _step_kind_func(context, step):
         return StepKind.FUNC_UNKNOWN
 
     if any(
-        os.path.samefile(step.current_location.path, f)
+        file_matches(step.current_location.path, f)
         for f in context.options.source_files
     ):
         return StepKind.FUNC
@@ -48,12 +53,14 @@ class DextIR:
         source_paths: List[str],
         debugger: DebuggerIR = None,
         commands: OrderedDict = None,
+        script: DexterScript = None,
     ):
         self.dexter_version = dexter_version
         self.executable_path = executable_path
         self.source_paths = source_paths
         self.debugger = debugger
         self.commands = commands
+        self.script = script
         self.steps: List[StepIR] = []
 
     def __str__(self):

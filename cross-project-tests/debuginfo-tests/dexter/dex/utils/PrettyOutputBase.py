@@ -11,6 +11,8 @@ specific module.
 """
 
 import abc
+from enum import Enum
+from functools import reduce
 import re
 import sys
 import threading
@@ -57,6 +59,44 @@ class Stream(object):
         self.color_enabled = self.py.isatty()
 
 
+# Represents the colours available to PrettyOutput; for maximum terminal compatibility, we try not to support too many,
+# and may print similar colours as being the same (e.g. white and grey) if we don't have full support for them.
+class PrettyOutputColor(Enum):
+    RED = "r"
+    YELLOW = "y"
+    GREEN = "g"
+    BLUE = "b"
+    DEFAULT = "d"
+    AUTO = "a"  # FIXME do we want this?
+    GREY = "grey"
+
+
+# Returns 'text' with all color tags removed.
+def strip_color(text: str):
+    colors = ["r", "y", "g", "b", "d", "a", "grey"]
+
+    # Find all tags (whether open or close)
+    tags = [t for t in re.finditer("<([a-z/]+)>".format("".join(colors)), text)]
+    if not tags:
+        return text
+    last_idx = 0
+    result = ""
+    for tag in tags:
+        tag_start = tag.start()
+        if last_idx != tag_start:
+            result += text[last_idx:tag_start]
+        last_idx = tag.end()
+    result += text[last_idx:]
+    return result
+
+def ljust_color(text: str, width: int):
+    """Left justifies the text, as with `str.ljust`, accounting for color tags."""
+    colors = ["r", "y", "g", "b", "d", "a", "grey"]
+    tags = [t for t in re.finditer("<([a-z/]+)>".format("".join(colors)), text)]
+    tag_len = reduce(lambda n, match: n + match.end() - match.start(), tags, 0)
+    return text.ljust(width + tag_len)
+
+
 class PrettyOutputBase(object, metaclass=abc.ABCMeta):
     stdout = Stream(sys.stdout)
     stderr = Stream(sys.stderr)
@@ -66,6 +106,7 @@ class PrettyOutputBase(object, metaclass=abc.ABCMeta):
         self.auto_yellows = []
         self.auto_greens = []
         self.auto_blues = []
+        # The stack of colours currently being applied, with the top of the stack being the most recent.
         self._stack = []
 
     def __enter__(self):
@@ -79,7 +120,12 @@ class PrettyOutputBase(object, metaclass=abc.ABCMeta):
             return self.__class__.stdout
         return stream
 
-    def _write(self, text, stream):
+    def _write(
+        self,
+        text,
+        stream: Stream = stdout,
+        default_color: PrettyOutputColor = PrettyOutputColor.DEFAULT,
+    ):
         text = str(text)
 
         # Users can embed color control tags in their output
@@ -88,16 +134,17 @@ class PrettyOutputBase(object, metaclass=abc.ABCMeta):
         # This function parses these tags using a very simple recursive
         # descent.
         colors = {
-            "r": self.red,
-            "y": self.yellow,
-            "g": self.green,
-            "b": self.blue,
-            "d": self.default,
-            "a": self.auto,
+            "r": PrettyOutputColor.RED,
+            "y": PrettyOutputColor.YELLOW,
+            "g": PrettyOutputColor.GREEN,
+            "b": PrettyOutputColor.BLUE,
+            "d": PrettyOutputColor.DEFAULT,
+            "a": PrettyOutputColor.AUTO,
+            "grey": PrettyOutputColor.GREY,
         }
 
         # Find all tags (whether open or close)
-        tags = [t for t in re.finditer("<([{}/])>".format("".join(colors)), text)]
+        tags = [t for t in re.finditer(f"<(/|{'|'.join(colors.keys())})>", text)]
 
         if not tags:
             # No tags.  Just write the text to the current stream and return.
@@ -105,54 +152,45 @@ class PrettyOutputBase(object, metaclass=abc.ABCMeta):
             # render as colors (for example in error output from this
             # function).
             stream = self._set_valid_stream(stream)
-            stream.py.write(text.replace(r"\>", ">"))
+            stream.py.write(text)
             return
 
         open_tags = [i for i in tags if i.group(1) != "/"]
         close_tags = [i for i in tags if i.group(1) == "/"]
 
-        if len(open_tags) != len(close_tags) or any(
-            o.start() >= c.start() for (o, c) in zip(open_tags, close_tags)
-        ):
-            raise Error(
-                'open/close tag mismatch in "{}"'.format(text.rstrip()).replace(
-                    ">", r"\>"
+        # if len(open_tags) != len(close_tags) or any(
+        #     o.start() >= c.start() for (o, c) in zip(open_tags, close_tags)
+        # ):
+        #     raise Error(
+        #         'open/close tag mismatch in "{}"'.format(text.rstrip()).replace(
+        #             ">", r"\>"
+        #         )
+        #     )
+
+        last_idx = 0
+        color_stack = [default_color]
+        for t in tags:
+            # Print the text preceding the current tag
+            tag_start = t.start()
+            if last_idx != tag_start:
+                current_color = color_stack[-1]
+                self.with_color(
+                    current_color, text[last_idx:tag_start], stream, lock=_null_lock
                 )
-            )
-
-        open_tag = open_tags.pop(0)
-
-        # We know that the tags balance correctly, so figure out where the
-        # corresponding close tag is to the current open tag.
-        tag_nesting = 1
-        close_tag = None
-        for tag in tags[1:]:
-            if tag.group(1) == "/":
-                tag_nesting -= 1
+            # Apply the tag
+            contents = t.group(1)
+            if contents == "/":
+                if len(color_stack) > 1:
+                    color_stack.pop()
             else:
-                tag_nesting += 1
-            if tag_nesting == 0:
-                close_tag = tag
-                break
-        else:
-            assert False, text
-
-        # Use the method on the top of the stack for text prior to the open
-        # tag.
-        before = text[: open_tag.start()]
-        if before:
-            self._stack[-1](before, lock=_null_lock, stream=stream)
-
-        # Use the specified color for the tag itself.
-        color = open_tag.group(1)
-        within = text[open_tag.end() : close_tag.start()]
-        if within:
-            colors[color](within, lock=_null_lock, stream=stream)
-
-        # Use the method on the top of the stack for text after the close tag.
-        after = text[close_tag.end() :]
-        if after:
-            self._stack[-1](after, lock=_null_lock, stream=stream)
+                color_stack.append(colors[contents])
+            last_idx = t.end()
+        assert len(color_stack) == 1
+        self.with_color(default_color, text[last_idx:], stream, lock=_null_lock)
+        # Reset color to default at the end.
+        if default_color != PrettyOutputColor.DEFAULT:
+            self.with_color(PrettyOutputColor.DEFAULT, "", stream, lock=_null_lock)
+        stream.py.flush()
 
     def flush(self, stream):
         stream = self._set_valid_stream(stream)
@@ -172,17 +210,17 @@ class PrettyOutputBase(object, metaclass=abc.ABCMeta):
                 # Apply the appropriate color method if the expression matches
                 # any of
                 # the patterns we have set up.
-                for fn, regexs in (
-                    (self.red, self.auto_reds),
-                    (self.yellow, self.auto_yellows),
-                    (self.green, self.auto_greens),
-                    (self.blue, self.auto_blues),
+                for color, regexs in (
+                    (PrettyOutputColor.RED, self.auto_reds),
+                    (PrettyOutputColor.YELLOW, self.auto_yellows),
+                    (PrettyOutputColor.GREEN, self.auto_greens),
+                    (PrettyOutputColor.BLUE, self.auto_blues),
                 ):
                     if any(re.search(regex, line) for regex in regexs):
-                        fn(line, stream=stream, lock=_null_lock)
+                        self.with_color(color, line, stream=stream, lock=_null_lock)
                         break
                 else:
-                    self.default(line, stream=stream, lock=_null_lock)
+                    self._write(line, stream=stream)
 
     def _call_color_impl(self, fn, impl, text, *args, **kwargs):
         try:
@@ -192,39 +230,28 @@ class PrettyOutputBase(object, metaclass=abc.ABCMeta):
             fn = self._stack.pop()
 
     @abc.abstractmethod
-    def red_impl(self, text, stream=None, **kwargs):
+    def with_color(
+        color: PrettyOutputColor, text: str, stream: Stream = None, lock=_lock
+    ):
         pass
 
     def red(self, *args, **kwargs):
-        return self._call_color_impl(self.red, self.red_impl, *args, **kwargs)
+        return self._write(*args, **kwargs, default_color=PrettyOutputColor.RED)
 
-    @abc.abstractmethod
-    def yellow_impl(self, text, stream=None, **kwargs):
-        pass
+    def grey(self, *args, **kwargs):
+        return self._write(*args, **kwargs, default_color=PrettyOutputColor.GREY)
 
     def yellow(self, *args, **kwargs):
-        return self._call_color_impl(self.yellow, self.yellow_impl, *args, **kwargs)
-
-    @abc.abstractmethod
-    def green_impl(self, text, stream=None, **kwargs):
-        pass
+        return self._write(*args, **kwargs, default_color=PrettyOutputColor.YELLOW)
 
     def green(self, *args, **kwargs):
-        return self._call_color_impl(self.green, self.green_impl, *args, **kwargs)
-
-    @abc.abstractmethod
-    def blue_impl(self, text, stream=None, **kwargs):
-        pass
+        return self._write(*args, **kwargs, default_color=PrettyOutputColor.GREEN)
 
     def blue(self, *args, **kwargs):
-        return self._call_color_impl(self.blue, self.blue_impl, *args, **kwargs)
-
-    @abc.abstractmethod
-    def default_impl(self, text, stream=None, **kwargs):
-        pass
+        return self._write(*args, **kwargs, default_color=PrettyOutputColor.BLUE)
 
     def default(self, *args, **kwargs):
-        return self._call_color_impl(self.default, self.default_impl, *args, **kwargs)
+        return self._write(*args, **kwargs, default_color=PrettyOutputColor.DEFAULT)
 
     def colortest(self):
         from itertools import combinations, permutations

@@ -7,27 +7,22 @@
 """Interface for communicating with the Visual Studio debugger via DTE."""
 
 import abc
+import importlib
 import os
 import sys
 from enum import IntEnum
 from pathlib import PurePath, Path
 from collections import defaultdict, namedtuple
 
-from dex.command.CommandBase import StepExpectInfo
 from dex.debugger.DebuggerBase import DebuggerBase, watch_is_active
 from dex.dextIR import FrameIR, LocIR, StepIR, StopReason, ValueIR
 from dex.dextIR import StackFrame, SourceLocation, ProgramState
 from dex.utils.Exceptions import Error, LoadDebuggerException
-from dex.utils.Imports import load_module
 from dex.utils.ReturnCode import ReturnCode
 
 def _load_com_module():
     try:
-        return load_module(
-            "ComInterface",
-            os.path.join(os.path.dirname(__file__), "windows"),
-            "ComInterface.py",
-        )
+        return importlib.import_module("dex.debugger.visualstudio.windows.ComInterface")
     except ImportError as e:
         raise LoadDebuggerException(e, sys.exc_info())
 
@@ -342,7 +337,15 @@ class VisualStudio(
         assert reason <= DbgEvent.last and reason >= DbgEvent.first
         return StopReason.OTHER
 
-    def _get_step_info(self, watches, step_index):
+    # Returns a minimal StepIR with just frame-related information recorded.
+    def get_stack_frames(self, step_index: int):
+        pass
+
+    # Evaluates the provided watches, and stores the results into the given StepIR.
+    def collect_watches(self, step: StepIR, watches: list, scope_watches: list):
+        pass
+
+    def _get_step_info(self, watches, scope_watches, step_index):
         thread = self._debugger.CurrentThread
         stackframes = thread.StackFrames
 

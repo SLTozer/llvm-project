@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 """Provides POSIX implementation of formatted/colored console output."""
 
-from ..PrettyOutputBase import PrettyOutputBase, _lock
+from ..PrettyOutputBase import PrettyOutputBase, PrettyOutputColor, Stream, _lock
 
 
 class PrettyOutput(PrettyOutputBase):
@@ -18,17 +18,25 @@ class PrettyOutput(PrettyOutputBase):
                 text = "\033[{}m{}\033[0m".format(color, text)
             self._write(text, stream)
 
-    def red_impl(self, text, stream=None, **kwargs):
-        self._color(text, 91, stream, **kwargs)
+    def _get_color_code(color: PrettyOutputColor):
+        if color == PrettyOutputColor.RED:
+            return 91
+        if color == PrettyOutputColor.YELLOW:
+            return 93
+        if color == PrettyOutputColor.GREEN:
+            return 92
+        if color == PrettyOutputColor.BLUE:
+            return 96
+        if color == PrettyOutputColor.GREY:
+            return 90
+        return 0
 
-    def yellow_impl(self, text, stream=None, **kwargs):
-        self._color(text, 93, stream, **kwargs)
-
-    def green_impl(self, text, stream=None, **kwargs):
-        self._color(text, 92, stream, **kwargs)
-
-    def blue_impl(self, text, stream=None, **kwargs):
-        self._color(text, 96, stream, **kwargs)
-
-    def default_impl(self, text, stream=None, **kwargs):
-        self._color(text, 0, stream, **kwargs)
+    def with_color(
+        self, color: PrettyOutputColor, text: str, stream: Stream = None, lock=_lock
+    ):
+        """Use ANSI escape codes to provide color on Linux."""
+        stream = self._set_valid_stream(stream)
+        with lock:
+            if stream.color_enabled:
+                text = f"\033[{PrettyOutput._get_color_code(color)}m{text}"
+            stream.py.write(text)

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llvm-dexter"
+version = "0.1.0"
+description = "DExTer - Debugging Experience Tester"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "LLVM Project" }]
+license = { text = "Apache-2.0 WITH LLVM-exception" }
+dependencies = [
+  "PyYAML >= 6.0.0",
+  "matplotlib >= 3.0.0",
+  "windows-curses >= 2.4.0 ; platform_system == 'Windows'",
+]
+
+[project.scripts]
+dexter = "dex.__main__:run_main"
+
+[tool.setuptools.packages.find]
+include = ["dexter", "dex", "dex.*"]

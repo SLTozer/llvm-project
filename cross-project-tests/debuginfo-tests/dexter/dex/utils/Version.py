@@ -27,30 +27,31 @@ def sanitize_repo_url(repo):
 
 
 def _git_version():
-    dir_ = os.path.dirname(__file__)
-    try:
-        branch = (
-            check_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=STDOUT, cwd=dir_
-            )
-            .rstrip()
-            .decode("utf-8")
-        )
-        hash_ = (
-            check_output(["git", "rev-parse", "HEAD"], stderr=STDOUT, cwd=dir_)
-            .rstrip()
-            .decode("utf-8")
-        )
-        repo = sanitize_repo_url(
-            check_output(
-                ["git", "remote", "get-url", "origin"], stderr=STDOUT, cwd=dir_
-            )
-            .rstrip()
-            .decode("utf-8")
-        )
-        return "[{} {}] ({})".format(branch, hash_, repo)
-    except (OSError, CalledProcessError):
-        pass
+    # TODO: Replace this with something that works for packaged Dexter.
+    # dir_ = os.path.dirname(__file__)
+    # try:
+    #     branch = (
+    #         check_output(
+    #             ["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=STDOUT, cwd=dir_
+    #         )
+    #         .rstrip()
+    #         .decode("utf-8")
+    #     )
+    #     hash_ = (
+    #         check_output(["git", "rev-parse", "HEAD"], stderr=STDOUT, cwd=dir_)
+    #         .rstrip()
+    #         .decode("utf-8")
+    #     )
+    #     repo = sanitize_repo_url(
+    #         check_output(
+    #             ["git", "remote", "get-url", "origin"], stderr=STDOUT, cwd=dir_
+    #         )
+    #         .rstrip()
+    #         .decode("utf-8")
+    #     )
+    #     return "[{} {}] ({})".format(branch, hash_, repo)
+    # except (OSError, CalledProcessError):
+    #     pass
     return None
 
 

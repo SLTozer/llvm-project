@@ -10,14 +10,14 @@ parsing and running the unit-testing harnesses, before calling the reequested
 subtool.
 """
 
+from argparse import Namespace
+import importlib
 import os
 import sys
 
 from dex.utils import PrettyOutput, Timer
 from dex.utils import ExtArgParse as argparse
-from dex.utils import get_root_directory
 from dex.utils.Exceptions import Error, ToolArgumentError
-from dex.utils.Imports import load_module
 from dex.utils.Logging import Logger
 from dex.utils.UnitTests import unit_tests_ok
 from dex.utils.Version import version
@@ -66,6 +66,7 @@ def get_tools_directory():
 def get_tool_names():
     """Returns a list of expected DExTer Tools"""
     return [
+        "diff",
         "help",
         "list-debuggers",
         "no-tool-",
@@ -73,7 +74,6 @@ def get_tool_names():
         "test",
         "view",
     ]
-
 
 def _set_auto_highlights(context):
     """Flag some strings for auto-highlighting."""
@@ -111,7 +111,7 @@ def _get_tool_name(options):
         tool_name = "no_tool_"
     else:
         _is_valid_tool_name(tool_name)
-    return tool_name
+    return tool_name.replace('-', '_')
 
 
 def _is_valid_tool_name(tool_name):
@@ -127,17 +127,6 @@ def _is_valid_tool_name(tool_name):
         )
 
 
-def _import_tool_module(tool_name):
-    """Imports the python module at the tool directory specificed by
-    tool_name.
-    """
-    # format tool argument to reflect tool directory form.
-    tool_name = tool_name.replace("-", "_")
-
-    tools_directory = get_tools_directory()
-    return load_module(tool_name, tools_directory)
-
-
 def tool_main(context, tool, args):
     with Timer(tool.name):
         options, defaults = tool.parse_command_line(args)
@@ -151,7 +140,10 @@ def tool_main(context, tool, args):
             context.o.green("{}\n".format(context.version))
             return ReturnCode.OK
 
-        if options.verbose:
+        if options.trace:
+            options.verbose = True
+            context.logger.verbosity = 3
+        elif options.verbose:
             context.logger.verbosity = 2
         elif options.no_warnings:
             context.logger.verbosity = 0
@@ -184,23 +176,23 @@ class Context(object):
         self.o: PrettyOutput = None
         self.logger: Logger = None
         self.working_directory: str = None
-        self.options: dict = None
+        self.options: Namespace = None
         self.version: str = None
-        self.root_directory: str = None
+        self.root_script: str | None = None
 
 
-def main() -> ReturnCode:
+def main(root_script: str | None = None) -> ReturnCode:
     context = Context()
+    context.root_script = root_script
     with PrettyOutput() as context.o:
         context.logger = Logger(context.o)
         try:
-            context.root_directory = get_root_directory()
             # Flag some strings for auto-highlighting.
             _set_auto_highlights(context)
             options, args = _get_options_and_args(context)
             # raises 'Error' if command line tool is invalid.
             tool_name = _get_tool_name(options)
-            module = _import_tool_module(tool_name)
+            module = importlib.import_module(f"dex.tools.{tool_name}")
             return tool_main(context, module.Tool(context), args)
         except Error as e:
             context.logger.error(str(e))

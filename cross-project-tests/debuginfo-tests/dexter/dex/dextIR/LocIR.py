@@ -21,13 +21,18 @@ class LocIR:
         return "{}({}:{})".format(self.path, self.lineno, self.column)
 
     def __eq__(self, rhs):
+        if os.path.exists(self.path) and os.path.exists(rhs.path):
+            return (
+                os.path.samefile(self.path, rhs.path)
+                and self.lineno == rhs.lineno
+                and self.column == rhs.column
+            )
         return (
-            os.path.exists(self.path)
-            and os.path.exists(rhs.path)
-            and os.path.samefile(self.path, rhs.path)
+            os.path.normpath(self.path) == os.path.normpath(rhs.path)
             and self.lineno == rhs.lineno
             and self.column == rhs.column
         )
+        
 
     def __lt__(self, rhs):
         if self.path != rhs.path:
@@ -46,3 +51,7 @@ class LocIR:
             return self.column > rhs.column
 
         return self.lineno > rhs.lineno
+
+    def short_str(self):
+        basename = os.path.basename(self.path) if self.path else None
+        return f"{basename}:{self.lineno}:{self.column}"

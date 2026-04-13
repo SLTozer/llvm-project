@@ -7,19 +7,25 @@
 """Base class for all debugger interface implementations."""
 
 import abc
+from collections import namedtuple
 import os
 import sys
 import traceback
 import unittest
 
 from types import SimpleNamespace
-from dex.command.CommandBase import StepExpectInfo
 from dex.dextIR import DebuggerIR, FrameIR, LocIR, StepIR, ValueIR
+from dex.tools.Main import Context
 from dex.utils.Exceptions import DebuggerException
 from dex.utils.ReturnCode import ReturnCode
 
 
-def watch_is_active(watch_info: StepExpectInfo, path, frame_idx, line_no):
+StepExpectInfo = namedtuple("StepExpectInfo", "expression, path, frame_idx, line_range")
+ScopeStepExpectInfo = namedtuple(
+    "ScopeStepExpectInfo", "scope, path, frame_idx, line_range"
+)
+
+def watch_is_active(watch_info: StepExpectInfo | ScopeStepExpectInfo, path, frame_idx, line_no):
     _, watch_path, watch_frame_idx, watch_line_range = watch_info
     # If this watch should only be active for a specific file...
     if watch_path and os.path.isfile(watch_path):
@@ -35,7 +41,7 @@ def watch_is_active(watch_info: StepExpectInfo, path, frame_idx, line_no):
 
 
 class DebuggerBase(object, metaclass=abc.ABCMeta):
-    def __init__(self, context):
+    def __init__(self, context: Context):
         self.context = context
         # Note: We can't already read values from options
         # as DebuggerBase is created before we initialize options
@@ -204,17 +210,17 @@ class DebuggerBase(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def go(self) -> ReturnCode:
+    def go(self):
         pass
 
-    def get_step_info(self, watches, step_index):
-        step_info = self._get_step_info(watches, step_index)
-        for frame in step_info.frames:
-            frame.loc.path = self._debug_to_external_path(frame.loc.path)
-        return step_info
-
+    # Returns a minimal StepIR with just frame-related information recorded.
     @abc.abstractmethod
-    def _get_step_info(self, watches, step_index):
+    def get_stack_frames(self, step_index: int) -> StepIR:
+        pass
+
+    # Evaluates the provided watches, and stores the results into the given StepIR.
+    @abc.abstractmethod
+    def collect_watches(self, step: StepIR, watches: list[StepExpectInfo], scope_watches: list[ScopeStepExpectInfo]):
         pass
 
     @abc.abstractproperty
@@ -274,9 +280,6 @@ class TestDebuggerBase(unittest.TestCase):
         def _add_breakpoint(self, file, line):
             self.breakpoint_file = file
 
-        def _get_step_info(self, watches, step_index):
-            return self.step_info
-
     def __init__(self, *args):
         super().__init__(*args)
         TestDebuggerBase.MockDebugger.__abstractmethods__ = set()
@@ -318,27 +321,3 @@ class TestDebuggerBase(unittest.TestCase):
         path = os.path.join(self.options.source_root_dir, "some_file")
         self.dbg.add_breakpoint(path, 12)
         self.assertEqual("some_file", self.dbg.breakpoint_file)
-
-    def test_get_step_info_no_source_root_dir(self):
-        self.options.debugger_use_relative_paths = True
-        path = os.path.join(os.path.sep + "root", "some_file")
-        self.dbg.step_info = self._new_step([path])
-        self.assertEqual([path], self._step_paths(self.dbg.get_step_info([], 0)))
-
-    def test_get_step_info_no_frames(self):
-        self.options.debugger_use_relative_paths = True
-        self.options.source_root_dir = os.path.sep + "my_root"
-        self.dbg.step_info = self._new_step([])
-        self.assertEqual([], self._step_paths(self.dbg.get_step_info([], 0)))
-
-    def test_get_step_info(self):
-        self.options.debugger_use_relative_paths = True
-        self.options.source_root_dir = os.path.sep + "my_root"
-        path = os.path.join(self.options.source_root_dir, "some_file")
-        self.options.source_files = [path]
-        other_path = os.path.join(os.path.sep + "other", "file")
-        dbg_path = os.path.join(os.path.sep + "dbg", "some_file")
-        self.dbg.step_info = self._new_step([None, other_path, dbg_path])
-        self.assertEqual(
-            [None, other_path, path], self._step_paths(self.dbg.get_step_info([], 0))
-        )

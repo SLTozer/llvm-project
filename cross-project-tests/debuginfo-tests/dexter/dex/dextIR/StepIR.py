@@ -12,8 +12,9 @@ from collections import OrderedDict
 from typing import List
 from enum import Enum
 from dex.dextIR.FrameIR import FrameIR
+from dex.dextIR.ValueIR import ValueIR
 from dex.dextIR.LocIR import LocIR
-from dex.dextIR.ProgramState import ProgramState
+from dex.test_script.Nodes import Where
 
 
 class StopReason(Enum):
@@ -37,10 +38,7 @@ class StepKind(Enum):
 
 
 class StepIR:
-    """A debugger step.
-
-    Args:
-        watches (OrderedDict): { expression (str), result (ValueIR) }
+    """Encompasses the complete state of the debuggee program at a single step, as observed by Dexter.
     """
 
     def __init__(
@@ -49,13 +47,11 @@ class StepIR:
         stop_reason: StopReason,
         frames: List[FrameIR],
         step_kind: StepKind = None,
-        watches: OrderedDict = None,
-        program_state: ProgramState = None,
+        watches: OrderedDict[str, ValueIR] = None,
     ):
         self.step_index = step_index
         self.step_kind = step_kind
         self.stop_reason = stop_reason
-        self.program_state = program_state
 
         if frames is None:
             frames = []
@@ -64,6 +60,8 @@ class StepIR:
         if watches is None:
             watches = {}
         self.watches = watches
+        # FIXME: We need a more detailed record of stop reasons.
+        self.hit_fn_bp: bool = False
 
     def __str__(self):
         try:
@@ -108,3 +106,37 @@ class StepIR:
             return self.current_frame.loc
         except AttributeError:
             return LocIR(path=None, lineno=None, column=None)
+
+    def detailed_print(self) -> list[str]:
+        lines: list[str] = []
+        lines.append(f"Step {self.step_index}")
+        lines.append(f"Stopped for {self.stop_reason}")
+        lines.append(f"Step was {self.step_kind}")
+        lines.append(f"Frames:")
+        for idx, frame in enumerate(self.frames):
+            lines.append(f"  Frame {idx}:")
+            fn_text = ("[Inline Function]" if frame.is_inlined else "") + frame.function
+            lines.append(f"    {fn_text}")
+            lines.append(f"    {frame.loc}")
+            lines.append(f"    $pc = {frame.instruction_addr}")
+            if frame.scopes:
+                lines.append(f"    Watched scopes:")
+                for scope, vars in frame.scopes.items():
+                    lines.append(f"      {scope}:")
+                    for var in vars:
+                        lines.append(f"        {var}")
+            if frame.values:
+                lines.append(f"    Watched variables:")
+                for var, value in frame.values.items():
+                    if not value.sub_values:
+                        lines.append(f"      {var}: {value}")
+                    else:
+                        # FIXME: Do we need to increase indent, or will the ever-increasing evaluate name be enough?
+                        def print_nested(value: ValueIR, indent: str):
+                            lines.append(indent + str(value))
+                            for subv in value.sub_values:
+                                print_nested(subv, indent + "  ")
+
+                        lines.append(f"      {var}:")
+                        print_nested(value, "        ")
+        return lines
