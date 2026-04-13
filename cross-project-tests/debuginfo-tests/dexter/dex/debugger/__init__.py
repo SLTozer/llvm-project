@@ -7,7 +7,4 @@
 
 from dex.debugger.DAP import DAP
 from dex.debugger.Debuggers import Debuggers
-from dex.debugger.DebuggerControllers.DebuggerControllerBase import (
-    DebuggerControllerBase,
-)
-from dex.debugger.DebuggerControllers.DefaultController import DefaultController
+from dex.debugger.DebuggerControllers.DebuggerController import DebuggerController

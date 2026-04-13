@@ -26,6 +26,7 @@ class ValueIR:
         self.error_string = error_string
         self.is_optimized_away = is_optimized_away
         self.is_irretrievable = is_irretrievable
+        self.sub_values: list[ValueIR] = []
 
     def __str__(self):
         prefix = '"{}": '.format(self.expression)
@@ -39,3 +40,10 @@ class ValueIR:
                 self.could_evaluate, self.is_irretrievable, self.is_optimized_away
             )
         )
+    
+    def print_nested(self, indent: int = 0):
+        indent_str = "  " * indent
+        print(indent_str + str(self))
+        for v in self.sub_values:
+            v.print_nested(indent + 1)
+

@@ -79,9 +79,3 @@ class BuildScriptException(Dexception):
     def __init__(self, *args, **kwargs):
         self.script_error = kwargs.pop("script_error", None)
         super(BuildScriptException, self).__init__(*args, **kwargs)
-
-
-class HeuristicException(Dexception):
-    """If there was a problem with the heuristic."""
-
-    pass

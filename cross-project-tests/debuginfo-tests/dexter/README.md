@@ -45,49 +45,46 @@ The following commands build fibonacci.cpp from the tests/nostdlib directory and
 
 ## An example test case
 
-The sample test case (tests/nostdlib/fibonacci) looks like this:
+The following is an example Dexter test case:
 
-    1.  #ifdef _MSC_VER
-    2.  # define DEX_NOINLINE __declspec(noinline)
-    3.  #else
-    4.  # define DEX_NOINLINE __attribute__((__noinline__))
-    5.  #endif
-    6.
-    7.  DEX_NOINLINE
-    8.  void Fibonacci(int terms, int& total)
-    9.  {
-    0.      int first = 0;
-    11.     int second = 1;
-    12.     for (int i = 0; i < terms; ++i)
-    13.     {
-    14.         int next = first + second; // DexLabel('start')
-    15.         total += first;
-    16.         first = second;
-    17.         second = next;             // DexLabel('end')
-    18.     }
+    1.  void Fibonacci(int terms, int& total)
+    2.  {
+    3.     int first = 0;
+    4.     int second = 1;
+    5.     for (int i = 0; i < terms; ++i)
+    6.     {
+    7.         int next = first + second; // !dex_label start
+    8.         total += first;
+    9.         first = second;
+    10.         second = next;            // !dex_label end
+    11.     }
+    12. }
+    13.
+    14. int main()
+    15. {
+    16.     int total = 0;
+    17.     Fibonacci(5, total);
+    18.     return total;
     19. }
     20.
-    21. int main()
-    22. {
-    23.     int total = 0;
-    24.     Fibonacci(5, total);
-    25.     return total;
-    26. }
-    27.
-    28. /*
-    29. DexExpectWatchValue('i', '0', '1', '2', '3', '4',
-    30.                     from_line='start', to_line='end')
-    31. DexExpectWatchValue('first', '0', '1', '2', '3', '5',
-    32.                     from_line='start', to_line='end')
-    33. DexExpectWatchValue('second', '1', '2', '3', '5',
-    34                      from_line='start', to_line='end')
-    35. DexExpectWatchValue('total', '0', '1', '2', '4', '7',
-    36.                     from_line='start', to_line='end')
-    37. DexExpectWatchValue('next', '1', '2', '3', '5', '8',
-    38.                     from_line='start', to_line='end')
-    39. DexExpectWatchValue('total', '7', on_line=25)
-    40. DexExpectStepKind('FUNC_EXTERNAL', 0)
-    41. */
+    21. /*
+    22. ---
+    23. !where {lines: !range[!label start, !label end]}:
+    24.   !value first: [0, 1, 2, 3, 5]
+    25.   !value second: [1, 2, 3, 5]
+    26.   !value total: [0, 1, 2, 4, 7]
+    27    !value next: [1, 2, 3, 5, 8]
+    28. !where {lines: 25}:
+    29.   !value total: 7
+    30. ...
+    31. */
+
+The script is a declaration of what state we expect to see in the debugger, using various "nodes" to define the test:
+- The `!where` lines declare steps that we want the debugger to record
+- The `!value` lines declare state that we expect to see during these steps.
+- The labels, given by `!dex_label <name>` in the source code, and `!label <name>` in the script; the former assigns a name to the source line it appears on, and the latter references that name from in the script.
+
+The script follows a hierarchical structure: the `!value` lines from lines 24-27 are nested under the `!where` on line 23, which means that from lines 7-10 Dexter will record the values of the 4 variables and compare the recorded values to the expected values (e.g. 0, 1, 2, 3, and 5 for `first`).
 
 [DexLabel][1] is used to give a name to a line number.
 

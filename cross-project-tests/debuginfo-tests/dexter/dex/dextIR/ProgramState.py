@@ -14,6 +14,8 @@ from collections import OrderedDict
 from pathlib import PurePath
 from typing import List
 
+from dex.dextIR.ValueIR import ValueIR
+
 
 class SourceLocation:
     def __init__(self, path: str = None, lineno: int = None, column: int = None):
@@ -53,15 +55,21 @@ class StackFrame:
         function: str = None,
         is_inlined: bool = None,
         location: SourceLocation = None,
-        watches: OrderedDict = None,
+        watches: OrderedDict[str, ValueIR] = None,
+        scope_watches: OrderedDict[str, list[ValueIR]] = None,
+        instruction_addr: str = None,
     ):
         if watches is None:
             watches = {}
+        if scope_watches is None:
+            scope_watches = {}
 
         self.function = function
         self.is_inlined = is_inlined
         self.location = location
         self.watches = watches
+        self.scope_watches = scope_watches
+        self.instruction_addr = instruction_addr
 
     def __str__(self):
         return "{}{}: {} | {}".format(

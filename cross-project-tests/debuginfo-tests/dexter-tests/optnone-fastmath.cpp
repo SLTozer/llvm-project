@@ -22,10 +22,30 @@ __attribute__((optnone))
 float test_fdiv(float A) {
   float result;
   result = A / 10.f;  // DexLabel('fdiv_assign')
-  return result;      // DexLabel('fdiv_ret')
+  return result;      // DexLabel('fdiv_ret')  // !dex_label &fdiv_assign
 }
 // DexExpectWatchValue('A', 4, on_line=ref('fdiv_assign'))
 // DexExpectWatchValue('result', '0.400000006', on_line=ref('fdiv_ret'))
+
+/*
+---
+!where {function: test_fdiv, line: !ref fdiv_assign}:
+  !value A: 4
+!where {function: test_fdiv, line: !ref fdiv_ret}:
+  !value result: 0.400000006
+---
+!where {function: test_fdiv}:
+  !where {line: !ref fdiv_assign}:
+    !value A: 4
+  !where {line: !ref fdiv_ret}:
+    !value result: 0.400000006
+---
+!where {function: test_fdiv}:
+  !where {line: !ref fdiv_assign}: {!value A: 4}
+  !where {line: !ref fdiv_ret}: {!value result: 0.400000006}
+  !steps: [!ref fdiv_assign, !ref fdiv_ret]
+*/
+
 
 //// (A * B) - (A * C) ==> A * (B - C)
 __attribute__((optnone))
@@ -39,6 +59,13 @@ float test_distributivity(float A, float B, float C) {
 // DexExpectWatchValue('op1', '20', on_line=ref('distributivity_op2'))
 // DexExpectWatchValue('op2', '24', on_line=ref('distributivity_result'))
 // DexExpectWatchValue('result', '-4', on_line=ref('distributivity_ret'))
+/*
+---
+!where {function: test_distributivity}:
+  !where {line: !ref distributivity_op2}: {!value op1: 20}
+  !where {line: !ref fdiv_ret}: {!value result: 0.400000006}
+  !steps: !range {from: 53, to: 57}
+*/
 
 //// (A + B) + C  == A + (B + C)
 //// therefore, ((A + B) + C) + (A + (B + C)))

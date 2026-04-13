@@ -43,3 +43,12 @@ class Logger(object):
         if flag:
             msg = f"{msg} <y>[{flag}]</>"
         self.note_color("{}\n".format(msg), stream=PrettyOutput.stderr)
+
+    def trace(self, msg, enable_prefix=True, flag=None):
+        if self.verbosity < 3:
+            return
+        if enable_prefix:
+            msg = f"trace: {msg}"
+        if flag:
+            msg = f"{msg} <y>[{flag}]</>"
+        self.note_color("{}\n".format(msg), stream=PrettyOutput.stderr)

@@ -14,14 +14,11 @@ import subprocess
 import sys
 from tempfile import NamedTemporaryFile
 
-from dex.command import get_command_infos
 from dex.dextIR import DextIR
-from dex.utils import get_root_directory, Timer
+from dex.utils import Timer
 from dex.utils.Environment import is_native_windows
 from dex.utils.Exceptions import ToolArgumentError
 from dex.utils.Exceptions import DebuggerException
-
-from dex.debugger.DebuggerControllers.DefaultController import DefaultController
 
 from dex.debugger.dbgeng.dbgeng import DbgEng
 from dex.debugger.lldb.LLDB import LLDB, LLDBDAP
@@ -88,6 +85,25 @@ def add_debugger_tool_base_arguments(parser, defaults):
         default="pretty",
         choices=["oneline", "pretty"],
     )
+    dap_group.add_argument(
+        "--max-variable-traversal-depth",
+        type=int,
+        default=2, # FIXME: Make this whole option configurable within scripts themselves.
+        metavar="<depth>",
+        help="when examining nested aggregate variables, only examine <depth> layers deep",
+    )
+    dap_group.add_argument(
+        "--skip-arrays-longer-than",
+        type=int,
+        metavar="<num>",
+        help="skip examining array variables with more than <num> elements",
+    )
+    dap_group.add_argument(
+        "--max-subvariables-evaluated-per-variable",
+        type=int,
+        metavar="<num>",
+        help="never make more than <num> subvariable evaluations for a single variable",
+    )
 
 
 def add_debugger_tool_arguments(parser, context, defaults):
@@ -116,6 +132,18 @@ def add_debugger_tool_arguments(parser, context, defaults):
         type=float,
         default=0.0,
         help="number of seconds to pause between steps",
+    )
+    parser.add_argument(
+        "--record-steps-without-expects",
+        action="store_true",
+        default=False,
+        help="if set, Dexter will record every step that matches a Where, even when there are no associated expects",
+    )
+    parser.add_argument(
+        "--record-all-steps",
+        action="store_true",
+        default=False,
+        help="if set, Dexter will record step it sees, even when it doesn't match a Where",
     )
     defaults.show_debugger = False
     parser.add_argument(
@@ -169,7 +197,13 @@ def add_debugger_tool_arguments(parser, context, defaults):
         "waiting <timeout-breakpoint> seconds without hitting a "
         "breakpoint",
     )
-
+    parser.add_argument(
+        "--skip-loops-after",
+        metavar="<loop-count>",
+        type=int,
+        default=None,
+        help="if passed, Dexter will skip over any code that it has already stepped on <loop-count> times",
+    )
 
 def handle_debugger_tool_base_options(context, defaults):  # noqa
     options = context.options
@@ -233,15 +267,13 @@ def run_debugger_subprocess(debugger_controller, working_dir_path):
         pickle.dump(debugger_controller, fp, protocol=pickle.HIGHEST_PROTOCOL)
         controller_path = fp.name
 
-    dexter_py = os.path.basename(sys.argv[0])
-    if not os.path.isfile(dexter_py):
-        dexter_py = os.path.join(get_root_directory(), "..", dexter_py)
-    assert os.path.isfile(dexter_py)
+    # If Dexter is not installed, we invoke the entry script; otherwise we
+    invoke_dexter = [debugger_controller.context.root_script] if debugger_controller.context.root_script is not None else ["-m", "dexter"]
 
     with NamedTemporaryFile(dir=working_dir_path) as fp:
         args = [
             sys.executable,
-            dexter_py,
+            *invoke_dexter,
             "run-debugger-internal-",
             controller_path,
             "--working-directory={}".format(working_dir_path),

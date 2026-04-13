@@ -67,6 +67,13 @@ class ToolBase(object, metaclass=abc.ABCMeta):
             help="enable verbose output (overrides --no-warnings)",
         )
         self.parser.add_argument(
+            "-vv",
+            "--trace",
+            action="store_true",
+            default=False,
+            help="enable extra-verbose output (overrides --verbose and --no-warnings)",
+        )
+        self.parser.add_argument(
             "-V",
             "--version",
             action="store_true",

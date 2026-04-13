@@ -124,7 +124,15 @@ class DbgEng(DebuggerBase):
         # freely. This isn't very efficient, but at least makes progress.
         self.step_in()
 
-    def _get_step_info(self, watches, step_index):
+    # Returns a minimal StepIR with just frame-related information recorded.
+    def get_stack_frames(self, step_index: int):
+        pass
+
+    # Evaluates the provided watches, and stores the results into the given StepIR.
+    def collect_watches(self, step: StepIR, watches: list, scope_watches: list):
+        pass
+
+    def _get_step_info(self, watches, scope_watches, step_index):
         frames = self.step_info
         state_frames = []
 

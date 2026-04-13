@@ -170,7 +170,7 @@ def configure_dexter_substitutions():
             '"{}"'.format(sys.executable),
             '"{}"'.format(dexter_path),
             "test",
-            "--fail-lt 1.0 -w -v",
+            "-w -v",
             "--debugger",
             dexter_regression_test_debugger,
             dexter_regression_test_additional_flags,
