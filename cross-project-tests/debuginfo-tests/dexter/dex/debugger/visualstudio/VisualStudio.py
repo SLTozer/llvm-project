@@ -12,6 +12,7 @@ import sys
 from enum import IntEnum
 from pathlib import PurePath, Path
 from collections import defaultdict, namedtuple
+from typing import List
 
 from dex.command.CommandBase import StepExpectInfo
 from dex.debugger.DebuggerBase import DebuggerBase, watch_is_active
