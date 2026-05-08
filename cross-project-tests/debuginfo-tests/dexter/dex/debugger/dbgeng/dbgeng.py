@@ -8,7 +8,6 @@
 import sys
 import os
 import platform
-from typing import List
 
 from dex.debugger.DebuggerBase import DebuggerBase, watch_is_active
 from dex.dextIR import FrameIR, LocIR, StepIR, StopReason, ValueIR

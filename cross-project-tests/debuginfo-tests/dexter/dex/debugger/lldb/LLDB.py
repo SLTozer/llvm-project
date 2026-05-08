@@ -11,7 +11,6 @@ import os
 import shlex
 from subprocess import CalledProcessError, check_output, STDOUT
 import sys
-from typing import List
 
 from dex.debugger.DebuggerBase import DebuggerBase, watch_is_active
 from dex.debugger.DAP import DAP
