@@ -16,7 +16,10 @@ from dex.test_script.Script import DexterScript
 def file_matches(a, b):
     if os.path.exists(a) and os.path.exists(b):
         return os.path.samefile(a, b)
-    return os.path.normpath(os.path.normcase(a)) == os.path.normpath(os.path.normcase(b))
+    return os.path.normpath(os.path.normcase(a)) == os.path.normpath(
+        os.path.normcase(b)
+    )
+
 
 def _step_kind_func(context, step):
     if step.current_location.path is None or not os.path.exists(
