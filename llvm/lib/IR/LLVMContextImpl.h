@@ -325,13 +325,13 @@ template <> struct MDNodeKeyImpl<DILocation> {
         AtomRank(AtomRank), Line(Line), Column(Column),
         ImplicitCode(ImplicitCode) {}
 
-  MDNodeKeyImpl(DebugLoc L)
+  MDNodeKeyImpl(const DILocation *L)
       : Scope(L->getRawScope()), InlinedAt(L->getRawInlinedAt()),
         AtomGroup(L->getAtomGroup()), AtomRank(L->getAtomRank()),
         Line(L->getLine()), Column(L->getColumn()),
         ImplicitCode(L->isImplicitCode()) {}
 
-  bool isKeyOf(DebugLoc RHS) const {
+  bool isKeyOf(const DILocation *RHS) const {
     return Line == RHS->getLine() && Column == RHS->getColumn() &&
            Scope == RHS->getRawScope() && InlinedAt == RHS->getRawInlinedAt() &&
            ImplicitCode == RHS->isImplicitCode() &&
