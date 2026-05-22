@@ -289,6 +289,28 @@ public:
   LLVM_ABI void print(raw_ostream &OS) const;
 };
 
+
+inline hash_code hash_value(const DebugLoc &Val) {
+  return hash_value(Val.get());
+}
+
+template <> struct DenseMapInfo<DebugLoc> {
+  static inline DebugLoc getEmptyKey() {
+    return DenseMapInfo<DILocation*>::getEmptyKey();
+  }
+
+  static inline DebugLoc getTombstoneKey() {
+    return DenseMapInfo<DILocation*>::getTombstoneKey();
+  }
+
+  static unsigned getHashValue(const DebugLoc &Val) {
+    return hash_value(Val);
+  }
+
+  static bool isEqual(const char &LHS, const char &RHS) { return LHS == RHS; }
+};
+
+
 } // end namespace llvm
 
 #endif // LLVM_IR_DEBUGLOC_H
