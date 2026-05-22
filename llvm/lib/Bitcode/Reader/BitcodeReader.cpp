@@ -6731,7 +6731,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       Instruction *Inst = getLastInstruction();
       if (!Inst)
         return error("Invalid dbg record: missing instruction");
-      DebugLoc DIL = cast<DILocation>(getFnMetadataByID(Record[0]));
+      DILocation *DIL = cast<DILocation>(getFnMetadataByID(Record[0]));
       DILabel *Label = cast<DILabel>(getFnMetadataByID(Record[1]));
       Inst->getParent()->insertDbgRecordBefore(
           new DbgLabelRecord(Label, DebugLoc(DIL)), Inst->getIterator());
@@ -6763,7 +6763,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
       unsigned Slot = 0;
       // Common fields (0-2).
-      DebugLoc DIL = cast<DILocation>(getFnMetadataByID(Record[Slot++]));
+      DILocation *DIL = cast<DILocation>(getFnMetadataByID(Record[Slot++]));
       DILocalVariable *Var =
           cast<DILocalVariable>(getFnMetadataByID(Record[Slot++]));
       DIExpression *Expr =
