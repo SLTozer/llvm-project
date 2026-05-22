@@ -1959,7 +1959,7 @@ bool DwarfDebug::buildLocationList(SmallVectorImpl<DebugLocEntry> &DebugLoc,
 DbgEntity *DwarfDebug::createConcreteEntity(DwarfCompileUnit &TheCU,
                                             LexicalScope &Scope,
                                             const DINode *Node,
-                                            const DILocation *Location,
+                                            DebugLoc Location,
                                             const MCSymbol *Sym) {
   ensureAbstractEntityIsCreatedIfScoped(TheCU, Node, Scope.getScopeNode());
   if (isa<const DILocalVariable>(Node)) {
@@ -2000,7 +2000,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
 
     LexicalScope *Scope = nullptr;
     const DILocalVariable *LocalVar = cast<DILocalVariable>(IV.first);
-    if (const DILocation *IA = IV.second)
+    if (DebugLoc IA = IV.second)
       Scope = LScopes.findInlinedScope(LocalVar->getScope(), IA);
     else
       Scope = LScopes.findLexicalScope(LocalVar->getScope());
@@ -2070,7 +2070,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
     const DILocalScope *LocalScope =
         Label->getScope()->getNonLexicalBlockFileScope();
     // Get inlined DILocation if it is inlined label.
-    if (const DILocation *IA = IL.second)
+    if (DebugLoc IA = IL.second)
       Scope = LScopes.findInlinedScope(LocalScope, IA);
     else
       Scope = LScopes.findLexicalScope(LocalScope);
@@ -2414,11 +2414,11 @@ findPrologueEndLoc(const MachineFunction *MF) {
     // is where execution in the function starts, and is less catastrophic than
     // stepping over the call.
     if (CurInst->isCall()) {
-      if (const DILocation *Loc = CurInst->getDebugLoc().get();
+      if (DebugLoc Loc = CurInst->getDebugLoc().get();
           Loc && Loc->getLine() == 0) {
         // Create and assign the scope-line position.
         unsigned ScopeLine = SP->getScopeLine();
-        DILocation *ScopeLineDILoc =
+        DebugLoc ScopeLineDILoc =
             DILocation::get(SP->getContext(), ScopeLine, 0, SP);
         const_cast<MachineInstr *>(&*CurInst)->setDebugLoc(ScopeLineDILoc);
 
@@ -2525,7 +2525,7 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
   // Map {(InlinedAt, Group): (Rank, Instructions)}.
   // NOTE: Anecdotally, for a large C++ blob, 99% of the instruction
   // SmallVectors contain 2 or fewer elements; use 2 inline elements.
-  DenseMap<std::pair<DILocation *, uint64_t>,
+  DenseMap<std::pair<DebugLoc , uint64_t>,
            std::pair<uint8_t, SmallVector<const MachineInstr *, 2>>>
       GroupCandidates;
 
@@ -2559,7 +2559,7 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
       if (MI.isMetaInstruction())
         continue;
 
-      const DILocation *Loc = MI.getDebugLoc().get();
+      DebugLoc Loc = MI.getDebugLoc().get();
       if (!Loc || !Loc->getLine())
         continue;
 

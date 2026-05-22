@@ -20,7 +20,7 @@
 using namespace llvm;
 
 static std::optional<PseudoProbe>
-extractProbeFromDiscriminator(const DILocation *DIL) {
+extractProbeFromDiscriminator(DebugLoc DIL) {
   if (DIL) {
     auto Discriminator = DIL->getDiscriminator();
     if (DILocation::isPseudoProbeDiscriminator(Discriminator)) {
@@ -84,7 +84,7 @@ void llvm::setProbeDistributionFactor(Instruction &Inst, float Factor) {
       II->replaceUsesOfWith(II->getFactor(), Builder.getInt64(IntFactor));
   } else if (isa<CallBase>(&Inst) && !isa<IntrinsicInst>(&Inst)) {
     if (const DebugLoc &DLoc = Inst.getDebugLoc()) {
-      const DILocation *DIL = DLoc;
+      DebugLoc DIL = DLoc;
       auto Discriminator = DIL->getDiscriminator();
       if (DILocation::isPseudoProbeDiscriminator(Discriminator)) {
         auto Index =

@@ -148,7 +148,7 @@ void DbgValueHistoryMap::trimLocationRanges(
     const DILocalVariable *LocalVar = cast<DILocalVariable>(Entity.first);
 
     LexicalScope *Scope = nullptr;
-    if (const DILocation *InlinedAt = Entity.second) {
+    if (DebugLoc InlinedAt = Entity.second) {
       Scope = LScopes.findInlinedScope(LocalVar->getScope(), InlinedAt);
     } else {
       Scope = LScopes.findLexicalScope(LocalVar->getScope());
@@ -576,7 +576,7 @@ LLVM_DUMP_METHOD void DbgValueHistoryMap::dump(StringRef FuncName) const {
     const Entries &Entries = VarRangePair.second;
 
     const DILocalVariable *LocalVar = cast<DILocalVariable>(Var.first);
-    const DILocation *Location = Var.second;
+    DebugLoc Location = Var.second;
 
     dbgs() << " - " << LocalVar->getName() << " at ";
 

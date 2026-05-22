@@ -1429,7 +1429,7 @@ TEST_F(DILocationTest, Merge) {
     auto *SPAScope1 = DILexicalBlock::getDistinct(Context, SPA, FA, 4, 9);
     auto *SPAScope2 = DILexicalBlock::getDistinct(Context, SPA, FA, 8, 3);
 
-    DILocation *InlinedAt = nullptr;
+    DebugLoc InlinedAt = nullptr;
 
     // Create a chain of inlined-at locations.
     for (int i = 0; i < 256; i++) {
@@ -1620,9 +1620,9 @@ TEST_F(DILocationTest, Merge) {
 
 TEST_F(DILocationTest, getDistinct) {
   MDNode *N = getSubprogram();
-  DILocation *L0 = DILocation::getDistinct(Context, 2, 7, N);
+  DebugLoc L0 = DILocation::getDistinct(Context, 2, 7, N);
   EXPECT_TRUE(L0->isDistinct());
-  DILocation *L1 = DILocation::get(Context, 2, 7, N);
+  DebugLoc L1 = DILocation::get(Context, 2, 7, N);
   EXPECT_FALSE(L1->isDistinct());
   EXPECT_EQ(L1, DILocation::get(Context, 2, 7, N));
 }
@@ -1744,7 +1744,7 @@ TEST_F(DILocationTest, KeyInstructions) {
   Context.pImpl->NextAtomGroup = 1;
 
   EXPECT_EQ(Context.pImpl->NextAtomGroup, 1u);
-  DILocation *A1 =
+  DebugLoc A1 =
       DILocation::get(Context, 1, 0, getSubprogram(), nullptr, false, 1, 2);
   EXPECT_EQ(A1->getAtomGroup(), 1u);
   EXPECT_EQ(A1->getAtomRank(), 2u);
@@ -5336,7 +5336,7 @@ TEST_F(DebugVariableTest, DenseMap) {
   DIType *Type = getDerivedType();
   DINode::DIFlags Flags = static_cast<DINode::DIFlags>(7);
 
-  DILocation *InlinedLoc = DILocation::get(Context, 2, 7, Scope);
+  DebugLoc InlinedLoc = DILocation::get(Context, 2, 7, Scope);
 
   DILocalVariable *VarA =
       DILocalVariable::get(Context, Scope, "A", File, 5, Type, 2, Flags, 8, nullptr);

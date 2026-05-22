@@ -336,7 +336,7 @@ private:
   void writeMDTuple(const MDTuple *N, SmallVectorImpl<uint64_t> &Record,
                     unsigned Abbrev);
   unsigned createDILocationAbbrev();
-  void writeDILocation(const DILocation *N, SmallVectorImpl<uint64_t> &Record,
+  void writeDILocation(DebugLoc N, SmallVectorImpl<uint64_t> &Record,
                        unsigned &Abbrev);
   unsigned createGenericDINodeAbbrev();
   void writeGenericDINode(const GenericDINode *N,
@@ -1879,7 +1879,7 @@ unsigned ModuleBitcodeWriter::createDILocationAbbrev() {
   return Stream.EmitAbbrev(std::move(Abbv));
 }
 
-void ModuleBitcodeWriter::writeDILocation(const DILocation *N,
+void ModuleBitcodeWriter::writeDILocation(DebugLoc N,
                                           SmallVectorImpl<uint64_t> &Record,
                                           unsigned &Abbrev) {
   if (!Abbrev)
@@ -3819,7 +3819,7 @@ void ModuleBitcodeWriter::writeFunction(
 
   bool NeedsMetadataAttachment = F.hasMetadata();
 
-  DILocation *LastDL = nullptr;
+  DebugLoc LastDL = nullptr;
   SmallSetVector<Function *, 4> BlockAddressUsers;
 
   // Finally, emit all the instructions, in order.
@@ -3834,7 +3834,7 @@ void ModuleBitcodeWriter::writeFunction(
       NeedsMetadataAttachment |= I.hasMetadataOtherThanDebugLoc();
 
       // If the instruction has a debug location, emit it.
-      if (DILocation *DL = I.getDebugLoc()) {
+      if (DebugLoc DL = I.getDebugLoc()) {
         if (DL == LastDL) {
           // Just repeat the same debug loc as last time.
           Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_LOC_AGAIN, Vals);

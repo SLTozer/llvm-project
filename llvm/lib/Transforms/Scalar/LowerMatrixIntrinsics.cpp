@@ -2871,7 +2871,7 @@ public:
       for (const auto &KV : Inst2Matrix) {
         if (Func.getSubprogram()) {
           auto *I = cast<Instruction>(KV.first);
-          DILocation *Context = I->getDebugLoc();
+          DebugLoc Context = I->getDebugLoc();
           while (Context) {
             Subprog2Exprs[getSubprogram(Context->getScope())].push_back(
                 KV.first);
@@ -2894,7 +2894,7 @@ public:
         for (auto *L : Leaves) {
 
           DebugLoc Loc = cast<Instruction>(L)->getDebugLoc();
-          DILocation *Context = cast<Instruction>(L)->getDebugLoc();
+          DebugLoc Context = cast<Instruction>(L)->getDebugLoc();
           while (Context) {
             if (getSubprogram(Context->getScope()) == KV.first) {
               Loc = Context;

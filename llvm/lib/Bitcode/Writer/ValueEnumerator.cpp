@@ -494,7 +494,7 @@ ValueEnumerator::ValueEnumerator(const Module &M,
 
         // Don't enumerate the location directly -- it has a special record
         // type -- but enumerate its operands.
-        if (DILocation *L = I.getDebugLoc())
+        if (DebugLoc L = I.getDebugLoc())
           for (const Metadata *Op : L->operands())
             EnumerateMetadata(&F, Op);
       }

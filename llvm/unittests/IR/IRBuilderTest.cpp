@@ -984,7 +984,7 @@ TEST_F(IRBuilderTest, DIBuilder) {
 
     // Label metadata and records
     // --------------------------
-    DILocation *LabelLoc = DILocation::get(Ctx, 1, 0, BarScope);
+    DebugLoc LabelLoc = DILocation::get(Ctx, 1, 0, BarScope);
     DILabel *AlwaysPreserveLabel = DIB.createLabel(
         BarScope, "meles_meles", File, 1, /*Column*/ 0, /*IsArtificial*/ false,
         /*CoroSuspendIdx*/ std::nullopt, /*AlwaysPreserve*/ true);
@@ -1009,7 +1009,7 @@ TEST_F(IRBuilderTest, DIBuilder) {
 
     // Variable metadata and records
     // -----------------------------
-    DILocation *VarLoc = DILocation::get(Ctx, 2, 0, BarScope);
+    DebugLoc VarLoc = DILocation::get(Ctx, 2, 0, BarScope);
     auto *IntType = DIB.createBasicType("int", 32, dwarf::DW_ATE_signed);
     DILocalVariable *VarX =
         DIB.createAutoVariable(BarSP, "X", File, 2, IntType, true);

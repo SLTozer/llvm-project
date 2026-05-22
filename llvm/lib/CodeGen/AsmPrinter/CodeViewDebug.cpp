@@ -234,13 +234,13 @@ unsigned CodeViewDebug::maybeRecordFile(const DIFile *F) {
 }
 
 CodeViewDebug::InlineSite &
-CodeViewDebug::getInlineSite(const DILocation *InlinedAt,
+CodeViewDebug::getInlineSite(DebugLoc InlinedAt,
                              const DISubprogram *Inlinee) {
   auto SiteInsertion = CurFn->InlineSites.try_emplace(InlinedAt);
   InlineSite *Site = &SiteInsertion.first->second;
   if (SiteInsertion.second) {
     unsigned ParentFuncId = CurFn->FuncId;
-    if (const DILocation *OuterIA = InlinedAt->getInlinedAt())
+    if (DebugLoc OuterIA = InlinedAt->getInlinedAt())
       ParentFuncId =
           getInlineSite(OuterIA, InlinedAt->getScope()->getSubprogram())
               .SiteFuncId;
@@ -490,7 +490,7 @@ unsigned CodeViewDebug::getPointerSizeInBytes() {
 
 void CodeViewDebug::recordLocalVariable(LocalVariable &&Var,
                                         const LexicalScope *LS) {
-  if (const DILocation *InlinedAt = LS->getInlinedAt()) {
+  if (DebugLoc InlinedAt = LS->getInlinedAt()) {
     // This variable was inlined. Associate it with the InlineSite.
     const DISubprogram *Inlinee = Var.DIVar->getScope()->getSubprogram();
     InlineSite &Site = getInlineSite(InlinedAt, Inlinee);
@@ -501,8 +501,8 @@ void CodeViewDebug::recordLocalVariable(LocalVariable &&Var,
   }
 }
 
-static void addLocIfNotPresent(SmallVectorImpl<const DILocation *> &Locs,
-                               const DILocation *Loc) {
+static void addLocIfNotPresent(SmallVectorImpl<DebugLoc > &Locs,
+                               DebugLoc Loc) {
   if (!llvm::is_contained(Locs, Loc))
     Locs.push_back(Loc);
 }
@@ -537,8 +537,8 @@ void CodeViewDebug::maybeRecordLocation(const DebugLoc &DL,
   PrevInstLoc = DL;
 
   unsigned FuncId = CurFn->FuncId;
-  if (const DILocation *SiteLoc = DL->getInlinedAt()) {
-    const DILocation *Loc = DL.get();
+  if (DebugLoc SiteLoc = DL->getInlinedAt()) {
+    DebugLoc Loc = DL.get();
 
     // If this location was actually inlined from somewhere else, give it the ID
     // of the inline call site.
@@ -1016,7 +1016,7 @@ void CodeViewDebug::emitInlineeLinesSubsection() {
 }
 
 void CodeViewDebug::emitInlinedCallSite(const FunctionInfo &FI,
-                                        const DILocation *InlinedAt,
+                                        DebugLoc InlinedAt,
                                         const InlineSite &Site) {
   assert(TypeIndices.count({Site.Inlinee, nullptr}));
   TypeIndex InlineeIdx = TypeIndices[{Site.Inlinee, nullptr}];
@@ -1042,7 +1042,7 @@ void CodeViewDebug::emitInlinedCallSite(const FunctionInfo &FI,
   emitLocalVariableList(FI, Site.InlinedLocals);
 
   // Recurse on child inlined call sites before closing the scope.
-  for (const DILocation *ChildSite : Site.ChildSites) {
+  for (DebugLoc ChildSite : Site.ChildSites) {
     auto I = FI.InlineSites.find(ChildSite);
     assert(I != FI.InlineSites.end() &&
            "child site not in function inline site map");
@@ -1218,7 +1218,7 @@ void CodeViewDebug::emitDebugInfoForFunction(const Function *GV,
     // Emit inlined call site information. Only emit functions inlined directly
     // into the parent function. We'll emit the other sites recursively as part
     // of their parent inline site.
-    for (const DILocation *InlinedAt : FI.ChildSites) {
+    for (DebugLoc InlinedAt : FI.ChildSites) {
       auto I = FI.InlineSites.find(InlinedAt);
       assert(I != FI.InlineSites.end() &&
              "child site not in function inline site map");
@@ -1456,7 +1456,7 @@ void CodeViewDebug::collectVariableInfo(const DISubprogram *SP) {
     if (Processed.count(IV))
       continue;
     const DILocalVariable *DIVar = cast<DILocalVariable>(IV.first);
-    const DILocation *InlinedAt = IV.second;
+    DebugLoc InlinedAt = IV.second;
 
     // Instruction ranges, specifying where IV is accessible.
     const auto &Entries = I.second;

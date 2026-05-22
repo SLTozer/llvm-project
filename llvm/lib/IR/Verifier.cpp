@@ -3408,7 +3408,7 @@ void Verifier::visitFunction(const Function &F) {
   auto VisitDebugLoc = [&](const Instruction &I, const MDNode *Node) {
     // Be careful about using DILocation here since we might be dealing with
     // broken code (this is the Verifier after all).
-    const DILocation *DL = dyn_cast_or_null<DILocation>(Node);
+    DebugLoc DL = dyn_cast_or_null<DILocation>(Node);
     if (!DL)
       return;
     if (!Seen.insert(DL).second)
@@ -7501,7 +7501,7 @@ void Verifier::visit(DbgLabelRecord &DLR) {
 
   // The scopes for variables and !dbg attachments must agree.
   DILabel *Label = DLR.getLabel();
-  DILocation *Loc = DLR.getDebugLoc();
+  DebugLoc Loc = DLR.getDebugLoc();
   CheckDI(Loc, "#dbg_label record requires a !dbg attachment", &DLR, BB, F);
 
   DISubprogram *LabelSP = getSubprogram(Label->getRawScope());
@@ -7591,7 +7591,7 @@ void Verifier::visit(DbgVariableRecord &DVR) {
   auto *DLNode = DVR.getDebugLoc().getAsMDNode();
   CheckDI(isa_and_nonnull<DILocation>(DLNode), "invalid #dbg record DILocation",
           &DVR, DLNode, BB, F);
-  DILocation *Loc = DVR.getDebugLoc();
+  DebugLoc Loc = DVR.getDebugLoc();
 
   // The scopes for variables and !dbg attachments must agree.
   DISubprogram *VarSP = getSubprogram(Var->getRawScope());

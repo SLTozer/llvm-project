@@ -349,7 +349,7 @@ Value *VPTransformState::get(const VPValue *Def, bool NeedsScalar) {
 }
 
 void VPTransformState::setDebugLocFrom(DebugLoc DL) {
-  const DILocation *DIL = DL;
+  DebugLoc DIL = DL;
   // When a FSDiscriminator is enabled, we don't need to add the multiply
   // factors to the discriminators.
   if (DIL &&

@@ -41,7 +41,7 @@ public:
   PseudoProbeHandler(AsmPrinter *A) : Asm(A) {};
 
   void emitPseudoProbe(uint64_t Guid, uint64_t Index, uint64_t Type,
-                       uint64_t Attr, const DILocation *DebugLoc);
+                       uint64_t Attr, DebugLoc DebugLoc);
 };
 
 } // namespace llvm

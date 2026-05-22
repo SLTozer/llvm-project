@@ -144,7 +144,7 @@ public:
   struct VarExprLoc {
     DILocalVariable *DIVar = nullptr;
     DIExpression *DIExpr = nullptr;
-    DILocation *DILoc = nullptr;
+    DebugLoc DILoc = nullptr;
   };
 
   std::optional<VarExprLoc> parseVarExprLoc(PerFunctionMIParsingState &PFS,
@@ -1072,7 +1072,7 @@ std::optional<MIRParserImpl::VarExprLoc> MIRParserImpl::parseVarExprLoc(
     return std::nullopt;
   DILocalVariable *DIVar = nullptr;
   DIExpression *DIExpr = nullptr;
-  DILocation *DILoc = nullptr;
+  DebugLoc DILoc = nullptr;
   if (typecheckMDNode(DIVar, Var, VarStr, "DILocalVariable", *this) ||
       typecheckMDNode(DIExpr, Expr, ExprStr, "DIExpression", *this) ||
       typecheckMDNode(DILoc, Loc, LocStr, "DILocation", *this))

@@ -490,15 +490,15 @@ void llvm::diagnoseDontCall(const CallInst &CI) {
 
       if (const DebugLoc &DL = CI.getDebugLoc()) {
         SmallVector<DebugInlineInfo, 4> DebugChain;
-        auto AddLocation = [&](const DILocation *Loc) {
+        auto AddLocation = [&](DebugLoc Loc) {
           if (auto *Scope = Loc->getScope())
             if (auto *SP = Scope->getSubprogram())
               DebugChain.push_back({SP->getName(), Loc->getFilename(),
                                     Loc->getLine(), Loc->getColumn()});
         };
-        if (const DILocation *Loc = DL.get()) {
+        if (DebugLoc Loc = DL.get()) {
           AddLocation(Loc);
-          for (const DILocation *InlinedAt = Loc->getInlinedAt(); InlinedAt;
+          for (DebugLoc InlinedAt = Loc->getInlinedAt(); InlinedAt;
                InlinedAt = InlinedAt->getInlinedAt())
             AddLocation(InlinedAt);
         }

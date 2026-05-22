@@ -57,7 +57,7 @@ public:
         if (!MI.isPseudo())
           FirstInstr = &MI;
         if (MI.isCall()) {
-          if (DILocation *DL = MI.getDebugLoc()) {
+          if (DebugLoc DL = MI.getDebugLoc()) {
             auto Value = DL->getDiscriminator();
             if (DILocation::isPseudoProbeDiscriminator(Value)) {
               BuildMI(MBB, MI, DL, TII->get(TargetOpcode::PSEUDO_PROBE))
@@ -126,7 +126,7 @@ public:
   }
 
 private:
-  uint64_t getFuncGUID(Module *M, DILocation *DL) {
+  uint64_t getFuncGUID(Module *M, DebugLoc DL) {
     auto Name = DL->getSubprogramLinkageName();
     // CoroSplit Pass will change the debug info with suffixes i.e. `.resume`,
     // `.destroy`, `.cleanup`. Strip these suffixes to make the GUID consistent

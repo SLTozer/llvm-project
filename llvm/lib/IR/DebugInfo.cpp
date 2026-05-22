@@ -158,7 +158,7 @@ DebugLoc llvm::getDebugValueLoc(DbgVariableRecord *DVR) {
   // Original dbg.declare must have a location.
   const DebugLoc &DeclareLoc = DVR->getDebugLoc();
   MDNode *Scope = DeclareLoc.getScope();
-  DILocation *InlinedAt = DeclareLoc.getInlinedAt();
+  DebugLoc InlinedAt = DeclareLoc.getInlinedAt();
   // Because no machine insts can come from debug intrinsics, only the scope
   // and inlinedAt is significant. Zero line numbers are used in case this
   // DebugLoc leaks into any adjacent instructions. Produce an unknown location
@@ -229,7 +229,7 @@ void DebugInfoFinder::processInstruction(const Module &M,
     processDbgRecord(M, DPR);
 }
 
-void DebugInfoFinder::processLocation(const Module &M, const DILocation *Loc) {
+void DebugInfoFinder::processLocation(const Module &M, DebugLoc Loc) {
   if (!Loc)
     return;
   processScope(Loc->getScope());
@@ -843,7 +843,7 @@ private:
         CU->getRangesBaseAddress(), CU->getSysRoot(), CU->getSDK());
   }
 
-  DILocation *getReplacementMDLocation(DILocation *MLD) {
+  DebugLoc getReplacementMDLocation(DebugLoc MLD) {
     auto *Scope = map(MLD->getScope());
     auto *InlinedAt = map(MLD->getInlinedAt());
     if (MLD->isDistinct())

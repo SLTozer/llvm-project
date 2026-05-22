@@ -284,12 +284,12 @@ void sampleprof::sortFuncProfiles(
   });
 }
 
-unsigned FunctionSamples::getOffset(const DILocation *DIL) {
+unsigned FunctionSamples::getOffset(DebugLoc DIL) {
   return (DIL->getLine() - DIL->getScope()->getSubprogram()->getLine()) &
       0xffff;
 }
 
-LineLocation FunctionSamples::getCallSiteIdentifier(const DILocation *DIL,
+LineLocation FunctionSamples::getCallSiteIdentifier(DebugLoc DIL,
                                                     bool ProfileIsFS) {
   if (FunctionSamples::ProfileIsProbeBased) {
     // In a pseudo-probe based profile, a callsite is simply represented by the
@@ -307,13 +307,13 @@ LineLocation FunctionSamples::getCallSiteIdentifier(const DILocation *DIL,
 }
 
 const FunctionSamples *FunctionSamples::findFunctionSamples(
-    const DILocation *DIL, SampleProfileReaderItaniumRemapper *Remapper,
+    DebugLoc DIL, SampleProfileReaderItaniumRemapper *Remapper,
     const HashKeyMap<std::unordered_map, FunctionId, FunctionId>
         *FuncNameToProfNameMap) const {
   assert(DIL);
   SmallVector<std::pair<LineLocation, StringRef>, 10> S;
 
-  const DILocation *PrevDIL = DIL;
+  DebugLoc PrevDIL = DIL;
   for (DIL = DIL->getInlinedAt(); DIL; DIL = DIL->getInlinedAt()) {
     // Use C++ linkage name if possible.
     StringRef Name = PrevDIL->getScope()->getSubprogram()->getLinkageName();

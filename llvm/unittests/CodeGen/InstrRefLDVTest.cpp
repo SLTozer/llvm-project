@@ -214,7 +214,7 @@ public:
     return LDV->vlocJoin(MBB, VLOCOutLocs, BlocksToExplore, InLoc);
   }
 
-  void buildVLocValueMap(const DILocation *DILoc,
+  void buildVLocValueMap(DebugLoc DILoc,
                     const SmallSet<DebugVariableID, 4> &VarsWeCareAbout,
                     SmallPtrSetImpl<MachineBasicBlock *> &AssignBlocks,
                     InstrRefBasedLDV::LiveInsT &Output, FuncValueTable &MOutLocs,

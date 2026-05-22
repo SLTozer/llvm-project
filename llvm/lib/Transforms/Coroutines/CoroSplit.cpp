@@ -1573,8 +1573,8 @@ private:
           // and the attached location match. This is not the case when the
           // suspend location has been inlined due to pointing to the original
           // scope.
-          DILocation *DILoc = SuspendLoc;
-          while (DILocation *InlinedAt = DILoc->getInlinedAt())
+          DebugLoc DILoc = SuspendLoc;
+          while (DebugLoc InlinedAt = DILoc->getInlinedAt())
             DILoc = InlinedAt;
 
           DILabel *ResumeLabel =

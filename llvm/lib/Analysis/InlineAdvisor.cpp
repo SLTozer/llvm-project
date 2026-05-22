@@ -474,7 +474,7 @@ std::string llvm::formatCallSiteLocation(DebugLoc DLoc,
   std::string Buffer;
   raw_string_ostream CallSiteLoc(Buffer);
   ListSeparator LS(" @ ");
-  for (DILocation *DIL = DLoc.get(); DIL; DIL = DIL->getInlinedAt()) {
+  for (DebugLoc DIL = DLoc.get(); DIL; DIL = DIL->getInlinedAt()) {
     CallSiteLoc << LS;
     // Note that negative line offset is actually possible, but we use
     // unsigned int to match line offset representation in remarks so
@@ -501,7 +501,7 @@ void llvm::addLocationToRemarks(OptimizationRemark &Remark, DebugLoc DLoc) {
 
   bool First = true;
   Remark << " at callsite ";
-  for (DILocation *DIL = DLoc.get(); DIL; DIL = DIL->getInlinedAt()) {
+  for (DebugLoc DIL = DLoc.get(); DIL; DIL = DIL->getInlinedAt()) {
     if (!First)
       Remark << " @ ";
     unsigned int Offset = DIL->getLine();

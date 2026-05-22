@@ -514,7 +514,7 @@ public:
       : Label(label), dl(std::move(L)), loc(Idx) {}
 
   /// Does this UserLabel match the parameters?
-  bool matches(const DILabel *L, const DILocation *IA,
+  bool matches(const DILabel *L, DebugLoc IA,
              const SlotIndex Index) const {
     return Label == L && dl->getInlinedAt() == IA && loc == Index;
   }
@@ -704,7 +704,7 @@ static void printDebugLoc(const DebugLoc &DL, raw_ostream &CommentOS,
 }
 
 static void printExtendedName(raw_ostream &OS, const DINode *Node,
-                              const DILocation *DL) {
+                              DebugLoc DL) {
   const LLVMContext &Ctx = Node->getContext();
   StringRef Res;
   unsigned Line = 0;

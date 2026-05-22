@@ -226,7 +226,7 @@ private:
                             SmallVectorImpl<uint64_t> &Record);
   void writeMDTuple(const MDTuple *N, SmallVectorImpl<uint64_t> &Record,
                     unsigned Abbrev);
-  void writeDILocation(const DILocation *N, SmallVectorImpl<uint64_t> &Record,
+  void writeDILocation(DebugLoc N, SmallVectorImpl<uint64_t> &Record,
                        unsigned &Abbrev);
   void writeGenericDINode(const GenericDINode *N,
                           SmallVectorImpl<uint64_t> &Record, unsigned &Abbrev) {
@@ -1386,7 +1386,7 @@ void DXILBitcodeWriter::writeMDTuple(const MDTuple *N,
   Record.clear();
 }
 
-void DXILBitcodeWriter::writeDILocation(const DILocation *N,
+void DXILBitcodeWriter::writeDILocation(DebugLoc N,
                                         SmallVectorImpl<uint64_t> &Record,
                                         unsigned &Abbrev) {
   if (!Abbrev)
@@ -2688,7 +2688,7 @@ void DXILBitcodeWriter::writeFunction(const Function &F) {
 
   bool NeedsMetadataAttachment = F.hasMetadata();
 
-  DILocation *LastDL = nullptr;
+  DebugLoc LastDL = nullptr;
 
   // Finally, emit all the instructions, in order.
   for (Function::const_iterator BB = F.begin(), E = F.end(); BB != E; ++BB)
@@ -2705,7 +2705,7 @@ void DXILBitcodeWriter::writeFunction(const Function &F) {
       NeedsMetadataAttachment |= I.hasMetadataOtherThanDebugLoc();
 
       // If the instruction has a debug location, emit it.
-      DILocation *DL = I.getDebugLoc();
+      DebugLoc DL = I->getDebugLoc();
       if (!DL)
         continue;
 

@@ -57,7 +57,7 @@ FunctionPass *llvm::createMIRAddFSDiscriminatorsPass(FSDiscriminatorPass P) {
 // inline stack.
 static uint64_t getCallStackHashV0(const MachineBasicBlock &BB,
                                    const MachineInstr &MI,
-                                   const DILocation *DIL) {
+                                   DebugLoc DIL) {
   auto updateHash = [](const StringRef &Str) -> uint64_t {
     if (Str.empty())
       return 0;
@@ -73,7 +73,7 @@ static uint64_t getCallStackHashV0(const MachineBasicBlock &BB,
   return Ret;
 }
 
-static uint64_t getCallStackHash(const DILocation *DIL) {
+static uint64_t getCallStackHash(DebugLoc DIL) {
   auto hashCombine = [](const uint64_t Seed, const uint64_t Val) {
     std::hash<uint64_t> Hasher;
     return Seed ^ (Hasher(Val) + 0x9e3779b9 + (Seed << 6) + (Seed >> 2));
@@ -140,7 +140,7 @@ bool MIRAddFSDiscriminators::runOnMachineFunction(MachineFunction &MF) {
       } else if (ImprovedFSDiscriminator && I.isMetaInstruction()) {
         continue;
       }
-      const DILocation *DIL = I.getDebugLoc().get();
+      DebugLoc DIL = I.getDebugLoc().get();
       if (!DIL)
         continue;
 

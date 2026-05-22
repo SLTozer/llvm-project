@@ -982,7 +982,7 @@ TEST(MetadataTest, ConvertDbgToDbgVariableRecord) {
   Instruction &I = *M->getFunction("f")->getEntryBlock().getFirstNonPHIIt();
   const DILocalVariable *Var = nullptr;
   const DIExpression *Expr = nullptr;
-  const DILocation *Loc = nullptr;
+  DebugLoc Loc = nullptr;
   const Metadata *MLoc = nullptr;
   DbgVariableRecord *DVR1 = nullptr;
   {
@@ -1300,7 +1300,7 @@ TEST(MetadataTest, InlinedAtMethodsWithMultipleLevels) {
   Instruction &RetInst = MainFunc->getEntryBlock().front();
 
   // Use getDebugLoc() to get the location from the ret instruction.
-  const DILocation *InnermostLoc = RetInst.getDebugLoc().get();
+  DebugLoc InnermostLoc = RetInst.getDebugLoc().get();
   ASSERT_TRUE(InnermostLoc);
 
   // Test getScope() - should return the immediate scope (inline3).
@@ -1310,13 +1310,13 @@ TEST(MetadataTest, InlinedAtMethodsWithMultipleLevels) {
   EXPECT_EQ(cast<DISubprogram>(ImmediateScope)->getName(), "inline3");
 
   // Test getInlinedAt() - should return the next level in the inlining chain.
-  const DILocation *NextLevel = InnermostLoc->getInlinedAt();
+  DebugLoc NextLevel = InnermostLoc->getInlinedAt();
   ASSERT_TRUE(NextLevel);
   EXPECT_EQ(NextLevel->getLine(), 301u);
   EXPECT_EQ(cast<DISubprogram>(NextLevel->getScope())->getName(), "inline2");
 
   // Test getInlinedAtLocation() - should return the outermost location.
-  const DILocation *OutermostLoc = InnermostLoc->getInlinedAtLocation();
+  DebugLoc OutermostLoc = InnermostLoc->getInlinedAtLocation();
   ASSERT_TRUE(OutermostLoc);
   EXPECT_EQ(OutermostLoc->getLine(), 101u);
   EXPECT_EQ(OutermostLoc->getColumn(), 3u);

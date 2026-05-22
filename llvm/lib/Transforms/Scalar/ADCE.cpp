@@ -304,7 +304,7 @@ void AggressiveDeadCodeElimination::markLive(Instruction *I) {
   Worklist.push_back(I);
 
   // Collect the live debug info scopes attached to this instruction.
-  if (const DILocation *DL = I->getDebugLoc())
+  if (DebugLoc DL = I->getDebugLoc())
     collectLiveScopes(*DL);
 
   // Mark the containing block live
@@ -358,7 +358,7 @@ void AggressiveDeadCodeElimination::collectLiveScopes(const DILocation &DL) {
   collectLiveScopes(*DL.getScope());
 
   // Tail-recurse through the inlined-at chain.
-  if (const DILocation *IA = DL.getInlinedAt())
+  if (DebugLoc IA = DL.getInlinedAt())
     collectLiveScopes(*IA);
 }
 
@@ -595,7 +595,7 @@ void AggressiveDeadCodeElimination::makeUnconditional(BasicBlock *BB,
                                                       BasicBlock *Target) {
   Instruction *PredTerm = BB->getTerminator();
   // Collect the live debug info scopes attached to this instruction.
-  if (const DILocation *DL = PredTerm->getDebugLoc())
+  if (DebugLoc DL = PredTerm->getDebugLoc())
     collectLiveScopes(*DL);
 
   // Just mark live an existing unconditional branch
@@ -609,7 +609,7 @@ void AggressiveDeadCodeElimination::makeUnconditional(BasicBlock *BB,
   IRBuilder<> Builder(PredTerm);
   auto *NewTerm = Builder.CreateBr(Target);
   LiveInst.insert(NewTerm);
-  if (const DILocation *DL = PredTerm->getDebugLoc())
+  if (DebugLoc DL = PredTerm->getDebugLoc())
     NewTerm->setDebugLoc(DL);
   PredTerm->eraseFromParent();
 }

@@ -38,7 +38,7 @@ static cl::opt<bool> VerifyGuidExistence(
 
 void PseudoProbeHandler::emitPseudoProbe(uint64_t Guid, uint64_t Index,
                                          uint64_t Type, uint64_t Attr,
-                                         const DILocation *DebugLoc) {
+                                         DebugLoc DebugLoc) {
   // Gather all the inlined-at nodes.
   // When it's done ReversedInlineStack looks like ([66, B], [88, A])
   // which means, Function A inlines function B at calliste with a probe id 88,

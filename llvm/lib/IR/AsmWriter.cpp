@@ -2110,7 +2110,7 @@ static void writeGenericDINode(raw_ostream &Out, const GenericDINode *N,
   Out << ")";
 }
 
-static void writeDILocation(raw_ostream &Out, const DILocation *DL,
+static void writeDILocation(raw_ostream &Out, DebugLoc DL,
                             AsmWriterContext &WriterCtx) {
   Out << "!DILocation(";
   MDFieldPrinter Printer(Out, WriterCtx);

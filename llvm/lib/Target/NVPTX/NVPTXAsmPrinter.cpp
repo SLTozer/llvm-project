@@ -2105,13 +2105,13 @@ static bool isPTXInstruction(StringRef Line) {
 
 /// Returns the DILocation for an inline asm MachineInstr if debug line info
 /// should be emitted, or nullptr otherwise.
-static const DILocation *getInlineAsmDebugLoc(const MachineInstr *MI) {
+static DebugLoc getInlineAsmDebugLoc(const MachineInstr *MI) {
   if (!MI || !MI->getDebugLoc())
     return nullptr;
   const DISubprogram *SP = MI->getMF()->getFunction().getSubprogram();
   if (!SP || SP->getUnit()->getEmissionKind() == DICompileUnit::NoDebug)
     return nullptr;
-  const DILocation *DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getDebugLoc();
   if (!DL->getFile() || !DL->getLine())
     return nullptr;
   return DL;
@@ -2131,11 +2131,11 @@ struct InlineAsmInliningContext {
 /// Resolves the enhanced-lineinfo inlining context for an inline asm debug
 /// location. Returns a default (empty) context if inlining info is unavailable.
 static InlineAsmInliningContext
-getInlineAsmInliningContext(const DILocation *DL, const MachineFunction &MF,
+getInlineAsmInliningContext(DebugLoc DL, const MachineFunction &MF,
                             NVPTXDwarfDebug *NVDD, MCStreamer &Streamer,
                             unsigned CUID) {
   InlineAsmInliningContext Ctx;
-  const DILocation *InlinedAt = DL->getInlinedAt();
+  DebugLoc InlinedAt = DL->getInlinedAt();
   if (!InlinedAt || !InlinedAt->getFile() || !NVDD ||
       !NVDD->isEnhancedLineinfo(MF))
     return Ctx;
@@ -2166,7 +2166,7 @@ void NVPTXAsmPrinter::emitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
     emitInlineAsmEnd(STI, nullptr, MI);
   };
 
-  const DILocation *DL = getInlineAsmDebugLoc(MI);
+  DebugLoc DL = getInlineAsmDebugLoc(MI);
   if (!DL) {
     emitAsmStr(Str);
     return;

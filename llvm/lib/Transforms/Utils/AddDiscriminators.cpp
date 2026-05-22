@@ -172,7 +172,7 @@ static bool addDiscriminators(Function &F) {
       // should have a valid discriminator.
       if (!shouldHaveDiscriminator(&I))
         continue;
-      const DILocation *DIL = I.getDebugLoc();
+      DebugLoc DIL = I.getDebugLoc();
       if (!DIL)
         continue;
       Location L = std::make_pair(DIL->getFilename(), DIL->getLine());
@@ -215,7 +215,7 @@ static bool addDiscriminators(Function &F) {
       if (!isa<InvokeInst>(I) && (!isa<CallInst>(I) || isa<IntrinsicInst>(I)))  
         continue;
 
-      DILocation *CurrentDIL = I.getDebugLoc();
+      DebugLoc CurrentDIL = I.getDebugLoc();
       if (!CurrentDIL)
         continue;
       Location L =

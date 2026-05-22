@@ -1686,7 +1686,7 @@ void AsmPrinter::emitPseudoProbe(const MachineInstr &MI) {
     auto Index = MI.getOperand(1).getImm();
     auto Type = MI.getOperand(2).getImm();
     auto Attr = MI.getOperand(3).getImm();
-    DILocation *DebugLoc = MI.getDebugLoc();
+    DebugLoc DebugLoc = MI.getDebugLoc();
     PP->emitPseudoProbe(GUID, Index, Type, Attr, DebugLoc);
   }
 }

@@ -244,7 +244,7 @@ protected:
   ErrorOr<uint64_t> getInstWeightImpl(const InstructionT &Inst);
   virtual ErrorOr<uint64_t> getProbeWeight(const InstructionT &Inst);
   ErrorOr<uint64_t> getBlockWeight(const BasicBlockT *BB);
-  mutable DenseMap<const DILocation *, const FunctionSamples *>
+  mutable DenseMap<DebugLoc , const FunctionSamples *>
       DILocation2SampleMap;
   virtual const FunctionSamples *
   findFunctionSamples(const InstructionT &I) const;
@@ -429,7 +429,7 @@ SampleProfileLoaderBaseImpl<BT>::getInstWeightImpl(const InstructionT &Inst) {
   if (!DLoc)
     return std::error_code();
 
-  const DILocation *DIL = DLoc;
+  DebugLoc DIL = DLoc;
   uint32_t LineOffset = FunctionSamples::getOffset(DIL);
   uint32_t Discriminator;
   if (EnableFSDiscriminator)
@@ -572,7 +572,7 @@ bool SampleProfileLoaderBaseImpl<BT>::computeBlockWeights(FunctionT &F) {
 template <typename BT>
 const FunctionSamples *SampleProfileLoaderBaseImpl<BT>::findFunctionSamples(
     const InstructionT &Inst) const {
-  const DILocation *DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getDebugLoc();
   if (!DIL)
     return Samples;
 

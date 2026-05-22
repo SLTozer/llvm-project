@@ -323,7 +323,7 @@ getDerefOffsetInBytes(const DIExpression *DIExpr) {
 }
 
 /// A whole (unfragmented) source variable.
-using DebugAggregate = std::pair<const DILocalVariable *, const DILocation *>;
+using DebugAggregate = std::pair<const DILocalVariable *, DebugLoc >;
 static DebugAggregate getAggregate(const DebugVariable &Var) {
   return DebugAggregate(Var.getVariable(), Var.getInlinedAt());
 }
@@ -1488,7 +1488,7 @@ void AssignmentTrackingLowering::emitDbgValue(
     AssignmentTrackingLowering::LocKind Kind, DbgVariableRecord *Source,
     VarLocInsertPt After) {
 
-  DILocation *DL = Source->getDebugLoc();
+  DebugLoc DL = Source->getDebugLoc();
   auto Emit = [this, Source, After, DL](Metadata *Val, DIExpression *Expr) {
     assert(Expr);
     if (!Val)
@@ -1588,8 +1588,8 @@ void AssignmentTrackingLowering::processUnknownStoreToVariable(
 
   // Get DILocation for this assignment.
   DebugVariable V = FnVarLocs->getVariable(Var);
-  DILocation *InlinedAt = const_cast<DILocation *>(V.getInlinedAt());
-  const DILocation *DILoc = DILocation::get(
+  DebugLoc InlinedAt = const_cast<DebugLoc >(V.getInlinedAt());
+  DebugLoc DILoc = DILocation::get(
       Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
   VarLocInfo VarLoc;
@@ -1668,8 +1668,8 @@ void AssignmentTrackingLowering::processUntaggedInstruction(
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
     // Get DILocation for this unrecorded assignment.
-    DILocation *InlinedAt = const_cast<DILocation *>(V.getInlinedAt());
-    const DILocation *DILoc = DILocation::get(
+    DebugLoc InlinedAt = const_cast<DebugLoc >(V.getInlinedAt());
+    DebugLoc DILoc = DILocation::get(
         Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;
@@ -1725,8 +1725,8 @@ void AssignmentTrackingLowering::processEscapingCall(
     auto InsertBefore = getNextNode(&I);
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
-    DILocation *InlinedAt = const_cast<DILocation *>(V.getInlinedAt());
-    const DILocation *DILoc = DILocation::get(
+    DebugLoc InlinedAt = const_cast<DebugLoc >(V.getInlinedAt());
+    DebugLoc DILoc = DILocation::get(
         Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;

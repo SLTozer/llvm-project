@@ -105,10 +105,10 @@ public:
                                                        StringRef CalleeName);
   // Get samples for indirect call targets for call site at given location.
   LLVM_ABI std::vector<const FunctionSamples *>
-  getIndirectCalleeContextSamplesFor(const DILocation *DIL);
+  getIndirectCalleeContextSamplesFor(DebugLoc DIL);
   // Query context profile for a given location. The full context
   // is identified by input DILocation.
-  LLVM_ABI FunctionSamples *getContextSamplesFor(const DILocation *DIL);
+  LLVM_ABI FunctionSamples *getContextSamplesFor(DebugLoc DIL);
   // Query context profile for a given sample contxt of a function.
   LLVM_ABI FunctionSamples *getContextSamplesFor(const SampleContext &Context);
   // Get all context profile for given function.
@@ -194,8 +194,8 @@ public:
   LLVM_ABI void dump();
 
 private:
-  ContextTrieNode *getContextFor(const DILocation *DIL);
-  ContextTrieNode *getCalleeContextFor(const DILocation *DIL,
+  ContextTrieNode *getContextFor(DebugLoc DIL);
+  ContextTrieNode *getCalleeContextFor(DebugLoc DIL,
                                        FunctionId CalleeName);
   ContextTrieNode *getTopLevelContextNode(FunctionId FName);
   ContextTrieNode &addTopLevelContextNode(FunctionId FName);

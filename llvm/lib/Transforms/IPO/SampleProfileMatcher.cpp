@@ -75,9 +75,9 @@ void SampleProfileMatcher::findIRAnchors(const Function &F,
   // For inlined code, recover the original callsite and callee by finding the
   // top-level inline frame. e.g. For frame stack "main:1 @ foo:2 @ bar:3", the
   // top-level frame is "main:1", the callsite is "1" and the callee is "foo".
-  auto FindTopLevelInlinedCallsite = [](const DILocation *DIL) {
+  auto FindTopLevelInlinedCallsite = [](DebugLoc DIL) {
     assert((DIL && DIL->getInlinedAt()) && "No inlined callsite");
-    const DILocation *PrevDIL = nullptr;
+    DebugLoc PrevDIL = nullptr;
     do {
       PrevDIL = DIL;
       DIL = DIL->getInlinedAt();
@@ -99,7 +99,7 @@ void SampleProfileMatcher::findIRAnchors(const Function &F,
   // Extract profile matching anchors in the IR.
   for (auto &BB : F) {
     for (auto &I : BB) {
-      DILocation *DIL = I.getDebugLoc();
+      DebugLoc DIL = I.getDebugLoc();
       if (!DIL)
         continue;
 

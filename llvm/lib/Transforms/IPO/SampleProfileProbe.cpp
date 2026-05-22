@@ -51,9 +51,9 @@ static cl::opt<bool>
     UpdatePseudoProbe("update-pseudo-probe", cl::init(true), cl::Hidden,
                       cl::desc("Update pseudo probe distribution factor"));
 
-static uint64_t getCallStackHash(const DILocation *DIL) {
+static uint64_t getCallStackHash(DebugLoc DIL) {
   uint64_t Hash = 0;
-  const DILocation *InlinedAt = DIL ? DIL->getInlinedAt() : nullptr;
+  DebugLoc InlinedAt = DIL ? DIL->getInlinedAt() : nullptr;
   while (InlinedAt) {
     Hash ^= MD5Hash(std::to_string(InlinedAt->getLine()));
     Hash ^= MD5Hash(std::to_string(InlinedAt->getColumn()));
