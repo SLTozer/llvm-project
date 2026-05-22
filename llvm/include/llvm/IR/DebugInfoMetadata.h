@@ -4771,7 +4771,7 @@ public:
 
   const DILocalVariable *getVariable() const { return Variable; }
   std::optional<FragmentInfo> getFragment() const { return Fragment; }
-  const DILocation *getInlinedAt() const { return InlinedAt; }
+  DebugLoc getInlinedAt() const { return InlinedAt; }
 
   FragmentInfo getFragmentOrDefault() const {
     return Fragment.value_or(DefaultFragment);

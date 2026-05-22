@@ -169,7 +169,7 @@ void FunctionVarLocs::print(raw_ostream &OS, const Function &Fn) const {
     if (auto F = V.getFragment())
       OS << " bits [" << F->OffsetInBits << ", "
          << F->OffsetInBits + F->SizeInBits << ")";
-    if (const auto *IA = V.getInlinedAt())
+    if (auto IA = V.getInlinedAt())
       OS << " inlined-at " << *IA;
     OS << "\n";
   }
@@ -323,7 +323,7 @@ getDerefOffsetInBytes(const DIExpression *DIExpr) {
 }
 
 /// A whole (unfragmented) source variable.
-using DebugAggregate = std::pair<const DILocalVariable *, DebugLoc >;
+using DebugAggregate = std::pair<const DILocalVariable *, const DILocation* >;
 static DebugAggregate getAggregate(const DebugVariable &Var) {
   return DebugAggregate(Var.getVariable(), Var.getInlinedAt());
 }
@@ -1588,7 +1588,7 @@ void AssignmentTrackingLowering::processUnknownStoreToVariable(
 
   // Get DILocation for this assignment.
   DebugVariable V = FnVarLocs->getVariable(Var);
-  DebugLoc InlinedAt = const_cast<DebugLoc >(V.getInlinedAt());
+  DebugLoc InlinedAt = V.getInlinedAt();
   DebugLoc DILoc = DILocation::get(
       Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
@@ -1668,7 +1668,7 @@ void AssignmentTrackingLowering::processUntaggedInstruction(
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
     // Get DILocation for this unrecorded assignment.
-    DebugLoc InlinedAt = const_cast<DebugLoc >(V.getInlinedAt());
+    DebugLoc InlinedAt = V.getInlinedAt();
     DebugLoc DILoc = DILocation::get(
         Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
@@ -1725,7 +1725,7 @@ void AssignmentTrackingLowering::processEscapingCall(
     auto InsertBefore = getNextNode(&I);
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
-    DebugLoc InlinedAt = const_cast<DebugLoc >(V.getInlinedAt());
+    DebugLoc InlinedAt = V.getInlinedAt();
     DebugLoc DILoc = DILocation::get(
         Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 

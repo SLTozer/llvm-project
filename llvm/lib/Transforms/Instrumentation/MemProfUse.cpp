@@ -829,7 +829,7 @@ readMemprof(Module &M, Function &F, IndexedInstrProfReader *MemProfReader,
       // and another callsite).
       auto AllocInfoIter = LocHashToAllocInfo.end();
       auto CallSitesIter = LocHashToCallSites.end();
-      for (DebugLoc DIL = I.getDebugLoc(); DIL != nullptr;
+      for (DebugLoc DIL = I.getDebugLoc(); DIL;
            DIL = DIL->getInlinedAt()) {
         // Use C++ linkage name if possible. Need to compile with
         // -fdebug-info-for-profiling to get linkage name.

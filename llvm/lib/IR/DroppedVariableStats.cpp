@@ -137,7 +137,7 @@ bool DroppedVariableStats::isInlinedAtChildOfOrEqualTo(
     return true;
   if (!DbgValInlinedAt)
     return false;
-  auto *IA = InlinedAt;
+  auto IA = InlinedAt;
   while (IA) {
     if (IA == DbgValInlinedAt)
       return true;

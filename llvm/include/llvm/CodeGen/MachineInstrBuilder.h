@@ -137,9 +137,6 @@ public:
              Value *DeactivationSymbol = nullptr)
       : DL(std::move(DL)), PCSections(PCSections), MMRA(MMRA),
         DeactivationSymbol(DeactivationSymbol) {}
-  MIMetadata(DebugLoc DI, MDNode *PCSections = nullptr,
-             MDNode *MMRA = nullptr)
-      : DL(DI), PCSections(PCSections), MMRA(MMRA) {}
   explicit MIMetadata(const Instruction &From)
       : DL(From.getDebugLoc()),
         PCSections(From.getMetadata(LLVMContext::MD_pcsections)),

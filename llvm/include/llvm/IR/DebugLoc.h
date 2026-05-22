@@ -307,10 +307,18 @@ template <> struct DenseMapInfo<DebugLoc> {
     return hash_value(Val);
   }
 
-  static bool isEqual(const char &LHS, const char &RHS) { return LHS == RHS; }
+  static bool isEqual(const DebugLoc &LHS, const DebugLoc &RHS) { return LHS == RHS; }
 };
 
 
 } // end namespace llvm
+
+namespace std {
+template <> struct std::hash<llvm::DebugLoc> {
+  std::size_t operator()(const llvm::DebugLoc &Arg) const {
+    return std::hash<llvm::hash_code>()(llvm::hash_value(Arg));
+  }
+};
+} // end namespace std
 
 #endif // LLVM_IR_DEBUGLOC_H

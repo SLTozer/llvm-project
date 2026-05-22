@@ -103,8 +103,8 @@ std::optional<PseudoProbe> extractProbe(const MachineInstr &MI) {
     Probe.Type = MI.getOperand(2).getImm();
     Probe.Attr = MI.getOperand(3).getImm();
     Probe.Factor = 1;
-    DebugLoc DebugLoc = MI.getDebugLoc();
-    Probe.Discriminator = DebugLoc ? DebugLoc->getDiscriminator() : 0;
+    DebugLoc DLoc = MI.getDebugLoc();
+    Probe.Discriminator = DLoc ? DLoc->getDiscriminator() : 0;
     return Probe;
   }
 

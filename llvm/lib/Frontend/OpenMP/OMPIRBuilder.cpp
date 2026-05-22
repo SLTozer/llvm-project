@@ -384,10 +384,10 @@ void llvm::spliceBB(IRBuilderBase::InsertPoint IP, BasicBlock *New,
 }
 
 void llvm::spliceBB(IRBuilder<> &Builder, BasicBlock *New, bool CreateBranch) {
-  DebugLoc DebugLoc = Builder.getCurrentDebugLocation();
+  DebugLoc DLoc = Builder.getCurrentDebugLocation();
   BasicBlock *Old = Builder.GetInsertBlock();
 
-  spliceBB(Builder.saveIP(), New, CreateBranch, DebugLoc);
+  spliceBB(Builder.saveIP(), New, CreateBranch, DLoc);
   if (CreateBranch)
     Builder.SetInsertPoint(Old->getTerminator());
   else
@@ -395,7 +395,7 @@ void llvm::spliceBB(IRBuilder<> &Builder, BasicBlock *New, bool CreateBranch) {
 
   // SetInsertPoint also updates the Builder's debug location, but we want to
   // keep the one the Builder was configured to use.
-  Builder.SetCurrentDebugLocation(DebugLoc);
+  Builder.SetCurrentDebugLocation(DLoc);
 }
 
 BasicBlock *llvm::splitBB(IRBuilderBase::InsertPoint IP, bool CreateBranch,
@@ -411,29 +411,29 @@ BasicBlock *llvm::splitBB(IRBuilderBase::InsertPoint IP, bool CreateBranch,
 
 BasicBlock *llvm::splitBB(IRBuilderBase &Builder, bool CreateBranch,
                           llvm::Twine Name) {
-  DebugLoc DebugLoc = Builder.getCurrentDebugLocation();
-  BasicBlock *New = splitBB(Builder.saveIP(), CreateBranch, DebugLoc, Name);
+  DebugLoc DLoc = Builder.getCurrentDebugLocation();
+  BasicBlock *New = splitBB(Builder.saveIP(), CreateBranch, DLoc, Name);
   if (CreateBranch)
     Builder.SetInsertPoint(Builder.GetInsertBlock()->getTerminator());
   else
     Builder.SetInsertPoint(Builder.GetInsertBlock());
   // SetInsertPoint also updates the Builder's debug location, but we want to
   // keep the one the Builder was configured to use.
-  Builder.SetCurrentDebugLocation(DebugLoc);
+  Builder.SetCurrentDebugLocation(DLoc);
   return New;
 }
 
 BasicBlock *llvm::splitBB(IRBuilder<> &Builder, bool CreateBranch,
                           llvm::Twine Name) {
-  DebugLoc DebugLoc = Builder.getCurrentDebugLocation();
-  BasicBlock *New = splitBB(Builder.saveIP(), CreateBranch, DebugLoc, Name);
+  DebugLoc DLoc = Builder.getCurrentDebugLocation();
+  BasicBlock *New = splitBB(Builder.saveIP(), CreateBranch, DLoc, Name);
   if (CreateBranch)
     Builder.SetInsertPoint(Builder.GetInsertBlock()->getTerminator());
   else
     Builder.SetInsertPoint(Builder.GetInsertBlock());
   // SetInsertPoint also updates the Builder's debug location, but we want to
   // keep the one the Builder was configured to use.
-  Builder.SetCurrentDebugLocation(DebugLoc);
+  Builder.SetCurrentDebugLocation(DLoc);
   return New;
 }
 

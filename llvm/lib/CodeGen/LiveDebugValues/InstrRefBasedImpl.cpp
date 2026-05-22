@@ -965,7 +965,7 @@ public:
                                 const DbgValueProperties &Properties) {
     DebugLoc DL = DILocation::get(Var.getVariable()->getContext(), 0, 0,
                                   Var.getVariable()->getScope(),
-                                  const_cast<DebugLoc >(Var.getInlinedAt()));
+                                  Var.getInlinedAt());
     auto MIB = BuildMI(MF, DL, TII->get(TargetOpcode::DBG_VALUE));
     MIB.add(MO);
     if (Properties.Indirect)
@@ -1645,9 +1645,9 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
 
   const DILocalVariable *Var = MI.getDebugVariable();
   const DIExpression *Expr = MI.getDebugExpression();
-  DebugLoc DebugLoc = MI.getDebugLoc();
-  DebugLoc InlinedAt = DebugLoc->getInlinedAt();
-  assert(Var->isValidLocationForIntrinsic(DebugLoc) &&
+  DebugLoc DLoc = MI.getDebugLoc();
+  DebugLoc InlinedAt = DLoc->getInlinedAt();
+  assert(Var->isValidLocationForIntrinsic(DLoc) &&
          "Expected inlined-at fields to agree");
 
   DebugVariable V(Var, Expr, InlinedAt);
