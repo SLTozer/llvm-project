@@ -23,6 +23,19 @@ The IR syntax for FLMD objects is a modification of existing metadata syntax; wh
 
 An optional "reference comments" feature is also provided to assist with reading IR, where searchable comments can be provided around references. All entries in FLMD storage arrays appear on separate lines, which end with a comment `; <index>`. When the reference comments feature is enabled, this is expanded to a reference comment: `; <functionName>@<flmdType>@<index>`. Then, when an instruction FLMD attachment is or contains an FLMD reference, we print a matching reference comment at the end of its line, allowing the referenced FLMD (and all its uses) to be found by searching for the comment text. This feature is enabled by default; passing a flag `--output-compact-debug-locations` will disable this feature, and also cause Unique FLMD to be printed as references instead of being printed in-line, which combine to significantly shorten the output.
 
+### Transition
+
+This change may have some impact on downstream users; the interface for creating debug line information relies on directly calling `DILocation::get`, meaning that *all* frontends that emit line information are coupled to the class that we are removing. The textual IR change will also impact any tools that parse IR. In order to make this transition relatively smooth, we'll be aiming to reach the following state:
+
+- In-memory, `DIFunctionLocalMetadata` owns all relevant information (source locations + loops).
+- A replacement interface is made available via `DebugLoc` and `DIBuilder` for creating source locations (a `clang-tidy` check could be provided to automate replacement).
+- `DILocation` continues to exist and is still an `MDNode`, but it acts as a thin wrapper which contains just `DIFunctionLocalMetadata*` and `DebugLoc`, and all existing methods forward through.
+- `DILocation::get` methods continue to exist with the same function signature but are deprecated, generating or fetching `DebugLoc`s from the owning `DIFunctionLocalMetadata`.
+- `DILocation` does not appear in LLVM's output by default, whether Asm or Bitcode; we add a flag for one release, `--use-deprecated-dilocations`, to produce the old output (this also generates the required MDNodes for `llvm.loop` metadata); if this flag isn't passed, then the wrapper DILocations will not be printed (as they should not be referenced from anywhere else in the IR).
+- As with other major format changes, an autoupgrade path for bitcode and textual IR is provided.
+
+This should make the transition relatively straightforward for downstream consumers: existing code works with a deprecation warning, a straightforward replacement is available/automated, and the escape hatch flag can be used as a stop-gap for any parsing tools that need time to update.
+
 ### Textual IR Examples
 
 A set of textual IR examples are provided [here](./). There are two input files, `simple.ll` and `complex.ll`, respectively representing a basic feature demonstration and a more complex "stress test" for the representation, though both are relatively small cases. For each input there are two output files, `-readable.ll` and `-compact.ll`, representing the two different presentations as described above.
@@ -35,9 +48,9 @@ The following is a description of the FLMD-related data types, and some sample f
 
 // Inline FLMD
 class DebugLoc {
-    // For both SrcLocIdx and InlinedAtIdx, we need an "empty" value to indicate
-    // that no value is present. This is achieved here by using 0 as the empty
-    // value, and using Idx-1 as the real index.
+    // For both SrcLocIdx and InlinedAtIdx, we need a sentinel value to indicate
+    // that no value is present. We use 0 as the sentinel value here, and use
+    // Idx-1 as the real index.
     uint32_t SrcLocIdx; // FLMD reference.
     uint16_t InlinedAtIdx; // FLMD reference.
     uint16_t AtomGroup : 13;
