@@ -14,12 +14,22 @@
 #ifndef LLVM_IR_DEBUGLOC_H
 #define LLVM_IR_DEBUGLOC_H
 
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/Config/llvm-config.h"
+#include "llvm/IR/ModuleSlotTracker.h"
+#include "llvm/IR/PseudoProbe.h"
 #include "llvm/IR/TrackingMDRef.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/DataTypes.h"
+#include "llvm/Support/Discriminator.h"
+#include <cstddef>
+#include <functional>
+#include <optional>
 
 namespace llvm {
+
+extern cl::opt<bool> EnableFSDiscriminator;
 
 class LLVMContext;
 class raw_ostream;
@@ -122,11 +132,44 @@ using DebugLocRef = DILocation *;
 /// To avoid extra includes, \a DebugLoc doubles the \a DILocation API with a
 /// one based on relatively opaque \a MDNode pointers.
 class DebugLoc {
-  DebugLocRef Loc = {};
+  friend struct DenseMapInfo<const DILocation *>;
+  friend struct DebugLocKey;
+  friend class DILocation;
+  friend class DebugVariable;
+  friend class SlotTracker;
+  friend class ValueEnumerator;
+
+  friend hash_code hash_value(const DebugLoc &Val);
+
+  DebugLocRef Loc;
+
+  LLVM_ABI DebugLoc(const DILocation *L, std::nullopt_t);
+  DILocation *privateGet() const { return Loc; };
 
 public:
+  DebugLoc() = default;
+  LLVM_DEPRECATED("Avoid using direct pointers to construct DebugLoc", "DebugLoc()")
+  DebugLoc(std::nullptr_t) : Loc() {}
+  LLVM_DEPRECATED("Avoid pointer comparisons for DebugLoc", "DebugLoc::operator bool()")
+  bool operator==(std::nullptr_t) const { return Loc; }
+  LLVM_DEPRECATED("Avoid using direct DILocation pointers", "")
+  bool operator==(const DILocation *Other) const {
+    return privateGet() == Other;
+  };
+
   /// Construct from an \a DILocation.
-  DebugLoc(const DILocation *L = nullptr) : Loc(const_cast<DILocation *>(L)) {}
+  LLVM_DEPRECATED("Avoid using direct DILocation references", "DebugLoc::get[Distinct]")
+  LLVM_ABI DebugLoc(const DILocation *L) : Loc(const_cast<DILocation *>(L)) {}
+
+  static DebugLoc getFromValidDILocationLoopMDOperand(const MDOperand &MDO);
+
+  static DebugLoc get(LLVMContext &Context, unsigned Line, unsigned Column,
+                      Metadata *Scope, DebugLoc InlinedAt = DebugLoc(),
+                      bool ImplicitCode = false, uint64_t AtomGroup = 0, uint8_t AtomRank = 0);
+  static DebugLoc getDistinct(LLVMContext &Context, unsigned Line,
+                              unsigned Column, Metadata *Scope,
+                              DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false,
+                              uint64_t AtomGroup = 0, uint8_t AtomRank = 0);
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
   DebugLoc(DebugLocKind Kind) : Loc(Kind) {}
@@ -215,10 +258,24 @@ public:
   ///
   /// \pre !*this or \c isa<DILocation>(getAsMDNode()).
   /// @{
+  LLVM_DEPRECATED("Avoid using direct DILocation references, replace with pure DebugLoc methods", "")
   DILocation *get() const { return Loc; }
+  LLVM_DEPRECATED("Avoid using direct DILocation references, replace with pure DebugLoc methods", "")
   operator DILocation *() const { return get(); }
+  // FIXME: All methods on DebugLoc should work for DILocation as well, but we
+  // may allow a CMake flag to toggle DILocation access back again temporarily
+  // for downstream users.
+#if true
+  const DebugLoc *operator->() const { return const_cast<DebugLoc*>(this); }
+  const DebugLoc &operator*() const { return *const_cast<DebugLoc*>(this); }
+  DebugLoc *operator->() { return this; }
+  DebugLoc &operator*() { return *this; }
+#else
+  #warning "Dependence on DILocation* is deprecated; please enable the "\
+           "DebugLoc-only interface as soon as possible."
   DILocation *operator->() const { return get(); }
   DILocation &operator*() const { return *get(); }
+#endif
   /// @}
 
   /// Check for null.
@@ -234,13 +291,13 @@ public:
   /// of the chain now is inlined-at the new call site.
   /// \param   InlinedAt The new outermost inlined-at in the chain.
   LLVM_ABI static DebugLoc
-  appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt, LLVMContext &Ctx,
+  appendInlinedAt(const DebugLoc &DL, DebugLoc InlinedAt, LLVMContext &Ctx,
                   DenseMap<const MDNode *, MDNode *> &Cache);
 
   /// Return true if the source locations match, ignoring isImplicitCode and
   /// source atom info.
   bool isSameSourceLocation(const DebugLoc &Other) const {
-    if (get() == Other.get())
+    if (privateGet() == Other.privateGet())
       return true;
     return ((bool)*this == (bool)Other) && getLine() == Other.getLine() &&
            getCol() == Other.getCol() && getScope() == Other.getScope() &&
@@ -249,18 +306,25 @@ public:
 
   LLVM_ABI unsigned getLine() const;
   LLVM_ABI unsigned getCol() const;
-  LLVM_ABI MDNode *getScope() const;
-  LLVM_ABI DILocation *getInlinedAt() const;
+  LLVM_ABI unsigned getColumn() const { return getCol(); }
+  LLVM_ABI DILocalScope *getScope() const;
+  LLVM_ABI DebugLoc getInlinedAt() const;
+  
+  LLVMContext &getContext() const { return Loc->getContext(); }
 
   /// Get the fully inlined-at scope for a DebugLoc.
   ///
   /// Gets the inlined-at scope for a DebugLoc.
-  LLVM_ABI MDNode *getInlinedAtScope() const;
+  LLVM_ABI DILocalScope *getInlinedAtScope() const;
 
   /// Rebuild the entire inline-at chain by replacing the subprogram at the
   /// end of the chain with NewSP.
   LLVM_ABI static DebugLoc
   replaceInlinedAtSubprogram(const DebugLoc &DL, DISubprogram &NewSP,
+                             LLVMContext &Ctx,
+                             DenseMap<const MDNode *, MDNode *> &Cache);
+  LLVM_ABI static DILocation *
+  replaceInlinedAtSubprogram(const DILocation *DL, DISubprogram &NewSP,
                              LLVMContext &Ctx,
                              DenseMap<const MDNode *, MDNode *> &Cache);
 
@@ -287,29 +351,210 @@ public:
 
   /// prints source location /path/to/file.exe:line:col @[inlined at]
   LLVM_ABI void print(raw_ostream &OS) const;
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Special extra methods
+  //////////////////////////////////////////////////////////////////////////////
+
+  bool operator<(const DebugLoc &Other) const {
+    return privateGet() < Other.privateGet();
+  }
+
+  DebugLoc applyMap(std::function<DILocation*(DILocation*)> Map) const {
+    return DebugLoc(Map(privateGet()), std::nullopt);
+  }
+
+  void *getRawPtr() const {
+    return Loc;
+  }
+  MDNode *getMetadataForPrintingAndParsing() const {
+    return Loc;
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // DILocation duplicate methods
+  //////////////////////////////////////////////////////////////////////////////
+
+  LLVM_ABI void print(raw_ostream &OS, const Module *M,
+                      bool IsForDebug = false) const;
+  LLVM_ABI void print(raw_ostream &OS, ModuleSlotTracker &MST,
+                      const Module *M = nullptr, bool IsForDebug = false) const;
+  LLVM_ABI void printAsOperand(raw_ostream &OS,
+                               const Module *M = nullptr) const;
+  LLVM_ABI void printAsOperand(raw_ostream &OS, ModuleSlotTracker &MST,
+                               const Module *M = nullptr) const;
+  bool isDistinct() const;
+
+  uint64_t getAtomGroup() const;
+  uint8_t getAtomRank() const;
+
+  DebugLoc getWithoutAtom() const;
+
+  /// Return the linkage name of Subprogram. If the linkage name is empty,
+  /// return scope name (the demangled name).
+  StringRef getSubprogramLinkageName() const;
+
+  DIFile *getFile() const;
+  StringRef getFilename() const;
+  StringRef getDirectory() const;
+  std::optional<StringRef> getSource() const;
+
+  DebugLoc getInlinedAtLocation() const;
+
+  unsigned getDiscriminator() const;
+
+  static bool isPseudoProbeDiscriminator(unsigned Discriminator);
+
+  /// Returns a new DebugLoc with updated \p Discriminator.
+  DebugLoc cloneWithDiscriminator(unsigned Discriminator) const;
+
+  /// Returns a new DebugLoc with updated base discriminator \p BD. Only the
+  /// base discriminator is set in the new DebugLoc, the other encoded values
+  /// are elided.
+  /// If the discriminator cannot be encoded, the function returns std::nullopt.
+  std::optional<DebugLoc>
+  cloneWithBaseDiscriminator(unsigned BD) const;
+
+  /// Returns the duplication factor stored in the discriminator, or 1 if no
+  /// duplication factor (or 0) is encoded.
+  unsigned getDuplicationFactor() const;
+
+  /// Returns the copy identifier stored in the discriminator.
+  unsigned getCopyIdentifier() const;
+
+  /// Returns the base discriminator stored in the discriminator.
+  unsigned getBaseDiscriminator() const;
+
+  /// Returns a new DebugLoc with duplication factor \p DF * current
+  /// duplication factor encoded in the discriminator. The current duplication
+  /// factor is as defined by getDuplicationFactor().
+  /// Returns std::nullopt if encoding failed.
+  std::optional<DebugLoc>
+  cloneByMultiplyingDuplicationFactor(unsigned DF) const;
+
+  /// Return the masked discriminator value for an input discrimnator value D
+  /// (i.e. zero out the (B+1)-th and above bits for D (B is 0-base).
+  // Example: an input of (0x1FF, 7) returns 0xFF.
+  static unsigned getMaskedDiscriminator(unsigned D, unsigned B) {
+    return (D & getN1Bits(B));
+  }
+
+  /// Return the bits used for base discriminators.
+  static unsigned getBaseDiscriminatorBits() { return getBaseFSBitEnd(); }
+
+  /// Returns the base discriminator for a given encoded discriminator \p D.
+  static unsigned
+  getBaseDiscriminatorFromDiscriminator(unsigned D,
+                                        bool IsFSDiscriminator = false) {
+    // Extract the dwarf base discriminator if it's encoded in the pseudo probe
+    // discriminator.
+    if (isPseudoProbeDiscriminator(D)) {
+      auto DwarfBaseDiscriminator =
+          PseudoProbeDwarfDiscriminator::extractDwarfBaseDiscriminator(D);
+      if (DwarfBaseDiscriminator)
+        return *DwarfBaseDiscriminator;
+      // Return the probe id instead of zero for a pseudo probe discriminator.
+      // This should help differenciate callsites with same line numbers to
+      // achieve a decent AutoFDO profile under -fpseudo-probe-for-profiling,
+      // where the original callsite dwarf discriminator is overwritten by
+      // callsite probe information.
+      return PseudoProbeDwarfDiscriminator::extractProbeIndex(D);
+    }
+
+    if (IsFSDiscriminator)
+      return getMaskedDiscriminator(D, getBaseDiscriminatorBits());
+    return getUnsignedFromPrefixEncoding(D);
+  }
+
+  /// Raw encoding of the discriminator. APIs such as cloneWithDuplicationFactor
+  /// have certain special case behavior (e.g. treating empty duplication factor
+  /// as the value '1').
+  /// This API, in conjunction with cloneWithDiscriminator, may be used to
+  /// encode the raw values provided.
+  ///
+  /// \p BD: base discriminator
+  /// \p DF: duplication factor
+  /// \p CI: copy index
+  ///
+  /// The return is std::nullopt if the values cannot be encoded in 32 bits -
+  /// for example, values for BD or DF larger than 12 bits. Otherwise, the
+  /// return is the encoded value.
+  LLVM_ABI static std::optional<unsigned>
+  encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI);
+
+  /// Raw decoder for values in an encoded discriminator D.
+  LLVM_ABI static void decodeDiscriminator(unsigned D, unsigned &BD,
+                                           unsigned &DF, unsigned &CI);
+
+  /// Returns the duplication factor for a given encoded discriminator \p D, or
+  /// 1 if no value or 0 is encoded.
+  static unsigned getDuplicationFactorFromDiscriminator(unsigned D) {
+    if (EnableFSDiscriminator)
+      return 1;
+    D = getNextComponentInDiscriminator(D);
+    unsigned Ret = getUnsignedFromPrefixEncoding(D);
+    if (Ret == 0)
+      return 1;
+    return Ret;
+  }
+
+  /// Returns the copy identifier for a given encoded discriminator \p D.
+  static unsigned getCopyIdentifierFromDiscriminator(unsigned D) {
+    return getUnsignedFromPrefixEncoding(
+        getNextComponentInDiscriminator(getNextComponentInDiscriminator(D)));
+  }
+
+  Metadata *getRawScope() const;
+  Metadata *getRawInlinedAt() const;
 };
 
-
-inline hash_code hash_value(const DebugLoc &Val) {
-  return hash_value(Val.get());
+inline raw_ostream &operator<<(raw_ostream &OS, const DebugLoc &DL) {
+  DL.print(OS);
+  return OS;
 }
 
-template <> struct DenseMapInfo<DebugLoc> {
-  static inline DebugLoc getEmptyKey() {
-    return DenseMapInfo<DILocation*>::getEmptyKey();
-  }
+inline hash_code hash_value(const DebugLoc &Val) {
+  return hash_value(Val.Loc.get());
+}
 
-  static inline DebugLoc getTombstoneKey() {
-    return DenseMapInfo<DILocation*>::getTombstoneKey();
+/// A key class to be used in-place of DebugLoc for DenseMap keys.
+struct DebugLocKey {
+  MDNode *Value;
+  DebugLocKey(uintptr_t Value) : Value(reinterpret_cast<MDNode*>(Value)) {}
+  DebugLocKey(const DebugLoc &DL) : Value(DL.getAsMDNode()) {}
+  operator DebugLoc() const {
+    if (Value == DenseMapInfo<MDNode *>::getEmptyKey() || Value == DenseMapInfo<MDNode *>::getTombstoneKey())
+      return DebugLoc();
+    return DebugLoc(Value);
   }
-
-  static unsigned getHashValue(const DebugLoc &Val) {
-    return hash_value(Val);
-  }
-
-  static bool isEqual(const DebugLoc &LHS, const DebugLoc &RHS) { return LHS == RHS; }
+  bool operator==(const DebugLocKey &Other) const { return Value == Other.Value; }
+  bool operator<(const DebugLocKey &Other) const { return Value < Other.Value; }
 };
+template <>
+struct DenseMapInfo<DebugLocKey> {
+  static constexpr uintptr_t Log2MaxAlign = 12;
 
+  static inline DebugLocKey getEmptyKey() {
+    uintptr_t Val = static_cast<uintptr_t>(-1);
+    Val <<= Log2MaxAlign;
+    return DebugLocKey(Val);
+  }
+
+  static inline DebugLocKey getTombstoneKey() {
+    uintptr_t Val = static_cast<uintptr_t>(-2);
+    Val <<= Log2MaxAlign;
+    return DebugLocKey(Val);
+  }
+
+  static unsigned getHashValue(DebugLocKey PtrVal) {
+    return densemap::detail::mix(reinterpret_cast<uintptr_t>(PtrVal.Value));
+  }
+
+  static bool isEqual(DebugLocKey LHS, DebugLocKey RHS) { return LHS.Value == RHS.Value; }
+};
+inline hash_code hash_value(const DebugLocKey &Val) {
+  return hash_value(Val.Value);
+}
 
 } // end namespace llvm
 
@@ -317,6 +562,11 @@ namespace std {
 template <> struct std::hash<llvm::DebugLoc> {
   std::size_t operator()(const llvm::DebugLoc &Arg) const {
     return std::hash<llvm::hash_code>()(llvm::hash_value(Arg));
+  }
+};
+template <> struct std::hash<llvm::DebugLocKey> {
+  std::size_t operator()(const llvm::DebugLocKey &Arg) const {
+    return std::hash<llvm::hash_code>()(llvm::hash_value(Arg.Value));
   }
 };
 } // end namespace std
