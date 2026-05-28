@@ -1430,16 +1430,14 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
                                                           *NewSP, Ctx, Cache));
 
     // Loop info metadata may contain line locations. Fix them up.
-    auto updateLoopInfoLoc = [&Ctx, &Cache, NewSP](Metadata *MD) -> Metadata * {
-      if (auto *Loc = dyn_cast_or_null<DILocation>(MD))
-        return DebugLoc::replaceInlinedAtSubprogram(Loc, *NewSP, Ctx, Cache);
-      return MD;
+    auto updateLoopInfoLoc = [&Ctx, &Cache, NewSP](DebugLoc Loc) -> DebugLoc {
+      return DebugLoc::replaceInlinedAtSubprogram(Loc, *NewSP, Ctx, Cache);
     };
     updateLoopMetadataDebugLocations(I, updateLoopInfoLoc);
     at::remapAssignID(AssignmentIDMap, I);
   }
   if (!TheCall.getDebugLoc())
-    TheCall.setDebugLoc(DILocation::get(Ctx, 0, 0, OldSP));
+    TheCall.setDebugLoc(DebugLoc::get(Ctx, 0, 0, OldSP));
 
   eraseDebugIntrinsicsWithNonLocalRefs(NewFunc);
 }

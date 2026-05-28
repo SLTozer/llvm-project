@@ -89,7 +89,7 @@ void LexicalScopes::extractLexicalScopes(
   for (const auto &MBB : *MF) {
     const MachineInstr *RangeBeginMI = nullptr;
     const MachineInstr *PrevMI = nullptr;
-    DebugLoc PrevDL = nullptr;
+    DebugLoc PrevDL;
     for (const auto &MInsn : MBB) {
       // Ignore DBG_VALUE and similar instruction that do not contribute to any
       // instruction in the output.
@@ -146,7 +146,7 @@ LexicalScope *LexicalScopes::findLexicalScope(DebugLoc DL) {
   // isn't what we care about in this case.
   Scope = Scope->getNonLexicalBlockFileScope();
 
-  if (auto *IA = DL->getInlinedAt()) {
+  if (DebugLoc IA = DL->getInlinedAt()) {
     auto I = InlinedLexicalScopeMap.find(std::make_pair(Scope, IA));
     return I != InlinedLexicalScopeMap.end() ? &I->second : nullptr;
   }
@@ -186,7 +186,7 @@ LexicalScopes::getOrCreateRegularScope(const DILocalScope *Scope) {
     Parent = getOrCreateLexicalScope(Block->getScope());
   I = LexicalScopeMap.emplace(std::piecewise_construct,
                               std::forward_as_tuple(Scope),
-                              std::forward_as_tuple(Parent, Scope, nullptr,
+                              std::forward_as_tuple(Parent, Scope, DebugLoc(),
                                                     false)).first;
 
   if (!Parent) {
@@ -204,7 +204,7 @@ LexicalScopes::getOrCreateInlinedScope(const DILocalScope *Scope,
                                        DebugLoc InlinedAt) {
   assert(Scope && "Invalid Scope encoding!");
   Scope = Scope->getNonLexicalBlockFileScope();
-  std::pair<const DILocalScope *, DebugLoc > P(Scope, InlinedAt);
+  std::pair<const DILocalScope *, DebugLocKey> P(Scope, InlinedAt);
   auto I = InlinedLexicalScopeMap.find(P);
   if (I != InlinedLexicalScopeMap.end())
     return &I->second;
@@ -239,7 +239,7 @@ LexicalScopes::getOrCreateAbstractScope(const DILocalScope *Scope) {
   I = AbstractScopeMap.emplace(std::piecewise_construct,
                                std::forward_as_tuple(Scope),
                                std::forward_as_tuple(Parent, Scope,
-                                                     nullptr, true)).first;
+                                                     DebugLoc(), true)).first;
   if (isa<DISubprogram>(Scope))
     AbstractScopesList.push_back(&I->second);
   return &I->second;

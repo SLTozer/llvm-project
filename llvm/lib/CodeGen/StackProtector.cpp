@@ -755,7 +755,7 @@ BasicBlock *CreateFailBB(Function *F, const LibcallLoweringInfo &Libcalls) {
   IRBuilder<> B(FailBB);
   if (F->getSubprogram())
     B.SetCurrentDebugLocation(
-        DILocation::get(Context, 0, 0, F->getSubprogram()));
+        DebugLoc::get(Context, 0, 0, F->getSubprogram()));
   FunctionCallee StackChkFail;
   SmallVector<Value *, 1> Args;
 

@@ -1191,10 +1191,9 @@ OpenMPIRBuilder::getOrCreateDefaultSrcLocStr(uint32_t &SrcLocStrSize) {
   return getOrCreateSrcLocStr(UnknownLoc, SrcLocStrSize);
 }
 
-Constant *OpenMPIRBuilder::getOrCreateSrcLocStr(DebugLoc DL,
+Constant *OpenMPIRBuilder::getOrCreateSrcLocStr(DebugLoc DIL,
                                                 uint32_t &SrcLocStrSize,
                                                 Function *F) {
-  DebugLoc DIL = DL.get();
   if (!DIL)
     return getOrCreateDefaultSrcLocStr(SrcLocStrSize);
   StringRef FileName =
@@ -8817,7 +8816,7 @@ static void FixupDebugInfoForOutlinedFunction(
     DILocalVariable *Var = DB.createParameterVariable(
         NewSP, "dyn_ptr", ArgNo, NewSP->getFile(), /*LineNo=*/0, VoidPtrTy,
         /*AlwaysPreserve=*/false, DINode::DIFlags::FlagArtificial);
-    auto Loc = DILocation::get(Func->getContext(), 0, 0, NewSP, 0);
+    DebugLoc Loc = DebugLoc::get(Func->getContext(), 0, 0, NewSP);
     Argument *LastArg = Func->getArg(Func->arg_size() - 1);
     DB.insertDeclare(LastArg, Var, DB.createExpression(), Loc,
                      &(*Func->begin()));

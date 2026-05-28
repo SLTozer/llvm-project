@@ -881,6 +881,7 @@ public:
   int getLocalSlot(const Value *V);
   int getGlobalSlot(const GlobalValue *V);
   int getMetadataSlot(const MDNode *N) override;
+  int getMetadataSlot(const DebugLoc &DL) override;
   int getAttributeGroupSlot(AttributeSet AS);
   int getModulePathSlot(StringRef Path);
   int getGUIDSlot(GlobalValue::GUID GUID);
@@ -1327,6 +1328,9 @@ int SlotTracker::getMetadataSlot(const MDNode *N) {
   // Find the MDNode in the module map
   mdn_iterator MI = mdnMap.find(N);
   return MI == mdnMap.end() ? -1 : (int)MI->second;
+}
+int SlotTracker::getMetadataSlot(const DebugLoc &DL) {
+  return getMetadataSlot(DL.privateGet());
 }
 
 /// getLocalSlot - Get the slot number for a value that is local to a function.
@@ -2110,7 +2114,22 @@ static void writeGenericDINode(raw_ostream &Out, const GenericDINode *N,
   Out << ")";
 }
 
-static void writeDILocation(raw_ostream &Out, DebugLoc DL,
+static void writeDILocation(raw_ostream &Out, const DILocation *DL,
+                            AsmWriterContext &WriterCtx) {
+  Out << "!DILocation(";
+  MDFieldPrinter Printer(Out, WriterCtx);
+  // Always output the line, since 0 is a relevant and important value for it.
+  Printer.printInt("line", DL->getLine(), /* ShouldSkipZero */ false);
+  Printer.printInt("column", DL->getColumn());
+  Printer.printMetadata("scope", DL->getRawScope(), /* ShouldSkipNull */ false);
+  Printer.printMetadata("inlinedAt", DL->getRawInlinedAt());
+  Printer.printBool("isImplicitCode", DL->isImplicitCode(),
+                    /* Default */ false);
+  Printer.printInt("atomGroup", DL->getAtomGroup());
+  Printer.printInt<unsigned>("atomRank", DL->getAtomRank());
+  Out << ")";
+}
+static void writeDebugLoc(raw_ostream &Out, DebugLoc DL,
                             AsmWriterContext &WriterCtx) {
   Out << "!DILocation(";
   MDFieldPrinter Printer(Out, WriterCtx);
@@ -2866,6 +2885,29 @@ static void writeAsOperandInternal(raw_ostream &Out, const Metadata *MD,
          "Unexpected function-local metadata outside of value argument");
 
   writeAsOperandInternal(Out, V->getValue(), WriterCtx, /*PrintType=*/true);
+}
+
+static void writeAsOperandInternal(raw_ostream &Out, DebugLoc DL,
+                                   AsmWriterContext &WriterCtx,
+                                   bool FromValue) {
+  std::unique_ptr<SlotTracker> MachineStorage;
+  SaveAndRestore SARMachine(WriterCtx.Machine);
+  if (!WriterCtx.Machine) {
+    MachineStorage = std::make_unique<SlotTracker>(WriterCtx.Context);
+    WriterCtx.Machine = MachineStorage.get();
+  }
+  int Slot = WriterCtx.Machine->getMetadataSlot(DL);
+  if (Slot == -1) {
+    if (DL) {
+      writeDebugLoc(Out, DL, WriterCtx);
+      return;
+    }
+    // Give the pointer value instead of "badref", since this comes up all
+    // the time when debugging.
+    Out << "<" << DL.getRawPtr() << ">";
+  } else
+    Out << '!' << Slot;
+  return;
 }
 
 namespace {

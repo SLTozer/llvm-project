@@ -140,7 +140,7 @@ bool MIRAddFSDiscriminators::runOnMachineFunction(MachineFunction &MF) {
       } else if (ImprovedFSDiscriminator && I.isMetaInstruction()) {
         continue;
       }
-      DebugLoc DIL = I.getDebugLoc().get();
+      DebugLoc DIL = I.getDebugLoc();
       if (!DIL)
         continue;
 
@@ -174,7 +174,7 @@ bool MIRAddFSDiscriminators::runOnMachineFunction(MachineFunction &MF) {
         DiscriminatorCurrPass += getCallStackHashV0(BB, I, DIL);
       DiscriminatorCurrPass &= BitMaskThisPass;
       unsigned NewD = Discriminator | DiscriminatorCurrPass;
-      const auto *const NewDIL = DIL->cloneWithDiscriminator(NewD);
+      DebugLoc NewDIL = DIL->cloneWithDiscriminator(NewD);
       if (!NewDIL) {
         LLVM_DEBUG(dbgs() << "Could not encode discriminator: "
                           << DIL->getFilename() << ":" << DIL->getLine() << ":"

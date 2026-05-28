@@ -708,7 +708,7 @@ private:
     /// Determine whether the lexical scope of this value's debug location
     /// dominates MBB.
     bool dominates(LexicalScopes &LS, MachineBasicBlock &MBB) const {
-      return LS.dominates(MI.getDebugLoc().get(), &MBB);
+      return LS.dominates(MI.getDebugLoc(), &MBB);
     }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
@@ -756,7 +756,7 @@ private:
 
       Out << ", \"" << Var.getVariable()->getName() << "\", " << *Expr << ", ";
       if (Var.getInlinedAt())
-        Out << "!" << Var.getInlinedAt()->getMetadataID() << ")\n";
+        Out << "<inlined>)\n";
       else
         Out << "(null))";
 
@@ -1415,7 +1415,7 @@ void VarLocBasedLDV::transferDebugValue(const MachineInstr &MI,
   const DILocalVariable *Var = MI.getDebugVariable();
   const DIExpression *Expr = MI.getDebugExpression();
   DebugLoc DLoc = MI.getDebugLoc();
-  DebugLoc InlinedAt = DLoc->getInlinedAt();
+  DebugLoc InlinedAt = DLoc.getInlinedAt();
   assert(Var->isValidLocationForIntrinsic(DLoc) &&
          "Expected inlined-at fields to agree");
 

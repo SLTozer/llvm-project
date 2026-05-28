@@ -16,6 +16,7 @@
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/Dwarf.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -250,7 +251,7 @@ DILocation *DILocation::getMergedLocation(DILocation *LocA, DILocation *LocB) {
   using LocVec = SmallVector<const DILocation *>;
   LocVec ALocs;
   LocVec BLocs;
-  SmallDenseMap<std::pair<const DISubprogram *, const DILocation *>, unsigned,
+  SmallDenseMap<std::pair<const DISubprogram *, DILocation *>, unsigned,
                 4>
       ALookup;
 

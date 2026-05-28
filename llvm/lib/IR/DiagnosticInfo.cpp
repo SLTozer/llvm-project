@@ -496,7 +496,7 @@ void llvm::diagnoseDontCall(const CallInst &CI) {
               DebugChain.push_back({SP->getName(), Loc->getFilename(),
                                     Loc->getLine(), Loc->getColumn()});
         };
-        if (DebugLoc Loc = DL.get()) {
+        if (DebugLoc Loc = DL) {
           AddLocation(Loc);
           for (DebugLoc InlinedAt = Loc->getInlinedAt(); InlinedAt;
                InlinedAt = InlinedAt->getInlinedAt())

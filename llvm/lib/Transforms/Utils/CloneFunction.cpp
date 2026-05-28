@@ -155,7 +155,7 @@ BasicBlock *llvm::CloneBasicBlock(const BasicBlock *BB, ValueToValueMapTy &VMap,
 
     if (MapAtoms) {
       if (const DebugLoc &DL = NewInst->getDebugLoc())
-        mapAtomInstance(DL.get(), VMap);
+        mapAtomInstance(DL, VMap);
     }
 
     if (isa<CallInst>(I) && !I.isDebugOrPseudoInst()) {

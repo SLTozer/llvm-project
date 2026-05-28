@@ -169,8 +169,8 @@ void FunctionVarLocs::print(raw_ostream &OS, const Function &Fn) const {
     if (auto F = V.getFragment())
       OS << " bits [" << F->OffsetInBits << ", "
          << F->OffsetInBits + F->SizeInBits << ")";
-    if (auto IA = V.getInlinedAt())
-      OS << " inlined-at " << *IA;
+    if (DebugLoc IA = V.getInlinedAt())
+      OS << " inlined-at " << IA;
     OS << "\n";
   }
 
@@ -246,7 +246,7 @@ void FunctionVarLocs::init(FunctionVarLocsBuilder &Builder) {
   // UniqueVectors IDs are one-based (which means the VarLocInfo VarID values
   // are one-based) so reserve an extra and insert a dummy.
   Variables.reserve(Builder.Variables.size() + 1);
-  Variables.push_back(DebugVariable(nullptr, std::nullopt, nullptr));
+  Variables.push_back(DebugVariable(nullptr, std::nullopt, DebugLoc()));
   Variables.append(Builder.Variables.begin(), Builder.Variables.end());
 }
 
@@ -323,7 +323,7 @@ getDerefOffsetInBytes(const DIExpression *DIExpr) {
 }
 
 /// A whole (unfragmented) source variable.
-using DebugAggregate = std::pair<const DILocalVariable *, const DILocation* >;
+using DebugAggregate = std::pair<const DILocalVariable *, DebugLocKey>;
 static DebugAggregate getAggregate(const DebugVariable &Var) {
   return DebugAggregate(Var.getVariable(), Var.getInlinedAt());
 }
@@ -1589,7 +1589,7 @@ void AssignmentTrackingLowering::processUnknownStoreToVariable(
   // Get DILocation for this assignment.
   DebugVariable V = FnVarLocs->getVariable(Var);
   DebugLoc InlinedAt = V.getInlinedAt();
-  DebugLoc DILoc = DILocation::get(
+  DebugLoc DILoc = DebugLoc::get(
       Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
   VarLocInfo VarLoc;
@@ -1669,7 +1669,7 @@ void AssignmentTrackingLowering::processUntaggedInstruction(
 
     // Get DILocation for this unrecorded assignment.
     DebugLoc InlinedAt = V.getInlinedAt();
-    DebugLoc DILoc = DILocation::get(
+    DebugLoc DILoc = DebugLoc::get(
         Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;
@@ -1726,7 +1726,7 @@ void AssignmentTrackingLowering::processEscapingCall(
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
     DebugLoc InlinedAt = V.getInlinedAt();
-    DebugLoc DILoc = DILocation::get(
+    DebugLoc DILoc = DebugLoc::get(
         Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;

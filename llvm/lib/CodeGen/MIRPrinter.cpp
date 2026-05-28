@@ -283,16 +283,17 @@ template <typename T>
 static void
 printStackObjectDbgInfo(const MachineFunction::VariableDbgInfo &DebugVar,
                         T &Object, ModuleSlotTracker &MST) {
-  std::array<std::string *, 3> Outputs{{&Object.DebugVar.Value,
-                                        &Object.DebugExpr.Value,
-                                        &Object.DebugLoc.Value}};
-  std::array<const Metadata *, 3> Metas{{DebugVar.Var,
-                                        DebugVar.Expr,
-                                        DebugVar.Loc}};
-  for (unsigned i = 0; i < 3; ++i) {
+  std::array<std::string *, 2> Outputs{{&Object.DebugVar.Value,
+                                        &Object.DebugExpr.Value}};
+  std::array<const Metadata *, 2> Metas{{DebugVar.Var,
+                                        DebugVar.Expr}};
+  for (unsigned i = 0; i < 2; ++i) {
     raw_string_ostream StrOS(*Outputs[i]);
     Metas[i]->printAsOperand(StrOS, MST);
   }
+  // Handle DebugLoc separately to avoid casting to Metadata*.
+  raw_string_ostream StrOS(Object.DebugExpr.Value);
+  DebugVar.Loc->printAsOperand(StrOS, MST);
 }
 
 static void printRegFlags(Register Reg,

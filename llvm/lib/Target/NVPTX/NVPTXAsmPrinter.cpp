@@ -2107,13 +2107,13 @@ static bool isPTXInstruction(StringRef Line) {
 /// should be emitted, or nullptr otherwise.
 static DebugLoc getInlineAsmDebugLoc(const MachineInstr *MI) {
   if (!MI || !MI->getDebugLoc())
-    return nullptr;
+    return DebugLoc();
   const DISubprogram *SP = MI->getMF()->getFunction().getSubprogram();
   if (!SP || SP->getUnit()->getEmissionKind() == DICompileUnit::NoDebug)
-    return nullptr;
+    return DebugLoc();
   DebugLoc DL = MI->getDebugLoc();
   if (!DL->getFile() || !DL->getLine())
-    return nullptr;
+    return DebugLoc();
   return DL;
 }
 

@@ -1840,7 +1840,7 @@ static void HandleByValArgumentInit(Type *ByValType, Value *Dst, Value *Src,
   // purposes). Assign a dummy location to satisfy the constraint.
   if (!CI->getDebugLoc() && InsertBlock->getParent()->getSubprogram())
     if (DISubprogram *SP = CalledFunc->getSubprogram())
-      CI->setDebugLoc(DILocation::get(SP->getContext(), 0, 0, SP));
+      CI->setDebugLoc(DebugLoc::get(SP->getContext(), 0, 0, SP));
 }
 
 /// When inlining a call site that has a byval argument,
@@ -1937,7 +1937,7 @@ static DebugLoc inlineDebugLoc(DebugLoc OrigDL, DebugLoc InlinedAt,
                                LLVMContext &Ctx,
                                DenseMap<const MDNode *, MDNode *> &IANodes) {
   auto IA = DebugLoc::appendInlinedAt(OrigDL, InlinedAt, Ctx, IANodes);
-  return DILocation::get(Ctx, OrigDL.getLine(), OrigDL.getCol(),
+  return DebugLoc::get(Ctx, OrigDL.getLine(), OrigDL.getCol(),
                          OrigDL.getScope(), IA, OrigDL.isImplicitCode(),
                          OrigDL->getAtomGroup(), OrigDL->getAtomRank());
 }
@@ -1961,7 +1961,7 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
 
   // Create a unique call site, not to be confused with any other call from the
   // same location.
-  InlinedAtNode = DILocation::getDistinct(
+  InlinedAtNode = DebugLoc::getDistinct(
       Ctx, InlinedAtNode->getLine(), InlinedAtNode->getColumn(),
       InlinedAtNode->getScope(), InlinedAtNode->getInlinedAt());
 
@@ -1979,10 +1979,8 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
     // Loop metadata needs to be updated so that the start and end locs
     // reference inlined-at locations.
     auto updateLoopInfoLoc = [&Ctx, &InlinedAtNode,
-                              &IANodes](Metadata *MD) -> Metadata * {
-      if (auto *Loc = dyn_cast_or_null<DILocation>(MD))
-        return inlineDebugLoc(Loc, InlinedAtNode, Ctx, IANodes).get();
-      return MD;
+                              &IANodes](DebugLoc Loc) -> DebugLoc  {
+      return inlineDebugLoc(Loc, InlinedAtNode, Ctx, IANodes);
     };
     updateLoopMetadataDebugLocations(I, updateLoopInfoLoc);
 

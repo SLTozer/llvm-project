@@ -55,6 +55,7 @@
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
@@ -213,6 +214,13 @@ private:
     if (!MD)
       return;
     MD->print(*OS, MST, &M);
+    *OS << '\n';
+  }
+
+  void Write(DebugLoc DL) {
+    if (!DL)
+      return;
+    DL->print(*OS, MST, &M);
     *OS << '\n';
   }
 
@@ -3405,13 +3413,13 @@ void Verifier::visitFunction(const Function &F) {
   // FIXME: Check this incrementally while visiting !dbg attachments.
   // FIXME: Only check when N is the canonical subprogram for F.
   SmallPtrSet<const MDNode *, 32> Seen;
-  auto VisitDebugLoc = [&](const Instruction &I, const MDNode *Node) {
+  SmallSet<DebugLoc, 32> SeenDLs;
+  auto VisitDebugLoc = [&](const Instruction &I, DebugLoc DL) {
     // Be careful about using DILocation here since we might be dealing with
     // broken code (this is the Verifier after all).
-    DebugLoc DL = dyn_cast_or_null<DILocation>(Node);
     if (!DL)
       return;
-    if (!Seen.insert(DL).second)
+    if (!SeenDLs.insert(DL).second)
       return;
 
     Metadata *Parent = DL->getRawScope();
@@ -3437,11 +3445,11 @@ void Verifier::visitFunction(const Function &F) {
   };
   for (auto &BB : F)
     for (auto &I : BB) {
-      VisitDebugLoc(I, I.getDebugLoc().getAsMDNode());
+      VisitDebugLoc(I, I.getDebugLoc());
       // The llvm.loop annotations also contain two DILocations.
       if (auto MD = I.getMetadata(LLVMContext::MD_loop))
         for (unsigned i = 1; i < MD->getNumOperands(); ++i)
-          VisitDebugLoc(I, dyn_cast_or_null<MDNode>(MD->getOperand(i)));
+          VisitDebugLoc(I, DebugLoc(dyn_cast_or_null<MDNode>(MD->getOperand(i))));
       if (BrokenDebugInfo)
         return;
     }

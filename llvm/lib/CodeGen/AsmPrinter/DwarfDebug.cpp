@@ -35,6 +35,7 @@
 #include "llvm/DebugInfo/DWARF/LowLevel/DWARFExpression.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Module.h"
@@ -2090,11 +2091,11 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
   for (const DINode *DN : SP->getRetainedNodes()) {
     const auto *LS = getRetainedNodeScope(DN);
     if (isa<DILocalVariable>(DN) || isa<DILabel>(DN)) {
-      if (!Processed.insert(InlinedEntity(DN, nullptr)).second)
+      if (!Processed.insert(InlinedEntity(DN, DebugLoc())).second)
         continue;
       LexicalScope *LexS = LScopes.findLexicalScope(LS);
       if (LexS)
-        createConcreteEntity(TheCU, *LexS, DN, nullptr);
+        createConcreteEntity(TheCU, *LexS, DN, DebugLoc());
     } else {
       LocalDeclsPerLS[LS].insert(DN);
     }
@@ -2414,12 +2415,12 @@ findPrologueEndLoc(const MachineFunction *MF) {
     // is where execution in the function starts, and is less catastrophic than
     // stepping over the call.
     if (CurInst->isCall()) {
-      if (DebugLoc Loc = CurInst->getDebugLoc().get();
+      if (DebugLoc Loc = CurInst->getDebugLoc();
           Loc && Loc->getLine() == 0) {
         // Create and assign the scope-line position.
         unsigned ScopeLine = SP->getScopeLine();
         DebugLoc ScopeLineDILoc =
-            DILocation::get(SP->getContext(), ScopeLine, 0, SP);
+            DebugLoc::get(SP->getContext(), ScopeLine, 0, SP);
         const_cast<MachineInstr *>(&*CurInst)->setDebugLoc(ScopeLineDILoc);
 
         // Consider this position to be where prologue_end is placed.
@@ -2524,8 +2525,8 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
   // The current candidate is_stmt instructions for each source atom.
   // Map {(InlinedAt, Group): (Rank, Instructions)}.
   // NOTE: Anecdotally, for a large C++ blob, 99% of the instruction
-  // SmallVectors contain 2 or fewer elements; use 2 inline elements.
-  DenseMap<std::pair<DebugLoc , uint64_t>,
+  // SmallVectors condtain 2 or fewer elements; use 2 inline elements.
+  DenseMap<std::pair<DebugLocKey, uint64_t>,
            std::pair<uint8_t, SmallVector<const MachineInstr *, 2>>>
       GroupCandidates;
 
@@ -2559,7 +2560,7 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
       if (MI.isMetaInstruction())
         continue;
 
-      DebugLoc Loc = MI.getDebugLoc().get();
+      DebugLoc Loc = MI.getDebugLoc();
       if (!Loc || !Loc->getLine())
         continue;
 
@@ -2586,7 +2587,7 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
           continue;
       }
 
-      auto *InlinedAt = Loc->getInlinedAt();
+      DebugLoc InlinedAt = Loc->getInlinedAt();
       uint64_t Group = Loc->getAtomGroup();
       uint8_t Rank = Loc->getAtomRank();
       if (!Group || !Rank)
@@ -2903,7 +2904,7 @@ void DwarfDebug::endFunctionImpl(const MachineFunction *MF) {
       assert(LexS && "Expected the LexicalScope to be created.");
       if (isa<DILocalVariable>(DN) || isa<DILabel>(DN)) {
         // Collect info for variables/labels that were optimized out.
-        if (!Processed.insert(InlinedEntity(DN, nullptr)).second ||
+        if (!Processed.insert(InlinedEntity(DN, DebugLoc())).second ||
             TheCU.getExistingAbstractEntity(DN))
           continue;
         TheCU.createAbstractEntity(DN, LexS);

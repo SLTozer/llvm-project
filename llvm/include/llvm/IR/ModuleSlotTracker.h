@@ -17,6 +17,7 @@
 
 namespace llvm {
 
+class DebugLoc;
 class Module;
 class Function;
 class SlotTracker;
@@ -32,6 +33,7 @@ public:
 
   virtual void createMetadataSlot(const MDNode *) = 0;
   virtual int getMetadataSlot(const MDNode *) = 0;
+  virtual int getMetadataSlot(const DebugLoc &) = 0;
 };
 
 /// Manage lifetime of a slot tracker for printing IR.

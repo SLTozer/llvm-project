@@ -138,7 +138,7 @@ static bool runOnFunction(Function &F, bool PostInlining) {
   if (!EntryFunc.empty()) {
     DebugLoc DL;
     if (auto SP = F.getSubprogram())
-      DL = DILocation::get(SP->getContext(), SP->getScopeLine(), 0, SP);
+      DL = DebugLoc::get(SP->getContext(), SP->getScopeLine(), 0, SP);
 
     insertCall(F, EntryFunc, F.begin()->getFirstInsertionPt(), DL);
     Changed = true;
@@ -159,7 +159,7 @@ static bool runOnFunction(Function &F, bool PostInlining) {
       if (DebugLoc TerminatorDL = T->getDebugLoc())
         DL = TerminatorDL;
       else if (auto SP = F.getSubprogram())
-        DL = DILocation::get(SP->getContext(), 0, 0, SP);
+        DL = DebugLoc::get(SP->getContext(), 0, 0, SP);
 
       insertCall(F, ExitFunc, T->getIterator(), DL);
       Changed = true;

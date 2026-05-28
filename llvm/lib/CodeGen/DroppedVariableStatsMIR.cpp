@@ -59,7 +59,7 @@ void DroppedVariableStatsMIR::visitEveryInstruction(
   for (const auto &MBB : *MFunc) {
     for (const auto &MI : MBB) {
       if (!MI.isDebugInstr()) {
-        auto *DbgLoc = MI.getDebugLoc().get();
+        DebugLoc DbgLoc = MI.getDebugLoc();
         if (!DbgLoc)
           continue;
 

@@ -148,7 +148,7 @@ void DbgValueHistoryMap::trimLocationRanges(
     const DILocalVariable *LocalVar = cast<DILocalVariable>(Entity.first);
 
     LexicalScope *Scope = nullptr;
-    if (DebugLoc InlinedAt = Entity.second) {
+    if (DebugLoc InlinedAt =Entity .second) {
       Scope = LScopes.findInlinedScope(LocalVar->getScope(), InlinedAt);
     } else {
       Scope = LScopes.findLexicalScope(LocalVar->getScope());

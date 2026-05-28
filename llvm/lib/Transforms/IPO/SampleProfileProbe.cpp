@@ -53,7 +53,7 @@ static cl::opt<bool>
 
 static uint64_t getCallStackHash(DebugLoc DIL) {
   uint64_t Hash = 0;
-  DebugLoc InlinedAt = DIL ? DIL->getInlinedAt() : nullptr;
+  DebugLoc InlinedAt = DIL ? DIL->getInlinedAt() : DebugLoc();
   while (InlinedAt) {
     Hash ^= MD5Hash(std::to_string(InlinedAt->getLine()));
     Hash ^= MD5Hash(std::to_string(InlinedAt->getColumn()));
@@ -362,7 +362,7 @@ void SampleProfileProber::instrumentOneFunc(Function &F, TargetMachine *TM) {
            "Expecting pseudo probe or call instructions");
     if (!I->getDebugLoc()) {
       if (auto *SP = F.getSubprogram()) {
-        auto DIL = DILocation::get(SP->getContext(), 0, 0, SP);
+        auto DIL = DebugLoc::get(SP->getContext(), 0, 0, SP);
         I->setDebugLoc(DIL);
         ArtificialDbgLine++;
         LLVM_DEBUG({

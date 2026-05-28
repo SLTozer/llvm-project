@@ -2145,7 +2145,7 @@ void SampleProfileLoader::removePseudoProbeInstsDiscriminator(Module &M) {
         if (isa<PseudoProbeInst>(&I))
           InstsToDel.push_back(&I);
         else if (isa<CallBase>(&I))
-          if (DebugLoc DIL = I.getDebugLoc().get()) {
+          if (DebugLoc DIL = I.getDebugLoc()) {
             // Restore dwarf discriminator for call.
             unsigned Discriminator = DIL->getDiscriminator();
             if (DILocation::isPseudoProbeDiscriminator(Discriminator)) {

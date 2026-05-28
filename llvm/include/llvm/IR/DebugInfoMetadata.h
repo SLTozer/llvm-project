@@ -4239,8 +4239,8 @@ public:
   /// Check that \c DL exists, is in the same subprogram, and has the same
   /// inlined-at location as \c this.  (Otherwise, it's not a valid attachment
   /// to a \a DbgInfoIntrinsic.)
-  bool isValidLocationForIntrinsic(const DILocation *DL) const {
-    return DL && getScope()->getSubprogram() == DL->getScope()->getSubprogram();
+  bool isValidLocationForIntrinsic(DebugLoc DL) const {
+    return DL && getScope()->getSubprogram() == DL.getScope()->getSubprogram();
   }
 
   static bool classof(const Metadata *MD) {
@@ -4323,7 +4323,7 @@ public:
   /// Check that \c DL exists, is in the same subprogram, and has the same
   /// inlined-at location as \c this.  (Otherwise, it's not a valid attachment
   /// to a \a DbgInfoIntrinsic.)
-  bool isValidLocationForIntrinsic(const DILocation *DL) const {
+  bool isValidLocationForIntrinsic(DebugLoc DL) const {
     return DL && getScope()->getSubprogram() == DL->getScope()->getSubprogram();
   }
 
@@ -4749,7 +4749,7 @@ class DebugVariable {
 
   const DILocalVariable *Variable;
   std::optional<FragmentInfo> Fragment;
-  const DILocation *InlinedAt;
+  DebugLoc InlinedAt;
 
   /// Fragment that will overlap all other fragments. Used as default when
   /// caller demands a fragment.
@@ -4760,11 +4760,11 @@ public:
 
   DebugVariable(const DILocalVariable *Var,
                 std::optional<FragmentInfo> FragmentInfo,
-                const DILocation *InlinedAt)
+                DebugLoc InlinedAt)
       : Variable(Var), Fragment(FragmentInfo), InlinedAt(InlinedAt) {}
 
   DebugVariable(const DILocalVariable *Var, const DIExpression *DIExpr,
-                const DILocation *InlinedAt)
+                DebugLoc InlinedAt)
       : Variable(Var),
         Fragment(DIExpr ? DIExpr->getFragmentInfo() : std::nullopt),
         InlinedAt(InlinedAt) {}
@@ -4797,12 +4797,12 @@ template <> struct DenseMapInfo<DebugVariable> {
 
   /// Empty key: no key should be generated that has no DILocalVariable.
   static inline DebugVariable getEmptyKey() {
-    return DebugVariable(nullptr, std::nullopt, nullptr);
+    return DebugVariable(nullptr, std::nullopt, DebugLoc());
   }
 
   /// Difference in tombstone is that the Optional is meaningful.
   static inline DebugVariable getTombstoneKey() {
-    return DebugVariable(nullptr, {{0, 0}}, nullptr);
+    return DebugVariable(nullptr, {{0, 0}}, DebugLoc());
   }
 
   static unsigned getHashValue(const DebugVariable &D) {

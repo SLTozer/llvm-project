@@ -244,7 +244,7 @@ protected:
   ErrorOr<uint64_t> getInstWeightImpl(const InstructionT &Inst);
   virtual ErrorOr<uint64_t> getProbeWeight(const InstructionT &Inst);
   ErrorOr<uint64_t> getBlockWeight(const BasicBlockT *BB);
-  mutable DenseMap<DebugLoc , const FunctionSamples *>
+  mutable DenseMap<DebugLocKey, const FunctionSamples *>
       DILocation2SampleMap;
   virtual const FunctionSamples *
   findFunctionSamples(const InstructionT &I) const;

@@ -963,9 +963,9 @@ public:
   MachineInstrBuilder emitMOLoc(const MachineOperand &MO,
                                 const DebugVariable &Var,
                                 const DbgValueProperties &Properties) {
-    DebugLoc DL = DILocation::get(Var.getVariable()->getContext(), 0, 0,
-                                  Var.getVariable()->getScope(),
-                                  Var.getInlinedAt());
+    DebugLoc DL = DebugLoc::get(Var.getVariable()->getContext(), 0, 0,
+                                Var.getVariable()->getScope(),
+                                Var.getInlinedAt());
     auto MIB = BuildMI(MF, DL, TII->get(TargetOpcode::DBG_VALUE));
     MIB.add(MO);
     if (Properties.Indirect)
@@ -1444,7 +1444,7 @@ bool InstrRefBasedLDV::transferDebugValue(const MachineInstr &MI) {
 
   // If there are no instructions in this lexical scope, do no location tracking
   // at all, this variable shouldn't get a legitimate location range.
-  auto *Scope = LS.findLexicalScope(MI.getDebugLoc().get());
+  auto *Scope = LS.findLexicalScope(MI.getDebugLoc());
   if (Scope == nullptr)
     return true; // handled it; by doing nothing
 
@@ -1652,7 +1652,7 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
 
   DebugVariable V(Var, Expr, InlinedAt);
 
-  auto *Scope = LS.findLexicalScope(MI.getDebugLoc().get());
+  auto *Scope = LS.findLexicalScope(MI.getDebugLoc());
   if (Scope == nullptr)
     return true; // Handled by doing nothing. This variable is never in scope.
 
@@ -1769,7 +1769,7 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
       LastUseBeforeDef = std::max(LastUseBeforeDef, NewID.getInst());
     }
     if (IsValidUseBeforeDef) {
-      DebugVariableID VID = DVMap.insertDVID(V, MI.getDebugLoc().get());
+      DebugVariableID VID = DVMap.insertDVID(V, MI.getDebugLoc());
       TTracker->addUseBeforeDef(VID, {MI.getDebugExpression(), false, true},
                                 DbgOps, LastUseBeforeDef);
     }
@@ -1780,7 +1780,7 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
   // FoundLoc is illegal.
   // (XXX -- could morph the DBG_INSTR_REF in the future).
   MachineInstr *DbgMI =
-      MTracker->emitLoc(NewLocs, V, MI.getDebugLoc().get(), Properties);
+      MTracker->emitLoc(NewLocs, V, MI.getDebugLoc(), Properties);
   DebugVariableID ID = DVMap.getDVID(V);
 
   TTracker->PendingDbgValues.push_back(std::make_pair(ID, DbgMI));
@@ -3825,7 +3825,7 @@ bool InstrRefBasedLDV::ExtendRanges(MachineFunction &MF,
     for (auto &idx : VTracker->Vars) {
       DebugVariableID VarID = idx.first;
       DebugLoc ScopeLoc = VTracker->Scopes[VarID];
-      assert(ScopeLoc != nullptr);
+      assert(ScopeLoc);
       auto *Scope = LS.findLexicalScope(ScopeLoc);
 
       // No insts in scope -> shouldn't have been recorded.

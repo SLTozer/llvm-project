@@ -114,6 +114,7 @@ class AggressiveDeadCodeElimination {
 
   /// Debug info scopes around a live instruction.
   SmallPtrSet<const Metadata *, 32> AliveScopes;
+  SmallSet<DebugLoc, 32> VisitedLocs;
 
   /// Set of blocks with not known to have live terminators.
   SmallSetVector<BasicBlock *, 16> BlocksWithDeadTerminators;
@@ -151,7 +152,7 @@ class AggressiveDeadCodeElimination {
 
   /// Record the Debug Scopes which surround live debug information.
   void collectLiveScopes(const DILocalScope &LS);
-  void collectLiveScopes(const DILocation &DL);
+  void collectLiveScopes(const DebugLoc &DL);
 
   /// Analyze dead branches to find those whose branches are the sources
   /// of control dependences impacting a live block. Those branches are
@@ -348,10 +349,8 @@ void AggressiveDeadCodeElimination::collectLiveScopes(const DILocalScope &LS) {
   collectLiveScopes(cast<DILocalScope>(*LS.getScope()));
 }
 
-void AggressiveDeadCodeElimination::collectLiveScopes(const DILocation &DL) {
-  // Even though DILocations are not scopes, shove them into AliveScopes so we
-  // don't revisit them.
-  if (!AliveScopes.insert(&DL).second)
+void AggressiveDeadCodeElimination::collectLiveScopes(const DebugLoc &DL) {
+  if (!VisitedLocs.insert(DL).second)
     return;
 
   // Collect live scopes from the scope chain.
@@ -359,7 +358,7 @@ void AggressiveDeadCodeElimination::collectLiveScopes(const DILocation &DL) {
 
   // Tail-recurse through the inlined-at chain.
   if (DebugLoc IA = DL.getInlinedAt())
-    collectLiveScopes(*IA);
+    collectLiveScopes(IA);
 }
 
 void AggressiveDeadCodeElimination::markPhiLive(PHINode *PN) {

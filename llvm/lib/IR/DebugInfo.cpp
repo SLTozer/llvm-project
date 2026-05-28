@@ -163,7 +163,7 @@ DebugLoc llvm::getDebugValueLoc(DbgVariableRecord *DVR) {
   // and inlinedAt is significant. Zero line numbers are used in case this
   // DebugLoc leaks into any adjacent instructions. Produce an unknown location
   // with the correct scope / inlinedAt fields.
-  return DILocation::get(DVR->getContext(), 0, 0, Scope, InlinedAt);
+  return DebugLoc::get(DVR->getContext(), 0, 0, Scope, InlinedAt);
 }
 
 //===----------------------------------------------------------------------===//
@@ -223,7 +223,7 @@ void DebugInfoFinder::processInstruction(const Module &M,
     processVariable(DVI->getVariable());
 
   if (auto DbgLoc = I.getDebugLoc())
-    processLocation(M, DbgLoc.get());
+    processLocation(M, DbgLoc);
 
   for (const DbgRecord &DPR : I.getDbgRecordRange())
     processDbgRecord(M, DPR);
@@ -239,7 +239,7 @@ void DebugInfoFinder::processLocation(const Module &M, DebugLoc Loc) {
 void DebugInfoFinder::processDbgRecord(const Module &M, const DbgRecord &DR) {
   if (const DbgVariableRecord *DVR = dyn_cast<const DbgVariableRecord>(&DR))
     processVariable(DVR->getVariable());
-  processLocation(M, DR.getDebugLoc().get());
+  processLocation(M, DR.getDebugLoc());
 }
 
 void DebugInfoFinder::processVariable(DIVariable *DV) {
@@ -482,7 +482,7 @@ bool DebugInfoFinder::addMacro(DIMacro *Macro, DIMacroFile *MacroFile) {
 }
 
 static MDNode *updateLoopMetadataDebugLocationsImpl(
-    MDNode *OrigLoopID, function_ref<Metadata *(Metadata *)> Updater) {
+    MDNode *OrigLoopID, function_ref<DebugLoc(DebugLoc)> Updater) {
   assert(OrigLoopID && OrigLoopID->getNumOperands() > 0 &&
          "Loop ID needs at least one operand");
   assert(OrigLoopID && OrigLoopID->getOperand(0).get() == OrigLoopID &&
@@ -491,12 +491,15 @@ static MDNode *updateLoopMetadataDebugLocationsImpl(
   // Save space for the self-referential LoopID.
   SmallVector<Metadata *, 4> MDs = {nullptr};
 
-  for (Metadata *MD : llvm::drop_begin(OrigLoopID->operands())) {
-    if (!MD)
+  for (const MDOperand &MDO : llvm::drop_begin(OrigLoopID->operands())) {
+    if (!MDO) {
       MDs.push_back(nullptr);
-    else if (Metadata *NewMD = Updater(
-                 updateLoopMetadataDebugLocationsRecursive(MD, Updater)))
-      MDs.push_back(NewMD);
+    } else if (DebugLoc DL = DebugLoc::getFromValidDILocationLoopMDOperand(MDO)) {
+      if (DebugLoc NewDL = Updater(DL))
+        MDs.push_back(NewDL.getAsMDNode());
+    } else {
+      MDs.push_back(MDO);
+    }
   }
 
   MDNode *NewLoopID = MDNode::getDistinct(OrigLoopID->getContext(), MDs);
@@ -506,7 +509,7 @@ static MDNode *updateLoopMetadataDebugLocationsImpl(
 }
 
 void llvm::updateLoopMetadataDebugLocations(
-    Instruction &I, function_ref<Metadata *(Metadata *)> Updater) {
+    Instruction &I, function_ref<DebugLoc(DebugLoc)> Updater) {
   MDNode *OrigLoopID = I.getMetadata(LLVMContext::MD_loop);
   if (!OrigLoopID)
     return;
@@ -629,10 +632,20 @@ static MDNode *stripDebugLocFromLoopID(MDNode *N) {
                    }))
     return nullptr;
 
-  return updateLoopMetadataDebugLocationsImpl(
-      N, [&AllDILocation, &DILocationReachable](Metadata *MD) -> Metadata * {
-        return stripLoopMDLoc(AllDILocation, DILocationReachable, MD);
-      });
+  // Save space for the self-referential LoopID.
+  SmallVector<Metadata *, 4> MDs = {nullptr};
+
+  for (Metadata *MD : llvm::drop_begin(N->operands())) {
+    if (!MD) {
+      MDs.push_back(nullptr);
+    } else if (Metadata *NewMD = stripLoopMDLoc(AllDILocation, DILocationReachable, MD))
+      MDs.push_back(NewMD);
+  }
+
+  MDNode *NewLoopID = MDNode::getDistinct(N->getContext(), MDs);
+  // Insert the self-referential LoopID.
+  NewLoopID->replaceOperandWith(0, NewLoopID);
+  return NewLoopID;
 }
 
 bool llvm::stripDebugInfo(Function &F) {
@@ -813,7 +826,21 @@ private:
 
   DebugLoc getReplacementMDLocation(DebugLoc MLD) {
     auto *Scope = map(MLD->getScope());
-    auto *InlinedAt = map(MLD->getInlinedAt());
+    std::function<DILocation*(DILocation*)> UpdateInlinedAt = [this](DILocation *DIL)
+    {
+      return cast<DILocation>(this->map(DIL));
+    };
+    DebugLoc InlinedAt = MLD->getInlinedAt().applyMap(UpdateInlinedAt);
+    if (MLD->isDistinct())
+      return DebugLoc::getDistinct(MLD->getContext(), MLD->getLine(),
+                                     MLD->getColumn(), Scope, InlinedAt);
+    return DebugLoc::get(MLD->getContext(), MLD->getLine(), MLD->getColumn(),
+                           Scope, InlinedAt);
+  }
+  DILocation *getReplacementMDLocation(DILocation *MLD) {
+    auto *Scope = map(MLD->getScope());
+
+    Metadata *InlinedAt = map(MLD->getInlinedAt());
     if (MLD->isDistinct())
       return DILocation::getDistinct(MLD->getContext(), MLD->getLine(),
                                      MLD->getColumn(), Scope, InlinedAt);
@@ -949,23 +976,22 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
     for (auto &BB : F) {
       for (auto &I : BB) {
         auto remapDebugLoc = [&](const DebugLoc &DL) -> DebugLoc {
-          auto *Scope = DL.getScope();
-          MDNode *InlinedAt = DL.getInlinedAt();
-          Scope = remap(Scope);
-          InlinedAt = remap(InlinedAt);
-          return DILocation::get(M.getContext(), DL.getLine(), DL.getCol(),
+          auto *Scope = remap(DL.getScope());
+          DebugLoc InlinedAt = DL.getInlinedAt();
+          std::function<DILocation*(DILocation*)> UpdateInlinedAt = [remap](DILocation *DIL)
+          {
+            return cast<DILocation>(remap(DIL));
+          };
+          InlinedAt = InlinedAt.applyMap(UpdateInlinedAt);
+          return DebugLoc::get(M.getContext(), DL.getLine(), DL.getCol(),
                                  Scope, InlinedAt);
         };
 
-        if (I.getDebugLoc() != DebugLoc())
+        if (I.getDebugLoc())
           I.setDebugLoc(remapDebugLoc(I.getDebugLoc()));
 
         // Remap DILocations in llvm.loop attachments.
-        updateLoopMetadataDebugLocations(I, [&](Metadata *MD) -> Metadata * {
-          if (auto *Loc = dyn_cast_or_null<DILocation>(MD))
-            return remapDebugLoc(Loc).get();
-          return MD;
-        });
+        updateLoopMetadataDebugLocations(I, remapDebugLoc);
 
         // Strip heapallocsite attachments, they point into the DIType system.
         if (I.hasMetadataOtherThanDebugLoc())
@@ -1065,7 +1091,7 @@ void Instruction::dropLocation() {
     // If a function scope is available, set it on the line 0 location. When
     // hoisting a call to a predecessor block, using the function scope avoids
     // making it look like the callee was reached earlier than it should be.
-    setDebugLoc(DILocation::get(getContext(), 0, 0, SP));
+    setDebugLoc(DebugLoc::get(getContext(), 0, 0, SP));
   else
     // The parent function has no scope. Go ahead and drop the location. If
     // the parent function is inlined, and the callee has a subprogram, the
@@ -1838,7 +1864,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDeclareRecordBefore(
     LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMValueRef Instr) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDeclare(
       unwrap(Storage), unwrap<DILocalVariable>(VarInfo),
-      unwrap<DIExpression>(Expr), unwrap<DILocation>(DL),
+      unwrap<DIExpression>(Expr), DebugLoc(unwrap<MDNode>(DL)),
       Instr ? InsertPosition(unwrap<Instruction>(Instr)->getIterator())
             : nullptr);
   // This assert will fail if the module is in the old debug info format.
@@ -1856,7 +1882,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDeclareRecordAtEnd(
     LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMBasicBlockRef Block) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDeclare(
       unwrap(Storage), unwrap<DILocalVariable>(VarInfo),
-      unwrap<DIExpression>(Expr), unwrap<DILocation>(DL), unwrap(Block));
+      unwrap<DIExpression>(Expr), DebugLoc(unwrap<MDNode>(DL)), unwrap(Block));
   // This assert will fail if the module is in the old debug info format.
   // This function should only be called if the module is in the new
   // debug info format.
@@ -1869,10 +1895,10 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDeclareRecordAtEnd(
 
 LLVMDbgRecordRef LLVMDIBuilderInsertDbgValueRecordBefore(
     LLVMDIBuilderRef Builder, LLVMValueRef Val, LLVMMetadataRef VarInfo,
-    LLVMMetadataRef Expr, LLVMMetadataRef DebugLoc, LLVMValueRef Instr) {
+    LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMValueRef Instr) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDbgValueIntrinsic(
       unwrap(Val), unwrap<DILocalVariable>(VarInfo), unwrap<DIExpression>(Expr),
-      unwrap<DILocation>(DebugLoc),
+      DebugLoc(unwrap<MDNode>(DL)),
       Instr ? InsertPosition(unwrap<Instruction>(Instr)->getIterator())
             : nullptr);
   // This assert will fail if the module is in the old debug info format.
@@ -1887,10 +1913,10 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDbgValueRecordBefore(
 
 LLVMDbgRecordRef LLVMDIBuilderInsertDbgValueRecordAtEnd(
     LLVMDIBuilderRef Builder, LLVMValueRef Val, LLVMMetadataRef VarInfo,
-    LLVMMetadataRef Expr, LLVMMetadataRef DebugLoc, LLVMBasicBlockRef Block) {
+    LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMBasicBlockRef Block) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDbgValueIntrinsic(
       unwrap(Val), unwrap<DILocalVariable>(VarInfo), unwrap<DIExpression>(Expr),
-      unwrap<DILocation>(DebugLoc),
+      DebugLoc(unwrap<MDNode>(DL)),
       Block ? InsertPosition(unwrap(Block)->end()) : nullptr);
   // This assert will fail if the module is in the old debug info format.
   // This function should only be called if the module is in the new
@@ -1979,7 +2005,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertLabelBefore(LLVMDIBuilderRef Builder,
                                                 LLVMMetadataRef Location,
                                                 LLVMValueRef InsertBefore) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertLabel(
-      unwrapDI<DILabel>(LabelInfo), unwrapDI<DILocation>(Location),
+      unwrapDI<DILabel>(LabelInfo), DebugLoc(unwrapDI<MDNode>(Location)),
       InsertBefore
           ? InsertPosition(unwrap<Instruction>(InsertBefore)->getIterator())
           : nullptr);
@@ -1998,7 +2024,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertLabelAtEnd(LLVMDIBuilderRef Builder,
                                                LLVMMetadataRef Location,
                                                LLVMBasicBlockRef InsertAtEnd) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertLabel(
-      unwrapDI<DILabel>(LabelInfo), unwrapDI<DILocation>(Location),
+      unwrapDI<DILabel>(LabelInfo), DebugLoc(unwrapDI<MDNode>(Location)),
       InsertAtEnd ? InsertPosition(unwrap(InsertAtEnd)->end()) : nullptr);
   // This assert will fail if the module is in the old debug info format.
   // This function should only be called if the module is in the new

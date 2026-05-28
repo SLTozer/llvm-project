@@ -5184,7 +5184,8 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       uint64_t AtomGroup = Record.size() == 7 ? Record[5] : 0;
       uint8_t AtomRank = Record.size() == 7 ? Record[6] : 0;
 
-      MDNode *Scope = nullptr, *IA = nullptr;
+      MDNode *Scope = nullptr;
+      DebugLoc IA;
       if (ScopeID) {
         Scope = dyn_cast_or_null<MDNode>(
             MDLoader->getMetadataFwdRefOrLoad(ScopeID - 1));
@@ -5192,14 +5193,14 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
           return error("Invalid debug loc record");
       }
       if (IAID) {
-        IA = dyn_cast_or_null<MDNode>(
-            MDLoader->getMetadataFwdRefOrLoad(IAID - 1));
+        IA = DebugLoc(dyn_cast_or_null<MDNode>(
+            MDLoader->getMetadataFwdRefOrLoad(IAID - 1)));
         if (!IA)
           return error("Invalid debug loc record");
       }
 
-      LastLoc = DILocation::get(Scope->getContext(), Line, Col, Scope, IA,
-                                isImplicitCode, AtomGroup, AtomRank);
+      LastLoc = DebugLoc::get(Scope->getContext(), Line, Col, Scope, IA,
+                              isImplicitCode, AtomGroup, AtomRank);
       I->setDebugLoc(LastLoc);
       I = nullptr;
       continue;
@@ -6731,10 +6732,10 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       Instruction *Inst = getLastInstruction();
       if (!Inst)
         return error("Invalid dbg record: missing instruction");
-      DILocation *DIL = cast<DILocation>(getFnMetadataByID(Record[0]));
+      DebugLoc DIL(static_cast<MDNode*>(cast<DILocation>(getFnMetadataByID(Record[0]))));
       DILabel *Label = cast<DILabel>(getFnMetadataByID(Record[1]));
       Inst->getParent()->insertDbgRecordBefore(
-          new DbgLabelRecord(Label, DebugLoc(DIL)), Inst->getIterator());
+          new DbgLabelRecord(Label, DIL), Inst->getIterator());
       continue; // This isn't an instruction.
     }
     case bitc::FUNC_CODE_DEBUG_RECORD_VALUE_SIMPLE:
@@ -6763,7 +6764,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
       unsigned Slot = 0;
       // Common fields (0-2).
-      DILocation *DIL = cast<DILocation>(getFnMetadataByID(Record[Slot++]));
+      DebugLoc DIL(static_cast<MDNode*>(cast<DILocation>(getFnMetadataByID(Record[Slot++]))));
       DILocalVariable *Var =
           cast<DILocalVariable>(getFnMetadataByID(Record[Slot++]));
       DIExpression *Expr =

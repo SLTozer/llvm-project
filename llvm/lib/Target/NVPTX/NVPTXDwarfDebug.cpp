@@ -109,8 +109,8 @@ void NVPTXDwarfDebug::recordTargetSourceLine(const DebugLoc &DL,
   // inlined_at directive, we might need to emit additional .loc prior
   // to it for the location contained in the inlined_at.
   SmallVector<DebugLoc , 8> WorkList;
-  SmallDenseSet<DebugLoc , 8> WorkListSet;
-  DebugLoc EmitLoc = DL.get();
+  SmallDenseSet<DebugLocKey , 8> WorkListSet;
+  DebugLoc EmitLoc = DL;
 
   if (!EmitLoc)
     return;

@@ -1067,16 +1067,16 @@ public:
     DebugVariable Var(MI.getDebugVariable(), MI.getDebugExpression(),
                       MI.getDebugLoc()->getInlinedAt());
     // Either insert or fetch an ID number for this variable.
-    DebugVariableID VarID = DVMap.insertDVID(Var, MI.getDebugLoc().get());
+    DebugVariableID VarID = DVMap.insertDVID(Var, MI.getDebugLoc());
     DbgValue Rec = (DebugOps.size() > 0)
                        ? DbgValue(DebugOps, Properties)
                        : DbgValue(Properties, DbgValue::Undef);
 
     // Attempt insertion; overwrite if it's already mapped.
     Vars.insert_or_assign(VarID, Rec);
-    Scopes[VarID] = MI.getDebugLoc().get();
+    Scopes[VarID] = MI.getDebugLoc();
 
-    considerOverlaps(Var, MI.getDebugLoc().get());
+    considerOverlaps(Var, MI.getDebugLoc());
   }
 
   void considerOverlaps(const DebugVariable &Var, DebugLoc Loc) {

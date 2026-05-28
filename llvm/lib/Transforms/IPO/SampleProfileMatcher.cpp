@@ -77,7 +77,7 @@ void SampleProfileMatcher::findIRAnchors(const Function &F,
   // top-level frame is "main:1", the callsite is "1" and the callee is "foo".
   auto FindTopLevelInlinedCallsite = [](DebugLoc DIL) {
     assert((DIL && DIL->getInlinedAt()) && "No inlined callsite");
-    DebugLoc PrevDIL = nullptr;
+    DebugLoc PrevDIL;
     do {
       PrevDIL = DIL;
       DIL = DIL->getInlinedAt();

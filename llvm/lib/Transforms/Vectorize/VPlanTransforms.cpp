@@ -2944,7 +2944,7 @@ void VPlanTransforms::addActiveLaneMask(VPlan &Plan,
     LaneMask =
         B.createNaryOp(VPInstruction::ActiveLaneMask,
                        {WideCanonicalIV, Plan.getTripCount(), ALMMultiplier},
-                       nullptr, "active.lane.mask");
+                       DebugLoc(), "active.lane.mask");
   }
 
   // Walk users of WideCanonicalIV and replace the header mask of the form

@@ -44,7 +44,7 @@ void PseudoProbeHandler::emitPseudoProbe(uint64_t Guid, uint64_t Index,
   // which means, Function A inlines function B at calliste with a probe id 88,
   // and B inlines C at probe 66 where C is represented by Guid.
   SmallVector<InlineSite, 8> ReversedInlineStack;
-  auto *InlinedAt = DLoc ? DLoc->getInlinedAt() : nullptr;
+  DebugLoc InlinedAt = DLoc ? DLoc->getInlinedAt() : DebugLoc();
   while (InlinedAt) {
     auto Name = InlinedAt->getSubprogramLinkageName();
     // Strip Coroutine suffixes from CoroSplit Pass, since pseudo probes are

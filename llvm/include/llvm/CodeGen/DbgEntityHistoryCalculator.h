@@ -93,7 +93,7 @@ public:
     EntryIndex EndIndex;
   };
   using Entries = SmallVector<Entry, 4>;
-  using InlinedEntity = std::pair<const DINode *, DebugLoc >;
+  using InlinedEntity = std::pair<const DINode *, DebugLocKey>;
   using EntriesMap = MapVector<InlinedEntity, Entries>;
 
 private:
@@ -132,7 +132,7 @@ public:
 /// a temporary (assembler) label before it.
 class DbgLabelInstrMap {
 public:
-  using InlinedEntity = std::pair<const DINode *, DebugLoc >;
+  using InlinedEntity = std::pair<const DINode *, DebugLocKey>;
   using InstrMap = MapVector<InlinedEntity, const MachineInstr *>;
 
 private:

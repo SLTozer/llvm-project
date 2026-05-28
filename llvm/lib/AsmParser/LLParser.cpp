@@ -7562,8 +7562,8 @@ bool LLParser::parseDebugRecord(DbgRecord *&DR, PerFunctionState &PFS) {
   }
 
   /// Parse DILocation.
-  MDNode *DebugLoc;
-  if (parseMDNode(DebugLoc))
+  MDNode *DbgLoc;
+  if (parseMDNode(DbgLoc))
     return true;
 
   if (parseToken(lltok::rparen, "Expected ')' here"))

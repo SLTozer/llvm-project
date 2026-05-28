@@ -253,7 +253,7 @@ CodeViewDebug::getInlineSite(DebugLoc InlinedAt,
     InlinedSubprograms.insert(Inlinee);
     auto InlineeIdx = getFuncIdForSubprogram(Inlinee);
 
-    if (InlinedAt->getInlinedAt() == nullptr)
+    if (!InlinedAt->getInlinedAt())
       CurFn->Inlinees.insert(InlineeIdx);
   }
   return *Site;
@@ -530,7 +530,7 @@ void CodeViewDebug::maybeRecordLocation(const DebugLoc &DL,
   if (!CurFn->HaveLineInfo)
     CurFn->HaveLineInfo = true;
   unsigned FileId = 0;
-  if (PrevInstLoc.get() && PrevInstLoc->getFile() == DL->getFile())
+  if (PrevInstLoc && PrevInstLoc->getFile() == DL->getFile())
     FileId = CurFn->LastFileId;
   else
     FileId = CurFn->LastFileId = maybeRecordFile(DL->getFile());
@@ -538,7 +538,7 @@ void CodeViewDebug::maybeRecordLocation(const DebugLoc &DL,
 
   unsigned FuncId = CurFn->FuncId;
   if (DebugLoc SiteLoc = DL->getInlinedAt()) {
-    DebugLoc Loc = DL.get();
+    DebugLoc Loc = DL;
 
     // If this location was actually inlined from somewhere else, give it the ID
     // of the inline call site.

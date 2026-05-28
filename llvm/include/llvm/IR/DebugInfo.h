@@ -89,7 +89,7 @@ LLVM_ABI bool stripNonLineTableDebugInfo(Module &M);
 /// updated loop metadata node if it is non-null.
 LLVM_ABI void
 updateLoopMetadataDebugLocations(Instruction &I,
-                                 function_ref<Metadata *(Metadata *)> Updater);
+                                 function_ref<DebugLoc(DebugLoc)> Updater);
 
 /// Return Debug Info Metadata Version by checking module flags.
 LLVM_ABI unsigned getDebugMetadataVersionFromModule(const Module &M);
@@ -244,7 +244,7 @@ LLVM_ABI void remapAssignID(DenseMap<DIAssignID *, DIAssignID *> &Map,
 /// capture.
 struct VarRecord {
   DILocalVariable *Var;
-  DebugLoc DL;
+  DebugLocKey DL;
 
   VarRecord(DbgVariableRecord *DVR)
       : Var(DVR->getVariable()), DL(getDebugValueLoc(DVR)) {}
@@ -262,12 +262,12 @@ struct VarRecord {
 template <> struct DenseMapInfo<at::VarRecord> {
   static inline at::VarRecord getEmptyKey() {
     return at::VarRecord(DenseMapInfo<DILocalVariable *>::getEmptyKey(),
-                         DenseMapInfo<DebugLoc >::getEmptyKey());
+                         DenseMapInfo<DebugLocKey>::getEmptyKey());
   }
 
   static inline at::VarRecord getTombstoneKey() {
     return at::VarRecord(DenseMapInfo<DILocalVariable *>::getTombstoneKey(),
-                         DenseMapInfo<DebugLoc >::getTombstoneKey());
+                         DenseMapInfo<DebugLocKey>::getTombstoneKey());
   }
 
   static unsigned getHashValue(const at::VarRecord &Var) {

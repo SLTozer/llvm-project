@@ -191,7 +191,7 @@ bool llvm::applyDebugifyMetadata(
       Value *V = &TemplateInst;
       if (TemplateInst.getType()->isVoidTy())
         V = ConstantInt::get(Int32Ty, 0);
-      DebugLoc Loc = TemplateInst.getDebugLoc().get();
+      DebugLoc Loc = TemplateInst.getDebugLoc();
       auto LocalVar = DIB.createAutoVariable(SP, Name, File, Loc->getLine(),
                                              getCachedDIType(V->getType()),
                                              /*AlwaysPreserve=*/true);
@@ -205,7 +205,7 @@ bool llvm::applyDebugifyMetadata(
         uint64_t AtomGroup = ApplyAtomGroups ? NextLine : 0;
         uint8_t AtomRank = ApplyAtomGroups ? 1 : 0;
         uint64_t Line = NextLine++;
-        I.setDebugLoc(DILocation::get(Ctx, Line, 1, SP, nullptr, false,
+        I.setDebugLoc(DebugLoc::get(Ctx, Line, 1, SP, DebugLoc(), false,
                                       AtomGroup, AtomRank));
       }
 
@@ -354,12 +354,12 @@ bool llvm::stripDebugifyMetadata(Module &M) {
 }
 
 bool hasLoc(const Instruction &I) {
-  DebugLoc Loc = I.getDebugLoc().get();
+  DebugLoc Loc = I.getDebugLoc();
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
   DebugLocKind Kind = I.getDebugLoc().getKind();
   return Loc || Kind != DebugLocKind::Normal;
 #else
-  return Loc;
+  return (bool)Loc;
 #endif
 }
 

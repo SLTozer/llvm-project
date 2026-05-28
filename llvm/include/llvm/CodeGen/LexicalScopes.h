@@ -51,7 +51,6 @@ public:
            DICompileUnit::NoDebug &&
            "Don't build lexical scopes for non-debug locations");
     assert(D->isResolved() && "Expected resolved node");
-    assert((!I || I->isResolved()) && "Expected resolved node");
     if (Parent)
       Parent->addChild(this);
   }
@@ -218,9 +217,9 @@ private:
   /// then create new lexical scope.
   LLVM_ABI LexicalScope *
   getOrCreateLexicalScope(const DILocalScope *Scope,
-                          DebugLoc IA = nullptr);
+                          DebugLoc IA = DebugLoc());
   LexicalScope *getOrCreateLexicalScope(DebugLoc DL) {
-    return DL ? getOrCreateLexicalScope(DL->getScope(), DL->getInlinedAt())
+    return DL ? getOrCreateLexicalScope(DL->getScope(), DL.getInlinedAt())
               : nullptr;
   }
 
@@ -250,9 +249,9 @@ private:
   std::unordered_map<const DILocalScope *, LexicalScope> LexicalScopeMap;
 
   /// Tracks inlined function scopes in current function.
-  std::unordered_map<std::pair<const DILocalScope *, DebugLoc >,
+  std::unordered_map<std::pair<const DILocalScope *, DebugLocKey>,
                      LexicalScope,
-                     pair_hash<const DILocalScope *, DebugLoc >>
+                     pair_hash<const DILocalScope *, DebugLocKey>>
       InlinedLexicalScopeMap;
 
   /// These scopes are  not included LexicalScopeMap.
@@ -268,7 +267,7 @@ private:
   /// Map a location to the set of basic blocks it dominates. This is a cache
   /// for \ref LexicalScopes::getMachineBasicBlocks results.
   using BlockSetT = SmallPtrSet<const MachineBasicBlock *, 4>;
-  DenseMap<DebugLoc , std::unique_ptr<BlockSetT>> DominatedBlocks;
+  DenseMap<DebugLocKey, std::unique_ptr<BlockSetT>> DominatedBlocks;
 };
 
 } // end namespace llvm

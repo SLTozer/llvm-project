@@ -2156,7 +2156,7 @@ bool BranchFolder::HoistCommonCodeInSuccs(MachineBasicBlock *MBB) {
 
       // Merge debug locs on hoisted instructions.
       TI->setDebugLoc(
-          DILocation::getMergedLocation(TI->getDebugLoc(), FI->getDebugLoc()));
+          DebugLoc::getMergedLocation(TI->getDebugLoc(), FI->getDebugLoc()));
       TI->moveBefore(&*Loc);
       ++FI;
     }
