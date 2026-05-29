@@ -982,7 +982,7 @@ TEST(MetadataTest, ConvertDbgToDbgVariableRecord) {
   Instruction &I = *M->getFunction("f")->getEntryBlock().getFirstNonPHIIt();
   const DILocalVariable *Var = nullptr;
   const DIExpression *Expr = nullptr;
-  DebugLoc Loc = nullptr;
+  DebugLoc Loc;
   const Metadata *MLoc = nullptr;
   DbgVariableRecord *DVR1 = nullptr;
   {
@@ -990,7 +990,7 @@ TEST(MetadataTest, ConvertDbgToDbgVariableRecord) {
     ASSERT_TRUE(DPI);
     Var = DPI->getVariable();
     Expr = DPI->getExpression();
-    Loc = DPI->getDebugLoc().get();
+    Loc = DPI->getDebugLoc();
     MLoc = DPI->getRawLocation();
 
     // Test the creation of a DbgVariableRecord and it's conversion back to a
@@ -998,7 +998,7 @@ TEST(MetadataTest, ConvertDbgToDbgVariableRecord) {
     DVR1 = new DbgVariableRecord(DPI);
     EXPECT_EQ(DVR1->getVariable(), Var);
     EXPECT_EQ(DVR1->getExpression(), Expr);
-    EXPECT_EQ(DVR1->getDebugLoc().get(), Loc);
+    EXPECT_EQ(DVR1->getDebugLoc(), Loc);
     EXPECT_EQ(DVR1->getRawLocation(), MLoc);
 
     // Erase dbg.value,
@@ -1012,7 +1012,7 @@ TEST(MetadataTest, ConvertDbgToDbgVariableRecord) {
     ASSERT_TRUE(DPI2);
     EXPECT_EQ(DPI2->getVariable(), Var);
     EXPECT_EQ(DPI2->getExpression(), Expr);
-    EXPECT_EQ(DPI2->getDebugLoc().get(), Loc);
+    EXPECT_EQ(DPI2->getDebugLoc(), Loc);
     EXPECT_EQ(DPI2->getRawLocation(), MLoc);
   }
 
@@ -1300,7 +1300,7 @@ TEST(MetadataTest, InlinedAtMethodsWithMultipleLevels) {
   Instruction &RetInst = MainFunc->getEntryBlock().front();
 
   // Use getDebugLoc() to get the location from the ret instruction.
-  DebugLoc InnermostLoc = RetInst.getDebugLoc().get();
+  DebugLoc InnermostLoc = RetInst.getDebugLoc();
   ASSERT_TRUE(InnermostLoc);
 
   // Test getScope() - should return the immediate scope (inline3).
@@ -1320,7 +1320,7 @@ TEST(MetadataTest, InlinedAtMethodsWithMultipleLevels) {
   ASSERT_TRUE(OutermostLoc);
   EXPECT_EQ(OutermostLoc->getLine(), 101u);
   EXPECT_EQ(OutermostLoc->getColumn(), 3u);
-  EXPECT_EQ(OutermostLoc->getInlinedAt(), nullptr);
+  EXPECT_EQ(OutermostLoc->getInlinedAt(), DebugLoc());
   EXPECT_EQ(cast<DISubprogram>(OutermostLoc->getScope())->getName(), "main");
 
   // Test getInlinedAtScope() - should return the scope of the outermost

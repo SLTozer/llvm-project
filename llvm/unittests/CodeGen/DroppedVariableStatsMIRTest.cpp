@@ -199,7 +199,7 @@ body:             |
       }
     }
     for (auto &MI : MBB) {
-      auto *DbgLoc = MI.getDebugLoc().get();
+      auto DbgLoc = MI.getDebugLoc();
       if (DbgLoc) {
         MI.eraseFromParent();
         break;

@@ -1802,7 +1802,7 @@ TEST(InstructionsTest, DropLocation) {
     I2->dropLocation();
     EXPECT_EQ(I2->getDebugLoc().getLine(), 0U);
     EXPECT_EQ(I2->getDebugLoc().getScope(), Scope);
-    EXPECT_EQ(I2->getDebugLoc().getInlinedAt(), nullptr);
+    EXPECT_EQ(I2->getDebugLoc().getInlinedAt(), DebugLoc());
   }
 }
 

@@ -114,12 +114,12 @@ public:
                            DINode::FlagZero, DISubprogram::SPFlagDefinition);
 
     // Make some nested scopes.
-    OutermostLoc = DILocation::get(Ctx, 3, 1, OurFunc);
-    InBlockLoc = DILocation::get(Ctx, 4, 1, OurBlock);
-    InlinedLoc = DILocation::get(Ctx, 10, 1, ToInlineFunc, InBlockLoc.get());
+    OutermostLoc = DebugLoc::get(Ctx, 3, 1, OurFunc);
+    InBlockLoc = DebugLoc::get(Ctx, 4, 1, OurBlock);
+    InlinedLoc = DebugLoc::get(Ctx, 10, 1, ToInlineFunc, InBlockLoc);
 
     // Make a scope that isn't nested within the others.
-    NotNestedBlockLoc = DILocation::get(Ctx, 4, 1, AnotherBlock);
+    NotNestedBlockLoc = DebugLoc::get(Ctx, 4, 1, AnotherBlock);
 
     LongInt = DIB.createBasicType("long", 64, llvm::dwarf::DW_ATE_unsigned);
     FuncVariable = DIB.createAutoVariable(OurFunc, "lala", OurFile, 1, LongInt);
@@ -1800,7 +1800,7 @@ TEST_F(InstrRefLDVTest, pickVPHILocDiamond) {
   DbgOpID RaxPHIInBlk3ID = addValueDbgOp(RaxPHIInBlk3);
   DbgOpID ConstZeroID = addConstDbgOp(MachineOperand::CreateImm(0));
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
   DIExpression *TwoOpExpr =
       DIExpression::get(Ctx, {dwarf::DW_OP_LLVM_arg, 0, dwarf::DW_OP_LLVM_arg,
@@ -1993,7 +1993,7 @@ TEST_F(InstrRefLDVTest, pickVPHILocLoops) {
   DbgOpID RspPHIInBlk1ID = addValueDbgOp(RspPHIInBlk1);
   DbgOpID RaxPHIInBlk1ID = addValueDbgOp(RaxPHIInBlk1);
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
   DIExpression *TwoOpExpr =
       DIExpression::get(Ctx, {dwarf::DW_OP_LLVM_arg, 0, dwarf::DW_OP_LLVM_arg,
@@ -2127,7 +2127,7 @@ TEST_F(InstrRefLDVTest, pickVPHILocBadlyNestedLoops) {
   addValueDbgOp(RaxPHIInBlk1);
   DbgOpID RbxPHIInBlk1ID = addValueDbgOp(RbxPHIInBlk1);
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
   SmallVector<DbgValue, 32> VLiveOuts;
   VLiveOuts.resize(5, DbgValue(EmptyProps, DbgValue::Undef));
@@ -2261,7 +2261,7 @@ TEST_F(InstrRefLDVTest, vlocJoinDiamond) {
   DbgOpID LiveInRspID = DbgOpID(false, 0);
   DbgOpID LiveInRaxID = DbgOpID(false, 1);
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
   SmallVector<DbgValue, 32> VLiveOuts;
   VLiveOuts.resize(4, DbgValue(EmptyProps, DbgValue::Undef));
@@ -2445,7 +2445,7 @@ TEST_F(InstrRefLDVTest, vlocJoinLoops) {
   DbgOpID LiveInRspID = DbgOpID(false, 0);
   DbgOpID LiveInRaxID = DbgOpID(false, 1);
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
   SmallVector<DbgValue, 32> VLiveOuts;
   VLiveOuts.resize(3, DbgValue(EmptyProps, DbgValue::Undef));
@@ -2546,7 +2546,7 @@ TEST_F(InstrRefLDVTest, vlocJoinBadlyNestedLoops) {
   DbgOpID LiveInRaxID = DbgOpID(false, 1);
   DbgOpID LiveInRbxID = DbgOpID(false, 2);
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
   SmallVector<DbgValue, 32> VLiveOuts;
   VLiveOuts.resize(5, DbgValue(EmptyProps, DbgValue::Undef));
@@ -2631,7 +2631,7 @@ TEST_F(InstrRefLDVTest, VLocSingleBlock) {
   DbgOpID LiveInRspID = addValueDbgOp(LiveInRsp);
   MInLocs[0][0] = MOutLocs[0][0] = LiveInRsp;
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DebugVariableID VarID = LDV->getDVMap().insertDVID(Var, OutermostLoc);
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
 
@@ -2694,7 +2694,7 @@ TEST_F(InstrRefLDVTest, VLocDiamondBlocks) {
   initValueArray(MInLocs, 4, 2);
   initValueArray(MOutLocs, 4, 2);
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DebugVariableID VarID = LDV->getDVMap().insertDVID(Var, OutermostLoc);
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
 
@@ -2916,7 +2916,7 @@ TEST_F(InstrRefLDVTest, VLocSimpleLoop) {
   initValueArray(MInLocs, 3, 2);
   initValueArray(MOutLocs, 3, 2);
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DebugVariableID VarID = LDV->getDVMap().insertDVID(Var, OutermostLoc);
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
   DIExpression *TwoOpExpr =
@@ -3195,7 +3195,7 @@ TEST_F(InstrRefLDVTest, VLocNestedLoop) {
   initValueArray(MInLocs, 5, 2);
   initValueArray(MOutLocs, 5, 2);
 
-  DebugVariable Var(FuncVariable, std::nullopt, nullptr);
+  DebugVariable Var(FuncVariable, std::nullopt, DebugLoc());
   DebugVariableID VarID = LDV->getDVMap().insertDVID(Var, OutermostLoc);
   DbgValueProperties EmptyProps(EmptyExpr, false, false);
 

@@ -48,9 +48,9 @@ TEST(FindDebugLocTest, DifferentIterators) {
                          DINode::FlagZero, DISubprogram::SPFlagDefinition);
 
   DebugLoc DL0;
-  DebugLoc DL1 = DILocation::get(Ctx, 1, 0, OurFunc);
-  DebugLoc DL2 = DILocation::get(Ctx, 2, 0, OurFunc);
-  DebugLoc DL3 = DILocation::get(Ctx, 3, 0, OurFunc);
+  DebugLoc DL1 = DebugLoc::get(Ctx, 1, 0, OurFunc);
+  DebugLoc DL2 = DebugLoc::get(Ctx, 2, 0, OurFunc);
+  DebugLoc DL3 = DebugLoc::get(Ctx, 3, 0, OurFunc);
 
   // Test using and empty MBB.
   EXPECT_EQ(DL0, MBB.findDebugLoc(MBB.instr_begin()));
