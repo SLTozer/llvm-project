@@ -2904,7 +2904,7 @@ static void writeAsOperandInternal(raw_ostream &Out, DebugLoc DL,
     }
     // Give the pointer value instead of "badref", since this comes up all
     // the time when debugging.
-    Out << "<" << DL.getRawPtr() << ">";
+    Out << "<" << DL.getAsMDNode() << ">";
   } else
     Out << '!' << Slot;
   return;

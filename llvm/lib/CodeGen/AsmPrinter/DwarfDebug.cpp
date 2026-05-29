@@ -2070,7 +2070,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
     // The scope could have an extra lexical block file.
     const DILocalScope *LocalScope =
         Label->getScope()->getNonLexicalBlockFileScope();
-    // Get inlined DILocation if it is inlined label.
+    // Get inlined DebugLoc if it is inlined label.
     if (DebugLoc IA = IL.second)
       Scope = LScopes.findInlinedScope(LocalScope, IA);
     else

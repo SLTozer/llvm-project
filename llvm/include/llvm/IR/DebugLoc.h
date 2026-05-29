@@ -352,21 +352,11 @@ public:
   //////////////////////////////////////////////////////////////////////////////
 
   bool operator<(const DebugLoc &Other) const {
-    return privateGet() < Other.privateGet();
+    return Loc < Other.Loc;
   }
 
   DebugLoc applyMap(std::function<DILocation*(DILocation*)> Map) const {
     return DebugLoc(Map(privateGet()), std::nullopt);
-  }
-
-  void *getRawPtr() const {
-    return Loc;
-  }
-  DILocation *getMetadataForPrintingAndParsing() const {
-    return privateGet();
-  }
-  static DebugLoc getFromDILocationForParsing(const DILocation *DIL) {
-    return DebugLoc(DIL, std::nullopt);
   }
 
   //////////////////////////////////////////////////////////////////////////////

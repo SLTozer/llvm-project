@@ -154,7 +154,7 @@ public:
 
     // Only print the check message if we're actually checking it.
 #ifndef NDEBUG
-    LLVM_DEBUG(dbgs() << "Checking DebugLoc from " << *CurrInst
+    LLVM_DEBUG(dbgs() << "Checking DILocation from " << *CurrInst
                       << " was copied to " << MI);
 #endif
     // We allow insts in the entry block to have no debug loc because
