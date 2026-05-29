@@ -7758,7 +7758,7 @@ convertOmpTarget(Operation &opInst, llvm::IRBuilderBase &builder,
   llvm::Function *parentLLVMFn = parentBB->getParent();
   assert(parentLLVMFn && "Parent Function must be valid");
   if (llvm::DISubprogram *SP = parentLLVMFn->getSubprogram())
-    builder.SetCurrentDebugLocation(llvm::DILocation::get(
+    builder.SetCurrentDebugLocation(llvm::DebugLoc::get(
         parentLLVMFn->getContext(), outlinedFnLoc.getLine(),
         outlinedFnLoc.getCol(), SP, outlinedFnLoc.getInlinedAt()));
 

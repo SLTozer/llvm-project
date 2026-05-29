@@ -487,7 +487,7 @@ std::optional<DINodeAttr> DebugImporter::createRecSelf(llvm::DINode *node) {
 // Locations
 //===----------------------------------------------------------------------===//
 
-Location DebugImporter::translateLoc(llvm::DILocation *loc) {
+Location DebugImporter::translateLoc(llvm::DebugLoc loc) {
   if (!loc)
     return UnknownLoc::get(context);
 
@@ -501,7 +501,7 @@ Location DebugImporter::translateLoc(llvm::DILocation *loc) {
                                           context);
 
   // Add call site information, if available.
-  if (llvm::DILocation *inlinedAt = loc->getInlinedAt())
+  if (llvm::DebugLoc inlinedAt = loc->getInlinedAt())
     result = CallSiteLoc::get(result, translateLoc(inlinedAt));
 
   return result;

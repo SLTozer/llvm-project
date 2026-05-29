@@ -34,7 +34,7 @@ public:
   DebugImporter(ModuleOp mlirModule, bool dropDICompositeTypeElements);
 
   /// Translates the given LLVM debug location to an MLIR location.
-  Location translateLoc(llvm::DILocation *loc);
+  Location translateLoc(llvm::DebugLoc loc);
 
   /// Translates the LLVM DWARF expression metadata to MLIR.
   DIExpressionAttr translateExpression(llvm::DIExpression *node);

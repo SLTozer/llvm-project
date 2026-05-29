@@ -57,7 +57,7 @@ struct LoopMetadataConversion {
   FusedLoc convertStartLoc();
   FailureOr<FusedLoc> convertEndLoc();
 
-  llvm::SmallVector<llvm::DILocation *, 2> locations;
+  llvm::SmallVector<llvm::DebugLoc, 2> locations;
   llvm::StringMap<const llvm::MDNode *> propertyMap;
   const llvm::MDNode *node;
   Location loc;
@@ -73,8 +73,8 @@ LogicalResult LoopMetadataConversion::initConversionState() {
     return emitWarning(loc) << "invalid loop node";
 
   for (const llvm::MDOperand &operand : llvm::drop_begin(node->operands())) {
-    if (auto *diLoc = dyn_cast<llvm::DILocation>(operand)) {
-      locations.push_back(diLoc);
+    if (isa<llvm::DILocation>(operand)) {
+      locations.push_back(llvm::DebugLoc::getFromValidDILocationLoopMDOperand(operand));
       continue;
     }
 

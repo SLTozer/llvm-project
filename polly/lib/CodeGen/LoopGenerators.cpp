@@ -275,5 +275,5 @@ DebugLoc polly::createDebugLocForGeneratedCode(Function *F) {
       dyn_cast_or_null<DISubprogram>(F->getMetadata(LLVMContext::MD_dbg));
   if (!DILScope)
     return DebugLoc();
-  return DILocation::get(Ctx, 0, 0, DILScope);
+  return DebugLoc::get(Ctx, 0, 0, DILScope);
 }

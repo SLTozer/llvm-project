@@ -543,7 +543,7 @@ llvm::DINode *DebugTranslation::translate(DINodeAttr attr) {
 //===----------------------------------------------------------------------===//
 
 /// Translate the given location to an llvm debug location.
-llvm::DILocation *DebugTranslation::translateLoc(Location loc,
+llvm::DebugLoc DebugTranslation::translateLoc(Location loc,
                                                  llvm::DILocalScope *scope) {
   if (!debugEmissionIsEnabled)
     return nullptr;
@@ -571,9 +571,9 @@ DebugTranslation::translateGlobalVariableExpression(
 }
 
 /// Translate the given location to an llvm DebugLoc.
-llvm::DILocation *DebugTranslation::translateLoc(Location loc,
+llvm::DebugLoc DebugTranslation::translateLoc(Location loc,
                                                  llvm::DILocalScope *scope,
-                                                 llvm::DILocation *inlinedAt) {
+                                                 llvm::DebugLoc inlinedAt) {
   // LLVM doesn't have a representation for unknown.
   if (isa<UnknownLoc>(loc))
     return nullptr;
@@ -583,7 +583,7 @@ llvm::DILocation *DebugTranslation::translateLoc(Location loc,
   if (existingIt != locationToLoc.end())
     return existingIt->second;
 
-  llvm::DILocation *llvmLoc = nullptr;
+  llvm::DebugLoc llvmLoc;
   if (auto callLoc = dyn_cast<CallSiteLoc>(loc)) {
     // For callsites, the caller is fed as the inlinedAt for the callee.
     auto *callerLoc = translateLoc(callLoc.getCaller(), scope, inlinedAt);
@@ -602,12 +602,12 @@ llvm::DILocation *DebugTranslation::translateLoc(Location loc,
       llvmLoc = callerLoc;
 
   } else if (auto fileLoc = dyn_cast<FileLineColLoc>(loc)) {
-    // A scope of a DILocation cannot be null.
+    // A scope of a DebugLoc cannot be null.
     if (!scope)
       return nullptr;
     llvmLoc =
-        llvm::DILocation::get(llvmCtx, fileLoc.getLine(), fileLoc.getColumn(),
-                              scope, const_cast<llvm::DILocation *>(inlinedAt));
+        llvm::DebugLoc::get(llvmCtx, fileLoc.getLine(), fileLoc.getColumn(),
+                              scope, inlinedAt);
 
   } else if (auto fusedLoc = dyn_cast<FusedLoc>(loc)) {
     ArrayRef<Location> locations = fusedLoc.getLocations();
@@ -620,7 +620,7 @@ llvm::DILocation *DebugTranslation::translateLoc(Location loc,
     // For fused locations, merge each of the nodes.
     llvmLoc = translateLoc(locations.front(), scope, inlinedAt);
     for (Location locIt : locations.drop_front()) {
-      llvmLoc = llvm::DILocation::getMergedLocation(
+      llvmLoc = llvm::DebugLoc::getMergedLocation(
           llvmLoc, translateLoc(locIt, scope, inlinedAt));
     }
 

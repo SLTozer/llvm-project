@@ -2087,7 +2087,7 @@ ModuleImport::matchAliasScopeAttrs(llvm::Value *value) {
   return lookupAliasScopeAttrs(node);
 }
 
-Location ModuleImport::translateLoc(llvm::DILocation *loc) {
+Location ModuleImport::translateLoc(llvm::DebugLoc loc) {
   return debugImporter->translateLoc(loc);
 }
 

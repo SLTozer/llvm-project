@@ -291,7 +291,7 @@ public:
   llvm::Module *getLLVMModule() { return llvmModule.get(); }
 
   /// Translates the given location.
-  llvm::DILocation *translateLoc(Location loc, llvm::DILocalScope *scope);
+  llvm::DebugLoc translateLoc(Location loc, llvm::DILocalScope *scope);
 
   /// Translates the given LLVM DWARF expression metadata.
   llvm::DIExpression *translateExpression(LLVM::DIExpressionAttr attr);

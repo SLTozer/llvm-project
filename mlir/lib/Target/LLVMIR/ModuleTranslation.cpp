@@ -2438,7 +2438,7 @@ llvm::vfs::FileSystem &ModuleTranslation::getFileSystem() {
   return *llvm::vfs::getRealFileSystem();
 }
 
-llvm::DILocation *ModuleTranslation::translateLoc(Location loc,
+llvm::DebugLoc ModuleTranslation::translateLoc(Location loc,
                                                   llvm::DILocalScope *scope) {
   return debugTranslation->translateLoc(loc, scope);
 }

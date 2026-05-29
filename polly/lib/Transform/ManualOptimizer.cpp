@@ -65,7 +65,7 @@ static DebugLoc findFirstDebugLoc(MDNode *MD) {
       Metadata *A = X.get();
       if (!isa<DILocation>(A))
         continue;
-      return cast<DILocation>(A);
+      return DebugLoc::getFromValidDILocationLoopMDOperand(X);
     }
   }
 

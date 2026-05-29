@@ -185,7 +185,7 @@ public:
   matchAliasScopeAttrs(llvm::Value *value);
 
   /// Translates the debug location.
-  Location translateLoc(llvm::DILocation *loc);
+  Location translateLoc(llvm::DebugLoc loc);
 
   /// Converts the type from LLVM to MLIR LLVM dialect.
   Type convertType(llvm::Type *type) {

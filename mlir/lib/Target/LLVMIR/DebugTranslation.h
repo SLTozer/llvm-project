@@ -35,7 +35,7 @@ public:
   void addModuleFlagsIfNotPresent();
 
   /// Translate the given location to an llvm debug location.
-  llvm::DILocation *translateLoc(Location loc, llvm::DILocalScope *scope);
+  llvm::DebugLoc translateLoc(Location loc, llvm::DILocalScope *scope);
 
   /// Translates the given DWARF expression metadata to to LLVM.
   llvm::DIExpression *translateExpression(LLVM::DIExpressionAttr attr);
@@ -61,8 +61,8 @@ public:
 private:
   /// Translate the given location to an llvm debug location with the given
   /// scope and inlinedAt parameters.
-  llvm::DILocation *translateLoc(Location loc, llvm::DILocalScope *scope,
-                                 llvm::DILocation *inlinedAt);
+  llvm::DebugLoc translateLoc(Location loc, llvm::DILocalScope *scope,
+                                 llvm::DebugLoc inlinedAt);
 
   /// Create an llvm debug file for the given file path.
   llvm::DIFile *translateFile(StringRef fileName);
@@ -120,8 +120,8 @@ private:
 
   /// A mapping between mlir location+scope and the corresponding llvm debug
   /// metadata.
-  DenseMap<std::tuple<Location, llvm::DILocalScope *, const llvm::DILocation *>,
-           llvm::DILocation *>
+  DenseMap<std::tuple<Location, llvm::DILocalScope *, llvm::DebugLoc>,
+           llvm::DebugLoc>
       locationToLoc;
 
   /// A mapping between debug attribute and the corresponding llvm debug
