@@ -14,6 +14,10 @@
 
 using namespace llvm;
 
+namespace llvm {
+extern cl::opt<bool> PickMergedSourceLocations;
+} // end namespace llvm
+
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN
 #include "llvm/Support/Signals.h"
 
@@ -208,7 +212,7 @@ DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
   return Merged;
 }
 DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {
-  if (!LocA || !LocB) {
+  if (!(PickMergedSourceLocations && (LocA || LocB)) && (!LocA || !LocB)) {
     // If coverage tracking is enabled, prioritize returning empty non-annotated
     // locations to empty annotated locations.
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
