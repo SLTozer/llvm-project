@@ -51,7 +51,7 @@ public:
   getDuplicationFactor(unsigned Discriminator,
                        bool UseFSD = ProfileGeneratorBase::UseFSDiscriminator) {
     return UseFSD ? 1
-                  : llvm::DILocation::getDuplicationFactorFromDiscriminator(
+                  : llvm::DebugLoc::getDuplicationFactorFromDiscriminator(
                         Discriminator);
   }
 
@@ -59,7 +59,7 @@ public:
   getBaseDiscriminator(unsigned Discriminator,
                        bool UseFSD = ProfileGeneratorBase::UseFSDiscriminator) {
     return UseFSD ? Discriminator
-                  : DILocation::getBaseDiscriminatorFromDiscriminator(
+                  : DebugLoc::getBaseDiscriminatorFromDiscriminator(
                         Discriminator, /* IsFSDiscriminator */ false);
   }
 

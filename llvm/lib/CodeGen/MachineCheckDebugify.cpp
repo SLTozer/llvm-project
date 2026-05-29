@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file This checks debug info after mir-debugify (+ pass-to-test). Currently
-/// it simply checks the integrity of line info in DILocation and
+/// it simply checks the integrity of line info in DebugLoc and
 /// DILocalVariable which mir-debugifiy generated before.
 //===----------------------------------------------------------------------===//
 

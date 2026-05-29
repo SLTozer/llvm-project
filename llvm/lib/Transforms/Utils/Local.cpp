@@ -3429,7 +3429,7 @@ void llvm::hoistAllInstructionsInto(BasicBlock *DomBlock, Instruction *InsertPt,
   //
   // As per PR39141 (comment #8), the more fundamental reason why the dbg.values
   // need to be deleted, is because there will not be any instructions with a
-  // DILocation in either branch left after performing the transformation. We
+  // DebugLoc in either branch left after performing the transformation. We
   // can only insert a dbg.value after the two branches are joined again.
   //
   // See PR38762, PR39243 for more details.

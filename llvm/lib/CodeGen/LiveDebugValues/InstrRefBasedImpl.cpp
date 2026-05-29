@@ -3622,7 +3622,7 @@ bool InstrRefBasedLDV::depthFirstVLocAndEmit(
     // We obesrve scopes with children twice here, once descending in, once
     // ascending out of the scope nest. Use HighestDFSIn as a ratchet to ensure
     // we don't process a scope twice. Additionally, ignore scopes that don't
-    // have a DILocation -- by proxy, this means we never tracked any variable
+    // have a DebugLoc -- by proxy, this means we never tracked any variable
     // assignments in that scope.
     auto DILocIt = ScopeToDILocation.find(WS);
     if (HighestDFSIn <= WS->getDFSIn() && DILocIt != ScopeToDILocation.end()) {

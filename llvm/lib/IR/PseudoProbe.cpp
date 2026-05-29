@@ -23,7 +23,7 @@ static std::optional<PseudoProbe>
 extractProbeFromDiscriminator(DebugLoc DIL) {
   if (DIL) {
     auto Discriminator = DIL->getDiscriminator();
-    if (DILocation::isPseudoProbeDiscriminator(Discriminator)) {
+    if (DebugLoc::isPseudoProbeDiscriminator(Discriminator)) {
       PseudoProbe Probe;
       Probe.Id =
           PseudoProbeDwarfDiscriminator::extractProbeIndex(Discriminator);
@@ -86,7 +86,7 @@ void llvm::setProbeDistributionFactor(Instruction &Inst, float Factor) {
     if (const DebugLoc &DLoc = Inst.getDebugLoc()) {
       DebugLoc DIL = DLoc;
       auto Discriminator = DIL->getDiscriminator();
-      if (DILocation::isPseudoProbeDiscriminator(Discriminator)) {
+      if (DebugLoc::isPseudoProbeDiscriminator(Discriminator)) {
         auto Index =
             PseudoProbeDwarfDiscriminator::extractProbeIndex(Discriminator);
         auto Type =

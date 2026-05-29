@@ -24,7 +24,6 @@ namespace llvm {
 class DIScope;
 class DILocalVariable;
 class Function;
-class DILocation;
 class DebugLoc;
 class StringRef;
 

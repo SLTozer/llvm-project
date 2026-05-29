@@ -2148,7 +2148,7 @@ void SampleProfileLoader::removePseudoProbeInstsDiscriminator(Module &M) {
           if (DebugLoc DIL = I.getDebugLoc()) {
             // Restore dwarf discriminator for call.
             unsigned Discriminator = DIL->getDiscriminator();
-            if (DILocation::isPseudoProbeDiscriminator(Discriminator)) {
+            if (DebugLoc::isPseudoProbeDiscriminator(Discriminator)) {
               std::optional<uint32_t> DwarfDiscriminator =
                   PseudoProbeDwarfDiscriminator::extractDwarfBaseDiscriminator(
                       Discriminator);

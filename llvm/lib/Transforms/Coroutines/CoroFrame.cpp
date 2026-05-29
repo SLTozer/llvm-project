@@ -1922,7 +1922,7 @@ void coro::salvageDebugInfo(
     std::optional<BasicBlock::iterator> InsertPt;
     if (auto *I = dyn_cast<Instruction>(Storage)) {
       InsertPt = I->getInsertionPointAfterDef();
-      // Update DILocation only if variable was not inlined.
+      // Update DebugLoc only if variable was not inlined.
       DebugLoc ILoc = I->getDebugLoc();
       DebugLoc DVRLoc = DVR.getDebugLoc();
       if (ILoc && DVRLoc &&

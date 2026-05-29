@@ -1586,7 +1586,7 @@ void AssignmentTrackingLowering::processUnknownStoreToVariable(
   auto InsertBefore = getNextNode(&I);
   assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
-  // Get DILocation for this assignment.
+  // Get DebugLoc for this assignment.
   DebugVariable V = FnVarLocs->getVariable(Var);
   DebugLoc InlinedAt = V.getInlinedAt();
   DebugLoc DILoc = DebugLoc::get(
@@ -1667,7 +1667,7 @@ void AssignmentTrackingLowering::processUntaggedInstruction(
     auto InsertBefore = getNextNode(&I);
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
-    // Get DILocation for this unrecorded assignment.
+    // Get DebugLoc for this unrecorded assignment.
     DebugLoc InlinedAt = V.getInlinedAt();
     DebugLoc DILoc = DebugLoc::get(
         Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);

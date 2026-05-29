@@ -22,7 +22,6 @@
 namespace llvm {
 
 class AsmPrinter;
-class DILocation;
 
 class PseudoProbeHandler {
   // Target of pseudo probe emission.

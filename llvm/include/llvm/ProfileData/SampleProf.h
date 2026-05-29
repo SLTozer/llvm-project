@@ -41,7 +41,6 @@
 
 namespace llvm {
 
-class DILocation;
 class raw_ostream;
 
 LLVM_ABI const std::error_category &sampleprof_category();

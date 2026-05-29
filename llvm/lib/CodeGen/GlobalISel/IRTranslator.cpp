@@ -133,7 +133,7 @@ IRTranslator::IRTranslator(CodeGenOptLevel optlevel)
 
 #ifndef NDEBUG
 namespace {
-/// Verify that every instruction created has the same DILocation as the
+/// Verify that every instruction created has the same DebugLoc as the
 /// instruction being translated.
 class DILocationVerifier : public GISelChangeObserver {
   const Instruction *CurrInst = nullptr;
@@ -154,7 +154,7 @@ public:
 
     // Only print the check message if we're actually checking it.
 #ifndef NDEBUG
-    LLVM_DEBUG(dbgs() << "Checking DILocation from " << *CurrInst
+    LLVM_DEBUG(dbgs() << "Checking DebugLoc from " << *CurrInst
                       << " was copied to " << MI);
 #endif
     // We allow insts in the entry block to have no debug loc because
@@ -4169,7 +4169,7 @@ void IRTranslator::finalizeFunction() {
   VMap.reset();
   FrameIndices.clear();
   MachinePreds.clear();
-  // MachineIRBuilder::DebugLoc can outlive the DILocation it holds. Clear it
+  // MachineIRBuilder::DebugLoc can outlive the DebugLoc it holds. Clear it
   // to avoid accessing free’d memory (in runOnMachineFunction) and to avoid
   // destroying it twice (in ~IRTranslator() and ~LLVMContext())
   EntryBuilder.reset();

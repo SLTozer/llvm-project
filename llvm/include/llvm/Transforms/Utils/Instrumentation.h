@@ -171,7 +171,7 @@ struct SanitizerCoverageOptions {
 };
 
 // Use to ensure the inserted instrumentation has a DebugLocation; if none is
-// attached to the source instruction, try to use a DILocation with offset 0
+// attached to the source instruction, try to use a DebugLoc with offset 0
 // scoped to surrounding function (if it has a DebugLocation).
 //
 // Some non-call instructions may be missing debug info, but when inserting

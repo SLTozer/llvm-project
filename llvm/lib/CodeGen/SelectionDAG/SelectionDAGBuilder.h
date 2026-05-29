@@ -59,7 +59,6 @@ class ConstrainedFPIntrinsic;
 class DataLayout;
 class DIExpression;
 class DILocalVariable;
-class DILocation;
 class FenceInst;
 class FunctionLoweringInfo;
 class GCFunctionInfo;

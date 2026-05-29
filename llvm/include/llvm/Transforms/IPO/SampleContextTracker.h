@@ -25,7 +25,6 @@
 
 namespace llvm {
 class CallBase;
-class DILocation;
 class Function;
 class Instruction;
 
@@ -107,7 +106,7 @@ public:
   LLVM_ABI std::vector<const FunctionSamples *>
   getIndirectCalleeContextSamplesFor(DebugLoc DIL);
   // Query context profile for a given location. The full context
-  // is identified by input DILocation.
+  // is identified by input DebugLoc.
   LLVM_ABI FunctionSamples *getContextSamplesFor(DebugLoc DIL);
   // Query context profile for a given sample contxt of a function.
   LLVM_ABI FunctionSamples *getContextSamplesFor(const SampleContext &Context);

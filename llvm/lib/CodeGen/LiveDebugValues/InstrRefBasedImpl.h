@@ -1142,7 +1142,7 @@ public:
   /// Used as the result type for the variable value dataflow problem.
   using LiveInsT = SmallVector<SmallVector<VarAndLoc, 8>, 8>;
 
-  /// Mapping from lexical scopes to a DILocation in that scope.
+  /// Mapping from lexical scopes to a DebugLoc in that scope.
   using ScopeToDILocT = DenseMap<const LexicalScope *, DebugLoc >;
 
   /// Mapping from lexical scopes to variables in that scope.

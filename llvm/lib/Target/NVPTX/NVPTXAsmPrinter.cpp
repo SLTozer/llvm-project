@@ -2103,7 +2103,7 @@ static bool isPTXInstruction(StringRef Line) {
           Trimmed[0] == '_');
 }
 
-/// Returns the DILocation for an inline asm MachineInstr if debug line info
+/// Returns the DebugLoc for an inline asm MachineInstr if debug line info
 /// should be emitted, or nullptr otherwise.
 static DebugLoc getInlineAsmDebugLoc(const MachineInstr *MI) {
   if (!MI || !MI->getDebugLoc())

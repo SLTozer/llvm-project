@@ -17,7 +17,6 @@
 
 namespace llvm {
 
-class DILocation;
 class LexicalScopes;
 class DINode;
 class MachineFunction;
