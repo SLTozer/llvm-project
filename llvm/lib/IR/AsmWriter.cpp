@@ -1330,7 +1330,7 @@ int SlotTracker::getMetadataSlot(const MDNode *N) {
   return MI == mdnMap.end() ? -1 : (int)MI->second;
 }
 int SlotTracker::getMetadataSlot(const DebugLoc &DL) {
-  return getMetadataSlot(DL.privateGet());
+  return getMetadataSlot(DL.getAsMDNode());
 }
 
 /// getLocalSlot - Get the slot number for a value that is local to a function.

@@ -489,7 +489,7 @@ bool DebugInfoFinder::addMacro(DIMacro *Macro, DIMacroFile *MacroFile) {
 /// "LoopID"). However, we could at least handle such situations more gracefully
 /// somehow (e.g. by keeping track of visited nodes and dropping metadata).
 static Metadata *updateLoopMetadataDebugLocationsRecursive(
-    Metadata *MetadataIn, function_ref<Metadata *(Metadata *)> Updater) {
+    Metadata *MetadataIn, function_ref<DebugLoc(DebugLoc)> Updater) {
   const MDTuple *M = dyn_cast_or_null<MDTuple>(MetadataIn);
   // The loop metadata options should start with a MDString.
   if (!M || M->getNumOperands() < 1 || !isa<MDString>(M->getOperand(0)))
@@ -497,16 +497,24 @@ static Metadata *updateLoopMetadataDebugLocationsRecursive(
 
   bool Updated = false;
   SmallVector<Metadata *, 4> MDs{M->getOperand(0)};
-  for (Metadata *MD : llvm::drop_begin(M->operands())) {
-    if (!MD) {
+  
+  for (const MDOperand &MDO : llvm::drop_begin(M->operands())) {
+    if (!MDO) {
       MDs.push_back(nullptr);
       continue;
     }
-    Metadata *NewMD =
-        Updater(updateLoopMetadataDebugLocationsRecursive(MD, Updater));
-    if (NewMD)
-      MDs.push_back(NewMD);
-    Updated |= NewMD != MD;
+    if (DebugLoc DL = DebugLoc::getFromValidDILocationLoopMDOperand(MDO)) {
+      if (DebugLoc NewDL = Updater(DL)) {
+        MDs.push_back(NewDL.getAsMDNode());
+        Updated |= NewDL != DL;
+      } else {
+        Updated = true;
+      }
+      continue;
+    }
+    Metadata *NewMD = updateLoopMetadataDebugLocationsRecursive(MDO, Updater);
+    MDs.push_back(NewMD);
+    Updated |= NewMD != MDO;
   }
 
   assert(!M->isDistinct() && "M should not be distinct.");
@@ -530,7 +538,7 @@ static MDNode *updateLoopMetadataDebugLocationsImpl(
       if (DebugLoc NewDL = Updater(DL))
         MDs.push_back(NewDL.getAsMDNode());
     } else {
-      MDs.push_back(MDO);
+      MDs.push_back(updateLoopMetadataDebugLocationsRecursive(MDO, Updater));
     }
   }
 
@@ -1012,7 +1020,7 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
           DebugLoc InlinedAt = DL.getInlinedAt();
           std::function<DILocation*(DILocation*)> UpdateInlinedAt = [remap](DILocation *DIL)
           {
-            return cast<DILocation>(remap(DIL));
+            return cast_or_null<DILocation>(remap(DIL));
           };
           InlinedAt = InlinedAt.applyMap(UpdateInlinedAt);
           return DebugLoc::get(M.getContext(), DL.getLine(), DL.getCol(),

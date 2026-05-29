@@ -132,12 +132,7 @@ using DebugLocRef = DILocation *;
 /// To avoid extra includes, \a DebugLoc doubles the \a DILocation API with a
 /// one based on relatively opaque \a MDNode pointers.
 class DebugLoc {
-  friend struct DenseMapInfo<const DILocation *>;
   friend struct DebugLocKey;
-  friend class DILocation;
-  friend class DebugVariable;
-  friend class SlotTracker;
-  friend class ValueEnumerator;
 
   friend hash_code hash_value(const DebugLoc &Val);
 
@@ -152,7 +147,7 @@ public:
   DebugLoc(std::nullptr_t) : Loc() {}
   LLVM_DEPRECATED("Avoid pointer comparisons for DebugLoc", "DebugLoc::operator bool()")
   bool operator==(std::nullptr_t) const { return Loc; }
-  LLVM_DEPRECATED("Avoid using direct DILocation pointers", "")
+  LLVM_DEPRECATED("Avoid using direct DILocation pointers or pointer comparisons for DebugLoc", "")
   bool operator==(const DILocation *Other) const {
     return privateGet() == Other;
   };
@@ -367,8 +362,8 @@ public:
   void *getRawPtr() const {
     return Loc;
   }
-  MDNode *getMetadataForPrintingAndParsing() const {
-    return Loc;
+  DILocation *getMetadataForPrintingAndParsing() const {
+    return privateGet();
   }
   static DebugLoc getFromDILocationForParsing(const DILocation *DIL) {
     return DebugLoc(DIL, std::nullopt);

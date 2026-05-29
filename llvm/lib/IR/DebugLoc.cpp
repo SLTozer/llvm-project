@@ -49,14 +49,14 @@ DebugLoc DebugLoc::get(LLVMContext &Context, unsigned Line, unsigned Column,
                        Metadata *Scope, DebugLoc InlinedAt,
                        bool ImplicitCode, uint64_t AtomGroup, uint8_t AtomRank) {
   // Forward to DILocation::get
-  return DebugLoc(DILocation::get(Context, Line, Column, Scope, InlinedAt.privateGet(), ImplicitCode, AtomGroup, AtomRank), std::nullopt);
+  return DebugLoc(DILocation::get(Context, Line, Column, Scope, InlinedAt.getAsMDNode(), ImplicitCode, AtomGroup, AtomRank), std::nullopt);
 }
 DebugLoc DebugLoc::getDistinct(LLVMContext &Context, unsigned Line,
                                unsigned Column, Metadata *Scope,
                                DebugLoc InlinedAt, bool ImplicitCode,
                                uint64_t AtomGroup, uint8_t AtomRank) {
   // Forward to DILocation::getDistinct
-  return DebugLoc(DILocation::getDistinct(Context, Line, Column, Scope, InlinedAt.privateGet(), ImplicitCode, AtomGroup, AtomRank), std::nullopt);
+  return DebugLoc(DILocation::getDistinct(Context, Line, Column, Scope, InlinedAt.getAsMDNode(), ImplicitCode, AtomGroup, AtomRank), std::nullopt);
 }
 
 DebugLoc DebugLoc::getFromValidDILocationLoopMDOperand(const MDOperand &MDO) {
