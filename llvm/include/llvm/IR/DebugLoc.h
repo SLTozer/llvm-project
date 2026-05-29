@@ -370,6 +370,9 @@ public:
   MDNode *getMetadataForPrintingAndParsing() const {
     return Loc;
   }
+  static DebugLoc getFromDILocationForParsing(const DILocation *DIL) {
+    return DebugLoc(DIL, std::nullopt);
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   // DILocation duplicate methods

@@ -292,7 +292,7 @@ printStackObjectDbgInfo(const MachineFunction::VariableDbgInfo &DebugVar,
     Metas[i]->printAsOperand(StrOS, MST);
   }
   // Handle DebugLoc separately to avoid casting to Metadata*.
-  raw_string_ostream StrOS(Object.DebugExpr.Value);
+  raw_string_ostream StrOS(Object.DebugLoc.Value);
   DebugVar.Loc->printAsOperand(StrOS, MST);
 }
 
