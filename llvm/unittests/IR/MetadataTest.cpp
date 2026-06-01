@@ -1326,7 +1326,7 @@ TEST_F(DILocationTest, Merge) {
     EXPECT_EQ(2u, M->getColumn());
     EXPECT_TRUE(isa<DILocalScope>(M->getScope()));
     EXPECT_EQ(SPA, M->getScope());
-    EXPECT_EQ(nullptr, M->getInlinedAt());
+    EXPECT_EQ(DebugLoc(), M->getInlinedAt());
   }
 
   // Two inlined locations with the same scope, line and column
