@@ -41,7 +41,7 @@ public:
       : MF(*MBB.getParent()), MBB(MBB), MIFlag(MIFlag), IsEH(IsEH),
         TRI(*MF.getSubtarget().getRegisterInfo()),
         CFIID(MF.getSubtarget().getInstrInfo()->get(
-            TargetOpcode::CFI_INSTRUCTION)) {
+            TargetOpcode::CFI_INSTRUCTION)), MIMD() {
     setInsertPoint(InsertPt);
   }
 

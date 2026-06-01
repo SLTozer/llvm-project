@@ -433,13 +433,13 @@ bool LLParser::validateEndOfModule(bool UpgradeDebugInfo) {
   // Set debug locations.
   for (auto [Loc, DR, MD] : PendingDbgRecords) {
     if (auto *DI = dyn_cast<DILocation>(MD))
-      DR->setDebugLoc(DebugLoc(DI));
+      DR->setDebugLoc(DebugLoc::getFromPointerForParsing(DI));
     else
       return error(Loc, "invalid debug location");
   }
   for (auto [Loc, I, MD] : PendingDbgInsts) {
     if (auto *DI = dyn_cast<DILocation>(MD))
-      I->setDebugLoc(DebugLoc(DI));
+      I->setDebugLoc(DebugLoc::getFromPointerForParsing(DI));
     else
       return error(Loc, "invalid !dbg metadata");
   }
@@ -7571,7 +7571,7 @@ bool LLParser::parseDebugRecord(DbgRecord *&DR, PerFunctionState &PFS) {
   DR = DbgVariableRecord::createUnresolvedDbgVariableRecord(
       ValueType, ValLocMD, Variable, Expression, AssignID, AddressLocation,
       AddressExpression);
-  PendingDbgRecords.emplace_back(DVRLoc, DR, DebugLoc);
+  PendingDbgRecords.emplace_back(DVRLoc, DR, DbgLoc);
   return false;
 }
 //===----------------------------------------------------------------------===//

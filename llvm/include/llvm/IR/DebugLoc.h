@@ -305,7 +305,7 @@ public:
   LLVM_ABI DILocalScope *getScope() const;
   LLVM_ABI DebugLoc getInlinedAt() const;
   
-  LLVMContext &getContext() const { return Loc->getContext(); }
+  LLVMContext &getContext() const;
 
   /// Get the fully inlined-at scope for a DebugLoc.
   ///
@@ -357,6 +357,16 @@ public:
 
   DebugLoc applyMap(std::function<DILocation*(DILocation*)> Map) const {
     return DebugLoc(Map(privateGet()), std::nullopt);
+  }
+
+  static DebugLoc getFromPointerForCInterface(const DILocation *DL) {
+    return DebugLoc(DL, std::nullopt);
+  }
+  static DebugLoc getFromPointerForParsing(const DILocation *DL) {
+    return DebugLoc(DL, std::nullopt);
+  }
+  static DebugLoc getFromPointerForGenericMetadataOperations(const DILocation *DL) {
+    return DebugLoc(DL, std::nullopt);
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -502,18 +512,18 @@ inline raw_ostream &operator<<(raw_ostream &OS, const DebugLoc &DL) {
 }
 
 inline hash_code hash_value(const DebugLoc &Val) {
-  return hash_value(Val.Loc.get());
+  return hash_value(Val.privateGet());
 }
 
 /// A key class to be used in-place of DebugLoc for DenseMap keys.
 struct DebugLocKey {
-  MDNode *Value;
-  DebugLocKey(uintptr_t Value) : Value(reinterpret_cast<MDNode*>(Value)) {}
-  DebugLocKey(const DebugLoc &DL) : Value(DL.getAsMDNode()) {}
+  DILocation *Value;
+  DebugLocKey(uintptr_t Value) : Value(reinterpret_cast<DILocation*>(Value)) {}
+  DebugLocKey(const DebugLoc &DL) : Value(DL.privateGet()) {}
   operator DebugLoc() const {
-    if (Value == DenseMapInfo<MDNode *>::getEmptyKey() || Value == DenseMapInfo<MDNode *>::getTombstoneKey())
+    if (Value == DenseMapInfo<DILocation *>::getEmptyKey() || Value == DenseMapInfo<DILocation *>::getTombstoneKey())
       return DebugLoc();
-    return DebugLoc(Value);
+    return DebugLoc(Value, std::nullopt);
   }
   bool operator==(const DebugLocKey &Other) const { return Value == Other.Value; }
   bool operator<(const DebugLocKey &Other) const { return Value < Other.Value; }

@@ -1077,7 +1077,7 @@ std::optional<MIRParserImpl::VarExprLoc> MIRParserImpl::parseVarExprLoc(
       typecheckMDNode(DIExpr, Expr, ExprStr, "DIExpression", *this) ||
       typecheckMDNode(DILoc, Loc, LocStr, "DILocation", *this))
     return std::nullopt;
-  return VarExprLoc{DIVar, DIExpr, DebugLoc(Loc)};
+  return VarExprLoc{DIVar, DIExpr, DebugLoc::getFromPointerForParsing(DILoc)};
 }
 
 template <typename T>

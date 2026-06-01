@@ -5193,7 +5193,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
           return error("Invalid debug loc record");
       }
       if (IAID) {
-        IA = DebugLoc(dyn_cast_or_null<MDNode>(
+        IA = DebugLoc::getFromPointerForParsing(dyn_cast_or_null<DILocation>(
             MDLoader->getMetadataFwdRefOrLoad(IAID - 1)));
         if (!IA)
           return error("Invalid debug loc record");
@@ -6732,7 +6732,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       Instruction *Inst = getLastInstruction();
       if (!Inst)
         return error("Invalid dbg record: missing instruction");
-      DebugLoc DIL(static_cast<MDNode*>(cast<DILocation>(getFnMetadataByID(Record[0]))));
+      DebugLoc DIL = DebugLoc::getFromPointerForParsing(cast<DILocation>(getFnMetadataByID(Record[0])));
       DILabel *Label = cast<DILabel>(getFnMetadataByID(Record[1]));
       Inst->getParent()->insertDbgRecordBefore(
           new DbgLabelRecord(Label, DIL), Inst->getIterator());
@@ -6764,7 +6764,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
       unsigned Slot = 0;
       // Common fields (0-2).
-      DebugLoc DIL(static_cast<MDNode*>(cast<DILocation>(getFnMetadataByID(Record[Slot++]))));
+      DebugLoc DIL = DebugLoc::getFromPointerForParsing(dyn_cast<DILocation>(getFnMetadataByID(Record[Slot++])));
       DILocalVariable *Var =
           cast<DILocalVariable>(getFnMetadataByID(Record[Slot++]));
       DIExpression *Expr =

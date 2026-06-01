@@ -91,7 +91,7 @@ DebugLoc DebugLoc::getInlinedAt() const {
   assert(privateGet() && "Expected valid DebugLoc");
   return DebugLoc(privateGet()->getInlinedAt(), std::nullopt);
 }
-
+LLVMContext &DebugLoc::getContext() const { return Loc->getContext(); }
 DILocalScope *DebugLoc::getInlinedAtScope() const {
   return cast<DILocation>(Loc)->getInlinedAtScope();
 }
@@ -177,7 +177,7 @@ DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DebugLoc InlinedAt,
   while (DebugLoc IA = CurInlinedAt->getInlinedAt()) {
     // Skip any we've already built nodes for.
     if (auto *Found = Cache[IA.privateGet()]) {
-      Last = DebugLoc(Found);
+      Last = DebugLoc(cast<DILocation>(Found), std::nullopt);
       break;
     }
 
