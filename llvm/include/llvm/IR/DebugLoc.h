@@ -132,7 +132,7 @@ using DebugLocRef = DILocation *;
 /// To avoid extra includes, \a DebugLoc doubles the \a DILocation API with a
 /// one based on relatively opaque \a MDNode pointers.
 class DebugLoc {
-  friend struct DebugLocKey;
+  friend struct DenseMapInfo<DebugLoc>;
 
   friend hash_code hash_value(const DebugLoc &Val);
 
@@ -142,7 +142,7 @@ class DebugLoc {
   DILocation *privateGet() const { return Loc; };
 
 public:
-  DebugLoc() = default;
+  DebugLoc() : Loc() {}
   LLVM_DEPRECATED("Avoid using direct pointers to construct DebugLoc", "DebugLoc()")
   DebugLoc(std::nullptr_t) : Loc() {}
   LLVM_DEPRECATED("Avoid pointer comparisons for DebugLoc", "DebugLoc::operator bool()")
@@ -368,6 +368,9 @@ public:
   static DebugLoc getFromPointerForGenericMetadataOperations(const DILocation *DL) {
     return DebugLoc(DL, std::nullopt);
   }
+  DILocation *getAsDILocationForPrinting() const {
+    return Loc;
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   // DILocation duplicate methods
@@ -515,44 +518,28 @@ inline hash_code hash_value(const DebugLoc &Val) {
   return hash_value(Val.privateGet());
 }
 
-/// A key class to be used in-place of DebugLoc for DenseMap keys.
-struct DebugLocKey {
-  DILocation *Value;
-  DebugLocKey(uintptr_t Value) : Value(reinterpret_cast<DILocation*>(Value)) {}
-  DebugLocKey(const DebugLoc &DL) : Value(DL.privateGet()) {}
-  operator DebugLoc() const {
-    if (Value == DenseMapInfo<DILocation *>::getEmptyKey() || Value == DenseMapInfo<DILocation *>::getTombstoneKey())
-      return DebugLoc();
-    return DebugLoc(Value, std::nullopt);
-  }
-  bool operator==(const DebugLocKey &Other) const { return Value == Other.Value; }
-  bool operator<(const DebugLocKey &Other) const { return Value < Other.Value; }
-};
 template <>
-struct DenseMapInfo<DebugLocKey> {
+struct DenseMapInfo<DebugLoc> {
   static constexpr uintptr_t Log2MaxAlign = 12;
 
-  static inline DebugLocKey getEmptyKey() {
+  static inline DebugLoc getEmptyKey() {
     uintptr_t Val = static_cast<uintptr_t>(-1);
     Val <<= Log2MaxAlign;
-    return DebugLocKey(Val);
+    return DebugLoc(reinterpret_cast<DILocation*>(Val), std::nullopt);
   }
 
-  static inline DebugLocKey getTombstoneKey() {
+  static inline DebugLoc getTombstoneKey() {
     uintptr_t Val = static_cast<uintptr_t>(-2);
     Val <<= Log2MaxAlign;
-    return DebugLocKey(Val);
+    return DebugLoc(reinterpret_cast<DILocation*>(Val), std::nullopt);
   }
 
-  static unsigned getHashValue(DebugLocKey PtrVal) {
-    return densemap::detail::mix(reinterpret_cast<uintptr_t>(PtrVal.Value));
+  static unsigned getHashValue(DebugLoc PtrVal) {
+    return densemap::detail::mix(reinterpret_cast<uintptr_t>(PtrVal.Loc));
   }
 
-  static bool isEqual(DebugLocKey LHS, DebugLocKey RHS) { return LHS.Value == RHS.Value; }
+  static bool isEqual(DebugLoc LHS, DebugLoc RHS) { return LHS.Loc == RHS.Loc; }
 };
-inline hash_code hash_value(const DebugLocKey &Val) {
-  return hash_value(Val.Value);
-}
 
 } // end namespace llvm
 
@@ -560,11 +547,6 @@ namespace std {
 template <> struct std::hash<llvm::DebugLoc> {
   std::size_t operator()(const llvm::DebugLoc &Arg) const {
     return std::hash<llvm::hash_code>()(llvm::hash_value(Arg));
-  }
-};
-template <> struct std::hash<llvm::DebugLocKey> {
-  std::size_t operator()(const llvm::DebugLocKey &Arg) const {
-    return std::hash<llvm::hash_code>()(llvm::hash_value(Arg.Value));
   }
 };
 } // end namespace std

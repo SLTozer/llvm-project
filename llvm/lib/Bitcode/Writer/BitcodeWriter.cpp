@@ -3842,7 +3842,7 @@ void ModuleBitcodeWriter::writeFunction(
           Vals.push_back(DL->getLine());
           Vals.push_back(DL->getColumn());
           Vals.push_back(VE.getMetadataOrNullID(DL->getScope()));
-          Vals.push_back(VE.getMetadataOrNullID(cast_or_null<DILocation>(DL->getInlinedAt().getAsMDNode())));
+          Vals.push_back(VE.getMetadataOrNullID(cast_or_null<DILocation>(DL->getInlinedAt().getAsDILocationForPrinting())));
           Vals.push_back(DL->isImplicitCode());
           Vals.push_back(DL->getAtomGroup());
           Vals.push_back(DL->getAtomRank());
@@ -3886,7 +3886,7 @@ void ModuleBitcodeWriter::writeFunction(
         // re-attach to the instruction reading the records in.
         for (DbgRecord &DR : I.DebugMarker->getDbgRecordRange()) {
           if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
-            Vals.push_back(VE.getMetadataID(cast<DILocation>(DLR->getDebugLoc().getAsMDNode())));
+            Vals.push_back(VE.getMetadataID(cast<DILocation>(DLR->getDebugLoc().getAsDILocationForPrinting())));
             Vals.push_back(VE.getMetadataID(DLR->getLabel()));
             Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_RECORD_LABEL, Vals);
             Vals.clear();
@@ -3904,7 +3904,7 @@ void ModuleBitcodeWriter::writeFunction(
           // dbg_assign (FUNC_CODE_DEBUG_RECORD_ASSIGN)
           //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
           DbgVariableRecord &DVR = cast<DbgVariableRecord>(DR);
-          Vals.push_back(VE.getMetadataID(cast<DILocation>(DVR.getDebugLoc().getAsMDNode())));
+          Vals.push_back(VE.getMetadataID(cast<DILocation>(DVR.getDebugLoc().getAsDILocationForPrinting())));
           Vals.push_back(VE.getMetadataID(DVR.getVariable()));
           Vals.push_back(VE.getMetadataID(DVR.getExpression()));
           if (DVR.isDbgValue()) {

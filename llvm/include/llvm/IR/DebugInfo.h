@@ -244,7 +244,7 @@ LLVM_ABI void remapAssignID(DenseMap<DIAssignID *, DIAssignID *> &Map,
 /// capture.
 struct VarRecord {
   DILocalVariable *Var;
-  DebugLocKey DL;
+  DebugLoc DL;
 
   VarRecord(DbgVariableRecord *DVR)
       : Var(DVR->getVariable()), DL(getDebugValueLoc(DVR)) {}
@@ -262,12 +262,12 @@ struct VarRecord {
 template <> struct DenseMapInfo<at::VarRecord> {
   static inline at::VarRecord getEmptyKey() {
     return at::VarRecord(DenseMapInfo<DILocalVariable *>::getEmptyKey(),
-                         DenseMapInfo<DebugLocKey>::getEmptyKey());
+                         DenseMapInfo<DebugLoc>::getEmptyKey());
   }
 
   static inline at::VarRecord getTombstoneKey() {
     return at::VarRecord(DenseMapInfo<DILocalVariable *>::getTombstoneKey(),
-                         DenseMapInfo<DebugLocKey>::getTombstoneKey());
+                         DenseMapInfo<DebugLoc>::getTombstoneKey());
   }
 
   static unsigned getHashValue(const at::VarRecord &Var) {

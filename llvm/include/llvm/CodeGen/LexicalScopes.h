@@ -249,9 +249,9 @@ private:
   std::unordered_map<const DILocalScope *, LexicalScope> LexicalScopeMap;
 
   /// Tracks inlined function scopes in current function.
-  std::unordered_map<std::pair<const DILocalScope *, DebugLocKey>,
+  std::unordered_map<std::pair<const DILocalScope *, DebugLoc>,
                      LexicalScope,
-                     pair_hash<const DILocalScope *, DebugLocKey>>
+                     pair_hash<const DILocalScope *, DebugLoc>>
       InlinedLexicalScopeMap;
 
   /// These scopes are  not included LexicalScopeMap.
@@ -267,7 +267,7 @@ private:
   /// Map a location to the set of basic blocks it dominates. This is a cache
   /// for \ref LexicalScopes::getMachineBasicBlocks results.
   using BlockSetT = SmallPtrSet<const MachineBasicBlock *, 4>;
-  DenseMap<DebugLocKey, std::unique_ptr<BlockSetT>> DominatedBlocks;
+  DenseMap<DebugLoc, std::unique_ptr<BlockSetT>> DominatedBlocks;
 };
 
 } // end namespace llvm

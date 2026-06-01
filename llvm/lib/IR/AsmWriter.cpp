@@ -1264,7 +1264,7 @@ void SlotTracker::processDbgRecordMetadata(const DbgRecord &DR) {
     llvm_unreachable("unsupported DbgRecord kind");
   }
   if (DR.getDebugLoc())
-    CreateMetadataSlot(DR.getDebugLoc().getAsMDNode());
+    CreateMetadataSlot(DR.getDebugLoc().getAsDILocationForPrinting());
 }
 
 void SlotTracker::processInstructionMetadata(const Instruction &I) {
@@ -1330,7 +1330,7 @@ int SlotTracker::getMetadataSlot(const MDNode *N) {
   return MI == mdnMap.end() ? -1 : (int)MI->second;
 }
 int SlotTracker::getMetadataSlot(const DebugLoc &DL) {
-  return getMetadataSlot(DL.getAsMDNode());
+  return getMetadataSlot(DL.getAsDILocationForPrinting());
 }
 
 /// getLocalSlot - Get the slot number for a value that is local to a function.
@@ -2904,7 +2904,7 @@ static void writeAsOperandInternal(raw_ostream &Out, DebugLoc DL,
     }
     // Give the pointer value instead of "badref", since this comes up all
     // the time when debugging.
-    Out << "<" << DL.getAsMDNode() << ">";
+    Out << "<" << DL.getAsDILocationForPrinting() << ">";
   } else
     Out << '!' << Slot;
   return;
@@ -4976,7 +4976,7 @@ void AssemblyWriter::printDbgVariableRecord(const DbgVariableRecord &DVR) {
     PrintOrNull(DVR.getRawAddressExpression());
     Out << ", ";
   }
-  PrintOrNull(DVR.getDebugLoc().getAsMDNode());
+  PrintOrNull(DVR.getDebugLoc().getAsDILocationForPrinting());
   Out << ")";
 }
 

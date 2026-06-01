@@ -5193,10 +5193,10 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
           return error("Invalid debug loc record");
       }
       if (IAID) {
-        IA = DebugLoc::getFromPointerForParsing(dyn_cast_or_null<DILocation>(
-            MDLoader->getMetadataFwdRefOrLoad(IAID - 1)));
-        if (!IA)
+        Metadata *IARef = MDLoader->getMetadataFwdRefOrLoad(IAID - 1);
+        if (!isa<MDNode>(IARef))
           return error("Invalid debug loc record");
+        IA = DebugLoc::getFromPointerForParsing(dyn_cast_or_null<DILocation>(IARef));
       }
 
       LastLoc = DebugLoc::get(Scope->getContext(), Line, Col, Scope, IA,
@@ -6764,7 +6764,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
       unsigned Slot = 0;
       // Common fields (0-2).
-      DebugLoc DIL = DebugLoc::getFromPointerForParsing(dyn_cast<DILocation>(getFnMetadataByID(Record[Slot++])));
+      DebugLoc DIL = DebugLoc::getFromPointerForParsing(cast<DILocation>(getFnMetadataByID(Record[Slot++])));
       DILocalVariable *Var =
           cast<DILocalVariable>(getFnMetadataByID(Record[Slot++]));
       DIExpression *Expr =

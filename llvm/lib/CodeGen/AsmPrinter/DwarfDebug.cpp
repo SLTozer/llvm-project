@@ -2526,7 +2526,7 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
   // Map {(InlinedAt, Group): (Rank, Instructions)}.
   // NOTE: Anecdotally, for a large C++ blob, 99% of the instruction
   // SmallVectors condtain 2 or fewer elements; use 2 inline elements.
-  DenseMap<std::pair<DebugLocKey, uint64_t>,
+  DenseMap<std::pair<DebugLoc, uint64_t>,
            std::pair<uint8_t, SmallVector<const MachineInstr *, 2>>>
       GroupCandidates;
 

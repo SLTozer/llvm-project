@@ -204,7 +204,7 @@ LexicalScopes::getOrCreateInlinedScope(const DILocalScope *Scope,
                                        DebugLoc InlinedAt) {
   assert(Scope && "Invalid Scope encoding!");
   Scope = Scope->getNonLexicalBlockFileScope();
-  std::pair<const DILocalScope *, DebugLocKey> P(Scope, InlinedAt);
+  std::pair<const DILocalScope *, DebugLoc> P(Scope, InlinedAt);
   auto I = InlinedLexicalScopeMap.find(P);
   if (I != InlinedLexicalScopeMap.end())
     return &I->second;

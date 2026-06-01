@@ -3449,8 +3449,9 @@ void Verifier::visitFunction(const Function &F) {
       VisitDebugLoc(I, I.getDebugLoc());
       // The llvm.loop annotations also contain two DILocations.
       if (auto MD = I.getMetadata(LLVMContext::MD_loop))
-        for (auto &MDO : drop_begin(MD->operands()))
-          VisitDebugLoc(I, DebugLoc::getFromValidDILocationLoopMDOperand(MDO));
+        if (MD->getNumOperands() > 0)
+          for (auto &MDO : drop_begin(MD->operands()))
+            VisitDebugLoc(I, DebugLoc::getFromValidDILocationLoopMDOperand(MDO));
       if (BrokenDebugInfo)
         return;
     }

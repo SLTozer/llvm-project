@@ -323,7 +323,7 @@ getDerefOffsetInBytes(const DIExpression *DIExpr) {
 }
 
 /// A whole (unfragmented) source variable.
-using DebugAggregate = std::pair<const DILocalVariable *, DebugLocKey>;
+using DebugAggregate = std::pair<const DILocalVariable *, DebugLoc>;
 static DebugAggregate getAggregate(const DebugVariable &Var) {
   return DebugAggregate(Var.getVariable(), Var.getInlinedAt());
 }
