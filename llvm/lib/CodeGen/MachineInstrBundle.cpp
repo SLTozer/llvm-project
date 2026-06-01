@@ -99,7 +99,7 @@ FunctionPass *llvm::createUnpackMachineBundlesLegacy(
 
 /// Return the first DebugLoc that has line number information, given a
 /// range of instructions. The search range is from FirstMI to LastMI
-/// (exclusive). Otherwise return the first DILocation or an empty location if
+/// (exclusive). Otherwise return the first DebugLoc or an empty location if
 /// there are none.
 static DebugLoc getDebugLoc(MachineBasicBlock::instr_iterator FirstMI,
                             MachineBasicBlock::instr_iterator LastMI) {

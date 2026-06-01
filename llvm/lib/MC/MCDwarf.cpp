@@ -147,7 +147,7 @@ void MCLineSection::addEndEntry(MCSymbol *EndLabel) {
   //     place instead of adding a line entry if the target has
   //     usesDwarfFileAndLocDirectives.
   // (2) MCObjectStreamer - if a function has incomplete debug info where
-  //     instructions don't have DILocations, the line entries are missing.
+  //     instructions don't have DebugLocs, the line entries are missing.
   // (3) It's also possible that there are no prior line entries if the section
   //     itself is empty before this end label.
   auto I = MCLineDivisions.find(Sec);
