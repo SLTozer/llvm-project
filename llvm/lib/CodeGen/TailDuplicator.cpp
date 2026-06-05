@@ -462,7 +462,7 @@ void TailDuplicator::duplicateInstruction(
       // class constraints. An explicit COPY is necessary. Create one
       // that can be reused.
       Register NewReg = MRI->createVirtualRegister(OrigRC);
-      BuildMI(*PredBB, NewMI, NewMI.getDebugLoc(), TII->get(TargetOpcode::COPY),
+      BuildMI(*PredBB, NewMI, NewMI.getFullDebugLoc(), TII->get(TargetOpcode::COPY),
               NewReg)
           .addReg(VI->second.Reg, {}, VI->second.SubReg);
       LocalVRMap.erase(VI);

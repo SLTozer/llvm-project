@@ -476,13 +476,13 @@ public:
       // Because it casts the old `load` value and is used by the new `phi`
       // which replaces the old `load`, we give the `load`'s debug location
       // to it.
-      cast<Instruction>(StoreValue)->setDebugLoc(Cand.Load->getDebugLoc());
+      cast<Instruction>(StoreValue)->copyDebugLocFrom(Cand.Load);
     }
 
     PHI->addIncoming(StoreValue, L->getLoopLatch());
 
     Cand.Load->replaceAllUsesWith(PHI);
-    PHI->setDebugLoc(Cand.Load->getDebugLoc());
+    PHI->copyDebugLocFrom(Cand.Load);
   }
 
   /// Top-level driver for each loop: find store->load forwarding

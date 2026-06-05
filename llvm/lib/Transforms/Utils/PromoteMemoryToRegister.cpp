@@ -117,7 +117,7 @@ namespace {
 
 static void createDebugValue(DIBuilder &DIB, Value *NewValue,
                              DILocalVariable *Variable,
-                             DIExpression *Expression, const DILocation *DI,
+                             DIExpression *Expression, DebugLoc DI,
                              DbgVariableRecord *InsertBefore) {
   // FIXME: Merge these two functions now that DIBuilder supports
   // DbgVariableRecords. We neeed the API to accept DbgVariableRecords as an
@@ -164,7 +164,7 @@ public:
       VarHasDbgAssignForStore.insert(DebugVariableAggregate(DbgAssign));
       AssignList->insert(DbgAssign);
       createDebugValue(DIB, DbgAssign->getValue(), DbgAssign->getVariable(),
-                       DbgAssign->getExpression(), DbgAssign->getDebugLoc(),
+                       DbgAssign->getExpression(), DbgAssign->getFullDebugLoc(),
                        DbgAssign);
     };
     for (auto *Assign : at::getDVRAssignmentMarkers(ToDelete))
@@ -1100,7 +1100,7 @@ bool PromoteMem2Reg::QueuePhiNode(BasicBlock *BB, unsigned AllocaNo,
 static void updateForIncomingValueLocation(PHINode *PN, DebugLoc DL,
                                            bool ApplyMergedLoc) {
   if (ApplyMergedLoc)
-    PN->applyMergedLocation(PN->getDebugLoc(), DL);
+    PN->applyMergedLocation(PN->getFullDebugLoc(), DL);
   else
     PN->setDebugLoc(DL);
 }
@@ -1207,7 +1207,7 @@ void PromoteMem2Reg::RenamePass(BasicBlock *BB, BasicBlock *Pred) {
       IncomingVals.set(AllocaNo, SI->getOperand(0));
 
       // Record debuginfo for the store before removing it.
-      IncomingLocs.set(AllocaNo, SI->getDebugLoc());
+      IncomingLocs.set(AllocaNo, SI->getFullDebugLoc());
       AllocaATInfo[AllocaNo].updateForDeletedStore(SI, DIB,
                                                    &DVRAssignsToDelete);
       for (DbgVariableRecord *DbgItem : AllocaDPUsers[ai->second])

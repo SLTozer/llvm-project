@@ -259,7 +259,7 @@ bool HexagonPeephole::runOnMachineFunction(MachineFunction &MF) {
           if (NewOp) {
             Register PSrc = MI.getOperand(PR).getReg();
             if (unsigned POrig = PeepholeMap.lookup(PSrc)) {
-              BuildMI(MBB, MI.getIterator(), MI.getDebugLoc(), QII->get(NewOp),
+              BuildMI(MBB, MI.getIterator(), MI.getFullDebugLoc(), QII->get(NewOp),
                       MI.getOperand(0).getReg())
                   .addReg(POrig)
                   .add(MI.getOperand(S2))

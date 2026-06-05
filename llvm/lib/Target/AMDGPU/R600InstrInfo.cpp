@@ -37,7 +37,7 @@ bool R600InstrInfo::isVector(const MachineInstr &MI) const {
 
 void R600InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator MI,
-                                const DebugLoc &DL, Register DestReg,
+                                DbgLocStorage DL, Register DestReg,
                                 Register SrcReg, bool KillSrc,
                                 bool RenamableDest, bool RenamableSrc) const {
   unsigned VectorComponents = 0;
@@ -721,7 +721,7 @@ unsigned R600InstrInfo::insertBranch(MachineBasicBlock &MBB,
                                      MachineBasicBlock *TBB,
                                      MachineBasicBlock *FBB,
                                      ArrayRef<MachineOperand> Cond,
-                                     const DebugLoc &DL,
+                                     DbgLocStorage DL,
                                      int *BytesAdded) const {
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
   assert(!BytesAdded && "code size not handled");

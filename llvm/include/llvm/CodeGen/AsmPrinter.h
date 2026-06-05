@@ -108,6 +108,9 @@ public:
   /// The current machine function.
   MachineFunction *MF = nullptr;
 
+  /// The current function's DebugLocContext.
+  std::optional<DebugLocContext> DbgLocCtx;
+
   /// This is a pointer to the current MachineModuleInfo.
   MachineModuleInfo *MMI = nullptr;
 

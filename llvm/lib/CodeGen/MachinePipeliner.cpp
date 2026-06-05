@@ -652,7 +652,7 @@ void MachinePipeliner::preprocessPhiNodes(MachineBasicBlock &B) {
       Register NewReg = MRI.createVirtualRegister(RC);
       MachineBasicBlock &PredB = *PI.getOperand(i+1).getMBB();
       MachineBasicBlock::iterator At = PredB.getFirstTerminator();
-      const DebugLoc &DL = PredB.findDebugLoc(At);
+      DebugLoc DL = PredB.findDebugLoc(At);
       auto Copy = BuildMI(PredB, At, DL, TII->get(TargetOpcode::COPY), NewReg)
                     .addReg(RegOp.getReg(), getRegState(RegOp),
                             RegOp.getSubReg());

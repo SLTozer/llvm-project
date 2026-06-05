@@ -155,7 +155,7 @@ CSKYInstrInfo::getBranchDestBlock(const MachineInstr &MI) const {
 
 unsigned CSKYInstrInfo::insertBranch(
     MachineBasicBlock &MBB, MachineBasicBlock *TBB, MachineBasicBlock *FBB,
-    ArrayRef<MachineOperand> Cond, const DebugLoc &DL, int *BytesAdded) const {
+    ArrayRef<MachineOperand> Cond, DbgLocStorage DL, int *BytesAdded) const {
   if (BytesAdded)
     *BytesAdded = 0;
 
@@ -225,7 +225,7 @@ bool CSKYInstrInfo::reverseBranchCondition(
 
 Register CSKYInstrInfo::movImm(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MBBI,
-                               const DebugLoc &DL, uint64_t Val,
+                               DbgLocStorage DL, uint64_t Val,
                                MachineInstr::MIFlag Flag) const {
   if (!isInt<32>(Val))
     report_fatal_error("Should only materialize 32-bit constants.");
@@ -396,7 +396,7 @@ void CSKYInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                         const TargetRegisterClass *RC,
                                         Register VReg,
                                         MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (I != MBB.end())
     DL = I->getDebugLoc();
 
@@ -440,7 +440,7 @@ void CSKYInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                          const TargetRegisterClass *RC,
                                          Register VReg, unsigned SubReg,
                                          MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (I != MBB.end())
     DL = I->getDebugLoc();
 
@@ -479,7 +479,7 @@ void CSKYInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
 
 void CSKYInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I,
-                                const DebugLoc &DL, Register DestReg,
+                                DbgLocStorage DL, Register DestReg,
                                 Register SrcReg, bool KillSrc,
                                 bool RenamableDest, bool RenamableSrc) const {
   if (CSKY::GPRRegClass.contains(SrcReg) &&
@@ -579,7 +579,7 @@ Register CSKYInstrInfo::getGlobalBaseReg(MachineFunction &MF) const {
   // MBB of the function
   MachineBasicBlock &FirstMBB = MF.front();
   MachineBasicBlock::iterator MBBI = FirstMBB.begin();
-  DebugLoc DL;
+  DbgLocStorage DL;
 
   CSKYConstantPoolValue *CPV = CSKYConstantPoolSymbol::Create(
       Type::getInt32Ty(MF.getFunction().getContext()), "_GLOBAL_OFFSET_TABLE_",

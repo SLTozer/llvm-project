@@ -227,7 +227,7 @@ void buildOpName(Register Target, StringRef Name, MachineInstr &I,
                  const SPIRVInstrInfo &TII) {
   if (!Name.empty()) {
     auto MIB =
-        BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(SPIRV::OpName))
+        BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(SPIRV::OpName))
             .addUse(Target);
     addStringImm(Name, MIB);
   }
@@ -255,7 +255,7 @@ void buildOpDecorate(Register Reg, MachineInstr &I, const SPIRVInstrInfo &TII,
                      SPIRV::Decoration::Decoration Dec,
                      ArrayRef<uint32_t> DecArgs, StringRef StrImm) {
   MachineBasicBlock &MBB = *I.getParent();
-  auto MIB = BuildMI(MBB, I, I.getDebugLoc(), TII.get(SPIRV::OpDecorate))
+  auto MIB = BuildMI(MBB, I, I.getFullDebugLoc(), TII.get(SPIRV::OpDecorate))
                  .addUse(Reg)
                  .addImm(static_cast<uint32_t>(Dec));
   finishBuildOpDecorate(MIB, DecArgs, StrImm);

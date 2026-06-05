@@ -224,7 +224,7 @@ bool BPFMIPeephole::eliminateZExtSeq() {
           continue;
         }
 
-        BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(BPF::SUBREG_TO_REG), DstReg)
+        BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(BPF::SUBREG_TO_REG), DstReg)
             .addReg(SubReg)
             .addImm(BPF::sub_32);
 
@@ -276,7 +276,7 @@ bool BPFMIPeephole::eliminateZExt() {
       Register src = MI.getOperand(1).getReg();
 
       // Build a SUBREG_TO_REG instruction.
-      BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(BPF::SUBREG_TO_REG), dst)
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(BPF::SUBREG_TO_REG), dst)
           .addReg(src)
           .addImm(BPF::sub_32);
 
@@ -469,7 +469,7 @@ bool BPFMIPreEmitPeephole::adjustBranch() {
         continue;
 
       // replace this insn as a JMPL.
-      BuildMI(MBB, UncondJmp->getDebugLoc(), TII->get(BPF::JMPL)).addMBB(JmpBB);
+      BuildMI(MBB, UncondJmp->getFullDebugLoc(), TII->get(BPF::JMPL)).addMBB(JmpBB);
       UncondJmp->eraseFromParent();
       Changed = true;
       continue;
@@ -510,12 +510,12 @@ bool BPFMIPreEmitPeephole::adjustBranch() {
 
       // replace B2 cond jump
       if (CondJmp->getOperand(1).isReg())
-        BuildMI(*MBB, MachineBasicBlock::iterator(*CondJmp), CondJmp->getDebugLoc(), TII->get(CondJmp->getOpcode()))
+        BuildMI(*MBB, MachineBasicBlock::iterator(*CondJmp), CondJmp->getFullDebugLoc(), TII->get(CondJmp->getOpcode()))
             .addReg(CondJmp->getOperand(0).getReg())
             .addReg(CondJmp->getOperand(1).getReg())
             .addMBB(New_B1);
       else
-        BuildMI(*MBB, MachineBasicBlock::iterator(*CondJmp), CondJmp->getDebugLoc(), TII->get(CondJmp->getOpcode()))
+        BuildMI(*MBB, MachineBasicBlock::iterator(*CondJmp), CondJmp->getFullDebugLoc(), TII->get(CondJmp->getOpcode()))
             .addReg(CondJmp->getOperand(0).getReg())
             .addImm(CondJmp->getOperand(1).getImm())
             .addMBB(New_B1);
@@ -528,8 +528,8 @@ bool BPFMIPreEmitPeephole::adjustBranch() {
       MBB->addSuccessor(New_B1);
 
       // Populate insns in New_B0 and New_B1.
-      BuildMI(New_B0, CondJmp->getDebugLoc(), TII->get(BPF::JMP)).addMBB(FollowBB);
-      BuildMI(New_B1, CondJmp->getDebugLoc(), TII->get(BPF::JMPL))
+      BuildMI(New_B0, CondJmp->getFullDebugLoc(), TII->get(BPF::JMP)).addMBB(FollowBB);
+      BuildMI(New_B1, CondJmp->getFullDebugLoc(), TII->get(BPF::JMPL))
           .addMBB(CondTargetBB);
 
       New_B0->addSuccessor(FollowBB);
@@ -570,12 +570,12 @@ bool BPFMIPreEmitPeephole::adjustBranch() {
 
       // replace B2 cond jump
       if (CondJmp->getOperand(1).isReg())
-        BuildMI(*MBB, MachineBasicBlock::iterator(*CondJmp), CondJmp->getDebugLoc(), TII->get(CondJmp->getOpcode()))
+        BuildMI(*MBB, MachineBasicBlock::iterator(*CondJmp), CondJmp->getFullDebugLoc(), TII->get(CondJmp->getOpcode()))
             .addReg(CondJmp->getOperand(0).getReg())
             .addReg(CondJmp->getOperand(1).getReg())
             .addMBB(New_B);
       else
-        BuildMI(*MBB, MachineBasicBlock::iterator(*CondJmp), CondJmp->getDebugLoc(), TII->get(CondJmp->getOpcode()))
+        BuildMI(*MBB, MachineBasicBlock::iterator(*CondJmp), CondJmp->getFullDebugLoc(), TII->get(CondJmp->getOpcode()))
             .addReg(CondJmp->getOperand(0).getReg())
             .addImm(CondJmp->getOperand(1).getImm())
             .addMBB(New_B);
@@ -585,7 +585,7 @@ bool BPFMIPreEmitPeephole::adjustBranch() {
       MBB->addSuccessor(New_B);
 
       // Populate insn in New_B.
-      BuildMI(New_B, CondJmp->getDebugLoc(), TII->get(BPF::JMPL)).addMBB(CondTargetBB);
+      BuildMI(New_B, CondJmp->getFullDebugLoc(), TII->get(BPF::JMPL)).addMBB(CondTargetBB);
 
       New_B->addSuccessor(CondTargetBB);
       CondJmp->eraseFromParent();
@@ -593,7 +593,7 @@ bool BPFMIPreEmitPeephole::adjustBranch() {
     }
 
     if (!in16BitRange(SoFarNumInsns[JmpBB] - CurrNumInsns)) {
-      BuildMI(MBB, UncondJmp->getDebugLoc(), TII->get(BPF::JMPL)).addMBB(JmpBB);
+      BuildMI(MBB, UncondJmp->getFullDebugLoc(), TII->get(BPF::JMPL)).addMBB(JmpBB);
       UncondJmp->eraseFromParent();
       Changed = true;
     }
@@ -667,13 +667,13 @@ bool BPFMIPreEmitPeephole::insertMissingCallerSavedSpills() {
         CurOffset -= SlotSize;
         MFI.CreateFixedSpillStackObject(SlotSize, CurOffset);
         // Generate spill
-        BuildMI(BB, Call.MI->getIterator(), Call.MI->getDebugLoc(),
+        BuildMI(BB, Call.MI->getIterator(), Call.MI->getFullDebugLoc(),
                 TII->get(BPF::STD))
             .addReg(Reg, RegState::Kill)
             .addReg(BPF::R10)
             .addImm(CurOffset);
         // Generate fill
-        BuildMI(BB, ++Call.MI->getIterator(), Call.MI->getDebugLoc(),
+        BuildMI(BB, ++Call.MI->getIterator(), Call.MI->getFullDebugLoc(),
                 TII->get(BPF::LDD))
             .addReg(Reg, RegState::Define)
             .addReg(BPF::R10)
@@ -747,7 +747,7 @@ bool BPFMIPreEmitPeephole::addExitAfterUnreachable() {
       MI.getOperand(0).getGlobal()->getName() != BPF_TRAP)
     return false;
 
-  BuildMI(&MBB, MI.getDebugLoc(), TII->get(BPF::RET));
+  BuildMI(&MBB, MI.getFullDebugLoc(), TII->get(BPF::RET));
   return true;
 }
 
@@ -757,7 +757,7 @@ bool BPFMIPreEmitPeephole::expandStackArgPseudos() {
   for (MachineBasicBlock &MBB : *MF) {
     for (auto It = MBB.begin(), End = MBB.end(); It != End;) {
       MachineInstr &MI = *It++;
-      DebugLoc DL = MI.getDebugLoc();
+      DebugLoc DL = MI.getFullDebugLoc();
 
       switch (MI.getOpcode()) {
       default:

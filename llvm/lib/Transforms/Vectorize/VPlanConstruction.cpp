@@ -207,7 +207,7 @@ void PlainCFGBuilder::createVPInstructionsForVPBB(VPBasicBlock *VPBB,
       // recipes.
       VPValue *Cond = getOrCreateVPOperand(Br->getCondition());
       VPIRBuilder.createNaryOp(VPInstruction::BranchOnCond, {Cond}, Inst, {},
-                               VPIRMetadata(*Inst), Inst->getDebugLoc());
+                               VPIRMetadata(*Inst), Inst->getFullDebugLoc());
       continue;
     }
 
@@ -219,7 +219,7 @@ void PlainCFGBuilder::createVPInstructionsForVPBB(VPBasicBlock *VPBB,
       for (auto Case : SI->cases())
         Ops.push_back(getOrCreateVPOperand(Case.getCaseValue()));
       VPIRBuilder.createNaryOp(Instruction::Switch, Ops, Inst, {},
-                               VPIRMetadata(*Inst), Inst->getDebugLoc());
+                               VPIRMetadata(*Inst), Inst->getFullDebugLoc());
       continue;
     }
 
@@ -228,7 +228,7 @@ void PlainCFGBuilder::createVPInstructionsForVPBB(VPBasicBlock *VPBB,
       // Phi node's operands may not have been visited at this point. We create
       // an empty VPInstruction that we will fix once the whole plain CFG has
       // been built.
-      NewR = VPIRBuilder.createScalarPhi({}, Phi->getDebugLoc(), "vec.phi",
+      NewR = VPIRBuilder.createScalarPhi({}, Phi->getFullDebugLoc(), "vec.phi",
                                          *Phi, Phi->getType());
       NewR->setUnderlyingValue(Phi);
       if (isHeaderBB(Phi->getParent(), LI->getLoopFor(Phi->getParent()))) {
@@ -268,19 +268,19 @@ void PlainCFGBuilder::createVPInstructionsForVPBB(VPBasicBlock *VPBB,
 
       if (auto *CI = dyn_cast<CastInst>(Inst)) {
         NewR = VPIRBuilder.createScalarCast(CI->getOpcode(), VPOperands[0],
-                                            CI->getType(), CI->getDebugLoc(),
+                                            CI->getType(), CI->getFullDebugLoc(),
                                             VPIRFlags(*CI), MD);
         NewR->setUnderlyingValue(CI);
       } else if (auto *LI = dyn_cast<LoadInst>(Inst)) {
         NewR = VPIRBuilder.createScalarLoad(LI->getType(), VPOperands[0],
-                                            LI->getDebugLoc(), MD);
+                                            LI->getFullDebugLoc(), MD);
         NewR->setUnderlyingValue(LI);
       } else {
         // Build VPInstruction for any arbitrary Instruction without specific
         // representation in VPlan.
         NewR = VPIRBuilder.createNaryOp(
             Inst->getOpcode(), VPOperands, Inst, VPIRFlags(*Inst), MD,
-            Inst->getDebugLoc(), "", Inst->getType());
+            Inst->getFullDebugLoc(), "", Inst->getType());
       }
     }
 
@@ -1143,7 +1143,7 @@ void VPlanTransforms::createInLoopReductionRecipes(VPlan &Plan,
         auto *Zero = Plan.getConstantInt(PhiTy, 0);
         VPBuilder Builder(LinkVPBB, CurrentLink->getIterator());
         auto *Sub = Builder.createSub(Zero, CurrentLink->getOperand(1),
-                                      CurrentLinkI->getDebugLoc());
+                                      CurrentLinkI->getFullDebugLoc());
         Sub->setUnderlyingValue(CurrentLinkI);
         VecOp = Sub;
       } else {
@@ -1178,7 +1178,7 @@ void VPlanTransforms::createInLoopReductionRecipes(VPlan &Plan,
       auto *RedRecipe = new VPReductionRecipe(
           Kind, FMFs, CurrentLinkI, PreviousLink, VecOp, CondOp,
           getReductionStyle(/*IsInLoop=*/true, PhiR->isOrdered(), 1),
-          CurrentLinkI->getDebugLoc());
+          CurrentLinkI->getFullDebugLoc());
       // Append the recipe to the end of the VPBasicBlock because we need to
       // ensure that it comes after all of it's inputs, including CondOp.
       // Delete CurrentLink as it will be invalid if its operand is replaced

@@ -153,7 +153,7 @@ BasicBlockFiller::BasicBlockFiller(MachineFunction &MF, MachineBasicBlock *MBB,
                                    const MCInstrInfo *MCII)
     : MF(MF), MBB(MBB), MCII(MCII) {}
 
-void BasicBlockFiller::addInstruction(const MCInst &Inst, const DebugLoc &DL) {
+void BasicBlockFiller::addInstruction(const MCInst &Inst, DebugLoc DL) {
   const unsigned Opcode = Inst.getOpcode();
   const MCInstrDesc &MCID = MCII->get(Opcode);
   MachineInstrBuilder Builder = BuildMI(MBB, DL, MCID);
@@ -178,13 +178,13 @@ void BasicBlockFiller::addInstruction(const MCInst &Inst, const DebugLoc &DL) {
 }
 
 void BasicBlockFiller::addInstructions(ArrayRef<MCInst> Insts,
-                                       const DebugLoc &DL) {
+                                       DebugLoc DL) {
   for (const MCInst &Inst : Insts)
     addInstruction(Inst, DL);
 }
 
 void BasicBlockFiller::addReturn(const ExegesisTarget &ET,
-                                 bool SubprocessCleanup, const DebugLoc &DL) {
+                                 bool SubprocessCleanup, DebugLoc DL) {
   // Insert cleanup code
   if (SubprocessCleanup) {
 #ifdef HAVE_LIBPFM

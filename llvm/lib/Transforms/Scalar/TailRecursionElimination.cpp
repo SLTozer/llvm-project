@@ -740,7 +740,7 @@ bool TailRecursionEliminator::eliminateCall(CallInst *CI) {
       SelectInst *SI =
           SelectInst::Create(RetKnownPN, RetPN, Ret->getReturnValue(),
                              "current.ret.tr", Ret->getIterator());
-      SI->setDebugLoc(Ret->getDebugLoc());
+      SI->copyDebugLocFrom(Ret);
       RetSelects.push_back(SI);
 
       RetPN->addIncoming(SI, BB);
@@ -754,7 +754,7 @@ bool TailRecursionEliminator::eliminateCall(CallInst *CI) {
   // Now that all of the PHI nodes are in place, remove the call and
   // ret instructions, replacing them with an unconditional branch.
   UncondBrInst *NewBI = UncondBrInst::Create(HeaderBB, Ret->getIterator());
-  NewBI->setDebugLoc(CI->getDebugLoc());
+  NewBI->copyDebugLocFrom(CI);
 
   Ret->eraseFromParent();  // Remove return.
   CI->eraseFromParent();   // Remove call.

@@ -938,7 +938,7 @@ void LoopIdiomVectorize::transformByteCompare(GetElementPtrInst *GEPA,
   UncondBrInst *PHBranch = cast<UncondBrInst>(Preheader->getTerminator());
   IRBuilder<> Builder(PHBranch);
   DomTreeUpdater DTU(DT, DomTreeUpdater::UpdateStrategy::Lazy);
-  Builder.SetCurrentDebugLocation(PHBranch->getDebugLoc());
+  Builder.SetCurrentDebugLocation(PHBranch->getFullDebugLoc());
 
   // Increment the pointer if this was done before the loads in the loop.
   if (IncIdx)
@@ -1442,7 +1442,7 @@ void LoopIdiomVectorize::transformFindFirstByte(
   UncondBrInst *PHBranch = cast<UncondBrInst>(Preheader->getTerminator());
   IRBuilder<> Builder(PHBranch);
   DomTreeUpdater DTU(DT, DomTreeUpdater::UpdateStrategy::Lazy);
-  Builder.SetCurrentDebugLocation(PHBranch->getDebugLoc());
+  Builder.SetCurrentDebugLocation(PHBranch->getFullDebugLoc());
 
   expandFindFirstByte(Builder, DTU, VF, CharTy, IndPhi, ExitSucc, ExitFail,
                       SearchStart, SearchEnd, NeedleStart, NeedleEnd);

@@ -185,10 +185,10 @@ bool InitUndef::handleSubReg(MachineFunction &MF, MachineInstr &MI,
           TRI->getSubRegisterClass(TargetRegClass, ind);
       Register TmpInitSubReg = MRI->createVirtualRegister(SubRegClass);
       LLVM_DEBUG(dbgs() << "Register Class ID" << SubRegClass->getID() << "\n");
-      BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(),
+      BuildMI(*MI.getParent(), &MI, MI.getFullDebugLoc(),
               TII->get(TargetOpcode::INIT_UNDEF), TmpInitSubReg);
       Register NewReg = MRI->createVirtualRegister(TargetRegClass);
-      BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(),
+      BuildMI(*MI.getParent(), &MI, MI.getFullDebugLoc(),
               TII->get(TargetOpcode::INSERT_SUBREG), NewReg)
           .addReg(LatestReg)
           .addReg(TmpInitSubReg)
@@ -211,7 +211,7 @@ bool InitUndef::fixupIllOperand(MachineInstr *MI, MachineOperand &MO) {
   const TargetRegisterClass *TargetRegClass = MRI->getRegClass(MO.getReg());
   LLVM_DEBUG(dbgs() << "Register Class ID" << TargetRegClass->getID() << "\n");
   Register NewReg = MRI->createVirtualRegister(TargetRegClass);
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII->get(TargetOpcode::INIT_UNDEF), NewReg);
   MO.setReg(NewReg);
   if (MO.isUndef())
@@ -237,7 +237,7 @@ bool InitUndef::processBasicBlock(MachineFunction &MF, MachineBasicBlock &MBB,
         // We don't have a way to update dead lanes, so keep track of the
         // new register so that we avoid querying it later.
         NewRegs.insert(NewDest);
-        BuildMI(MBB, I, I->getDebugLoc(), TII->get(TargetOpcode::IMPLICIT_DEF),
+        BuildMI(MBB, I, I->getFullDebugLoc(), TII->get(TargetOpcode::IMPLICIT_DEF),
                 NewDest);
         UseMO.setReg(NewDest);
         Changed = true;

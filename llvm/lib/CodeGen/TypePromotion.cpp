@@ -441,7 +441,7 @@ void IRPromoter::ExtendSources() {
     LLVM_DEBUG(dbgs() << "IR Promotion: Inserting ZExt for " << *V << "\n");
     Builder.SetInsertPoint(InsertPt);
     if (auto *I = dyn_cast<Instruction>(V))
-      Builder.SetCurrentDebugLocation(I->getDebugLoc());
+      Builder.SetCurrentDebugLocation(I->getFullDebugLoc());
 
     Value *ZExt = Builder.CreateZExt(V, ExtTy);
     if (auto *I = dyn_cast<Instruction>(ZExt)) {

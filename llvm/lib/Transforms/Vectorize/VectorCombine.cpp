@@ -6222,7 +6222,7 @@ bool VectorCombine::shrinkLoadForShuffles(Instruction &I) {
     // to create a smaller load.
     if (NewNumElements < OldNumElements) {
       IRBuilder Builder(&I);
-      Builder.SetCurrentDebugLocation(I.getDebugLoc());
+      Builder.SetCurrentDebugLocation(I.getFullDebugLoc());
 
       // Calculate costs of old and new ops.
       Type *ElemTy = OldLoadTy->getElementType();
@@ -6286,7 +6286,7 @@ bool VectorCombine::shrinkLoadForShuffles(Instruction &I) {
         std::vector<int> &NewMask = Use.second;
 
         Builder.SetInsertPoint(Shuffle);
-        Builder.SetCurrentDebugLocation(Shuffle->getDebugLoc());
+        Builder.SetCurrentDebugLocation(Shuffle->getFullDebugLoc());
         Value *NewShuffle = Builder.CreateShuffleVector(
             NewLoad, PoisonValue::get(NewLoadTy), NewMask);
 
@@ -6375,13 +6375,13 @@ bool VectorCombine::shrinkPhiOfShuffles(Instruction &I) {
 
   // Create new shuffles and narrowed phi.
   auto Builder = IRBuilder(Shuf);
-  Builder.SetCurrentDebugLocation(Shuf->getDebugLoc());
+  Builder.SetCurrentDebugLocation(Shuf->getFullDebugLoc());
   auto *PoisonVal = PoisonValue::get(InputVT);
   auto *NewShuf0 = Builder.CreateShuffleVector(Op, PoisonVal, NewMask);
   Worklist.push(cast<Instruction>(NewShuf0));
 
   Builder.SetInsertPoint(Phi);
-  Builder.SetCurrentDebugLocation(Phi->getDebugLoc());
+  Builder.SetCurrentDebugLocation(Phi->getFullDebugLoc());
   auto *NewPhi = Builder.CreatePHI(NewShuf0->getType(), 2u);
   NewPhi->addIncoming(NewShuf0, Phi->getIncomingBlock(0u));
   NewPhi->addIncoming(Op, Phi->getIncomingBlock(1u));

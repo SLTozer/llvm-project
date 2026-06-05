@@ -984,7 +984,7 @@ void X86InstrInfo::reMaterialize(MachineBasicBlock &MBB,
       llvm_unreachable("Unexpected instruction!");
     }
 
-    const DebugLoc &DL = Orig.getDebugLoc();
+    DbgLocStorage DL = Orig.getDebugLoc();
     BuildMI(MBB, I, DL, get(X86::MOV32ri))
         .add(Orig.getOperand(0))
         .addImm(Value);
@@ -1189,7 +1189,7 @@ bool X86InstrInfo::classifyLEAReg(MachineInstr &MI, const MachineOperand &Src,
     NewSrc = MF.getRegInfo().createVirtualRegister(RC);
     NewSrcSubReg = X86::NoSubRegister;
     MachineInstr *Copy =
-        BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), get(TargetOpcode::COPY))
+        BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), get(TargetOpcode::COPY))
             .addReg(NewSrc, RegState::Define | RegState::Undef, X86::sub_32bit)
             .addReg(SrcReg, getKillRegState(isKill), SubReg);
 
@@ -1259,16 +1259,16 @@ MachineInstr *X86InstrInfo::convertToThreeAddressWithLEA(unsigned MIOpc,
   unsigned SubReg = Is8BitOp ? X86::sub_8bit : X86::sub_16bit;
   assert(!MI.getOperand(1).isUndef() && "Undef op doesn't need optimization");
   MachineInstr *ImpDef =
-      BuildMI(MBB, MBBI, MI.getDebugLoc(), get(X86::IMPLICIT_DEF), InRegLEA);
+      BuildMI(MBB, MBBI, MI.getFullDebugLoc(), get(X86::IMPLICIT_DEF), InRegLEA);
   MachineInstr *InsMI =
-      BuildMI(MBB, MBBI, MI.getDebugLoc(), get(TargetOpcode::COPY))
+      BuildMI(MBB, MBBI, MI.getFullDebugLoc(), get(TargetOpcode::COPY))
           .addReg(InRegLEA, RegState::Define, SubReg)
           .addReg(Src, getKillRegState(IsKill), SrcSubReg);
   MachineInstr *ImpDef2 = nullptr;
   MachineInstr *InsMI2 = nullptr;
 
   MachineInstrBuilder MIB =
-      BuildMI(MBB, MBBI, MI.getDebugLoc(), get(Opcode), OutRegLEA);
+      BuildMI(MBB, MBBI, MI.getFullDebugLoc(), get(Opcode), OutRegLEA);
 #define CASE_NF(OP)                                                            \
   case X86::OP:                                                                \
   case X86::OP##_NF:
@@ -1319,9 +1319,9 @@ MachineInstr *X86InstrInfo::convertToThreeAddressWithLEA(unsigned MIOpc,
         InRegLEA2 = RegInfo.createVirtualRegister(&X86::GR32_NOSPRegClass);
       // Build and insert into an implicit UNDEF value. This is OK because
       // we will be shifting and then extracting the lower 8/16-bits.
-      ImpDef2 = BuildMI(MBB, &*MIB, MI.getDebugLoc(), get(X86::IMPLICIT_DEF),
+      ImpDef2 = BuildMI(MBB, &*MIB, MI.getFullDebugLoc(), get(X86::IMPLICIT_DEF),
                         InRegLEA2);
-      InsMI2 = BuildMI(MBB, &*MIB, MI.getDebugLoc(), get(TargetOpcode::COPY))
+      InsMI2 = BuildMI(MBB, &*MIB, MI.getFullDebugLoc(), get(TargetOpcode::COPY))
                    .addReg(InRegLEA2, RegState::Define, SubReg)
                    .addReg(Src2, getKillRegState(IsKill2), Src2SubReg);
       addRegReg(MIB, InRegLEA, true, X86::NoSubRegister, InRegLEA2, true,
@@ -1335,7 +1335,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddressWithLEA(unsigned MIOpc,
 
   MachineInstr *NewMI = MIB;
   MachineInstr *ExtMI =
-      BuildMI(MBB, MBBI, MI.getDebugLoc(), get(TargetOpcode::COPY))
+      BuildMI(MBB, MBBI, MI.getFullDebugLoc(), get(TargetOpcode::COPY))
           .addReg(Dest, RegState::Define | getDeadRegState(IsDead))
           .addReg(OutRegLEA, RegState::Kill, SubReg);
 
@@ -1449,7 +1449,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
                                         Src.getReg(), &X86::GR64_NOSPRegClass))
       return nullptr;
 
-    NewMI = BuildMI(MF, MI.getDebugLoc(), get(X86::LEA64r))
+    NewMI = BuildMI(MF, MI.getFullDebugLoc(), get(X86::LEA64r))
                 .add(Dest)
                 .addReg(0)
                 .addImm(1LL << ShAmt)
@@ -1474,7 +1474,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
       return nullptr;
 
     MachineInstrBuilder MIB =
-        BuildMI(MF, MI.getDebugLoc(), get(Opc))
+        BuildMI(MF, MI.getFullDebugLoc(), get(Opc))
             .add(Dest)
             .addReg(0)
             .addImm(1LL << ShAmt)
@@ -1512,7 +1512,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
                         isKill, ImplicitOp, LV, LIS))
       return nullptr;
 
-    MachineInstrBuilder MIB = BuildMI(MF, MI.getDebugLoc(), get(Opc))
+    MachineInstrBuilder MIB = BuildMI(MF, MI.getFullDebugLoc(), get(Opc))
                                   .add(Dest)
                                   .addReg(SrcReg, getKillRegState(isKill));
     if (ImplicitOp.getReg() != 0)
@@ -1538,7 +1538,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
                         isKill, ImplicitOp, LV, LIS))
       return nullptr;
 
-    MachineInstrBuilder MIB = BuildMI(MF, MI.getDebugLoc(), get(Opc))
+    MachineInstrBuilder MIB = BuildMI(MF, MI.getFullDebugLoc(), get(Opc))
                                   .add(Dest)
                                   .addReg(SrcReg, getKillRegState(isKill));
     if (ImplicitOp.getReg() != 0)
@@ -1591,7 +1591,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
         return nullptr;
     }
 
-    MachineInstrBuilder MIB = BuildMI(MF, MI.getDebugLoc(), get(Opc)).add(Dest);
+    MachineInstrBuilder MIB = BuildMI(MF, MI.getFullDebugLoc(), get(Opc)).add(Dest);
     if (ImplicitOp.getReg() != 0)
       MIB.add(ImplicitOp);
     if (ImplicitOp2.getReg() != 0)
@@ -1621,7 +1621,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
   case X86::ADD64ri32_DB:
     assert(MI.getNumOperands() >= 3 && "Unknown add instruction!");
     NewMI = addOffset(
-        BuildMI(MF, MI.getDebugLoc(), get(X86::LEA64r)).add(Dest).add(Src),
+        BuildMI(MF, MI.getFullDebugLoc(), get(X86::LEA64r)).add(Dest).add(Src),
         MI.getOperand(2));
     break;
   CASE_NF(ADD32ri)
@@ -1636,7 +1636,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
       return nullptr;
 
     MachineInstrBuilder MIB =
-        BuildMI(MF, MI.getDebugLoc(), get(Opc))
+        BuildMI(MF, MI.getFullDebugLoc(), get(Opc))
             .add(Dest)
             .addReg(SrcReg, getKillRegState(isKill), SrcSubReg);
     if (ImplicitOp.getReg() != 0)
@@ -1677,7 +1677,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
       return nullptr;
 
     MachineInstrBuilder MIB =
-        BuildMI(MF, MI.getDebugLoc(), get(Opc))
+        BuildMI(MF, MI.getFullDebugLoc(), get(Opc))
             .add(Dest)
             .addReg(SrcReg, getKillRegState(isKill), SrcSubReg);
     if (ImplicitOp.getReg() != 0)
@@ -1701,7 +1701,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
     assert(MI.getNumOperands() >= 3 && "Unknown sub instruction!");
 
     MachineInstrBuilder MIB =
-        BuildMI(MF, MI.getDebugLoc(), get(X86::LEA64r)).add(Dest).add(Src);
+        BuildMI(MF, MI.getFullDebugLoc(), get(X86::LEA64r)).add(Dest).add(Src);
     NewMI = addOffset(MIB, -Imm);
     break;
   }
@@ -1876,7 +1876,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
       break;
     }
 
-    NewMI = BuildMI(MF, MI.getDebugLoc(), get(Opc))
+    NewMI = BuildMI(MF, MI.getFullDebugLoc(), get(Opc))
                 .add(Dest)
                 .add(MI.getOperand(2))
                 .add(Src)
@@ -2015,7 +2015,7 @@ MachineInstr *X86InstrInfo::convertToThreeAddress(MachineInstr &MI,
       break;
     }
 
-    NewMI = BuildMI(MF, MI.getDebugLoc(), get(Opc))
+    NewMI = BuildMI(MF, MI.getFullDebugLoc(), get(Opc))
                 .add(Dest)
                 .add(MI.getOperand(2))
                 .add(Src)
@@ -4116,7 +4116,7 @@ unsigned X86InstrInfo::insertBranch(MachineBasicBlock &MBB,
                                     MachineBasicBlock *TBB,
                                     MachineBasicBlock *FBB,
                                     ArrayRef<MachineOperand> Cond,
-                                    const DebugLoc &DL, int *BytesAdded) const {
+                                    DbgLocStorage DL, int *BytesAdded) const {
   // Shouldn't be a fall through.
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
   assert((Cond.size() == 1 || Cond.size() == 0) &&
@@ -4209,7 +4209,7 @@ bool X86InstrInfo::canInsertSelect(const MachineBasicBlock &MBB,
 
 void X86InstrInfo::insertSelect(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I,
-                                const DebugLoc &DL, Register DstReg,
+                                DbgLocStorage DL, Register DstReg,
                                 ArrayRef<MachineOperand> Cond, Register TrueReg,
                                 Register FalseReg) const {
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
@@ -4314,7 +4314,7 @@ static unsigned CopyToFromAsymmetricReg(Register DestReg, Register SrcReg,
 
 void X86InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MI,
-                               const DebugLoc &DL, Register DestReg,
+                               DbgLocStorage DL, Register DestReg,
                                Register SrcReg, bool KillSrc,
                                bool RenamableDest, bool RenamableSrc) const {
   // First deal with the normal symmetric copies.
@@ -4763,9 +4763,9 @@ void X86InstrInfo::loadStoreTileReg(MachineBasicBlock &MBB,
     // tilestored %tmm, (%sp, %idx)
     MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
     Register VirtReg = RegInfo.createVirtualRegister(&X86::GR64_NOSPRegClass);
-    BuildMI(MBB, MI, DebugLoc(), get(X86::MOV64ri), VirtReg).addImm(64);
+    BuildMI(MBB, MI, DbgLocStorage(), get(X86::MOV64ri), VirtReg).addImm(64);
     MachineInstr *NewMI =
-        addFrameReference(BuildMI(MBB, MI, DebugLoc(), get(Opc)), FrameIdx)
+        addFrameReference(BuildMI(MBB, MI, DbgLocStorage(), get(Opc)), FrameIdx)
             .addReg(Reg, getKillRegState(isKill));
     MachineOperand &MO = NewMI->getOperand(X86::AddrIndexReg);
     MO.setReg(VirtReg);
@@ -4777,9 +4777,9 @@ void X86InstrInfo::loadStoreTileReg(MachineBasicBlock &MBB,
     // tileloadd (%sp, %idx), %tmm
     MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
     Register VirtReg = RegInfo.createVirtualRegister(&X86::GR64_NOSPRegClass);
-    BuildMI(MBB, MI, DebugLoc(), get(X86::MOV64ri), VirtReg).addImm(64);
+    BuildMI(MBB, MI, DbgLocStorage(), get(X86::MOV64ri), VirtReg).addImm(64);
     MachineInstr *NewMI = addFrameReference(
-        BuildMI(MBB, MI, DebugLoc(), get(Opc), Reg), FrameIdx);
+        BuildMI(MBB, MI, DbgLocStorage(), get(Opc), Reg), FrameIdx);
     MachineOperand &MO = NewMI->getOperand(1 + X86::AddrIndexReg);
     MO.setReg(VirtReg);
     MO.setIsKill(true);
@@ -4807,7 +4807,7 @@ void X86InstrInfo::storeRegToStackSlot(
   if (isAMXOpcode(Opc))
     loadStoreTileReg(MBB, MI, Opc, SrcReg, FrameIdx, isKill);
   else
-    addFrameReference(BuildMI(MBB, MI, DebugLoc(), get(Opc)), FrameIdx)
+    addFrameReference(BuildMI(MBB, MI, DbgLocStorage(), get(Opc)), FrameIdx)
         .addReg(SrcReg, getKillRegState(isKill))
         .setMIFlag(Flags);
 }
@@ -4831,7 +4831,7 @@ void X86InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   if (isAMXOpcode(Opc))
     loadStoreTileReg(MBB, MI, Opc, DestReg, FrameIdx);
   else
-    addFrameReference(BuildMI(MBB, MI, DebugLoc(), get(Opc), DestReg), FrameIdx)
+    addFrameReference(BuildMI(MBB, MI, DbgLocStorage(), get(Opc), DestReg), FrameIdx)
         .setMIFlag(Flags);
 }
 
@@ -5982,7 +5982,7 @@ static bool Expand2AddrKreg(MachineInstrBuilder &MIB, const MCInstrDesc &Desc,
 static bool expandMOV32r1(MachineInstrBuilder &MIB, const TargetInstrInfo &TII,
                           bool MinusOne) {
   MachineBasicBlock &MBB = *MIB->getParent();
-  const DebugLoc &DL = MIB->getDebugLoc();
+  DbgLocStorage DL = MIB->getDebugLoc();
   Register Reg = MIB.getReg(0);
 
   // Insert the XOR.
@@ -6001,7 +6001,7 @@ static bool ExpandMOVImmSExti8(MachineInstrBuilder &MIB,
                                const TargetInstrInfo &TII,
                                const X86Subtarget &Subtarget) {
   MachineBasicBlock &MBB = *MIB->getParent();
-  const DebugLoc &DL = MIB->getDebugLoc();
+  DbgLocStorage DL = MIB->getDebugLoc();
   int64_t Imm = MIB->getOperand(1).getImm();
   assert(Imm != 0 && "Using push/pop for 0 is not efficient.");
   MachineBasicBlock::iterator I = MIB.getInstr();
@@ -6060,7 +6060,7 @@ static bool ExpandMOVImmSExti8(MachineInstrBuilder &MIB,
 static void expandLoadStackGuard(MachineInstrBuilder &MIB,
                                  const TargetInstrInfo &TII) {
   MachineBasicBlock &MBB = *MIB->getParent();
-  const DebugLoc &DL = MIB->getDebugLoc();
+  DbgLocStorage DL = MIB->getDebugLoc();
   Register Reg = MIB.getReg(0);
   const GlobalValue *GV =
       cast<GlobalValue>((*MIB->memoperands_begin())->getValue());
@@ -6349,7 +6349,7 @@ bool X86InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     unsigned Is64Bit = MI.getOpcode() == X86::RDFLAGS64;
     MachineBasicBlock &MBB = *MIB->getParent();
 
-    MachineInstr *NewMI = BuildMI(MBB, MI, MIB->getDebugLoc(),
+    MachineInstr *NewMI = BuildMI(MBB, MI, MIB->getFullDebugLoc(),
                                   get(Is64Bit ? X86::PUSHF64 : X86::PUSHF32))
                               .getInstr();
 
@@ -6373,10 +6373,10 @@ bool X86InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     unsigned Is64Bit = MI.getOpcode() == X86::WRFLAGS64;
     MachineBasicBlock &MBB = *MIB->getParent();
 
-    BuildMI(MBB, MI, MIB->getDebugLoc(),
+    BuildMI(MBB, MI, MIB->getFullDebugLoc(),
             get(Is64Bit ? X86::PUSH64r : X86::PUSH32r))
         .addReg(MI.getOperand(0).getReg());
-    BuildMI(MBB, MI, MIB->getDebugLoc(),
+    BuildMI(MBB, MI, MIB->getFullDebugLoc(),
             get(Is64Bit ? X86::POPF64 : X86::POPF32));
     MI.eraseFromParent();
     return true;
@@ -7185,7 +7185,7 @@ void X86InstrInfo::breakPartialRegDependency(
     // These instructions are all floating point domain, so xorps is the best
     // choice.
     unsigned Opc = Subtarget.hasAVX() ? X86::VXORPSrr : X86::XORPSrr;
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), get(Opc), Reg)
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), get(Opc), Reg)
         .addReg(Reg, RegState::Undef)
         .addReg(Reg, RegState::Undef);
     MI.addRegisterKilled(Reg, TRI, true);
@@ -7193,7 +7193,7 @@ void X86InstrInfo::breakPartialRegDependency(
     // Use vxorps to clear the full ymm register.
     // It wants to read and write the xmm sub-register.
     Register XReg = TRI->getSubReg(Reg, X86::sub_xmm);
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), get(X86::VXORPSrr), XReg)
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), get(X86::VXORPSrr), XReg)
         .addReg(XReg, RegState::Undef)
         .addReg(XReg, RegState::Undef)
         .addReg(Reg, RegState::ImplicitDefine);
@@ -7203,7 +7203,7 @@ void X86InstrInfo::breakPartialRegDependency(
     if (!Subtarget.hasVLX())
       return;
     // Since vxorps requires AVX512DQ, vpxord should be the best choice.
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), get(X86::VPXORDZ128rr), Reg)
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), get(X86::VPXORDZ128rr), Reg)
         .addReg(Reg, RegState::Undef)
         .addReg(Reg, RegState::Undef);
     MI.addRegisterKilled(Reg, TRI, true);
@@ -7215,7 +7215,7 @@ void X86InstrInfo::breakPartialRegDependency(
     // Use vpxord to clear the full ymm/zmm register.
     // It wants to read and write the xmm sub-register.
     Register XReg = TRI->getSubReg(Reg, X86::sub_xmm);
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), get(X86::VPXORDZ128rr), XReg)
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), get(X86::VPXORDZ128rr), XReg)
         .addReg(XReg, RegState::Undef)
         .addReg(XReg, RegState::Undef)
         .addReg(Reg, RegState::ImplicitDefine);
@@ -7224,13 +7224,13 @@ void X86InstrInfo::breakPartialRegDependency(
     // Using XOR32rr because it has shorter encoding and zeros up the upper bits
     // as well.
     Register XReg = TRI->getSubReg(Reg, X86::sub_32bit);
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), get(X86::XOR32rr), XReg)
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), get(X86::XOR32rr), XReg)
         .addReg(XReg, RegState::Undef)
         .addReg(XReg, RegState::Undef)
         .addReg(Reg, RegState::ImplicitDefine);
     MI.addRegisterKilled(Reg, TRI, true);
   } else if (X86::GR32RegClass.contains(Reg)) {
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), get(X86::XOR32rr), Reg)
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), get(X86::XOR32rr), Reg)
         .addReg(Reg, RegState::Undef)
         .addReg(Reg, RegState::Undef);
     MI.addRegisterKilled(Reg, TRI, true);
@@ -7305,7 +7305,7 @@ static MachineInstr *fuseTwoAddrInst(MachineFunction &MF, unsigned Opcode,
   // Create the base instruction with the memory operand as the first part.
   // Omit the implicit operands, something BuildMI can't do.
   MachineInstr *NewMI =
-      MF.CreateMachineInstr(TII.get(Opcode), MI.getDebugLoc(), true);
+      MF.CreateMachineInstr(TII.get(Opcode), MI.getFullDebugLoc(), true);
   MachineInstrBuilder MIB(MF, NewMI);
   addOperands(MIB, MOs);
 
@@ -7333,7 +7333,7 @@ static MachineInstr *fuseInst(MachineFunction &MF, unsigned Opcode,
                               int PtrOffset = 0) {
   // Omit the implicit operands, something BuildMI can't do.
   MachineInstr *NewMI =
-      MF.CreateMachineInstr(TII.get(Opcode), MI.getDebugLoc(), true);
+      MF.CreateMachineInstr(TII.get(Opcode), MI.getFullDebugLoc(), true);
   MachineInstrBuilder MIB(MF, NewMI);
 
   for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i) {
@@ -7363,7 +7363,7 @@ static MachineInstr *makeM0Inst(const TargetInstrInfo &TII, unsigned Opcode,
                                 MachineBasicBlock::iterator InsertPt,
                                 MachineInstr &MI) {
   MachineInstrBuilder MIB = BuildMI(*InsertPt->getParent(), InsertPt,
-                                    MI.getDebugLoc(), TII.get(Opcode));
+                                    MI.getFullDebugLoc(), TII.get(Opcode));
   addOperands(MIB, MOs);
   return MIB.addImm(0);
 }
@@ -7643,7 +7643,7 @@ MachineInstr *X86InstrInfo::foldMemoryOperandImpl(
       if (MRI.isSSA())
         NewSrc = MRI.createVirtualRegister(getRegClass(NewMI->getDesc(), 1));
 
-      CopyMI = BuildMI(*NewMI->getParent(), *NewMI, MI.getDebugLoc(),
+      CopyMI = BuildMI(*NewMI->getParent(), *NewMI, MI.getFullDebugLoc(),
                        get(TargetOpcode::COPY))
                    .addDef(NewSrc)
                    .addReg(SrcReg, {}, SrcSub);
@@ -8668,7 +8668,7 @@ bool X86InstrInfo::unfoldMemoryOperand(
       Opc = getLoadRegOpcode(Reg, RC, isAligned, Subtarget);
     }
 
-    DebugLoc DL;
+    DbgLocStorage DL;
     MachineInstrBuilder MIB = BuildMI(MF, DL, get(Opc), Reg);
     for (const MachineOperand &AddrOp : AddrOps)
       MIB.add(AddrOp);
@@ -8686,7 +8686,7 @@ bool X86InstrInfo::unfoldMemoryOperand(
   }
 
   // Emit the data processing instruction.
-  MachineInstr *DataMI = MF.CreateMachineInstr(MCID, MI.getDebugLoc(), true);
+  MachineInstr *DataMI = MF.CreateMachineInstr(MCID, MI.getFullDebugLoc(), true);
   MachineInstrBuilder MIB(MF, DataMI);
 
   if (FoldedStore)
@@ -8746,7 +8746,7 @@ bool X86InstrInfo::unfoldMemoryOperand(
     unsigned Alignment = std::max<uint32_t>(TRI.getSpillSize(*DstRC), 16);
     bool isAligned = !MMOs.empty() && MMOs.front()->getAlign() >= Alignment;
     unsigned Opc = getStoreRegOpcode(Reg, DstRC, isAligned, Subtarget);
-    DebugLoc DL;
+    DbgLocStorage DL;
     MachineInstrBuilder MIB = BuildMI(MF, DL, get(Opc));
     for (const MachineOperand &AddrOp : AddrOps)
       MIB.add(AddrOp);
@@ -9551,7 +9551,7 @@ void X86InstrInfo::setExecutionDomain(MachineInstr &MI, unsigned Domain) const {
 
 void X86InstrInfo::insertNoop(MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator MI) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   BuildMI(MBB, MI, DL, get(X86::NOOP));
 }
 
@@ -10639,7 +10639,7 @@ void X86InstrInfo::buildOutlinedFrame(
 
   // We're a normal call, so our sequence doesn't have a return instruction.
   // Add it in.
-  MachineInstr *retq = BuildMI(MF, DebugLoc(), get(X86::RET64));
+  MachineInstr *retq = BuildMI(MF, DbgLocStorage(), get(X86::RET64));
   MBB.insert(MBB.end(), retq);
 }
 
@@ -10649,11 +10649,11 @@ MachineBasicBlock::iterator X86InstrInfo::insertOutlinedCall(
   // Is it a tail call?
   if (C.CallConstructionID == MachineOutlinerTailCall) {
     // Yes, just insert a JMP.
-    It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(X86::TAILJMPd64))
+    It = MBB.insert(It, BuildMI(MF, DbgLocStorage(), get(X86::TAILJMPd64))
                             .addGlobalAddress(M.getNamedValue(MF.getName())));
   } else {
     // No, insert a call.
-    It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(X86::CALL64pcrel32))
+    It = MBB.insert(It, BuildMI(MF, DbgLocStorage(), get(X86::CALL64pcrel32))
                             .addGlobalAddress(M.getNamedValue(MF.getName())));
   }
 
@@ -10662,7 +10662,7 @@ MachineBasicBlock::iterator X86InstrInfo::insertOutlinedCall(
 
 void X86InstrInfo::buildClearRegister(Register Reg, MachineBasicBlock &MBB,
                                       MachineBasicBlock::iterator Iter,
-                                      DebugLoc &DL,
+                                      DbgLocStorage DL,
                                       bool AllowSideEffects) const {
   const MachineFunction &MF = *MBB.getParent();
   const X86Subtarget &ST = MF.getSubtarget<X86Subtarget>();
@@ -10870,7 +10870,7 @@ X86InstrInfo::insertCodePrefetchInstr(MachineBasicBlock &MBB,
   MachineInstr *PrefetchInstr = MF.CreateMachineInstr(
       get(X86::PREFETCHIT1),
       InsertBefore == MBB.instr_end() ? MBB.findPrevDebugLoc(InsertBefore)
-                                      : InsertBefore->getDebugLoc(),
+                                      : InsertBefore->getFullDebugLoc(),
       true);
   MachineInstrBuilder MIB(MF, PrefetchInstr);
   MIB.addMemOperand(MF.getMachineMemOperand(MachinePointerInfo(GV),

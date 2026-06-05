@@ -42,7 +42,7 @@ bool MSP430FrameLowering::hasReservedCallFrame(const MachineFunction &MF) const 
 
 void MSP430FrameLowering::BuildCFI(MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator MBBI,
-                                   const DebugLoc &DL,
+                                   DebugLoc DL,
                                    const MCCFIInstruction &CFIInst,
                                    MachineInstr::MIFlag Flag) const {
   MachineFunction &MF = *MBB.getParent();
@@ -54,7 +54,7 @@ void MSP430FrameLowering::BuildCFI(MachineBasicBlock &MBB,
 
 void MSP430FrameLowering::emitCalleeSavedFrameMoves(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, bool IsPrologue) const {
+    DebugLoc DL, bool IsPrologue) const {
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   const MCRegisterInfo *MRI = MF.getContext().getRegisterInfo();
@@ -87,7 +87,7 @@ void MSP430FrameLowering::emitPrologue(MachineFunction &MF,
       *static_cast<const MSP430InstrInfo *>(MF.getSubtarget().getInstrInfo());
 
   MachineBasicBlock::iterator MBBI = MBB.begin();
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
 
   // Get the number of bytes to allocate from the FrameInfo.
   uint64_t StackSize = MFI.getStackSize();
@@ -157,7 +157,7 @@ void MSP430FrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   if (MBBI != MBB.end())
-    DL = MBBI->getDebugLoc();
+    DL = MBBI->getFullDebugLoc();
 
   if (NumBytes) { // adjust stack pointer: SP -= numbytes
     // If there is an SUB16ri of SP immediately before this instruction, merge
@@ -197,7 +197,7 @@ void MSP430FrameLowering::emitEpilogue(MachineFunction &MF,
 
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
   unsigned RetOpcode = MBBI->getOpcode();
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
 
   switch (RetOpcode) {
   case MSP430::RET:
@@ -249,7 +249,7 @@ void MSP430FrameLowering::emitEpilogue(MachineFunction &MF,
   }
   MBBI = FirstCSPop;
 
-  DL = MBBI->getDebugLoc();
+  DL = MBBI->getFullDebugLoc();
 
   // If there is an ADD16ri or SUB16ri of SP immediately before this
   // instruction, merge the two instructions.
@@ -317,7 +317,7 @@ bool MSP430FrameLowering::spillCalleeSavedRegisters(
     return false;
 
   DebugLoc DL;
-  if (MI != MBB.end()) DL = MI->getDebugLoc();
+  if (MI != MBB.end()) DL = MI->getFullDebugLoc();
 
   MachineFunction &MF = *MBB.getParent();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
@@ -342,7 +342,7 @@ bool MSP430FrameLowering::restoreCalleeSavedRegisters(
     return false;
 
   DebugLoc DL;
-  if (MI != MBB.end()) DL = MI->getDebugLoc();
+  if (MI != MBB.end()) DL = MI->getFullDebugLoc();
 
   MachineFunction &MF = *MBB.getParent();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
@@ -375,7 +375,7 @@ MachineBasicBlock::iterator MSP430FrameLowering::eliminateCallFramePseudoInstr(
       MachineInstr *New = nullptr;
       if (Old.getOpcode() == TII.getCallFrameSetupOpcode()) {
         New =
-            BuildMI(MF, Old.getDebugLoc(), TII.get(MSP430::SUB16ri), MSP430::SP)
+            BuildMI(MF, Old.getFullDebugLoc(), TII.get(MSP430::SUB16ri), MSP430::SP)
                 .addReg(MSP430::SP)
                 .addImm(Amount);
       } else {
@@ -383,7 +383,7 @@ MachineBasicBlock::iterator MSP430FrameLowering::eliminateCallFramePseudoInstr(
         // factor out the amount the callee already popped.
         Amount -= TII.getFramePoppedByCallee(Old);
         if (Amount)
-          New = BuildMI(MF, Old.getDebugLoc(), TII.get(MSP430::ADD16ri),
+          New = BuildMI(MF, Old.getFullDebugLoc(), TII.get(MSP430::ADD16ri),
                         MSP430::SP)
                     .addReg(MSP430::SP)
                     .addImm(Amount);
@@ -403,7 +403,7 @@ MachineBasicBlock::iterator MSP430FrameLowering::eliminateCallFramePseudoInstr(
     if (uint64_t CalleeAmt = TII.getFramePoppedByCallee(*I)) {
       MachineInstr &Old = *I;
       MachineInstr *New =
-          BuildMI(MF, Old.getDebugLoc(), TII.get(MSP430::SUB16ri), MSP430::SP)
+          BuildMI(MF, Old.getFullDebugLoc(), TII.get(MSP430::SUB16ri), MSP430::SP)
               .addReg(MSP430::SP)
               .addImm(CalleeAmt);
       if (!hasFP(MF)) {

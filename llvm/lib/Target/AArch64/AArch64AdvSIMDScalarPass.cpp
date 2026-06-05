@@ -287,7 +287,7 @@ bool AArch64AdvSIMDScalarImpl::isProfitableToTransform(
 
 static MachineInstr *insertCopy(const TargetInstrInfo *TII, MachineInstr &MI,
                                 unsigned Dst, unsigned Src, bool IsKill) {
-  MachineInstrBuilder MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  MachineInstrBuilder MIB = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                     TII->get(AArch64::COPY), Dst)
                                 .addReg(Src, getKillRegState(IsKill));
   LLVM_DEBUG(dbgs() << "    adding copy: " << *MIB);
@@ -373,7 +373,7 @@ void AArch64AdvSIMDScalarImpl::transformInstruction(MachineInstr &MI) {
   // For now, all of the new instructions have the same simple three-register
   // form, so no need to special case based on what instruction we're
   // building.
-  BuildMI(*MBB, MI, MI.getDebugLoc(), TII->get(NewOpc), Dst)
+  BuildMI(*MBB, MI, MI.getFullDebugLoc(), TII->get(NewOpc), Dst)
       .addReg(Src0, getKillRegState(KillSrc0), SubReg0)
       .addReg(Src1, getKillRegState(KillSrc1), SubReg1);
 

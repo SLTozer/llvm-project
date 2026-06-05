@@ -50,7 +50,7 @@ public:
   /// Write SP back to __stack_pointer global, or call __wasm_set_stack_pointer.
   void writeBackSP(unsigned SrcReg, MachineFunction &MF, MachineBasicBlock &MBB,
                    MachineBasicBlock::iterator &InsertStore,
-                   const DebugLoc &DL) const;
+                   DebugLoc DL) const;
 
   // Returns the index of the WebAssembly local to which the stack object
   // FrameIndex in MF should be allocated, or std::nullopt.

@@ -1500,8 +1500,8 @@ const char *LLVMGetDebugLocDirectory(LLVMValueRef Val, unsigned *Length) {
   if (!Length) return nullptr;
   StringRef S;
   if (const auto *I = dyn_cast<Instruction>(unwrap(Val))) {
-    if (const auto &DL = I->getDebugLoc()) {
-      S = DL->getDirectory();
+    if (const auto &DL = I->getFullDebugLoc()) {
+      S = DL.getDirectory();
     }
   } else if (const auto *GV = dyn_cast<GlobalVariable>(unwrap(Val))) {
     SmallVector<DIGlobalVariableExpression *, 1> GVEs;
@@ -1524,8 +1524,8 @@ const char *LLVMGetDebugLocFilename(LLVMValueRef Val, unsigned *Length) {
   if (!Length) return nullptr;
   StringRef S;
   if (const auto *I = dyn_cast<Instruction>(unwrap(Val))) {
-    if (const auto &DL = I->getDebugLoc()) {
-      S = DL->getFilename();
+    if (const auto &DL = I->getFullDebugLoc()) {
+      S = DL.getFilename();
     }
   } else if (const auto *GV = dyn_cast<GlobalVariable>(unwrap(Val))) {
     SmallVector<DIGlobalVariableExpression *, 1> GVEs;
@@ -1547,8 +1547,8 @@ const char *LLVMGetDebugLocFilename(LLVMValueRef Val, unsigned *Length) {
 unsigned LLVMGetDebugLocLine(LLVMValueRef Val) {
   unsigned L = 0;
   if (const auto *I = dyn_cast<Instruction>(unwrap(Val))) {
-    if (const auto &DL = I->getDebugLoc()) {
-      L = DL->getLine();
+    if (const auto &DL = I->getFullDebugLoc()) {
+      L = DL.getLine();
     }
   } else if (const auto *GV = dyn_cast<GlobalVariable>(unwrap(Val))) {
     SmallVector<DIGlobalVariableExpression *, 1> GVEs;
@@ -1569,8 +1569,8 @@ unsigned LLVMGetDebugLocLine(LLVMValueRef Val) {
 unsigned LLVMGetDebugLocColumn(LLVMValueRef Val) {
   unsigned C = 0;
   if (const auto *I = dyn_cast<Instruction>(unwrap(Val)))
-    if (const auto &DL = I->getDebugLoc())
-      C = DL->getColumn();
+    if (const auto &DL = I->getFullDebugLoc())
+      C = DL.getColumn();
   return C;
 }
 
@@ -3123,7 +3123,7 @@ LLVMDbgRecordRef LLVMGetPreviousDbgRecord(LLVMDbgRecordRef Rec) {
 }
 
 LLVMMetadataRef LLVMDbgRecordGetDebugLoc(LLVMDbgRecordRef Rec) {
-  return wrap(unwrap<DbgRecord>(Rec)->getDebugLoc().getAsMDNode());
+  return wrap(unwrap<DbgRecord>(Rec)->getFullDebugLoc().getAsMDNode());
 }
 
 LLVMDbgRecordKind LLVMDbgRecordGetKind(LLVMDbgRecordRef Rec) {
@@ -3491,13 +3491,36 @@ void LLVMDisposeBuilder(LLVMBuilderRef Builder) {
 
 /*--.. Metadata builders ...................................................--*/
 
-LLVMMetadataRef LLVMGetCurrentDebugLocation2(LLVMBuilderRef Builder) {
-  return wrap(unwrap(Builder)->getCurrentDebugLocation().getAsMDNode());
+#if LLVM_USE_FLMD_SOURCE_LOCS
+static DebugLoc unwrap(LLVMDebugLoc DL) {
+  return DebugLoc(
+    FLDebugLoc::fromRawInt(DL.Loc),
+    cast<DIFunctionLocalMetadata>(unwrap(DL.Context)));
+}
+static LLVMDebugLoc wrap(DebugLoc DL) {
+  return LLVMDebugLoc {
+    DL.getUnderlyingStorage().asRawInt(),
+    wrap(DL.getFLContext()),
+  };
 }
 
+LLVMDebugLoc LLVMGetCurrentDebugLocation3(LLVMBuilderRef Builder) {
+  return wrap(unwrap(Builder)->getCurrentDebugLocation());
+}
+void LLVMSetCurrentDebugLocation3(LLVMBuilderRef Builder, LLVMDebugLoc Loc) {
+  if (auto DL = unwrap(Loc))
+    unwrap(Builder)->SetCurrentDebugLocation(DL);
+  else
+    unwrap(Builder)->SetCurrentDebugLocation(DebugLoc());
+}
+#endif
+
+LLVMMetadataRef LLVMGetCurrentDebugLocation2(LLVMBuilderRef Builder) {
+  return wrap(unwrap(Builder)->getCurrentDebugLocation().convertToDILocation());
+}
 void LLVMSetCurrentDebugLocation2(LLVMBuilderRef Builder, LLVMMetadataRef Loc) {
   if (Loc)
-    unwrap(Builder)->SetCurrentDebugLocation(DebugLoc(unwrap<DILocation>(Loc)));
+    unwrap(Builder)->SetCurrentDebugLocation(unwrap<DILocation>(Loc)->getAsDebugLoc());
   else
     unwrap(Builder)->SetCurrentDebugLocation(DebugLoc());
 }
@@ -3505,7 +3528,7 @@ void LLVMSetCurrentDebugLocation2(LLVMBuilderRef Builder, LLVMMetadataRef Loc) {
 void LLVMSetCurrentDebugLocation(LLVMBuilderRef Builder, LLVMValueRef L) {
   DILocation *Loc =
       L ? cast<DILocation>(unwrap<MetadataAsValue>(L)->getMetadata()) : nullptr;
-  unwrap(Builder)->SetCurrentDebugLocation(DebugLoc(Loc));
+  unwrap(Builder)->SetCurrentDebugLocation(DebugLoc::getFromDILocation(Loc));
 }
 
 LLVMValueRef LLVMGetCurrentDebugLocation(LLVMBuilderRef Builder) {

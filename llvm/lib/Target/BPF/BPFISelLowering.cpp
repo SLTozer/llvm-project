@@ -938,7 +938,7 @@ BPFTargetLowering::EmitSubregExt(MachineInstr &MI, MachineBasicBlock *BB,
   const TargetRegisterClass *RC = getRegClassFor(MVT::i64);
   int RShiftOp = isSigned ? BPF::SRA_ri : BPF::SRL_ri;
   MachineFunction *F = BB->getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   MachineRegisterInfo &RegInfo = F->getRegInfo();
 
@@ -1000,7 +1000,7 @@ MachineBasicBlock *BPFTargetLowering::EmitInstrWithCustomInserterLDimm64(
   const BPFInstrInfo *TII = MF->getSubtarget<BPFSubtarget>().getInstrInfo();
   const TargetRegisterClass *RC = getRegClassFor(MVT::i64);
   MachineRegisterInfo &RegInfo = MF->getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // Build address taken map for Global Varaibles and BlockAddresses
   DenseMap<const BasicBlock *, MachineBasicBlock *> AddressTakenBBs;
@@ -1078,7 +1078,7 @@ MachineBasicBlock *
 BPFTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
                                                MachineBasicBlock *BB) const {
   const TargetInstrInfo &TII = *BB->getParent()->getSubtarget().getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   unsigned Opc = MI.getOpcode();
   bool isSelectRROp = (Opc == BPF::Select ||
                        Opc == BPF::Select_64_32 ||

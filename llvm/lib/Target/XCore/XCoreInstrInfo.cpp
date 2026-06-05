@@ -268,7 +268,7 @@ unsigned XCoreInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                       MachineBasicBlock *TBB,
                                       MachineBasicBlock *FBB,
                                       ArrayRef<MachineOperand> Cond,
-                                      const DebugLoc &DL,
+                                      DbgLocStorage DL,
                                       int *BytesAdded) const {
   // Shouldn't be a fall through.
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
@@ -326,7 +326,7 @@ XCoreInstrInfo::removeBranch(MachineBasicBlock &MBB, int *BytesRemoved) const {
 
 void XCoreInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator I,
-                                 const DebugLoc &DL, Register DestReg,
+                                 DbgLocStorage DL, Register DestReg,
                                  Register SrcReg, bool KillSrc,
                                  bool RenamableDest, bool RenamableSrc) const {
   bool GRDest = XCore::GRRegsRegClass.contains(DestReg);
@@ -357,9 +357,9 @@ void XCoreInstrInfo::storeRegToStackSlot(
     bool isKill, int FrameIndex, const TargetRegisterClass *RC,
 
     Register VReg, MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (I != MBB.end() && !I->isDebugInstr())
-    DL = I->getDebugLoc();
+    DL = I->getFullDebugLoc();
   MachineFunction *MF = MBB.getParent();
   const MachineFrameInfo &MFI = MF->getFrameInfo();
   MachineMemOperand *MMO = MF->getMachineMemOperand(
@@ -379,9 +379,9 @@ void XCoreInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                           const TargetRegisterClass *RC,
                                           Register VReg, unsigned SubReg,
                                           MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (I != MBB.end() && !I->isDebugInstr())
-    DL = I->getDebugLoc();
+    DL = I->getFullDebugLoc();
   MachineFunction *MF = MBB.getParent();
   const MachineFrameInfo &MFI = MF->getFrameInfo();
   MachineMemOperand *MMO = MF->getMachineMemOperand(
@@ -422,9 +422,9 @@ MachineBasicBlock::iterator XCoreInstrInfo::loadImmediate(
                                               MachineBasicBlock &MBB,
                                               MachineBasicBlock::iterator MI,
                                               unsigned Reg, uint64_t Value) const {
-  DebugLoc dl;
+  DbgLocStorage dl;
   if (MI != MBB.end() && !MI->isDebugInstr())
-    dl = MI->getDebugLoc();
+    dl = MI->getFullDebugLoc();
   if (isImmMskBitp(Value)) {
     int N = llvm::bit_width(Value);
     return BuildMI(MBB, MI, dl, get(XCore::MKMSK_rus), Reg)

@@ -98,7 +98,7 @@ MachineInstr *AArch64CondBrTuning::convertToFlagSetting(MachineInstr &MI,
   if (MRI->hasOneNonDBGUse(MI.getOperand(0).getReg()))
     NewDestReg = Is64Bit ? AArch64::XZR : AArch64::WZR;
 
-  MachineInstrBuilder MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  MachineInstrBuilder MIB = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                     TII->get(NewOpc), NewDestReg);
 
   // If the MI has a debug instruction number, preserve that in the new Machine
@@ -136,7 +136,7 @@ MachineInstr *AArch64CondBrTuning::convertToCondBr(MachineInstr &MI) {
     CC = AArch64CC::MI;
     break;
   }
-  return BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII->get(AArch64::Bcc))
+  return BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII->get(AArch64::Bcc))
       .addImm(CC)
       .addMBB(TargetMBB);
 }

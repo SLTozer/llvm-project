@@ -115,6 +115,13 @@ private:
     *OS << '\n';
   }
 
+  void Write(DebugLoc DL) {
+    if (!DL)
+      return;
+    DL.print(*OS, MST);
+    *OS << '\n';
+  }
+
   void Write(Type *T) {
     if (!T)
       return;

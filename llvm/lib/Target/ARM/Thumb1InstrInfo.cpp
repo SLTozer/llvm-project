@@ -41,7 +41,7 @@ unsigned Thumb1InstrInfo::getUnindexedOpcode(unsigned Opc) const {
 
 void Thumb1InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator I,
-                                  const DebugLoc &DL, Register DestReg,
+                                  DbgLocStorage DL, Register DestReg,
                                   Register SrcReg, bool KillSrc,
                                   bool RenamableDest, bool RenamableSrc) const {
   // Need to check the arch.
@@ -124,8 +124,8 @@ void Thumb1InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
 
   if (RC == &ARM::tGPRRegClass ||
       (SrcReg.isPhysical() && isARMLowRegister(SrcReg))) {
-    DebugLoc DL;
-    if (I != MBB.end()) DL = I->getDebugLoc();
+    DbgLocStorage DL;
+    if (I != MBB.end()) DL = I->getFullDebugLoc();
 
     MachineFunction &MF = *MBB.getParent();
     MachineFrameInfo &MFI = MF.getFrameInfo();
@@ -153,8 +153,8 @@ void Thumb1InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
 
   if (RC->hasSuperClassEq(&ARM::tGPRRegClass) ||
       (DestReg.isPhysical() && isARMLowRegister(DestReg))) {
-    DebugLoc DL;
-    if (I != MBB.end()) DL = I->getDebugLoc();
+    DbgLocStorage DL;
+    if (I != MBB.end()) DL = I->getFullDebugLoc();
 
     MachineFunction &MF = *MBB.getParent();
     MachineFrameInfo &MFI = MF.getFrameInfo();

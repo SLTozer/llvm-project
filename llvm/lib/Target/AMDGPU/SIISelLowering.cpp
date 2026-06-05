@@ -5145,7 +5145,7 @@ void SITargetLowering::bundleInstWithWaitcnt(MachineInstr &MI) const {
   auto E = std::next(I);
 
   // clang-format off
-  BuildMI(*MBB, E, MI.getDebugLoc(), TII->get(AMDGPU::S_WAITCNT))
+  BuildMI(*MBB, E, MI.getFullDebugLoc(), TII->get(AMDGPU::S_WAITCNT))
       .addImm(0);
   // clang-format on
 
@@ -5156,7 +5156,7 @@ void SITargetLowering::bundleInstWithWaitcnt(MachineInstr &MI) const {
 MachineBasicBlock *
 SITargetLowering::emitGWSMemViolTestLoop(MachineInstr &MI,
                                          MachineBasicBlock *BB) const {
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
 
@@ -5206,7 +5206,7 @@ SITargetLowering::emitGWSMemViolTestLoop(MachineInstr &MI,
 static MachineBasicBlock::iterator
 emitLoadM0FromVGPRLoop(const SIInstrInfo *TII, MachineRegisterInfo &MRI,
                        MachineBasicBlock &OrigBB, MachineBasicBlock &LoopBB,
-                       const DebugLoc &DL, const MachineOperand &Idx,
+                       DebugLoc DL, const MachineOperand &Idx,
                        unsigned InitReg, unsigned ResultReg, unsigned PhiReg,
                        unsigned InitSaveExecReg, int Offset, bool UseGPRIdxMode,
                        Register &SGPRIdxReg) {
@@ -5303,7 +5303,7 @@ loadM0FromVGPR(const SIInstrInfo *TII, MachineBasicBlock &MBB, MachineInstr &MI,
   const GCNSubtarget &ST = MF->getSubtarget<GCNSubtarget>();
   const SIRegisterInfo *TRI = ST.getRegisterInfo();
   MachineRegisterInfo &MRI = MF->getRegInfo();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock::iterator I(&MI);
 
   const auto *BoolXExecRC = TRI->getWaveMaskRegClass();
@@ -5363,7 +5363,7 @@ static void setM0ToIndexFromSGPR(const SIInstrInfo *TII,
                                  MachineRegisterInfo &MRI, MachineInstr &MI,
                                  int Offset) {
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock::iterator I(&MI);
 
   const MachineOperand *Idx = TII->getNamedOperand(MI, AMDGPU::OpName::idx);
@@ -5386,7 +5386,7 @@ static Register getIndirectSGPRIdx(const SIInstrInfo *TII,
                                    MachineRegisterInfo &MRI, MachineInstr &MI,
                                    int Offset) {
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock::iterator I(&MI);
 
   const MachineOperand *Idx = TII->getNamedOperand(MI, AMDGPU::OpName::idx);
@@ -5426,7 +5426,7 @@ static MachineBasicBlock *emitIndirectSrc(MachineInstr &MI,
   // Check for a SGPR index.
   if (TII->getRegisterInfo().isSGPRClass(IdxRC)) {
     MachineBasicBlock::iterator I(&MI);
-    const DebugLoc &DL = MI.getDebugLoc();
+    DebugLoc DL = MI.getFullDebugLoc();
 
     if (UseGPRIdxMode) {
       // TODO: Look at the uses to avoid the copy. This may require rescheduling
@@ -5454,7 +5454,7 @@ static MachineBasicBlock *emitIndirectSrc(MachineInstr &MI,
   }
 
   // Control flow needs to be inserted if indexing with a VGPR.
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock::iterator I(&MI);
 
   Register PhiReg = MRI.createVirtualRegister(&AMDGPU::VGPR_32RegClass);
@@ -5513,7 +5513,7 @@ static MachineBasicBlock *emitIndirectDst(MachineInstr &MI,
 
   if (Idx->getReg() == AMDGPU::NoRegister) {
     MachineBasicBlock::iterator I(&MI);
-    const DebugLoc &DL = MI.getDebugLoc();
+    DebugLoc DL = MI.getFullDebugLoc();
 
     assert(Offset == 0);
 
@@ -5529,7 +5529,7 @@ static MachineBasicBlock *emitIndirectDst(MachineInstr &MI,
   // Check for a SGPR index.
   if (TII->getRegisterInfo().isSGPRClass(IdxRC)) {
     MachineBasicBlock::iterator I(&MI);
-    const DebugLoc &DL = MI.getDebugLoc();
+    DebugLoc DL = MI.getFullDebugLoc();
 
     if (UseGPRIdxMode) {
       Register Idx = getIndirectSGPRIdx(TII, MRI, MI, Offset);
@@ -5559,7 +5559,7 @@ static MachineBasicBlock *emitIndirectDst(MachineInstr &MI,
   if (Val->isReg())
     MRI.clearKillFlags(Val->getReg());
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register PhiReg = MRI.createVirtualRegister(VecRC);
 
@@ -5598,7 +5598,7 @@ static MachineBasicBlock *expand64BitScalarArithmetic(MachineInstr &MI,
   const SIInstrInfo *TII = MF->getSubtarget<GCNSubtarget>().getInstrInfo();
   const GCNSubtarget &ST = MF->getSubtarget<GCNSubtarget>();
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineOperand &Dest = MI.getOperand(0);
   MachineOperand &Src0 = MI.getOperand(1);
   MachineOperand &Src1 = MI.getOperand(2);
@@ -5647,7 +5647,7 @@ static void expand64BitV_CNDMASK(MachineInstr &MI, MachineBasicBlock *BB) {
   const SIInstrInfo *TII = ST.getInstrInfo();
   const SIRegisterInfo *TRI = ST.getRegisterInfo();
   MachineRegisterInfo &MRI = MF->getRegInfo();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Dst = MI.getOperand(0).getReg();
   const MachineOperand &Src0 = MI.getOperand(1);
   const MachineOperand &Src1 = MI.getOperand(2);
@@ -5874,7 +5874,7 @@ static MachineBasicBlock *lowerWaveReduce(MachineInstr &MI,
                                           unsigned Opc) {
   MachineRegisterInfo &MRI = BB.getParent()->getRegInfo();
   const SIRegisterInfo *TRI = ST.getRegisterInfo();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const SIInstrInfo *TII = ST.getInstrInfo();
 
   // Reduction operations depend on whether the input operand is SGPR or VGPR.
@@ -6791,7 +6791,7 @@ SITargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   const SIInstrInfo *TII = getSubtarget()->getInstrInfo();
   const SIRegisterInfo *TRI = Subtarget->getRegisterInfo();
   MachineRegisterInfo &MRI = MF->getRegInfo();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   switch (MI.getOpcode()) {
   case AMDGPU::WAVE_REDUCE_UMIN_PSEUDO_U32:
@@ -7053,7 +7053,7 @@ SITargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   }
   case AMDGPU::SI_INIT_M0: {
     MachineOperand &M0Init = MI.getOperand(0);
-    BuildMI(*BB, MI.getIterator(), MI.getDebugLoc(),
+    BuildMI(*BB, MI.getIterator(), MI.getFullDebugLoc(),
             TII->get(M0Init.isReg() ? AMDGPU::COPY : AMDGPU::S_MOV_B32),
             AMDGPU::M0)
         .add(M0Init);
@@ -7062,7 +7062,7 @@ SITargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   }
   case AMDGPU::S_BARRIER_SIGNAL_ISFIRST_IMM: {
     // Set SCC to true, in case the barrier instruction gets converted to a NOP.
-    BuildMI(*BB, MI.getIterator(), MI.getDebugLoc(),
+    BuildMI(*BB, MI.getIterator(), MI.getFullDebugLoc(),
             TII->get(AMDGPU::S_CMP_EQ_U32))
         .addImm(0)
         .addImm(0);
@@ -7266,7 +7266,7 @@ SITargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
         if (Def && Def->isMoveImmediate() && Def->getOperand(1).isImm()) {
           unsigned ImmVal = Def->getOperand(1).getImm();
           if (SetRoundOp) {
-            BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(SetRoundOp))
+            BuildMI(*BB, MI, MI.getFullDebugLoc(), TII->get(SetRoundOp))
                 .addImm(ImmVal & 0xf);
 
             // If we also have the denorm mode, get just the denorm mode bits.
@@ -7274,7 +7274,7 @@ SITargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
           }
 
           if (SetDenormOp) {
-            BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(SetDenormOp))
+            BuildMI(*BB, MI, MI.getFullDebugLoc(), TII->get(SetDenormOp))
                 .addImm(ImmVal & 0xf);
           }
 
@@ -7325,7 +7325,7 @@ SITargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   case AMDGPU::SIMULATED_TRAP: {
     assert(Subtarget->hasPrivEnabledTrap2NopBug());
     MachineBasicBlock *SplitBB =
-        TII->insertSimulatedTrap(MRI, *BB, MI, MI.getDebugLoc());
+        TII->insertSimulatedTrap(MRI, *BB, MI, MI.getFullDebugLoc());
     MI.eraseFromParent();
     return SplitBB;
   }
@@ -19187,7 +19187,7 @@ void SITargetLowering::AddMemOpInit(MachineInstr &MI) const {
     return;
   }
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // Create a register for the initialization value.
   Register PrevDst = MRI.cloneVirtualRegister(MI.getOperand(DstIdx).getReg());

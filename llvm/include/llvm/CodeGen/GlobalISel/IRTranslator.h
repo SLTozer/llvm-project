@@ -209,7 +209,7 @@ private:
   /// stored.
   void translateDbgValueRecord(Value *V, bool HasArgList,
                          const DILocalVariable *Variable,
-                         const DIExpression *Expression, const DebugLoc &DL,
+                         const DIExpression *Expression, DebugLoc DL,
                          MachineIRBuilder &MIRBuilder);
 
   /// Translate a debug-info record of a dbg.declare into an indirect DBG_*
@@ -217,7 +217,7 @@ private:
   /// on how it's stored.
   void translateDbgDeclareRecord(Value *Address, bool HasArgList,
                          const DILocalVariable *Variable,
-                         const DIExpression *Expression, const DebugLoc &DL,
+                         const DIExpression *Expression, DebugLoc DL,
                          MachineIRBuilder &MIRBuilder);
 
   // Translate U as a copy of V.
@@ -285,7 +285,7 @@ private:
   bool translateIfEntryValueArgument(bool isDeclare, Value *Arg,
                                      const DILocalVariable *Var,
                                      const DIExpression *Expr,
-                                     const DebugLoc &DL,
+                                     DebugLoc DL,
                                      MachineIRBuilder &MIRBuilder);
 
   bool translateInlineAsm(const CallBase &CB, MachineIRBuilder &MIRBuilder);

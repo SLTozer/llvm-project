@@ -163,8 +163,8 @@ void FunctionVarLocs::print(raw_ostream &OS, const Function &Fn) const {
     if (auto F = V.getFragment())
       OS << " bits [" << F->OffsetInBits << ", "
          << F->OffsetInBits + F->SizeInBits << ")";
-    if (const auto *IA = V.getInlinedAt())
-      OS << " inlined-at " << *IA;
+    if (DebugLoc IA = V.getInlinedAt())
+      OS << " inlined-at " << IA;
     OS << "\n";
   }
 
@@ -317,7 +317,7 @@ getDerefOffsetInBytes(const DIExpression *DIExpr) {
 }
 
 /// A whole (unfragmented) source variable.
-using DebugAggregate = std::pair<const DILocalVariable *, const DILocation *>;
+using DebugAggregate = std::pair<const DILocalVariable *, DebugLoc>;
 static DebugAggregate getAggregate(const DebugVariable &Var) {
   return DebugAggregate(Var.getVariable(), Var.getInlinedAt());
 }
@@ -1482,7 +1482,7 @@ void AssignmentTrackingLowering::emitDbgValue(
     AssignmentTrackingLowering::LocKind Kind, DbgVariableRecord *Source,
     VarLocInsertPt After) {
 
-  DILocation *DL = Source->getDebugLoc();
+  DebugLoc DL = Source->getFullDebugLoc();
   auto Emit = [this, Source, After, DL](Metadata *Val, DIExpression *Expr) {
     assert(Expr);
     if (!Val)
@@ -1582,9 +1582,9 @@ void AssignmentTrackingLowering::processUnknownStoreToVariable(
 
   // Get DILocation for this assignment.
   DebugVariable V = FnVarLocs->getVariable(Var);
-  DILocation *InlinedAt = const_cast<DILocation *>(V.getInlinedAt());
-  const DILocation *DILoc = DILocation::get(
-      Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
+  DebugLoc InlinedAt = V.getInlinedAt();
+  DebugLoc DILoc = DebugLoc::get(
+      &Fn, 0, 0, V.getVariable()->getScope(), InlinedAt);
 
   VarLocInfo VarLoc;
   VarLoc.VariableID = Var;
@@ -1662,9 +1662,9 @@ void AssignmentTrackingLowering::processUntaggedInstruction(
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
     // Get DILocation for this unrecorded assignment.
-    DILocation *InlinedAt = const_cast<DILocation *>(V.getInlinedAt());
-    const DILocation *DILoc = DILocation::get(
-        Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
+    DebugLoc InlinedAt = V.getInlinedAt();
+    DebugLoc DILoc = DebugLoc::get(
+        &Fn, 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;
     VarLoc.VariableID = static_cast<VariableID>(Var);
@@ -1719,9 +1719,9 @@ void AssignmentTrackingLowering::processEscapingCall(
     auto InsertBefore = getNextNode(&I);
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
-    DILocation *InlinedAt = const_cast<DILocation *>(V.getInlinedAt());
-    const DILocation *DILoc = DILocation::get(
-        Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
+    DebugLoc InlinedAt = V.getInlinedAt();
+    DebugLoc DILoc = DebugLoc::get(
+        &Fn, 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;
     VarLoc.VariableID = Var;
@@ -2232,7 +2232,7 @@ static AssignmentTrackingLowering::OverlapMap buildOverlapMapAndRecordDeclares(
 
           DebugVariable DV =
               DebugVariable(Assign->getVariable(), FragInfo,
-                            Assign->getDebugLoc().getInlinedAt());
+                            Assign->getFullDebugLoc().getInlinedAt());
           DebugAggregate DA = {DV.getVariable(), DV.getInlinedAt()};
           if (!VarsWithStackSlot.contains(DA))
             return;
@@ -2253,7 +2253,7 @@ static AssignmentTrackingLowering::OverlapMap buildOverlapMapAndRecordDeclares(
           // store, we treat it as an unusable store to the whole variable.
           DebugVariable DV =
               DebugVariable(Assign->getVariable(), std::nullopt,
-                            Assign->getDebugLoc().getInlinedAt());
+                            Assign->getFullDebugLoc().getInlinedAt());
           DebugAggregate DA = {DV.getVariable(), DV.getInlinedAt()};
           if (!VarsWithStackSlot.contains(DA))
             return;
@@ -2301,7 +2301,7 @@ static AssignmentTrackingLowering::OverlapMap buildOverlapMapAndRecordDeclares(
         // contained fragments.
         for (DbgVariableRecord *DVR : at::getDVRAssignmentMarkers(AI)) {
           DebugVariable DV(DVR->getVariable(), std::nullopt,
-                           DVR->getDebugLoc().getInlinedAt());
+                           DVR->getFullDebugLoc().getInlinedAt());
           DebugAggregate DA = {DV.getVariable(), DV.getInlinedAt()};
           if (!VarsWithStackSlot.contains(DA))
             continue;
@@ -2358,7 +2358,7 @@ static AssignmentTrackingLowering::OverlapMap buildOverlapMapAndRecordDeclares(
   // partially stack homed vars.
   for (auto *DVR : DPDeclares)
     FnVarLocs->addSingleLocVar(DebugVariable(DVR), DVR->getExpression(),
-                               DVR->getDebugLoc(),
+                               DVR->getFullDebugLoc(),
                                RawLocationWrapper(DVR->getRawLocation()));
   return Map;
 }
@@ -2546,7 +2546,7 @@ bool AssignmentTrackingLowering::emitPromotedVarLocs(
     auto InsertBefore = getNextNode(Record);
     assert(InsertBefore && "Unexpected: debug intrinsics after a terminator");
     FnVarLocs->addVarLoc(InsertBefore, DebugVariable(Record),
-                         Record->getExpression(), Record->getDebugLoc(),
+                         Record->getExpression(), Record->getFullDebugLoc(),
                          RawLocationWrapper(Record->getRawLocation()));
     InsertedAnyIntrinsics = true;
   };
@@ -2832,7 +2832,7 @@ static DenseSet<DebugAggregate> findVarsWithStackSlot(Function &Fn) {
       // case, we need to consider the variable interesting for NFC behaviour
       // with this change. TODO: Consider only looking at allocas.
       for (DbgVariableRecord *DVR : at::getDVRAssignmentMarkers(&I)) {
-        Result.insert({DVR->getVariable(), DVR->getDebugLoc().getInlinedAt()});
+        Result.insert({DVR->getVariable(), DVR->getFullDebugLoc().getInlinedAt()});
       }
     }
   }

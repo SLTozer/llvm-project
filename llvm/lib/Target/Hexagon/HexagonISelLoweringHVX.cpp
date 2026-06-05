@@ -746,7 +746,7 @@ void HexagonTargetLowering::AdjustHvxInstrPostInstrSelection(
   MachineBasicBlock &MB = *MI.getParent();
   MachineFunction &MF = *MB.getParent();
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   auto At = MI.getIterator();
 
   switch (Opc) {

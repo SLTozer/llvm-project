@@ -61,7 +61,7 @@ Register Mips16InstrInfo::isStoreToStackSlot(const MachineInstr &MI,
 
 void Mips16InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator I,
-                                  const DebugLoc &DL, Register DestReg,
+                                  DbgLocStorage DL, Register DestReg,
                                   Register SrcReg, bool KillSrc,
                                   bool RenamableDest, bool RenamableSrc) const {
   unsigned Opc = 0;
@@ -103,8 +103,8 @@ void Mips16InstrInfo::storeRegToStack(MachineBasicBlock &MBB,
                                       const TargetRegisterClass *RC,
                                       int64_t Offset,
                                       MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
-  if (I != MBB.end()) DL = I->getDebugLoc();
+  DbgLocStorage DL;
+  if (I != MBB.end()) DL = I->getFullDebugLoc();
   MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOStore);
   unsigned Opc = 0;
   if (Mips::CPU16RegsRegClass.hasSubClassEq(RC))
@@ -121,8 +121,8 @@ void Mips16InstrInfo::loadRegFromStack(MachineBasicBlock &MBB,
                                        const TargetRegisterClass *RC,
                                        int64_t Offset,
                                        MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
-  if (I != MBB.end()) DL = I->getDebugLoc();
+  DbgLocStorage DL;
+  if (I != MBB.end()) DL = I->getFullDebugLoc();
   MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOLoad);
   unsigned Opc = 0;
 
@@ -204,7 +204,7 @@ static void addSaveRestoreRegs(MachineInstrBuilder &MIB,
 void Mips16InstrInfo::makeFrame(unsigned SP, int64_t FrameSize,
                                 MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI    = MF.getFrameInfo();
   const BitVector Reserved = RI.getReservedRegs(MF);
@@ -234,7 +234,7 @@ void Mips16InstrInfo::makeFrame(unsigned SP, int64_t FrameSize,
 void Mips16InstrInfo::restoreFrame(unsigned SP, int64_t FrameSize,
                                    MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator I) const {
-  DebugLoc DL = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
+  DbgLocStorage DL = I != MBB.end() ? I->getDebugLoc() : DbgLocStorage();
   MachineFunction *MF = MBB.getParent();
   MachineFrameInfo &MFI    = MF->getFrameInfo();
   const BitVector Reserved = RI.getReservedRegs(*MF);
@@ -270,7 +270,7 @@ void Mips16InstrInfo::adjustStackPtrBig(unsigned SP, int64_t Amount,
                                         MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator I,
                                         unsigned Reg1, unsigned Reg2) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   //
   // li reg1, constant
   // move reg2, sp
@@ -314,7 +314,7 @@ void Mips16InstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
 unsigned Mips16InstrInfo::loadImmediate(unsigned FrameReg, int64_t Imm,
                                         MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator II,
-                                        const DebugLoc &DL,
+                                        DbgLocStorage DL,
                                         unsigned &NewImm) const {
   //
   // given original instruction is:
@@ -441,7 +441,7 @@ unsigned Mips16InstrInfo::getAnalyzableBrOpc(unsigned Opc) const {
 void Mips16InstrInfo::ExpandRetRA16(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator I,
                                   unsigned Opc) const {
-  BuildMI(MBB, I, I->getDebugLoc(), get(Opc));
+  BuildMI(MBB, I, I->getFullDebugLoc(), get(Opc));
 }
 
 const MCInstrDesc &Mips16InstrInfo::AddiuSpImm(int64_t Imm) const {
@@ -453,7 +453,7 @@ const MCInstrDesc &Mips16InstrInfo::AddiuSpImm(int64_t Imm) const {
 
 void Mips16InstrInfo::BuildAddiuSpImm
   (MachineBasicBlock &MBB, MachineBasicBlock::iterator I, int64_t Imm) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   BuildMI(MBB, I, DL, AddiuSpImm(Imm)).addImm(Imm);
 }
 

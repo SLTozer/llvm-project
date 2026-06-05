@@ -114,12 +114,12 @@ public:
                            DINode::FlagZero, DISubprogram::SPFlagDefinition);
 
     // Make some nested scopes.
-    OutermostLoc = DILocation::get(Ctx, 3, 1, OurFunc);
-    InBlockLoc = DILocation::get(Ctx, 4, 1, OurBlock);
-    InlinedLoc = DILocation::get(Ctx, 10, 1, ToInlineFunc, InBlockLoc.get());
+    OutermostLoc = DebugLoc::get(Ctx, 3, 1, OurFunc);
+    InBlockLoc = DebugLoc::get(Ctx, 4, 1, OurBlock);
+    InlinedLoc = DebugLoc::get(Ctx, 10, 1, ToInlineFunc, InBlockLoc);
 
     // Make a scope that isn't nested within the others.
-    NotNestedBlockLoc = DILocation::get(Ctx, 4, 1, AnotherBlock);
+    NotNestedBlockLoc = DebugLoc::get(Ctx, 4, 1, AnotherBlock);
 
     LongInt = DIB.createBasicType("long", 64, llvm::dwarf::DW_ATE_unsigned);
     FuncVariable = DIB.createAutoVariable(OurFunc, "lala", OurFile, 1, LongInt);
@@ -214,7 +214,7 @@ public:
     return LDV->vlocJoin(MBB, VLOCOutLocs, BlocksToExplore, InLoc);
   }
 
-  void buildVLocValueMap(const DILocation *DILoc,
+  void buildVLocValueMap(DebugLoc DILoc,
                     const SmallSet<DebugVariableID, 4> &VarsWeCareAbout,
                     SmallPtrSetImpl<MachineBasicBlock *> &AssignBlocks,
                     InstrRefBasedLDV::LiveInsT &Output, FuncValueTable &MOutLocs,

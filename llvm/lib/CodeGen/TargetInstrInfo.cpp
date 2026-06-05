@@ -172,7 +172,7 @@ TargetInstrInfo::ReplaceTailWithBranchTo(MachineBasicBlock::iterator Tail,
     MBB->removeSuccessor(MBB->succ_begin());
 
   // Save off the debug loc before erasing the instruction.
-  DebugLoc DL = Tail->getDebugLoc();
+  DbgLocStorage DL = Tail->getDebugLoc();
 
   // Update call info and remove all the dead instructions
   // from the end of MBB.
@@ -608,7 +608,7 @@ static MachineInstr *foldPatchpoint(MachineFunction &MF, MachineInstr &MI,
   }
 
   MachineInstr *NewMI =
-      MF.CreateMachineInstr(TII.get(MI.getOpcode()), MI.getDebugLoc(), true);
+      MF.CreateMachineInstr(TII.get(MI.getOpcode()), MI.getFullDebugLoc(), true);
   MachineInstrBuilder MIB(MF, NewMI);
 
   // No need to fold return, the meta data, and function arguments
@@ -805,7 +805,7 @@ MachineInstr *TargetInstrInfo::foldMemoryOperand(MachineInstr &MI,
     if (MO.isUndef()) {
       // If this is an undef copy, we do not need to bother we inserting spill
       // code.
-      BuildMI(*MBB, Pos, MI.getDebugLoc(), get(TargetOpcode::KILL)).add(MO);
+      BuildMI(*MBB, Pos, MI.getFullDebugLoc(), get(TargetOpcode::KILL)).add(MO);
     } else {
       storeRegToStackSlot(*MBB, Pos, MO.getReg(), MO.isKill(), FI, RC,
                           Register());

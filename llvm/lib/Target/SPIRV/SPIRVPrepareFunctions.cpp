@@ -128,7 +128,7 @@ static bool lowerIntrinsicToFunction(IntrinsicInst *Intrinsic,
         "cannot lower the intrinsic '" +
             Intrinsic->getCalledFunction()->getName() +
             "' that takes a metadata argument",
-        Intrinsic->getDebugLoc()));
+        Intrinsic->getFullDebugLoc()));
     if (!Intrinsic->getType()->isVoidTy())
       Intrinsic->replaceAllUsesWith(PoisonValue::get(Intrinsic->getType()));
     Intrinsic->eraseFromParent();

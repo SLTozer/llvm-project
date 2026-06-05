@@ -1161,9 +1161,9 @@ static void unstackifyVRegsUsedInSplitBB(MachineBasicBlock &MBB,
       MFI.unstackifyVReg(DefReg);
       unsigned CopyOpc =
           WebAssembly::getCopyOpcodeForRegClass(MRI.getRegClass(DefReg));
-      BuildMI(MBB, &MI, MI.getDebugLoc(), TII.get(CopyOpc), TeeReg)
+      BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII.get(CopyOpc), TeeReg)
           .addReg(DefReg);
-      BuildMI(MBB, &MI, MI.getDebugLoc(), TII.get(CopyOpc), Reg).addReg(DefReg);
+      BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII.get(CopyOpc), Reg).addReg(DefReg);
       MI.eraseFromParent();
     }
   }
@@ -1197,7 +1197,7 @@ void WebAssemblyCFGStackify::addNestedTryDelegate(
   // Create the nested try instruction.
   auto TryPos = getLatestInsertPos(
       BeginBB, SmallPtrSet<const MachineInstr *, 4>(), AfterSet);
-  MachineInstr *Try = BuildMI(*BeginBB, TryPos, RangeBegin->getDebugLoc(),
+  MachineInstr *Try = BuildMI(*BeginBB, TryPos, RangeBegin->getFullDebugLoc(),
                               TII.get(WebAssembly::TRY))
                           .addImm(int64_t(WebAssembly::BlockType::Void));
 
@@ -1287,7 +1287,7 @@ void WebAssemblyCFGStackify::addNestedTryDelegate(
   }
 
   // Add a 'delegate' instruction in the delegate BB created above.
-  MachineInstr *Delegate = BuildMI(DelegateBB, RangeEnd->getDebugLoc(),
+  MachineInstr *Delegate = BuildMI(DelegateBB, RangeEnd->getFullDebugLoc(),
                                    TII.get(WebAssembly::DELEGATE))
                                .addMBB(UnwindDest);
   registerTryScope(Try, Delegate, nullptr);
@@ -1332,7 +1332,7 @@ WebAssemblyCFGStackify::getTrampolineBlock(MachineBasicBlock *UnwindDest) {
     auto BeginPos = MF.begin()->begin();
     while (WebAssembly::isArgument(BeginPos->getOpcode()))
       BeginPos++;
-    Block = BuildMI(*MF.begin(), BeginPos, MF.begin()->begin()->getDebugLoc(),
+    Block = BuildMI(*MF.begin(), BeginPos, MF.begin()->begin()->getFullDebugLoc(),
                     TII.get(WebAssembly::BLOCK))
                 .addImm(int64_t(WebAssembly::BlockType::Exnref));
     TrampolineBB = getCallerTrampolineBlock(MF);
@@ -1348,10 +1348,10 @@ WebAssemblyCFGStackify::getTrampolineBlock(MachineBasicBlock *UnwindDest) {
     auto *TargetEndBB = TargetEndTry->getParent();
 
     Block = BuildMI(*TargetBeginBB, std::next(TargetBeginTry->getIterator()),
-                    TargetBeginTry->getDebugLoc(), TII.get(WebAssembly::BLOCK))
+                    TargetBeginTry->getFullDebugLoc(), TII.get(WebAssembly::BLOCK))
                 .addImm(int64_t(WebAssembly::BlockType::Exnref));
     TrampolineBB = MF.CreateMachineBasicBlock();
-    EndDebugLoc = TargetEndTry->getDebugLoc();
+    EndDebugLoc = TargetEndTry->getFullDebugLoc();
     MF.insert(TargetEndBB->getIterator(), TrampolineBB);
     TrampolineBB->addSuccessor(UnwindDest);
   }
@@ -1411,7 +1411,7 @@ void WebAssemblyCFGStackify::addNestedTryTable(MachineInstr *RangeBegin,
   auto TryTablePos = getLatestInsertPos(
       BeginBB, SmallPtrSet<const MachineInstr *, 4>(), AfterSet);
   MachineInstr *TryTable =
-      BuildMI(*BeginBB, TryTablePos, RangeBegin->getDebugLoc(),
+      BuildMI(*BeginBB, TryTablePos, RangeBegin->getFullDebugLoc(),
               TII.get(WebAssembly::TRY_TABLE))
           .addImm(int64_t(WebAssembly::BlockType::Void))
           .addImm(1) // # of catch clauses
@@ -1501,7 +1501,7 @@ void WebAssemblyCFGStackify::addNestedTryTable(MachineInstr *RangeBegin,
   }
 
   // Add a 'end_try_table' instruction in the EndTryTable BB created above.
-  MachineInstr *EndTryTable = BuildMI(EndTryTableBB, RangeEnd->getDebugLoc(),
+  MachineInstr *EndTryTable = BuildMI(EndTryTableBB, RangeEnd->getFullDebugLoc(),
                                       TII.get(WebAssembly::END_TRY_TABLE));
   registerTryScope(TryTable, EndTryTable, TrampolineBB);
 }
@@ -2500,7 +2500,7 @@ static void addUnreachableAfterTryTables(MachineFunction &MF,
     NewEndTryTableBB->splice(NewEndTryTableBB->end(), MBB, MBB->begin(),
                              SplitPos);
     NewEndTryTableBB->addSuccessor(MBB);
-    BuildMI(NewEndTryTableBB, EndTryTable->getDebugLoc(),
+    BuildMI(NewEndTryTableBB, EndTryTable->getFullDebugLoc(),
             TII.get(WebAssembly::UNREACHABLE));
   }
 }

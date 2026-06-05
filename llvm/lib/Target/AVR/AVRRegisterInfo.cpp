@@ -144,7 +144,7 @@ bool AVRRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   assert(SPAdj == 0 && "Unexpected SPAdj value");
 
   MachineInstr &MI = *II;
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   MachineBasicBlock &MBB = *MI.getParent();
   const MachineFunction &MF = *MBB.getParent();
   const AVRTargetMachine &TM = (const AVRTargetMachine &)MF.getTarget();

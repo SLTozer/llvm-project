@@ -656,7 +656,9 @@ bool Loop::isAnnotatedParallel() const {
   return true;
 }
 
-DebugLoc Loop::getStartLoc() const { return getLocRange().getStart(); }
+DebugLoc Loop::getStartLoc() const {
+  return getLocRange().getStart().withContext(getHeader()->getParent());
+}
 
 Loop::LocRange Loop::getLocRange() const {
   // If we have a debug location in the loop ID, then use it.
@@ -668,9 +670,9 @@ Loop::LocRange Loop::getLocRange() const {
     for (const MDOperand &MDO : llvm::drop_begin(LoopID->operands())) {
       if (DILocation *L = dyn_cast<DILocation>(MDO)) {
         if (!Start)
-          Start = DebugLoc(L);
+          Start = L->getAsDebugLoc();
         else
-          return LocRange(Start, DebugLoc(L));
+          return LocRange(Start, L->getAsDebugLoc());
       }
     }
 
@@ -680,13 +682,13 @@ Loop::LocRange Loop::getLocRange() const {
 
   // Try the pre-header first.
   if (BasicBlock *PHeadBB = getLoopPreheader())
-    if (DebugLoc DL = PHeadBB->getTerminator()->getDebugLoc())
+    if (DebugLoc DL = PHeadBB->getTerminator()->getFullDebugLoc())
       return LocRange(DL);
 
   // If we have no pre-header or there are no instructions with debug
   // info in it, try the header.
   if (BasicBlock *HeadBB = getHeader())
-    return LocRange(HeadBB->getTerminator()->getDebugLoc());
+    return LocRange(HeadBB->getTerminator()->getFullDebugLoc());
 
   return LocRange();
 }

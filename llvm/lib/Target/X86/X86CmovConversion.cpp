@@ -668,7 +668,7 @@ void X86CmovConversionImpl::convertCmovInstsToBranches(
 
   MachineInstr &MI = *Group.front();
   MachineInstr *LastCMOV = Group.back();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   X86::CondCode CC = X86::CondCode(X86::getCondFromCMov(MI));
   X86::CondCode OppCC = X86::GetOppositeBranchCondition(CC);

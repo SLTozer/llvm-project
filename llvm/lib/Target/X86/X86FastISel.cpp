@@ -75,7 +75,7 @@ public:
 
 private:
   bool X86FastEmitCompare(const Value *LHS, const Value *RHS, EVT VT,
-                          const DebugLoc &DL);
+                          DebugLoc DL);
 
   bool X86FastEmitLoad(MVT VT, X86AddressMode &AM, MachineMemOperand *MMO,
                        Register &ResultReg, unsigned Alignment = 1);
@@ -1400,7 +1400,7 @@ static unsigned X86ChooseCmpImmediateOpcode(EVT VT, const ConstantInt *RHSC) {
 }
 
 bool X86FastISel::X86FastEmitCompare(const Value *Op0, const Value *Op1, EVT VT,
-                                     const DebugLoc &CurMIMD) {
+                                     DebugLoc CurMIMD) {
   Register Op0Reg = getRegForValue(Op0);
   if (!Op0Reg)
     return false;
@@ -1502,7 +1502,7 @@ bool X86FastISel::X86SelectCmp(const Instruction *I) {
 
   ResultReg = createResultReg(&X86::GR8RegClass);
   if (SETFOpc) {
-    if (!X86FastEmitCompare(LHS, RHS, VT, I->getDebugLoc()))
+    if (!X86FastEmitCompare(LHS, RHS, VT, I->getFullDebugLoc()))
       return false;
 
     Register FlagReg1 = createResultReg(&X86::GR8RegClass);
@@ -1528,7 +1528,7 @@ bool X86FastISel::X86SelectCmp(const Instruction *I) {
     std::swap(LHS, RHS);
 
   // Emit a compare of LHS/RHS.
-  if (!X86FastEmitCompare(LHS, RHS, VT, I->getDebugLoc()))
+  if (!X86FastEmitCompare(LHS, RHS, VT, I->getFullDebugLoc()))
     return false;
 
   BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(GET_SETCC), ResultReg)
@@ -1659,8 +1659,8 @@ bool X86FastISel::X86SelectBranch(const Instruction *I) {
       CmpInst::Predicate Predicate = optimizeCmpPredicate(CI);
       switch (Predicate) {
       default: break;
-      case CmpInst::FCMP_FALSE: fastEmitBranch(FalseMBB, MIMD.getDL()); return true;
-      case CmpInst::FCMP_TRUE:  fastEmitBranch(TrueMBB, MIMD.getDL()); return true;
+      case CmpInst::FCMP_FALSE: fastEmitBranch(FalseMBB, getCurDebugLoc()); return true;
+      case CmpInst::FCMP_TRUE:  fastEmitBranch(TrueMBB, getCurDebugLoc()); return true;
       }
 
       const Value *CmpLHS = CI->getOperand(0);
@@ -1707,7 +1707,7 @@ bool X86FastISel::X86SelectBranch(const Instruction *I) {
         std::swap(CmpLHS, CmpRHS);
 
       // Emit a compare of the LHS and RHS, setting the flags.
-      if (!X86FastEmitCompare(CmpLHS, CmpRHS, VT, CI->getDebugLoc()))
+      if (!X86FastEmitCompare(CmpLHS, CmpRHS, VT, CI->getFullDebugLoc()))
         return false;
 
       BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, TII.get(X86::JCC_1))
@@ -2085,7 +2085,7 @@ bool X86FastISel::X86FastEmitCMoveSelect(MVT RetVT, const Instruction *I) {
 
     EVT CmpVT = TLI.getValueType(DL, CmpLHS->getType());
     // Emit a compare of the LHS and RHS, setting the flags.
-    if (!X86FastEmitCompare(CmpLHS, CmpRHS, CmpVT, CI->getDebugLoc()))
+    if (!X86FastEmitCompare(CmpLHS, CmpRHS, CmpVT, CI->getFullDebugLoc()))
       return false;
 
     if (SETFOpc) {
@@ -2322,7 +2322,7 @@ bool X86FastISel::X86FastEmitPseudoSelect(MVT RetVT, const Instruction *I) {
       std::swap(CmpLHS, CmpRHS);
 
     EVT CmpVT = TLI.getValueType(DL, CmpLHS->getType());
-    if (!X86FastEmitCompare(CmpLHS, CmpRHS, CmpVT, CI->getDebugLoc()))
+    if (!X86FastEmitCompare(CmpLHS, CmpRHS, CmpVT, CI->getFullDebugLoc()))
       return false;
   } else {
     Register CondReg = getRegForValue(Cond);
@@ -2753,7 +2753,7 @@ bool X86FastISel::fastLowerIntrinsicCall(const IntrinsicInst *II) {
     if (!X86SelectAddress(DI->getAddress(), AM))
       return false;
     const MCInstrDesc &II = TII.get(TargetOpcode::DBG_VALUE);
-    assert(DI->getVariable()->isValidLocationForIntrinsic(MIMD.getDL()) &&
+    assert(DI->getVariable()->isValidLocationForIntrinsic(getCurDebugLoc()) &&
            "Expected inlined-at fields to agree");
     addFullAddress(BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, MIMD, II), AM)
         .addImm(0)

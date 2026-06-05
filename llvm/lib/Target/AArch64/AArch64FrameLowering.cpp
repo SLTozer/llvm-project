@@ -674,7 +674,7 @@ MachineBasicBlock::iterator AArch64FrameLowering::eliminateCallFramePseudoInstr(
   const AArch64InstrInfo *TII = Subtarget.getInstrInfo();
   const AArch64TargetLowering *TLI = Subtarget.getTargetLowering();
   [[maybe_unused]] MachineFrameInfo &MFI = MF.getFrameInfo();
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
   unsigned Opc = I->getOpcode();
   bool IsDestroy = Opc == TII->getCallFrameDestroyOpcode();
   uint64_t CalleePopAmount = IsDestroy ? I->getOperand(1).getImm() : 0;
@@ -851,7 +851,7 @@ void AArch64FrameLowering::emitZeroCallUsedRegs(BitVector RegsToZero,
   // Fake a debug loc.
   DebugLoc DL;
   if (MBBI != MBB.end())
-    DL = MBBI->getDebugLoc();
+    DL = MBBI->getFullDebugLoc();
 
   const MachineFunction &MF = *MBB.getParent();
   const AArch64Subtarget &STI = MF.getSubtarget<AArch64Subtarget>();
@@ -1014,7 +1014,7 @@ AArch64FrameLowering::insertSEH(MachineBasicBlock::iterator MBBI,
   unsigned Opc = MBBI->getOpcode();
   MachineBasicBlock *MBB = MBBI->getParent();
   MachineFunction &MF = *MBB->getParent();
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   unsigned ImmIdx = MBBI->getNumOperands() - 1;
   int Imm = MBBI->getOperand(ImmIdx).getImm();
   MachineInstrBuilder MIB;
@@ -1214,7 +1214,7 @@ void AArch64FrameLowering::emitPacRetPlusLeafHardening(
     DebugLoc DL;
     MachineBasicBlock::iterator MBBI = MBB.getFirstTerminator();
     if (MBBI != MBB.end())
-      DL = MBBI->getDebugLoc();
+      DL = MBBI->getFullDebugLoc();
 
     TII->createPauthEpilogueInstr(MBB, DL);
   };
@@ -2194,7 +2194,7 @@ bool AArch64FrameLowering::restoreCalleeSavedRegisters(
   bool NeedsWinCFI = needsWinCFI(MF);
 
   if (MBBI != MBB.end())
-    DL = MBBI->getDebugLoc();
+    DL = MBBI->getFullDebugLoc();
 
   computeCalleeSaveRegisterPairs(*this, MF, CSI, TRI, RegPairs, hasFP(MF));
   if (homogeneousPrologEpilog(MF, &MBB)) {
@@ -3291,7 +3291,7 @@ void TagStoreEdit::emitCode(MachineBasicBlock::iterator &InsertI,
   TagStoreInstr &FirstTagStore = TagStores[0];
   TagStoreInstr &LastTagStore = TagStores[TagStores.size() - 1];
   Size = LastTagStore.Offset - FirstTagStore.Offset + LastTagStore.Size;
-  DL = TagStores[0].MI->getDebugLoc();
+  DL = TagStores[0].MI->getFullDebugLoc();
 
   Register Reg;
   FrameRegOffset = TFI->resolveFrameOffsetReference(

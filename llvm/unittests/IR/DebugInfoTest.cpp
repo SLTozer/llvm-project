@@ -982,7 +982,7 @@ TEST(MetadataTest, ConvertDbgToDbgVariableRecord) {
   Instruction &I = *M->getFunction("f")->getEntryBlock().getFirstNonPHIIt();
   const DILocalVariable *Var = nullptr;
   const DIExpression *Expr = nullptr;
-  const DILocation *Loc = nullptr;
+  DebugLoc Loc = nullptr;
   const Metadata *MLoc = nullptr;
   DbgVariableRecord *DVR1 = nullptr;
   {
@@ -990,7 +990,7 @@ TEST(MetadataTest, ConvertDbgToDbgVariableRecord) {
     ASSERT_TRUE(DPI);
     Var = DPI->getVariable();
     Expr = DPI->getExpression();
-    Loc = DPI->getDebugLoc().get();
+    Loc = DPI->getDebugLoc();
     MLoc = DPI->getRawLocation();
 
     // Test the creation of a DbgVariableRecord and it's conversion back to a
@@ -1300,36 +1300,36 @@ TEST(MetadataTest, InlinedAtMethodsWithMultipleLevels) {
   Instruction &RetInst = MainFunc->getEntryBlock().front();
 
   // Use getDebugLoc() to get the location from the ret instruction.
-  const DILocation *InnermostLoc = RetInst.getDebugLoc().get();
+  DebugLoc InnermostLoc = RetInst.getDebugLoc();
   ASSERT_TRUE(InnermostLoc);
 
   // Test getScope() - should return the immediate scope (inline3).
-  DILocalScope *ImmediateScope = InnermostLoc->getScope();
+  DILocalScope *ImmediateScope = InnermostLoc.getScope();
   ASSERT_TRUE(ImmediateScope);
   EXPECT_TRUE(isa<DISubprogram>(ImmediateScope));
   EXPECT_EQ(cast<DISubprogram>(ImmediateScope)->getName(), "inline3");
 
   // Test getInlinedAt() - should return the next level in the inlining chain.
-  const DILocation *NextLevel = InnermostLoc->getInlinedAt();
+  DebugLoc NextLevel = InnermostLoc.getInlinedAt();
   ASSERT_TRUE(NextLevel);
-  EXPECT_EQ(NextLevel->getLine(), 301u);
-  EXPECT_EQ(cast<DISubprogram>(NextLevel->getScope())->getName(), "inline2");
+  EXPECT_EQ(NextLevel.getLine(), 301u);
+  EXPECT_EQ(cast<DISubprogram>(NextLevel.getScope())->getName(), "inline2");
 
   // Test getInlinedAtLocation() - should return the outermost location.
-  const DILocation *OutermostLoc = InnermostLoc->getInlinedAtLocation();
+  DebugLoc OutermostLoc = InnermostLoc.getInlinedAtLocation();
   ASSERT_TRUE(OutermostLoc);
-  EXPECT_EQ(OutermostLoc->getLine(), 101u);
-  EXPECT_EQ(OutermostLoc->getColumn(), 3u);
-  EXPECT_EQ(OutermostLoc->getInlinedAt(), nullptr);
-  EXPECT_EQ(cast<DISubprogram>(OutermostLoc->getScope())->getName(), "main");
+  EXPECT_EQ(OutermostLoc.getLine(), 101u);
+  EXPECT_EQ(OutermostLoc.getColumn(), 3u);
+  EXPECT_EQ(OutermostLoc.getInlinedAt(), nullptr);
+  EXPECT_EQ(cast<DISubprogram>(OutermostLoc.getScope())->getName(), "main");
 
   // Test getInlinedAtScope() - should return the scope of the outermost
   // location.
-  DILocalScope *InlinedAtScope = InnermostLoc->getInlinedAtScope();
+  DILocalScope *InlinedAtScope = InnermostLoc.getInlinedAtScope();
   ASSERT_TRUE(InlinedAtScope);
   EXPECT_TRUE(isa<DISubprogram>(InlinedAtScope));
   EXPECT_EQ(cast<DISubprogram>(InlinedAtScope)->getName(), "main");
-  EXPECT_EQ(InlinedAtScope, OutermostLoc->getScope());
+  EXPECT_EQ(InlinedAtScope, OutermostLoc.getScope());
 }
 
 // Test that the hashing function for DISubprograms representing methods produce

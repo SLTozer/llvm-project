@@ -114,7 +114,7 @@ bool SystemZLDCleanup::VisitNode(MachineDomTreeNode *Node,
 MachineInstr *SystemZLDCleanup::ReplaceTLSCall(MachineInstr *I,
                                                unsigned TLSBaseAddrReg) {
   // Insert a Copy from TLSBaseAddrReg to R2.
-  MachineInstr *Copy = BuildMI(*I->getParent(), I, I->getDebugLoc(),
+  MachineInstr *Copy = BuildMI(*I->getParent(), I, I->getFullDebugLoc(),
                                TII->get(TargetOpcode::COPY), SystemZ::R2D)
                                .addReg(TLSBaseAddrReg);
 
@@ -134,7 +134,7 @@ MachineInstr *SystemZLDCleanup::SetRegister(MachineInstr *I,
 
   // Insert a copy from R2 to TLSBaseAddrReg.
   MachineInstr *Next = I->getNextNode();
-  MachineInstr *Copy = BuildMI(*I->getParent(), Next, I->getDebugLoc(),
+  MachineInstr *Copy = BuildMI(*I->getParent(), Next, I->getFullDebugLoc(),
                                TII->get(TargetOpcode::COPY), *TLSBaseAddrReg)
                                .addReg(SystemZ::R2D);
 

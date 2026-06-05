@@ -54,7 +54,7 @@ public:
   void replaceDstReg(Register NewReg, Register OldReg,
                      MachineBasicBlock *MBB) override;
   void buildMergeLaneMasks(MachineBasicBlock &MBB,
-                           MachineBasicBlock::iterator I, const DebugLoc &DL,
+                           MachineBasicBlock::iterator I, DebugLoc DL,
                            Register DstReg, Register PrevReg,
                            Register CurReg) override;
   void constrainAsLaneMask(AMDGPU::Incoming &In) override;
@@ -417,7 +417,7 @@ bool Vreg1LoweringHelper::lowerCopiesFromI1() {
 
       // Copy into a 32-bit vector register.
       LLVM_DEBUG(dbgs() << "Lower copy from i1: " << MI);
-      const DebugLoc &DL = MI.getDebugLoc();
+      DebugLoc DL = MI.getFullDebugLoc();
 
       assert(isVRegCompatibleReg(TII->getRegisterInfo(), *MRI, DstReg));
       assert(!MI.getOperand(0).getSubReg());
@@ -602,7 +602,7 @@ bool Vreg1LoweringHelper::lowerCopiesToI1() {
       if (MI.getOpcode() == AMDGPU::IMPLICIT_DEF)
         continue;
 
-      const DebugLoc &DL = MI.getDebugLoc();
+      DebugLoc DL = MI.getFullDebugLoc();
       Register SrcReg = MI.getOperand(1).getReg();
       assert(!MI.getOperand(1).getSubReg());
 
@@ -773,7 +773,7 @@ void Vreg1LoweringHelper::replaceDstReg(Register NewReg, Register OldReg,
 
 void Vreg1LoweringHelper::buildMergeLaneMasks(MachineBasicBlock &MBB,
                                               MachineBasicBlock::iterator I,
-                                              const DebugLoc &DL,
+                                              DebugLoc DL,
                                               Register DstReg, Register PrevReg,
                                               Register CurReg) {
   bool PrevVal = false;

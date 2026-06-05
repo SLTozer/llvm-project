@@ -1642,7 +1642,7 @@ void TwoAddressInstructionImpl::processTiedPairs(MachineInstr *MI,
 #endif
 
     // Emit a copy.
-    MachineInstrBuilder MIB = BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+    MachineInstrBuilder MIB = BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
                                       TII->get(TargetOpcode::COPY), RegA);
     // If this operand is folding a truncation, the truncation now moves to the
     // copy so that the register classes remain valid for the operands.
@@ -2095,7 +2095,7 @@ void TwoAddressInstructionImpl::eliminateRegSequence(
         }
 
     // Insert the sub-register copy.
-    MachineInstr *CopyMI = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstr *CopyMI = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                    TII->get(TargetOpcode::COPY))
                                .addReg(DstReg, RegState::Define, SubIdx)
                                .add(UseMO);

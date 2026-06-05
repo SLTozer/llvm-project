@@ -17,6 +17,7 @@
 
 #include "ARMBaseRegisterInfo.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
+#include "llvm/IR/DebugLoc.h"
 
 namespace llvm {
   class ARMSubtarget;
@@ -40,7 +41,7 @@ public:
   /// specified immediate.
   void
   emitLoadConstPool(MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                    const DebugLoc &dl, Register DestReg, unsigned SubIdx,
+                    DbgLocStorage dl, Register DestReg, unsigned SubIdx,
                     int Val, ARMCC::CondCodes Pred = ARMCC::AL,
                     Register PredReg = Register(),
                     unsigned MIFlags = MachineInstr::NoFlags) const override;

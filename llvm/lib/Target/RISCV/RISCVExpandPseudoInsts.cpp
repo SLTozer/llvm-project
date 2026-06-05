@@ -210,7 +210,7 @@ bool RISCVExpandPseudo::expandCCOp(MachineBasicBlock &MBB,
 
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   MachineBasicBlock *TrueBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
   MachineBasicBlock *MergeBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
@@ -333,7 +333,7 @@ bool RISCVExpandPseudo::expandCCOp(MachineBasicBlock &MBB,
 bool RISCVExpandPseudo::expandCCOpToCMov(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator MBBI) {
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (MI.getOpcode() != RISCV::PseudoCCMOVGPR &&
       MI.getOpcode() != RISCV::PseudoCCMOVGPRNoX0)
@@ -453,7 +453,7 @@ bool RISCVExpandPseudo::expandCCOpToCMov(MachineBasicBlock &MBB,
 bool RISCVExpandPseudo::expandVMSET_VMCLR(MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator MBBI,
                                           unsigned Opcode) {
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   Register DstReg = MBBI->getOperand(0).getReg();
   const MCInstrDesc &Desc = TII->get(Opcode);
   BuildMI(MBB, MBBI, DL, Desc, DstReg)
@@ -465,7 +465,7 @@ bool RISCVExpandPseudo::expandVMSET_VMCLR(MachineBasicBlock &MBB,
 
 bool RISCVExpandPseudo::expandMV_FPR16INX(MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator MBBI) {
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   const TargetRegisterInfo *TRI = STI->getRegisterInfo();
   Register DstReg = TRI->getMatchingSuperReg(
       MBBI->getOperand(0).getReg(), RISCV::sub_16, &RISCV::GPRRegClass);
@@ -482,7 +482,7 @@ bool RISCVExpandPseudo::expandMV_FPR16INX(MachineBasicBlock &MBB,
 
 bool RISCVExpandPseudo::expandMV_FPR32INX(MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator MBBI) {
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   const TargetRegisterInfo *TRI = STI->getRegisterInfo();
   Register DstReg = TRI->getMatchingSuperReg(
       MBBI->getOperand(0).getReg(), RISCV::sub_32, &RISCV::GPRRegClass);
@@ -502,7 +502,7 @@ bool RISCVExpandPseudo::expandMV_FPR32INX(MachineBasicBlock &MBB,
 // sequence for RV32.
 bool RISCVExpandPseudo::expandRV32ZdinxStore(MachineBasicBlock &MBB,
                                              MachineBasicBlock::iterator MBBI) {
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   const TargetRegisterInfo *TRI = STI->getRegisterInfo();
   Register Lo =
       TRI->getSubReg(MBBI->getOperand(0).getReg(), RISCV::sub_gpr_even);
@@ -551,7 +551,7 @@ bool RISCVExpandPseudo::expandRV32ZdinxStore(MachineBasicBlock &MBB,
 // RV32.
 bool RISCVExpandPseudo::expandRV32ZdinxLoad(MachineBasicBlock &MBB,
                                             MachineBasicBlock::iterator MBBI) {
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   const TargetRegisterInfo *TRI = STI->getRegisterInfo();
   Register Lo =
       TRI->getSubReg(MBBI->getOperand(0).getReg(), RISCV::sub_gpr_even);
@@ -609,7 +609,7 @@ bool RISCVExpandPseudo::expandRV32ZdinxLoad(MachineBasicBlock &MBB,
 
 bool RISCVExpandPseudo::expandPseudoReadVLENBViaVSETVLIX0(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   Register Dst = MBBI->getOperand(0).getReg();
   unsigned Mul = MBBI->getOperand(1).getImm();
   RISCVVType::VLMUL VLMUL = RISCVVType::encodeLMUL(Mul, /*Fractional=*/false);
@@ -627,7 +627,7 @@ bool RISCVExpandPseudo::expandPseudoReadVLENBViaVSETVLIX0(
 
 bool RISCVExpandPseudo::expandPseudoClearFPR64(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
-  const DebugLoc &DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   Register Dst = MBBI->getOperand(0).getReg();
 
   if (STI->is64Bit()) {
@@ -754,7 +754,7 @@ bool RISCVPreRAExpandPseudo::expandAuipcInstPair(
     unsigned SecondOpcode) {
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register DestReg = MI.getOperand(0).getReg();
   Register ScratchReg =
@@ -815,7 +815,7 @@ bool RISCVPreRAExpandPseudo::expandLoadTLSDescAddress(
     MachineBasicBlock::iterator &NextMBBI) {
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   const auto &STI = MF->getSubtarget<RISCVSubtarget>();
   unsigned SecondOpcode = STI.is64Bit() ? RISCV::LD : RISCV::LW;

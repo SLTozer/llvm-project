@@ -644,7 +644,7 @@ static DebugLoc getDebugLoc(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MBBI) {
   if (MBB.empty())
     return DebugLoc();
-  return MBBI != MBB.end() ? MBBI->getDebugLoc() : MBB.back().getDebugLoc();
+  return MBBI != MBB.end() ? MBBI->getFullDebugLoc() : MBB.back().getFullDebugLoc();
 }
 
 /// Finds the first call (as determined by MachineInstr::isCall()) starting from
@@ -724,7 +724,7 @@ void MachineSMEABI::emitCallSaveRemarks(const MachineBasicBlock &MBB,
   SmallVector<const MachineInstr *> CallsRequiringSaves;
   collectReachableMarkedCalls(MBB, MBBI, CallsRequiringSaves, Marker);
   for (const MachineInstr *CallInst : CallsRequiringSaves) {
-    auto R = SaveRemark(CallInst->getDebugLoc(), *CallInst->getParent());
+    auto R = SaveRemark(CallInst->getFullDebugLoc(), *CallInst->getParent());
     R << "call";
     if (StringRef CalleeName = getCalleeName(*CallInst); !CalleeName.empty())
       R << " to '" << CalleeName << "'";

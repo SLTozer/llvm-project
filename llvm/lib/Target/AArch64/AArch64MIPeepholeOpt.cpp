@@ -276,7 +276,7 @@ bool AArch64MIPeepholeOptImpl::trySplitLogicalImm(unsigned Opc,
       [&TII = TII](MachineInstr &MI, OpcodePair Opcode, unsigned Imm0,
                    unsigned Imm1, Register SrcReg, Register NewTmpReg,
                    Register NewDstReg) {
-        DebugLoc DL = MI.getDebugLoc();
+        DebugLoc DL = MI.getFullDebugLoc();
         MachineBasicBlock *MBB = MI.getParent();
         BuildMI(*MBB, MI, DL, TII->get(Opcode.first), NewTmpReg)
             .addReg(SrcReg)
@@ -327,13 +327,13 @@ bool AArch64MIPeepholeOptImpl::visitORR(MachineInstr &MI) {
     Register CpySrc;
     if (SrcMI->getOperand(1).getSubReg() == AArch64::ssub) {
       CpySrc = MRI->createVirtualRegister(&AArch64::FPR32RegClass);
-      BuildMI(*SrcMI->getParent(), SrcMI, SrcMI->getDebugLoc(),
+      BuildMI(*SrcMI->getParent(), SrcMI, SrcMI->getFullDebugLoc(),
               TII->get(TargetOpcode::COPY), CpySrc)
           .add(SrcMI->getOperand(1));
     } else {
       CpySrc = SrcMI->getOperand(1).getReg();
     }
-    BuildMI(*SrcMI->getParent(), SrcMI, SrcMI->getDebugLoc(),
+    BuildMI(*SrcMI->getParent(), SrcMI, SrcMI->getFullDebugLoc(),
             TII->get(AArch64::FMOVSWr), SrcMI->getOperand(0).getReg())
         .addReg(CpySrc);
     SrcMI->eraseFromParent();
@@ -361,7 +361,7 @@ bool AArch64MIPeepholeOptImpl::visitCSEL(MachineInstr &MI) {
   auto OrOpcode =
       MI.getOpcode() == AArch64::CSELXr ? AArch64::ORRXrs : AArch64::ORRWrs;
 
-  BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII->get(OrOpcode))
+  BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII->get(OrOpcode))
       .addReg(MI.getOperand(0).getReg(), RegState::Define)
       .addReg(ZeroReg)
       .addReg(MI.getOperand(1).getReg())
@@ -404,7 +404,7 @@ bool AArch64MIPeepholeOptImpl::visitINSERT(MachineInstr &MI) {
 
   // Build a SUBREG_TO_REG instruction
   MachineInstr *SubregMI =
-      BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+      BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
               TII->get(TargetOpcode::SUBREG_TO_REG), DstReg)
           .add(MI.getOperand(2))
           .add(MI.getOperand(3));
@@ -471,7 +471,7 @@ bool AArch64MIPeepholeOptImpl::visitADDSUB(unsigned PosOpc, unsigned NegOpc,
       [&TII = TII](MachineInstr &MI, OpcodePair Opcode, unsigned Imm0,
                    unsigned Imm1, Register SrcReg, Register NewTmpReg,
                    Register NewDstReg) {
-        DebugLoc DL = MI.getDebugLoc();
+        DebugLoc DL = MI.getFullDebugLoc();
         MachineBasicBlock *MBB = MI.getParent();
         BuildMI(*MBB, MI, DL, TII->get(Opcode.first), NewTmpReg)
             .addReg(SrcReg)
@@ -518,7 +518,7 @@ bool AArch64MIPeepholeOptImpl::visitADDSSUBS(OpcodePair PosOpcs,
       [&TII = TII](MachineInstr &MI, OpcodePair Opcode, unsigned Imm0,
                    unsigned Imm1, Register SrcReg, Register NewTmpReg,
                    Register NewDstReg) {
-        DebugLoc DL = MI.getDebugLoc();
+        DebugLoc DL = MI.getFullDebugLoc();
         MachineBasicBlock *MBB = MI.getParent();
         BuildMI(*MBB, MI, DL, TII->get(Opcode.first), NewTmpReg)
             .addReg(SrcReg)
@@ -685,7 +685,7 @@ bool AArch64MIPeepholeOptImpl::visitINSviGPR(MachineInstr &MI, unsigned Opc) {
   Register DstReg = MI.getOperand(0).getReg();
   Register SrcReg = SrcMI->getOperand(1).getReg();
   MachineInstr *INSvilaneMI =
-      BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII->get(Opc), DstReg)
+      BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII->get(Opc), DstReg)
           .add(MI.getOperand(1))
           .add(MI.getOperand(2))
           .addUse(SrcReg, getRegState(SrcMI->getOperand(1)))
@@ -732,7 +732,7 @@ static bool is64bitDefwithZeroHigh64bit(MachineInstr *MI,
         // Pass the value through a temporary GPR64 vreg to satisfy the
         // verifier.
         Register NewSrc = MRI->createVirtualRegister(&AArch64::GPR64RegClass);
-        BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+        BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
                 TII->get(TargetOpcode::COPY), NewSrc)
             .addReg(SrcReg, getKillRegState(SrcKill));
         SrcReg = NewSrc;
@@ -855,15 +855,15 @@ bool AArch64MIPeepholeOptImpl::visitUBFMXri(MachineInstr &MI) {
   Register SrcReg64 = MI.getOperand(1).getReg();
   Register SrcReg32 = MRI->createVirtualRegister(SrcRC32);
 
-  BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII->get(AArch64::COPY),
+  BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII->get(AArch64::COPY),
           SrcReg32)
       .addReg(SrcReg64, {}, AArch64::sub_32);
-  BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII->get(AArch64::UBFMWri),
+  BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII->get(AArch64::UBFMWri),
           DstReg32)
       .addReg(SrcReg32)
       .addImm(Immr)
       .addImm(Imms);
-  BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
           TII->get(AArch64::SUBREG_TO_REG), DstReg64)
       .addReg(DstReg32)
       .addImm(AArch64::sub_32);

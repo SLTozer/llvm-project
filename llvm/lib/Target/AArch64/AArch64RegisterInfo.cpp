@@ -882,7 +882,7 @@ AArch64RegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
   MachineBasicBlock::iterator Ins = MBB->begin();
   DebugLoc DL; // Defaults to "unknown"
   if (Ins != MBB->end())
-    DL = Ins->getDebugLoc();
+    DL = Ins->getFullDebugLoc();
   const MachineFunction &MF = *MBB->getParent();
   const AArch64InstrInfo *TII =
       MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
@@ -1034,9 +1034,9 @@ bool AArch64RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
           MF, FrameIndex, FrameReg, /*PreferFP=*/false, /*ForSimm=*/true);
       Register ScratchReg =
           MF.getRegInfo().createVirtualRegister(&AArch64::GPR64RegClass);
-      emitFrameOffset(MBB, II, MI.getDebugLoc(), ScratchReg, FrameReg, Offset,
+      emitFrameOffset(MBB, II, MI.getFullDebugLoc(), ScratchReg, FrameReg, Offset,
                       TII);
-      BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(AArch64::LDG), ScratchReg)
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(AArch64::LDG), ScratchReg)
           .addReg(ScratchReg)
           .addReg(ScratchReg)
           .addImm(0);
@@ -1064,7 +1064,7 @@ bool AArch64RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // SP+LargeImm.
   Register ScratchReg =
       createScratchRegisterForInstruction(MI, FIOperandNum, TII);
-  emitFrameOffset(MBB, II, MI.getDebugLoc(), ScratchReg, FrameReg, Offset, TII);
+  emitFrameOffset(MBB, II, MI.getFullDebugLoc(), ScratchReg, FrameReg, Offset, TII);
   return false;
 }
 

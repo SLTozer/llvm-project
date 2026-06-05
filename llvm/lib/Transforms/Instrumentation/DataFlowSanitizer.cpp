@@ -1082,19 +1082,19 @@ void DFSanFunction::addReachesFunctionCallbacksIfEnabled(IRBuilder<> &IRB,
   if (!ClReachesFunctionCallbacks) {
     return;
   }
-  const DebugLoc &dbgloc = I.getDebugLoc();
+  DebugLoc dbgloc = I.getFullDebugLoc();
   Value *DataShadow = collapseToPrimitiveShadow(getShadow(Data), IRB);
   ConstantInt *CILine;
   llvm::Value *FilePathPtr;
 
-  if (dbgloc.get() == nullptr) {
+  if (!dbgloc) {
     CILine = llvm::ConstantInt::get(I.getContext(), llvm::APInt(32, 0));
     FilePathPtr = IRB.CreateGlobalString(
         I.getFunction()->getParent()->getSourceFileName());
   } else {
     CILine = llvm::ConstantInt::get(I.getContext(),
                                     llvm::APInt(32, dbgloc.getLine()));
-    FilePathPtr = IRB.CreateGlobalString(dbgloc->getFilename());
+    FilePathPtr = IRB.CreateGlobalString(dbgloc.getFilename());
   }
 
   llvm::Value *FunctionNamePtr =
@@ -3239,7 +3239,7 @@ void DFSanVisitor::visitLibAtomicLoad(CallBase &CB) {
   CB.setArgOperand(3, NewOrdering);
 
   IRBuilder<> NextIRB(CB.getNextNode());
-  NextIRB.SetCurrentDebugLocation(CB.getDebugLoc());
+  NextIRB.SetCurrentDebugLocation(CB.getFullDebugLoc());
 
   // TODO: Support ClCombinePointerLabelsOnLoad
   // TODO: Support ClEventCallbacks
@@ -3325,7 +3325,7 @@ void DFSanVisitor::visitLibAtomicCompareExchange(CallBase &CB) {
   // the additional complexity to address this is not warrented.
 
   IRBuilder<> NextIRB(CB.getNextNode());
-  NextIRB.SetCurrentDebugLocation(CB.getDebugLoc());
+  NextIRB.SetCurrentDebugLocation(CB.getFullDebugLoc());
 
   DFSF.setShadow(&CB, DFSF.DFS.getZeroShadow(&CB));
 

@@ -69,7 +69,7 @@ private:
                      uint64_t ProbeSize, bool DynAllocation,
                      MachineInstr::MIFlag Flag) const;
   void adjustReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                 const DebugLoc &DL, Register DestReg, Register SrcReg,
+                 DebugLoc DL, Register DestReg, Register SrcReg,
                  int64_t Val, MachineInstr::MIFlag Flag) const;
 };
 } // end namespace llvm

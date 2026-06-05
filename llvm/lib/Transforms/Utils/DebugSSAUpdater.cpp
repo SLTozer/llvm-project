@@ -228,7 +228,7 @@ bool isContained(DIScope *Inner, DIScope *Outer) {
 
 void DbgValueRangeTable::addVariable(Function *F, DebugVariableAggregate DVA) {
   const DILocalVariable *Var = DVA.getVariable();
-  const DILocation *InlinedAt = DVA.getInlinedAt();
+  DebugLoc InlinedAt = DVA.getInlinedAt();
 
   DenseMap<BasicBlock *, SmallVector<DbgVariableRecord *>> BlockDbgRecordValues;
   DenseSet<BasicBlock *> HasAnyInstructionsInScope;
@@ -247,7 +247,7 @@ void DbgValueRangeTable::addVariable(Function *F, DebugVariableAggregate DVA) {
 
       for (DbgVariableRecord &DVR : filterDbgVars(I.getDbgRecordRange())) {
         if (DVR.getVariable() == Var &&
-            DVR.getDebugLoc().getInlinedAt() == InlinedAt) {
+            DVR.getFullDebugLoc().getInlinedAt() == InlinedAt) {
           assert(!DVR.isDbgAssign() && "No support for #dbg_assign yet.");
           if (DVR.isDbgDeclare())
             DeclareRecordFound = true;
@@ -256,9 +256,9 @@ void DbgValueRangeTable::addVariable(Function *F, DebugVariableAggregate DVA) {
           DbgRecordValues.push_back(&DVR);
         }
       }
-      if (!FoundInstructionInScope && I.getDebugLoc()) {
-        if (I.getDebugLoc().getInlinedAt() == InlinedAt &&
-            isContained(cast<DILocalScope>(I.getDebugLoc().getScope()),
+      if (!FoundInstructionInScope && I.getFullDebugLoc()) {
+        if (I.getFullDebugLoc().getInlinedAt() == InlinedAt &&
+            isContained(cast<DILocalScope>(I.getFullDebugLoc().getScope()),
                         Var->getScope())) {
           FoundInstructionInScope = true;
           HasAnyInstructionsInScope.insert(&BB);

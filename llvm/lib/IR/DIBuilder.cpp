@@ -17,7 +17,10 @@
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include <optional>
 
@@ -134,6 +137,10 @@ void DIBuilder::finalize() {
 
   // Can't handle unresolved nodes anymore.
   AllowUnresolvedNodes = false;
+
+  // Also verify that we've finalized all function contexts, and then clear out the maps.
+  assert(FunctionLocBuilders.empty() && "Non-finalized functions remain!");
+  InlinedCallContexts.clear();
 }
 
 /// If N is compile unit return NULL otherwise return N.
@@ -1052,6 +1059,90 @@ static DISubprogram *getSubprogram(bool IsDistinct, Ts &&...Args) {
   return DISubprogram::get(std::forward<Ts>(Args)...);
 }
 
+#if LLVM_USE_FLMD_SOURCE_LOCS
+DebugLoc::DebugLocContext DIBuilder::startFunctionContext(Function *F, DISubprogram *SP) {
+  assert(SP->isDefinition() && "Function context must only be created for definitions, not declarations.");
+  assert(!F->getFLContext() && "Tried to create context for function that already has one!");
+  DIFunctionLocalMetadata *FLContext = DIFunctionLocalMetadata::getDistinct(F->getContext());
+  F->addMetadata(LLVMContext::MD_flmd, *FLContext);
+  FunctionLocBuilders.try_emplace(FLContext, FLContext, SP);
+  return DebugLoc::DebugLocContext(FLContext);
+}
+
+DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc CallLoc) {
+  assert(CalleeSP->isDefinition() && "Function context must only be created for definitions, not declarations.");
+  DIFunctionLocalMetadata *CalleeContext;
+  if (auto ExistingContextIt = InlinedCallContexts.find(CalleeSP);
+      ExistingContextIt != InlinedCallContexts.end()) {
+    CalleeContext = ExistingContextIt->second.first;
+    ExistingContextIt->second.second += 1;
+  } else {
+    CalleeContext = DIFunctionLocalMetadata::getDistinct(CalleeSP->getContext());
+    FunctionLocBuilders.try_emplace(CalleeContext, CalleeContext, CalleeSP);
+    InlinedCallContexts.insert({CalleeSP, {CalleeContext, 1}});
+  }
+  // FIXME: If we use FLMDBuilder to create new Source Locations, do so here.
+  DIFunctionLocalMetadata *CallerContext = CallLoc.getFLContext();
+  FLIndex<uint16_t> NewCallIdx = CallerContext->addInlinedCall(FLInlinedCall(
+    CallLoc.getUnderlyingStorage().SrcLocIdx,
+    CallLoc.getUnderlyingStorage().InlinedAtIdx, CalleeContext, false));
+  DebugLoc InlinedAt(FLDebugLoc::getInlinedCallLoc(NewCallIdx), CallerContext);
+  return InlinedAt;
+}
+
+void DIBuilder::finalizeFunctionContext(Function *F) {
+  DIFunctionLocalMetadata *FLContext = F->getFLContext();
+  FunctionLocBuilders.erase(FLContext);
+  for (auto &InlinedCall : FLContext->InlinedCalls) {
+    DIFunctionLocalMetadata *CalleeContext = InlinedCall.getInlinee();
+    DISubprogram *InlinedSP = cast<DISubprogram>(CalleeContext->Scopes[0].get());
+    auto CallContextIt = InlinedCallContexts.find(InlinedSP);
+    assert(CallContextIt != InlinedCallContexts.end() &&
+      "Inlined Call was not tracked by DIBuilder.");
+    CallContextIt->second.second -= 1;
+    assert(CallContextIt->second.second >= 0);
+    if (CallContextIt->second.second == 0)
+      FunctionLocBuilders.erase(CalleeContext);
+  }
+}
+DebugLoc DIBuilder::getLoc(
+    DebugLoc::DebugLocContext Context, unsigned Line, unsigned Column,
+    MDNode *Scope, DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
+    uint8_t AtomRank) {
+  DIFunctionLocalMetadata *FLContext = Context.Context;
+  FLIndex<uint16_t> InlinedAtIdx;
+  if (InlinedAt)
+    InlinedAtIdx = InlinedAt.getIdxForInlinedCall();
+  auto *SrcLocContext = InlinedAtIdx ? FLContext->getInlinedCall(InlinedAtIdx).getInlinee() : FLContext;
+  auto BuilderIt = FunctionLocBuilders.find(SrcLocContext);
+  assert(BuilderIt != FunctionLocBuilders.end() && "Trying to insert location for finished/not-started FLContext!");
+  FLMDBuilder &Builder = BuilderIt->second;
+  auto SrcLocIdx = Builder.getSrcLoc(Line, Column, cast<MDNode>(Scope));
+  FLContext->updateAtomGroupWaterline(InlinedAtIdx, AtomGroup);
+  return DebugLoc(FLDebugLoc(SrcLocIdx, InlinedAtIdx, AtomGroup, AtomRank), FLContext);
+}
+#else
+DebugLoc::DebugLocContext DIBuilder::startFunctionContext(Function *F, DISubprogram *SP) {
+  return DebugLoc::DebugLocContext(F->getContext());
+}
+
+DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc CallLoc) {
+  DebugLoc InlinedCall = DebugLoc::getDistinctInlinedCall(
+    DebugLoc::DebugLocContext(CalleeSP->getContext()), CallLoc.getDLContext(),
+    CallLoc.getLine(), CallLoc.getColumn(), CallLoc.getScope());
+}
+
+void DIBuilder::finalizeFunctionContext(Function *F) {
+
+}
+DebugLoc DIBuilder::getLoc(
+    DebugLoc::DebugLocContext Context, unsigned Line, unsigned Column,
+    MDNode *Scope, DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
+    uint8_t AtomRank) {
+  return DebugLoc::get(Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+}
+#endif
+
 DISubprogram *DIBuilder::createFunction(
     DIScope *Context, StringRef Name, StringRef LinkageName, DIFile *File,
     unsigned LineNo, DISubroutineType *Ty, unsigned ScopeLine,
@@ -1151,7 +1242,7 @@ DILexicalBlock *DIBuilder::createLexicalBlock(DIScope *Scope, DIFile *File,
 }
 
 DbgInstPtr DIBuilder::insertDeclare(Value *Storage, DILocalVariable *VarInfo,
-                                    DIExpression *Expr, const DILocation *DL,
+                                    DIExpression *Expr, DebugLoc DL,
                                     BasicBlock *InsertAtEnd) {
   // If this block already has a terminator then insert this intrinsic before
   // the terminator. Otherwise, put it at the end of the block.
@@ -1165,7 +1256,7 @@ DbgInstPtr DIBuilder::insertDbgAssign(Instruction *LinkedInstr, Value *Val,
                                       DILocalVariable *SrcVar,
                                       DIExpression *ValExpr, Value *Addr,
                                       DIExpression *AddrExpr,
-                                      const DILocation *DL) {
+                                      DebugLoc DL) {
   auto *Link = cast_or_null<DIAssignID>(
       LinkedInstr->getMetadata(LLVMContext::MD_DIAssignID));
   assert(Link && "Linked instruction must have DIAssign metadata attached");
@@ -1181,7 +1272,7 @@ DbgInstPtr DIBuilder::insertDbgAssign(Instruction *LinkedInstr, Value *Val,
 
 /// Initialize IRBuilder for inserting dbg.declare and dbg.value intrinsics.
 /// This abstracts over the various ways to specify an insert position.
-static void initIRBuilder(IRBuilder<> &Builder, const DILocation *DL,
+static void initIRBuilder(IRBuilder<> &Builder, DebugLoc DL,
                           InsertPosition InsertPt) {
   Builder.SetInsertPoint(InsertPt.getBasicBlock(), InsertPt);
   Builder.SetCurrentDebugLocation(DL);
@@ -1195,7 +1286,7 @@ static Value *getDbgIntrinsicValueImpl(LLVMContext &VMContext, Value *V) {
 DbgInstPtr DIBuilder::insertDbgValueIntrinsic(llvm::Value *Val,
                                               DILocalVariable *VarInfo,
                                               DIExpression *Expr,
-                                              const DILocation *DL,
+                                              DebugLoc DL,
                                               InsertPosition InsertPt) {
   DbgVariableRecord *DVR =
       DbgVariableRecord::createDbgVariableRecord(Val, VarInfo, Expr, DL);
@@ -1204,11 +1295,11 @@ DbgInstPtr DIBuilder::insertDbgValueIntrinsic(llvm::Value *Val,
 }
 
 DbgInstPtr DIBuilder::insertDeclare(Value *Storage, DILocalVariable *VarInfo,
-                                    DIExpression *Expr, const DILocation *DL,
+                                    DIExpression *Expr, DebugLoc DL,
                                     InsertPosition InsertPt) {
   assert(VarInfo && "empty or invalid DILocalVariable* passed to dbg.declare");
   assert(DL && "Expected debug loc");
-  assert(DL->getScope()->getSubprogram() ==
+  assert(DL.getScope()->getSubprogram() ==
              VarInfo->getScope()->getSubprogram() &&
          "Expected matching subprograms");
 
@@ -1221,12 +1312,12 @@ DbgInstPtr DIBuilder::insertDeclare(Value *Storage, DILocalVariable *VarInfo,
 DbgInstPtr DIBuilder::insertDeclareValue(Value *Storage,
                                          DILocalVariable *VarInfo,
                                          DIExpression *Expr,
-                                         const DILocation *DL,
+                                         DebugLoc DL,
                                          InsertPosition InsertPt) {
   assert(VarInfo &&
          "empty or invalid DILocalVariable* passed to dbg.declare_value");
   assert(DL && "Expected debug loc");
-  assert(DL->getScope()->getSubprogram() ==
+  assert(DL.getScope()->getSubprogram() ==
              VarInfo->getScope()->getSubprogram() &&
          "Expected matching subprograms");
 
@@ -1251,14 +1342,14 @@ void DIBuilder::insertDbgVariableRecord(DbgVariableRecord *DVR,
 Instruction *DIBuilder::insertDbgIntrinsic(llvm::Function *IntrinsicFn,
                                            Value *V, DILocalVariable *VarInfo,
                                            DIExpression *Expr,
-                                           const DILocation *DL,
+                                           DebugLoc DL,
                                            InsertPosition InsertPt) {
   assert(IntrinsicFn && "must pass a non-null intrinsic function");
   assert(V && "must pass a value to a dbg intrinsic");
   assert(VarInfo &&
          "empty or invalid DILocalVariable* passed to debug intrinsic");
   assert(DL && "Expected debug loc");
-  assert(DL->getScope()->getSubprogram() ==
+  assert(DL.getScope()->getSubprogram() ==
              VarInfo->getScope()->getSubprogram() &&
          "Expected matching subprograms");
 
@@ -1268,16 +1359,16 @@ Instruction *DIBuilder::insertDbgIntrinsic(llvm::Function *IntrinsicFn,
                    MetadataAsValue::get(VMContext, VarInfo),
                    MetadataAsValue::get(VMContext, Expr)};
 
-  IRBuilder<> B(DL->getContext());
+  IRBuilder<> B(DL.getContext());
   initIRBuilder(B, DL, InsertPt);
   return B.CreateCall(IntrinsicFn, Args);
 }
 
-DbgInstPtr DIBuilder::insertLabel(DILabel *LabelInfo, const DILocation *DL,
+DbgInstPtr DIBuilder::insertLabel(DILabel *LabelInfo, DebugLoc DL,
                                   InsertPosition InsertPt) {
   assert(LabelInfo && "empty or invalid DILabel* passed to dbg.label");
   assert(DL && "Expected debug loc");
-  assert(DL->getScope()->getSubprogram() ==
+  assert(DL.getScope()->getSubprogram() ==
              LabelInfo->getScope()->getSubprogram() &&
          "Expected matching subprograms");
 

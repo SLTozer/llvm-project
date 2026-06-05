@@ -400,7 +400,7 @@ void VectorConvertRemove::handle_addsub_sf_sf(MachineInstr &MI, Register &Reg1,
                                               bool isAdd) {
 
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   bool firstConv = false, secConv = false;
   bool DefOp1_del = false, DefOp2_del = false;
@@ -478,7 +478,7 @@ void VectorConvertRemove::handle_addsubmul_hf_hf(MachineInstr &MI,
                                                  Register &Dest, Operation Op) {
 
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   bool firstConv = false, secConv = false;
   bool DefOp1_del = false, DefOp2_del = false;
@@ -549,7 +549,7 @@ void VectorConvertRemove::handle_addsub_qf_sf(MachineInstr &MI, Register &Reg1,
                                               Register &Reg2, Register &Dest,
                                               bool isAdd) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Src;
   bool conv = false;
 
@@ -577,7 +577,7 @@ void VectorConvertRemove::handle_addsubmul_qf_hf(MachineInstr &MI,
                                                  Register &Reg1, Register &Reg2,
                                                  Register &Dest, Operation Op) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Src;
   bool conv = false;
 
@@ -603,7 +603,7 @@ void VectorConvertRemove::handle_qf32_mul_sf_sf(MachineInstr &MI,
                                                 Register &Reg1, Register &Reg2,
                                                 Register &Dest) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Src1, Src2;
   bool firstConv = false, secConv = false;
 
@@ -825,7 +825,7 @@ bool HexagonXQFloatGenerator::checkIfInputFromMult16(Register Reg) {
 void HexagonXQFloatGenerator::createConvertInstr(MachineInstr *UseMI,
                                                  Register &NewR, Register &OldR,
                                                  bool is32bit) {
-  const DebugLoc &DL = UseMI->getDebugLoc();
+  DebugLoc DL = UseMI->getFullDebugLoc();
   MachineBasicBlock *MBB = UseMI->getParent();
   NewR = MRI->createVirtualRegister(&Hexagon::HvxVRRegClass);
   if (is32bit)
@@ -892,7 +892,7 @@ void HexagonXQFloatGenerator::generateQF16FromQF32(MachineInstr &MI,
                                                    Register &SrcReg) {
 
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register convertReg = MRI->createVirtualRegister(&Hexagon::HvxVRRegClass);
   BuildMI(MBB, MI, DL, HII->get(Hexagon::V6_vconv_hf_qf32), convertReg)
@@ -912,7 +912,7 @@ void HexagonXQFloatGenerator::widenMultiplyInputHF(MachineInstr &MI,
                                                    Register &Dest) {
   Register output_mpy = MRI->createVirtualRegister(&Hexagon::HvxWRRegClass);
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   BuildMI(MBB, MI, DL, HII->get(Hexagon::V6_vmpy_qf32_hf), output_mpy)
       .addReg(Reg1)
@@ -928,7 +928,7 @@ bool HexagonXQFloatGenerator::widenMultiplicationInputF16(MachineInstr &MI,
                                                           bool twoOps) {
   bool firstconvert = false, secondconvert = false;
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // We widen only that operand which comes from add/subtract unit.
   if (checkIfInputFromAdder16(Reg1))
@@ -982,7 +982,7 @@ bool HexagonXQFloatGenerator::widenMultiplicationInputF16Rt(MachineInstr &MI,
   }
 
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register VSplatReg = MRI->createVirtualRegister(&Hexagon::HvxVRRegClass);
   BuildMI(MBB, MI, DL, HII->get(Hexagon::V6_lvsplatw), VSplatReg).addReg(Reg2);
@@ -1018,7 +1018,7 @@ bool HexagonXQFloatGenerator::convertAddOpToIEEE32(
   Register VR2;
   bool firstconvert = false, secondconvert = false;
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // If the first operand is qf32 type
   if (isFirstOpQf) {
@@ -1117,7 +1117,7 @@ bool HexagonXQFloatGenerator::convertAddOpToIEEE16(
     bool isAdd, bool isFirstOpQf, bool isSecOpQf) {
 
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register VR1;
   Register VR2;
   bool firstconvert = false, secondconvert = false;
@@ -1215,7 +1215,7 @@ void HexagonXQFloatGenerator::createPrologInstructions(MachineInstr &MI,
                                                        Register &R_mpy) {
 
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register VR0 = MRI->createVirtualRegister(&Hexagon::HvxVRRegClass);
   BuildMI(MBB, MI, DL, HII->get(Hexagon::V6_vd0), VR0);
@@ -1236,7 +1236,7 @@ bool HexagonXQFloatGenerator::V81normalizeMultF32(
     MachineInstr &MI, Register &Reg1, Register &Reg2, Register &Dest,
     bool firstconvert, bool secondconvert, bool strictieee) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register input_mpy1, input_mpy2;
 
   auto Op =
@@ -1281,7 +1281,7 @@ void HexagonXQFloatGenerator::normalizeMultiplicationInputSF(
     Register &R_mpy, bool &PrologCreated) {
 
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (HST->useHVXV81Ops()) {
     Register input_mpy1 = MRI->createVirtualRegister(&Hexagon::HvxVRRegClass);
@@ -1327,7 +1327,7 @@ bool HexagonXQFloatGenerator::convertNormalizeMultOp32(
   Register VR1, VR2;
   bool firstconvert = false, secondconvert = false;
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // If the first operand is from add/subtract/multiply unit, generate IEEE
   // conversion instruction
@@ -1416,7 +1416,7 @@ bool HexagonXQFloatGenerator::convertWidenMultOp16(MachineInstr &MI,
   bool firstconvert = false,
        secondconvert = false; // normalize with hf or qf16 operands
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // If the first operand is from add/sub/mul unit,
   // generate IEEE conversion instruction
@@ -1484,7 +1484,7 @@ bool HexagonXQFloatGenerator::convertWidenMultOp32(MachineInstr &MI,
   bool firstconvert = false,
        secondconvert = false; // normalize with hf or qf16 operands
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // If the first operand is from add/subtract/multiply unit, generate IEEE
   // conversion instruction
@@ -1539,7 +1539,7 @@ bool HexagonXQFloatGenerator::normalizeMultiplicationInputF32(
     Register &R_mpy, bool &PrologCreated) {
   bool firstconvert = false, secondconvert = false;
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // We normalize only that operand which comes from add/subtract unit.
   if (checkIfInputFromAdder32(Reg1))
@@ -1766,7 +1766,7 @@ bool HexagonXQFloatGenerator::HandleCompliantIEEE(MachineFunction &MF) {
       // Normalize both input operands unconditionally
       case Hexagon::V6_vmpy_rt_sf:
         VRtSplat = MRI->createVirtualRegister(&Hexagon::HvxVRRegClass);
-        BuildMI(MBB, MI, MI.getDebugLoc(), HII->get(Hexagon::V6_lvsplatw),
+        BuildMI(MBB, MI, MI.getFullDebugLoc(), HII->get(Hexagon::V6_lvsplatw),
                 VRtSplat)
             .addReg(Reg2);
         normalizeMultiplicationInputSF(MI, Reg1, VRtSplat, Dest, R_mpy,
@@ -1798,7 +1798,7 @@ bool HexagonXQFloatGenerator::HandleCompliantIEEE(MachineFunction &MF) {
       // Splat Rt to vector and then widening multiply
       case Hexagon::V6_vmpy_rt_hf:
         VRtSplat = MRI->createVirtualRegister(&Hexagon::HvxVRRegClass);
-        BuildMI(MBB, MI, MI.getDebugLoc(), HII->get(Hexagon::V6_lvsplatw),
+        BuildMI(MBB, MI, MI.getFullDebugLoc(), HII->get(Hexagon::V6_lvsplatw),
                 VRtSplat)
             .addReg(Reg2);
         widenMultiplyInputHF(MI, Reg1, VRtSplat, Dest);
@@ -1989,7 +1989,7 @@ bool HexagonXQFloatGenerator::HandleStrictIEEE(MachineFunction &MF) {
       // Normalize both input operands unconditionally
       case Hexagon::V6_vmpy_rt_sf:
         VRtSplat = MRI->createVirtualRegister(&Hexagon::HvxVRRegClass);
-        BuildMI(MBB, MI, MI.getDebugLoc(), HII->get(Hexagon::V6_lvsplatw),
+        BuildMI(MBB, MI, MI.getFullDebugLoc(), HII->get(Hexagon::V6_lvsplatw),
                 VRtSplat)
             .addReg(Reg2);
         normalizeMultiplicationInputSF(MI, Reg1, VRtSplat, Dest, R_mpy,
@@ -2042,7 +2042,7 @@ bool HexagonXQFloatGenerator::HandleStrictIEEE(MachineFunction &MF) {
       // Splat Rt to vector and then widening multiply
       case Hexagon::V6_vmpy_rt_hf:
         VRtSplat = MRI->createVirtualRegister(&Hexagon::HvxVRRegClass);
-        BuildMI(MBB, MI, MI.getDebugLoc(), HII->get(Hexagon::V6_lvsplatw),
+        BuildMI(MBB, MI, MI.getFullDebugLoc(), HII->get(Hexagon::V6_lvsplatw),
                 VRtSplat)
             .addReg(Reg2);
         widenMultiplyInputHF(MI, Reg1, VRtSplat, Dest);

@@ -58,12 +58,12 @@ public:
 
   /// Wraps up getting a CFI index and building a MachineInstr for it.
   void BuildCFI(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                const DebugLoc &DL, const MCCFIInstruction &CFIInst,
+                DebugLoc DL, const MCCFIInstruction &CFIInst,
                 MachineInstr::MIFlag Flag = MachineInstr::NoFlags) const;
 
   void emitCalleeSavedFrameMoves(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator MBBI,
-                                 const DebugLoc &DL, bool IsPrologue) const;
+                                 DebugLoc DL, bool IsPrologue) const;
 };
 
 } // End llvm namespace

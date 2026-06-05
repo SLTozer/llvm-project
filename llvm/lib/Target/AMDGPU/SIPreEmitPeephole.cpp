@@ -270,10 +270,10 @@ bool SIPreEmitPeephole::optimizeVccBranch(MachineInstr &MI) const {
     if (!MI.killsRegister(CondReg, TRI)) {
       // Replace AND with MOV
       if (MaskValue == 0) {
-        BuildMI(*A->getParent(), *A, A->getDebugLoc(), TII->get(Mov), CondReg)
+        BuildMI(*A->getParent(), *A, A->getFullDebugLoc(), TII->get(Mov), CondReg)
             .addImm(0);
       } else {
-        BuildMI(*A->getParent(), *A, A->getDebugLoc(), TII->get(Mov), CondReg)
+        BuildMI(*A->getParent(), *A, A->getFullDebugLoc(), TII->get(Mov), CondReg)
             .addReg(ExecReg);
       }
     }
@@ -730,7 +730,7 @@ MachineInstrBuilder SIPreEmitPeephole::createUnpackedMI(MachineInstr &I,
                                                         uint32_t UnpackedOpcode,
                                                         bool IsHiBits) {
   MachineBasicBlock &MBB = *I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   const MachineOperand *SrcMO0 = TII->getNamedOperand(I, AMDGPU::OpName::src0);
   const MachineOperand *SrcMO1 = TII->getNamedOperand(I, AMDGPU::OpName::src1);
   Register DstReg = I.getOperand(0).getReg();

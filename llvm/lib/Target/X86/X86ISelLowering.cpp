@@ -38966,7 +38966,7 @@ X86TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   case X86::PTCVTROWPS2PHLrti:
   case X86::PTCVTROWD2PSrti:
   case X86::PTILEMOVROWrti: {
-    const DebugLoc &DL = MI.getDebugLoc();
+    DebugLoc DL = MI.getFullDebugLoc();
     unsigned Opc;
     switch (MI.getOpcode()) {
     default:
@@ -39004,7 +39004,7 @@ X86TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   case X86::PTCVTROWPS2PHLrte:
   case X86::PTCVTROWD2PSrte:
   case X86::PTILEMOVROWrte: {
-    const DebugLoc &DL = MI.getDebugLoc();
+    DebugLoc DL = MI.getFullDebugLoc();
     unsigned Opc;
     switch (MI.getOpcode()) {
     default:

@@ -819,7 +819,7 @@ void PPCVSXSwapRemoval::markSwapsForRemoval() {
 void PPCVSXSwapRemoval::insertSwap(MachineInstr *MI,
                                    MachineBasicBlock::iterator InsertPoint,
                                    unsigned DstReg, unsigned SrcReg) {
-  BuildMI(*MI->getParent(), InsertPoint, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), InsertPoint, MI->getFullDebugLoc(),
           TII->get(PPC::XXPERMDI), DstReg)
     .addReg(SrcReg)
     .addReg(SrcReg)
@@ -933,7 +933,7 @@ void PPCVSXSwapRemoval::handleSpecialSwappables(int EntryIdx) {
       Register VSRCTmp1 = MRI->createVirtualRegister(&PPC::VSRCRegClass);
       Register VSRCTmp2 = MRI->createVirtualRegister(&PPC::VSRCRegClass);
 
-      BuildMI(*MI->getParent(), InsertPoint, MI->getDebugLoc(),
+      BuildMI(*MI->getParent(), InsertPoint, MI->getFullDebugLoc(),
               TII->get(PPC::COPY), VSRCTmp1)
         .addReg(NewVReg);
       LLVM_DEBUG(std::prev(InsertPoint)->dump());
@@ -941,7 +941,7 @@ void PPCVSXSwapRemoval::handleSpecialSwappables(int EntryIdx) {
       insertSwap(MI, InsertPoint, VSRCTmp2, VSRCTmp1);
       LLVM_DEBUG(std::prev(InsertPoint)->dump());
 
-      BuildMI(*MI->getParent(), InsertPoint, MI->getDebugLoc(),
+      BuildMI(*MI->getParent(), InsertPoint, MI->getFullDebugLoc(),
               TII->get(PPC::COPY), DstReg)
         .addReg(VSRCTmp2);
       LLVM_DEBUG(std::prev(InsertPoint)->dump());
@@ -968,7 +968,7 @@ bool PPCVSXSwapRemoval::removeSwaps() {
       Changed = true;
       MachineInstr *MI = SwapVector[EntryIdx].VSEMI;
       MachineBasicBlock *MBB = MI->getParent();
-      BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(TargetOpcode::COPY),
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(TargetOpcode::COPY),
               MI->getOperand(0).getReg())
           .add(MI->getOperand(1));
 

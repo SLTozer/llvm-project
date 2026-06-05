@@ -77,7 +77,7 @@ bool MipsExpandPseudo::expandAtomicCmpSwapSubword(
   MachineFunction *MF = BB.getParent();
 
   const bool ArePtrs64bit = STI->getABI().ArePtrs64bit();
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
   unsigned LL, SC;
 
   unsigned ZERO = Mips::ZERO;
@@ -207,7 +207,7 @@ bool MipsExpandPseudo::expandAtomicCmpSwap(MachineBasicBlock &BB,
   MachineFunction *MF = BB.getParent();
 
   const bool ArePtrs64bit = STI->getABI().ArePtrs64bit();
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
 
   unsigned LL, SC, ZERO, BNE, BEQ, MOVE;
 
@@ -305,7 +305,7 @@ bool MipsExpandPseudo::expandAtomicBinOpSubword(
   MachineFunction *MF = BB.getParent();
 
   const bool ArePtrs64bit = STI->getABI().ArePtrs64bit();
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
 
   unsigned LL, SC, SLT, SLTu, OR, MOVN, MOVZ, SELNEZ, SELEQZ;
   unsigned BEQ = Mips::BEQ;
@@ -712,7 +712,7 @@ bool MipsExpandPseudo::expandAtomicBinOp(MachineBasicBlock &BB,
   MachineFunction *MF = BB.getParent();
 
   const bool ArePtrs64bit = STI->getABI().ArePtrs64bit();
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
 
   unsigned LL, SC, ZERO, BEQ, SLT, SLTu, OR, MOVN, MOVZ, SELNEZ, SELEQZ;
 

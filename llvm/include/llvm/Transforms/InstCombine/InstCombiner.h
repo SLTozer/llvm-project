@@ -410,7 +410,7 @@ public:
 
   /// Same as InsertNewInstBefore, but also sets the debug loc.
   Instruction *InsertNewInstWith(Instruction *New, BasicBlock::iterator Old) {
-    New->setDebugLoc(Old->getDebugLoc());
+    New->copyDebugLocFrom(&*Old);
     return InsertNewInstBefore(New, Old);
   }
 

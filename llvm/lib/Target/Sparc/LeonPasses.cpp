@@ -50,7 +50,7 @@ bool ErrataWorkaround::moveNext(MachineBasicBlock::iterator &I) {
 }
 
 void ErrataWorkaround::insertNop(MachineBasicBlock::iterator I) {
-  BuildMI(*I->getParent(), I, I->getDebugLoc(), TII->get(SP::NOP));
+  BuildMI(*I->getParent(), I, I->getFullDebugLoc(), TII->get(SP::NOP));
 }
 
 bool ErrataWorkaround::isFloat(MachineBasicBlock::iterator I) {

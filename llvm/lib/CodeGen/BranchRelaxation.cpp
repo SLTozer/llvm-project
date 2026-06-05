@@ -374,7 +374,7 @@ bool BranchRelaxation::isBlockInRange(const MachineInstr &MI,
 /// too far away to fit in its displacement field. It is converted to an inverse
 /// conditional branch + an unconditional branch to the destination.
 bool BranchRelaxation::fixupConditionalBranch(MachineInstr &MI) {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock *MBB = MI.getParent();
   MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
   MachineBasicBlock *NewBB = nullptr;
@@ -608,7 +608,7 @@ bool BranchRelaxation::fixupUnconditionalBranch(MachineInstr &MI) {
       TrampolineInsertionPoint = BranchBB;
   }
 
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MI.eraseFromParent();
 
   // Create the optional restore block and, initially, place it at the end of

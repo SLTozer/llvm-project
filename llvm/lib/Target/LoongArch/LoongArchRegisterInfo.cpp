@@ -137,7 +137,7 @@ bool LoongArchRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   const LoongArchSubtarget &STI = MF.getSubtarget<LoongArchSubtarget>();
   const LoongArchInstrInfo *TII = STI.getInstrInfo();
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   bool IsLA64 = STI.is64Bit();
   unsigned MIOpc = MI.getOpcode();
 

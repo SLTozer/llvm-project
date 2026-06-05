@@ -210,7 +210,7 @@ static void buildPrologSpill(const GCNSubtarget &ST, const SIRegisterInfo &TRI,
                              const SIMachineFunctionInfo &FuncInfo,
                              LiveRegUnits &LiveUnits, MachineFunction &MF,
                              MachineBasicBlock &MBB,
-                             MachineBasicBlock::iterator I, const DebugLoc &DL,
+                             MachineBasicBlock::iterator I, DebugLoc DL,
                              Register SpillReg, int FI, Register FrameReg,
                              int64_t DwordOff = 0) {
   unsigned Opc = ST.hasFlatScratchEnabled() ? AMDGPU::SCRATCH_STORE_DWORD_SADDR
@@ -235,7 +235,7 @@ static void buildEpilogRestore(const GCNSubtarget &ST,
                                LiveRegUnits &LiveUnits, MachineFunction &MF,
                                MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator I,
-                               const DebugLoc &DL, Register SpillReg, int FI,
+                               DebugLoc DL, Register SpillReg, int FI,
                                Register FrameReg, int64_t DwordOff = 0) {
   unsigned Opc = ST.hasFlatScratchEnabled() ? AMDGPU::SCRATCH_LOAD_DWORD_SADDR
                                             : AMDGPU::BUFFER_LOAD_DWORD_OFFSET;
@@ -250,7 +250,7 @@ static void buildEpilogRestore(const GCNSubtarget &ST,
 }
 
 static void buildGitPtr(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                        const DebugLoc &DL, const SIInstrInfo *TII,
+                        DebugLoc DL, const SIInstrInfo *TII,
                         Register TargetReg) {
   MachineFunction *MF = MBB.getParent();
   const SIMachineFunctionInfo *MFI = MF->getInfo<SIMachineFunctionInfo>();
@@ -310,7 +310,7 @@ class PrologEpilogSGPRSpillBuilder {
   Register SuperReg;
   const PrologEpilogSGPRSaveRestoreInfo SI;
   LiveRegUnits &LiveUnits;
-  const DebugLoc &DL;
+  DebugLoc DL;
   Register FrameReg;
   ArrayRef<int16_t> SplitParts;
   unsigned NumSubRegs;
@@ -487,7 +487,7 @@ public:
                                const PrologEpilogSGPRSaveRestoreInfo SI,
                                MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MI,
-                               const DebugLoc &DL, const SIInstrInfo *TII,
+                               DebugLoc DL, const SIInstrInfo *TII,
                                const SIRegisterInfo &TRI,
                                LiveRegUnits &LiveUnits, Register FrameReg,
                                bool IsFramePtrPrologSpill = false)
@@ -533,7 +533,7 @@ public:
 // Emit flat scratch setup code, assuming `MFI->hasFlatScratchInit()`
 void SIFrameLowering::emitEntryFunctionFlatScratchInit(
     MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-    const DebugLoc &DL, Register ScratchWaveOffsetReg) const {
+    DebugLoc DL, Register ScratchWaveOffsetReg) const {
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   const SIInstrInfo *TII = ST.getInstrInfo();
   const SIRegisterInfo *TRI = &TII->getRegisterInfo();
@@ -953,7 +953,7 @@ void SIFrameLowering::emitEntryFunctionPrologue(MachineFunction &MF,
 // Emit scratch RSRC setup code, assuming `ScratchRsrcReg != AMDGPU::NoReg`
 void SIFrameLowering::emitEntryFunctionScratchRsrcRegSetup(
     MachineFunction &MF, MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-    const DebugLoc &DL, Register PreloadedScratchRsrcReg,
+    DebugLoc DL, Register PreloadedScratchRsrcReg,
     Register ScratchRsrcReg, Register ScratchWaveOffsetReg) const {
 
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
@@ -1110,7 +1110,7 @@ bool SIFrameLowering::isSupportedStackID(TargetStackID::Value ID) const {
 
 void SIFrameLowering::emitPrologueEntryCFI(MachineBasicBlock &MBB,
                                            MachineBasicBlock::iterator MBBI,
-                                           const DebugLoc &DL) const {
+                                           DebugLoc DL) const {
   const MachineFunction &MF = *MBB.getParent();
   const MachineRegisterInfo &MRI = MF.getRegInfo();
   const MCRegisterInfo *MCRI = MF.getContext().getRegisterInfo();
@@ -1161,7 +1161,7 @@ static Register buildScratchExecCopy(LiveRegUnits &LiveUnits,
                                      MachineFunction &MF,
                                      MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator MBBI,
-                                     const DebugLoc &DL, bool IsProlog,
+                                     DebugLoc DL, bool IsProlog,
                                      bool EnableInactiveLanes) {
   Register ScratchExecCopy;
   MachineRegisterInfo &MRI = MF.getRegInfo();
@@ -1203,7 +1203,7 @@ static Register buildScratchExecCopy(LiveRegUnits &LiveUnits,
 
 void SIFrameLowering::emitCSRSpillStores(
     MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+    MachineBasicBlock::iterator MBBI, DebugLoc DL,
     LiveRegUnits &LiveUnits, Register FrameReg, Register FramePtrRegScratchCopy,
     const bool NeedsFrameMoves) const {
   SIMachineFunctionInfo *FuncInfo = MF.getInfo<SIMachineFunctionInfo>();
@@ -1324,7 +1324,7 @@ void SIFrameLowering::emitCSRSpillStores(
 
 void SIFrameLowering::emitCSRSpillRestores(
     MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+    MachineBasicBlock::iterator MBBI, DebugLoc DL,
     LiveRegUnits &LiveUnits, Register FrameReg,
     Register FramePtrRegScratchCopy) const {
   const SIMachineFunctionInfo *FuncInfo = MF.getInfo<SIMachineFunctionInfo>();
@@ -1610,7 +1610,7 @@ void SIFrameLowering::emitEpilogue(MachineFunction &MF,
   if (!MBB.empty()) {
     MBBI = MBB.getLastNonDebugInstr();
     if (MBBI != MBB.end())
-      DL = MBBI->getDebugLoc();
+      DL = MBBI->getFullDebugLoc();
 
     MBBI = MBB.getFirstTerminator();
   }
@@ -2345,7 +2345,7 @@ bool SIFrameLowering::spillCalleeSavedRegisters(
                                  FrameInfo.getObjectSize(FrameIndex),
                                  FrameInfo.getObjectAlign(FrameIndex));
 
-    BuildMI(MBB, MI, MI->getDebugLoc(),
+    BuildMI(MBB, MI, MI->getFullDebugLoc(),
             TII->get(AMDGPU::SI_BLOCK_SPILL_V1024_CFI_SAVE))
         .addReg(Reg, getKillRegState(false))
         .addFrameIndex(FrameIndex)
@@ -2400,7 +2400,7 @@ bool SIFrameLowering::restoreCalleeSavedRegisters(
         PtrInfo, MachineMemOperand::MOLoad, MFI.getObjectSize(FrameIndex),
         MFI.getObjectAlign(FrameIndex));
 
-    auto MIB = BuildMI(MBB, MI, MI->getDebugLoc(),
+    auto MIB = BuildMI(MBB, MI, MI->getFullDebugLoc(),
                        TII->get(AMDGPU::SI_BLOCK_SPILL_V1024_RESTORE), Reg)
                    .addFrameIndex(FrameIndex)
                    .addReg(FuncInfo->getStackPtrOffsetReg())
@@ -2430,7 +2430,7 @@ MachineBasicBlock::iterator SIFrameLowering::eliminateCallFramePseudoInstr(
 
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   const SIInstrInfo *TII = ST.getInstrInfo();
-  const DebugLoc &DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
   unsigned Opc = I->getOpcode();
   bool IsDestroy = Opc == TII->getCallFrameDestroyOpcode();
   uint64_t CalleePopAmount = IsDestroy ? I->getOperand(1).getImm() : 0;
@@ -2524,7 +2524,7 @@ bool SIFrameLowering::requiresStackPointerReference(
 
 MachineInstr *SIFrameLowering::buildCFI(MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator MBBI,
-                                        const DebugLoc &DL,
+                                        DebugLoc DL,
                                         const MCCFIInstruction &CFIInst,
                                         MachineInstr::MIFlag Flag) const {
   MachineFunction &MF = *MBB.getParent();
@@ -2536,7 +2536,7 @@ MachineInstr *SIFrameLowering::buildCFI(MachineBasicBlock &MBB,
 
 MachineInstr *SIFrameLowering::buildCFIForVRegToVRegSpill(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, const MCRegister Reg, const MCRegister RegCopy) const {
+    DebugLoc DL, const MCRegister Reg, const MCRegister RegCopy) const {
   MachineFunction &MF = *MBB.getParent();
   const MCRegisterInfo &MCRI = *MF.getContext().getRegisterInfo();
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
@@ -2552,7 +2552,7 @@ MachineInstr *SIFrameLowering::buildCFIForVRegToVRegSpill(
 
 MachineInstr *SIFrameLowering::buildCFIForSGPRToVGPRSpill(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, const MCRegister SGPR, const MCRegister VGPR,
+    DebugLoc DL, const MCRegister SGPR, const MCRegister VGPR,
     const int Lane) const {
   const MachineFunction &MF = *MBB.getParent();
   const MCRegisterInfo &MCRI = *MF.getContext().getRegisterInfo();
@@ -2573,7 +2573,7 @@ MachineInstr *SIFrameLowering::buildCFIForSGPRToVGPRSpill(
 
 MachineInstr *SIFrameLowering::buildCFIForSGPRToVGPRSpill(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, MCRegister SGPR,
+    DebugLoc DL, MCRegister SGPR,
     ArrayRef<SIRegisterInfo::SpilledReg> VGPRSpills) const {
   if (VGPRSpills.size() == 1u)
     return buildCFIForSGPRToVGPRSpill(MBB, MBBI, DL, SGPR, VGPRSpills[0].VGPR,
@@ -2603,7 +2603,7 @@ MachineInstr *SIFrameLowering::buildCFIForSGPRToVGPRSpill(
 
 MachineInstr *SIFrameLowering::buildCFIForSGPRToVMEMSpill(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, MCRegister SGPR, int64_t Offset) const {
+    DebugLoc DL, MCRegister SGPR, int64_t Offset) const {
   MachineFunction &MF = *MBB.getParent();
   const MCRegisterInfo &MCRI = *MF.getContext().getRegisterInfo();
   return buildCFI(MBB, MBBI, DL,
@@ -2613,7 +2613,7 @@ MachineInstr *SIFrameLowering::buildCFIForSGPRToVMEMSpill(
 
 MachineInstr *SIFrameLowering::buildCFIForVGPRToVMEMSpill(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, MCRegister VGPR, int64_t Offset) const {
+    DebugLoc DL, MCRegister VGPR, int64_t Offset) const {
   const MachineFunction &MF = *MBB.getParent();
   const MCRegisterInfo &MCRI = *MF.getContext().getRegisterInfo();
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
@@ -2631,7 +2631,7 @@ MachineInstr *SIFrameLowering::buildCFIForVGPRToVMEMSpill(
 
 MachineInstr *SIFrameLowering::buildCFIForRegToSGPRPairSpill(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, const MCRegister Reg, const MCRegister SGPRPair) const {
+    DebugLoc DL, const MCRegister Reg, const MCRegister SGPRPair) const {
   const MachineFunction &MF = *MBB.getParent();
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   const SIRegisterInfo &TRI = *ST.getRegisterInfo();
@@ -2651,7 +2651,7 @@ MachineInstr *SIFrameLowering::buildCFIForRegToSGPRPairSpill(
 
 MachineInstr *SIFrameLowering::buildCFIForSameValue(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, MCRegister Reg) const {
+    DebugLoc DL, MCRegister Reg) const {
   const MachineFunction &MF = *MBB.getParent();
   const MCRegisterInfo &MCRI = *MF.getContext().getRegisterInfo();
   int DwarfReg = MCRI.getDwarfRegNum(Reg, /*isEH=*/false);

@@ -120,12 +120,12 @@ bool WebAssemblyRegisterInfo::eliminateFrameIndex(
     const TargetRegisterClass *PtrRC =
         MRI.getTargetRegisterInfo()->getPointerRegClass();
     Register OffsetOp = MRI.createVirtualRegister(PtrRC);
-    BuildMI(MBB, *II, II->getDebugLoc(),
+    BuildMI(MBB, *II, II->getFullDebugLoc(),
             TII->get(WebAssemblyFrameLowering::getOpcConst(MF)),
             OffsetOp)
         .addImm(FrameOffset);
     FIRegOperand = MRI.createVirtualRegister(PtrRC);
-    BuildMI(MBB, *II, II->getDebugLoc(),
+    BuildMI(MBB, *II, II->getFullDebugLoc(),
             TII->get(WebAssemblyFrameLowering::getOpcAdd(MF)),
             FIRegOperand)
         .addReg(FrameRegister)

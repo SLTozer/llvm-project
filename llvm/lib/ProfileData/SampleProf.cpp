@@ -284,12 +284,12 @@ void sampleprof::sortFuncProfiles(
   });
 }
 
-unsigned FunctionSamples::getOffset(const DILocation *DIL) {
-  return (DIL->getLine() - DIL->getScope()->getSubprogram()->getLine()) &
+unsigned FunctionSamples::getOffset(DebugLoc DIL) {
+  return (DIL.getLine() - DIL.getScope()->getSubprogram()->getLine()) &
          0xffff;
 }
 
-LineLocation FunctionSamples::getCallSiteIdentifier(const DILocation *DIL,
+LineLocation FunctionSamples::getCallSiteIdentifier(DebugLoc DIL,
                                                     bool ProfileIsFS) {
   if (FunctionSamples::ProfileIsProbeBased) {
     // In a pseudo-probe based profile, a callsite is simply represented by the
@@ -297,28 +297,28 @@ LineLocation FunctionSamples::getCallSiteIdentifier(const DILocation *DIL,
     // encoded in the Discriminator field of the call instruction's debug
     // metadata.
     return LineLocation(PseudoProbeDwarfDiscriminator::extractProbeIndex(
-                            DIL->getDiscriminator()),
+                            DIL.getDiscriminator()),
                         0);
   } else {
     unsigned Discriminator =
-        ProfileIsFS ? DIL->getDiscriminator() : DIL->getBaseDiscriminator();
+        ProfileIsFS ? DIL.getDiscriminator() : DIL.getBaseDiscriminator();
     return LineLocation(FunctionSamples::getOffset(DIL), Discriminator);
   }
 }
 
 const FunctionSamples *FunctionSamples::findFunctionSamples(
-    const DILocation *DIL, SampleProfileReaderItaniumRemapper *Remapper,
+    DebugLoc DIL, SampleProfileReaderItaniumRemapper *Remapper,
     const HashKeyMap<DenseMap, FunctionId, FunctionId> *FuncNameToProfNameMap)
     const {
   assert(DIL);
   SmallVector<std::pair<LineLocation, StringRef>, 10> S;
 
-  const DILocation *PrevDIL = DIL;
-  for (DIL = DIL->getInlinedAt(); DIL; DIL = DIL->getInlinedAt()) {
+  DebugLoc PrevDIL = DIL;
+  for (DIL = DIL.getInlinedAt(); DIL; DIL = DIL.getInlinedAt()) {
     // Use C++ linkage name if possible.
-    StringRef Name = PrevDIL->getScope()->getSubprogram()->getLinkageName();
+    StringRef Name = PrevDIL.getScope()->getSubprogram()->getLinkageName();
     if (Name.empty())
-      Name = PrevDIL->getScope()->getSubprogram()->getName();
+      Name = PrevDIL.getScope()->getSubprogram()->getName();
     S.emplace_back(FunctionSamples::getCallSiteIdentifier(
                        DIL, FunctionSamples::ProfileIsFS),
                    Name);

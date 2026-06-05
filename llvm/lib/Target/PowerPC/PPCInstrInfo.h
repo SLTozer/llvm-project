@@ -289,7 +289,7 @@ class PPCInstrInfo : public PPCGenInstrInfo {
   void StoreRegToStackSlot(MachineFunction &MF, unsigned SrcReg, bool isKill,
                            int FrameIdx, const TargetRegisterClass *RC,
                            SmallVectorImpl<MachineInstr *> &NewMIs) const;
-  void LoadRegFromStackSlot(MachineFunction &MF, const DebugLoc &DL,
+  void LoadRegFromStackSlot(MachineFunction &MF, DbgLocStorage DL,
                             unsigned DestReg, int FrameIdx,
                             const TargetRegisterClass *RC,
                             SmallVectorImpl<MachineInstr *> &NewMIs) const;
@@ -551,7 +551,7 @@ public:
                         int *BytesRemoved = nullptr) const override;
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
 
   // Select analysis.
@@ -559,12 +559,12 @@ public:
                        Register, Register, Register, int &, int &,
                        int &) const override;
   void insertSelect(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                    const DebugLoc &DL, Register DstReg,
+                    DbgLocStorage DL, Register DstReg,
                     ArrayRef<MachineOperand> Cond, Register TrueReg,
                     Register FalseReg) const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -773,7 +773,7 @@ public:
   // Materialize immediate after RA.
   void materializeImmPostRA(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MBBI,
-                            const DebugLoc &DL, Register Reg,
+                            DbgLocStorage DL, Register Reg,
                             int64_t Imm) const;
 
   /// Check \p Opcode is BDNZ (Decrement CTR and branch if it is still nonzero).

@@ -46,7 +46,7 @@ MCInst LoongArchInstrInfo::getNop() const {
 
 void LoongArchInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator MBBI,
-                                     const DebugLoc &DL, Register DstReg,
+                                     DbgLocStorage DL, Register DstReg,
                                      Register SrcReg, bool KillSrc,
                                      bool RenamableDest,
                                      bool RenamableSrc) const {
@@ -147,7 +147,7 @@ void LoongArchInstrInfo::storeRegToStackSlot(
       MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOStore,
       MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
 
-  BuildMI(MBB, I, DebugLoc(), get(Opcode))
+  BuildMI(MBB, I, DbgLocStorage(), get(Opcode))
       .addReg(SrcReg, getKillRegState(IsKill))
       .addFrameIndex(FI)
       .addImm(0)
@@ -160,9 +160,9 @@ void LoongArchInstrInfo::loadRegFromStackSlot(
     MachineInstr::MIFlag Flags) const {
   MachineFunction *MF = MBB.getParent();
   MachineFrameInfo &MFI = MF->getFrameInfo();
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (I != MBB.end())
-    DL = I->getDebugLoc();
+    DL = I->getFullDebugLoc();
 
   unsigned Opcode;
   if (LoongArch::GPRRegClass.hasSubClassEq(RC))
@@ -270,7 +270,7 @@ Register LoongArchInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
 
 void LoongArchInstrInfo::movImm(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator MBBI,
-                                const DebugLoc &DL, Register DstReg,
+                                DbgLocStorage DL, Register DstReg,
                                 uint64_t Val, MachineInstr::MIFlag Flag) const {
   Register SrcReg = LoongArch::R0;
 
@@ -683,7 +683,7 @@ unsigned LoongArchInstrInfo::removeBranch(MachineBasicBlock &MBB,
 // the number of instructions inserted.
 unsigned LoongArchInstrInfo::insertBranch(
     MachineBasicBlock &MBB, MachineBasicBlock *TBB, MachineBasicBlock *FBB,
-    ArrayRef<MachineOperand> Cond, const DebugLoc &DL, int *BytesAdded) const {
+    ArrayRef<MachineOperand> Cond, DbgLocStorage DL, int *BytesAdded) const {
   if (BytesAdded)
     *BytesAdded = 0;
 
@@ -722,7 +722,7 @@ unsigned LoongArchInstrInfo::insertBranch(
 void LoongArchInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
                                               MachineBasicBlock &DestBB,
                                               MachineBasicBlock &RestoreBB,
-                                              const DebugLoc &DL,
+                                              DbgLocStorage DL,
                                               int64_t BrOffset,
                                               RegScavenger *RS) const {
   assert(RS && "RegScavenger required for long branching");
@@ -1009,7 +1009,7 @@ bool LoongArchInstrInfo::canFoldIntoAddrMode(const MachineInstr &MemI,
 MachineInstr *
 LoongArchInstrInfo::emitLdStWithAddr(MachineInstr &MemI,
                                      const ExtAddrMode &AM) const {
-  const DebugLoc &DL = MemI.getDebugLoc();
+  DbgLocStorage DL = MemI.getDebugLoc();
   MachineBasicBlock &MBB = *MemI.getParent();
 
   assert(AM.ScaledReg == 0 && AM.Scale == 0 &&

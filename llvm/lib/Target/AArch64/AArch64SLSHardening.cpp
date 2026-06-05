@@ -267,7 +267,7 @@ bool SLSHardeningInserter::hardenReturnsAndBRs(MachineModuleInfo &MMI,
     NextMBBI = std::next(MBBI);
     if (MI.isReturn() || isIndirectBranchOpcode(MI.getOpcode())) {
       assert(MI.isTerminator());
-      insertSpeculationBarrier(ST, MBB, std::next(MBBI), MI.getDebugLoc());
+      insertSpeculationBarrier(ST, MBB, std::next(MBBI), MI.getFullDebugLoc());
       Modified = true;
     }
   }
@@ -431,7 +431,7 @@ void SLSHardeningInserter::convertBLRToBL(
   Register Xm =
       Kind.HasXmOperand ? BLR.getOperand(1).getReg() : AArch64::NoRegister;
 
-  DebugLoc DL = BLR.getDebugLoc();
+  DebugLoc DL = BLR.getFullDebugLoc();
 
   MachineFunction &MF = *MBBI->getMF();
   MCContext &Context = MBB.getParent()->getContext();

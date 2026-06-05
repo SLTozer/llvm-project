@@ -95,7 +95,7 @@ static void processCall(CallBase *CB, Function *Caller, Function *NewCallee,
   NewCB->setCalledFunction(NewCallee->getFunctionType(), NewCallee);
   NewCB->setCallingConv(CB->getCallingConv());
   NewCB->setAttributes(CB->getAttributes());
-  NewCB->setDebugLoc(CB->getDebugLoc());
+  NewCB->copyDebugLocFrom(CB);
   std::copy(CB->bundle_op_info_begin(), CB->bundle_op_info_end(),
             NewCB->bundle_op_info_begin());
 

@@ -33,7 +33,7 @@ LanaiInstrInfo::LanaiInstrInfo(const LanaiSubtarget &STI)
 
 void LanaiInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator Position,
-                                 const DebugLoc &DL,
+                                 DbgLocStorage DL,
                                  Register DestinationRegister,
                                  Register SourceRegister, bool KillSource,
                                  bool RenamableDest, bool RenamableSrc) const {
@@ -51,9 +51,9 @@ void LanaiInstrInfo::storeRegToStackSlot(
     Register SourceRegister, bool IsKill, int FrameIndex,
     const TargetRegisterClass *RegisterClass, Register /*VReg*/,
     MachineInstr::MIFlag /*Flags*/) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (Position != MBB.end()) {
-    DL = Position->getDebugLoc();
+    DL = Position->getFullDebugLoc();
   }
 
   if (!Lanai::GPRRegClass.hasSubClassEq(RegisterClass)) {
@@ -71,9 +71,9 @@ void LanaiInstrInfo::loadRegFromStackSlot(
     Register DestinationRegister, int FrameIndex,
     const TargetRegisterClass *RegisterClass, Register /*VReg*/,
     unsigned /*SubReg*/, MachineInstr::MIFlag /*Flags*/) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (Position != MBB.end()) {
-    DL = Position->getDebugLoc();
+    DL = Position->getFullDebugLoc();
   }
 
   if (!Lanai::GPRRegClass.hasSubClassEq(RegisterClass)) {
@@ -494,7 +494,7 @@ LanaiInstrInfo::optimizeSelect(MachineInstr &MI,
 
   // Create a new predicated version of DefMI.
   MachineInstrBuilder NewMI =
-      BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), DefMI->getDesc(), DestReg);
+      BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), DefMI->getDesc(), DestReg);
 
   // Copy all the DefMI operands, excluding its (null) predicate.
   const MCInstrDesc &DefDesc = DefMI->getDesc();
@@ -642,7 +642,7 @@ unsigned LanaiInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                       MachineBasicBlock *TrueBlock,
                                       MachineBasicBlock *FalseBlock,
                                       ArrayRef<MachineOperand> Condition,
-                                      const DebugLoc &DL,
+                                      DbgLocStorage DL,
                                       int *BytesAdded) const {
   // Shouldn't be a fall through.
   assert(TrueBlock && "insertBranch must not be told to insert a fallthrough");

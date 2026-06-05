@@ -111,7 +111,7 @@ static void CombineCVTAToLocal(MachineInstr &Root) {
       MF.getSubtarget<NVPTXSubtarget>().getRegisterInfo();
 
   MachineInstrBuilder MIB =
-      BuildMI(MF, Root.getDebugLoc(), TII->get(Prev.getOpcode()),
+      BuildMI(MF, Root.getFullDebugLoc(), TII->get(Prev.getOpcode()),
               Root.getOperand(0).getReg())
           .addReg(NRI->getFrameLocalRegister(MF))
           .add(Prev.getOperand(2));

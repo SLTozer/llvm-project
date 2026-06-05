@@ -154,7 +154,7 @@ public:
                         int *BytesRemoved = nullptr) const override;
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
 
   bool
@@ -210,7 +210,7 @@ public:
                     const ARMSubtarget &Subtarget) const;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -790,20 +790,20 @@ unsigned convertAddSubFlagsOpcode(unsigned OldOpc);
 /// code.
 void emitARMRegPlusImmediate(MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator &MBBI,
-                             const DebugLoc &dl, Register DestReg,
+                             DbgLocStorage dl, Register DestReg,
                              Register BaseReg, int NumBytes,
                              ARMCC::CondCodes Pred, Register PredReg,
                              const ARMBaseInstrInfo &TII, unsigned MIFlags = 0);
 
 void emitT2RegPlusImmediate(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator &MBBI,
-                            const DebugLoc &dl, Register DestReg,
+                            DbgLocStorage dl, Register DestReg,
                             Register BaseReg, int NumBytes,
                             ARMCC::CondCodes Pred, Register PredReg,
                             const ARMBaseInstrInfo &TII, unsigned MIFlags = 0);
 void emitThumbRegPlusImmediate(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator &MBBI,
-                               const DebugLoc &dl, Register DestReg,
+                               DbgLocStorage dl, Register DestReg,
                                Register BaseReg, int NumBytes,
                                const TargetInstrInfo &TII,
                                const ARMBaseRegisterInfo &MRI,

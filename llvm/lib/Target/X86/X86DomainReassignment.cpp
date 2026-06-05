@@ -146,7 +146,7 @@ public:
                     MachineRegisterInfo *MRI) const override {
     assert(isLegal(MI, TII) && "Cannot convert instruction");
     MachineInstrBuilder Bld =
-        BuildMI(*MI->getParent(), MI, MI->getDebugLoc(), TII->get(DstOpcode));
+        BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(), TII->get(DstOpcode));
     // Transfer explicit operands from original instruction. Implicit operands
     // are handled by BuildMI.
     for (auto &Op : MI->explicit_operands())
@@ -174,7 +174,7 @@ public:
                     MachineRegisterInfo *MRI) const override {
     assert(isLegal(MI, TII) && "Cannot convert instruction");
     MachineBasicBlock *MBB = MI->getParent();
-    const DebugLoc &DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
 
     Register Reg =
         MRI->createVirtualRegister(TII->getRegClass(TII->get(DstOpcode), 0));
@@ -258,7 +258,7 @@ public:
   bool convertInstr(MachineInstr *MI, const TargetInstrInfo *TII,
                     MachineRegisterInfo *MRI) const override {
     assert(isLegal(MI, TII) && "Cannot convert instruction");
-    BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+    BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
             TII->get(TargetOpcode::COPY))
         .add({MI->getOperand(0), MI->getOperand(SrcOpIdx)});
     return true;

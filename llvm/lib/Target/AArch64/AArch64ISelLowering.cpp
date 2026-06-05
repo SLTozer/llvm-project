@@ -3196,7 +3196,7 @@ AArch64TargetLowering::EmitF128CSEL(MachineInstr &MI,
   MachineFunction *MF = MBB->getParent();
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
   const BasicBlock *LLVM_BB = MBB->getBasicBlock();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction::iterator It = ++MBB->getIterator();
 
   Register DestReg = MI.getOperand(0).getReg();
@@ -3251,7 +3251,7 @@ AArch64TargetLowering::EmitLoweredSetFpmr(MachineInstr &MI,
                                           MachineBasicBlock *MBB) const {
   MachineFunction *MF = MBB->getParent();
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (!UseConditionalFPMRWrite) {
     BuildMI(*MBB, MI, DL, TII->get(AArch64::MSR))
@@ -3322,7 +3322,7 @@ AArch64TargetLowering::EmitCheckMatchingVL(MachineInstr &MI,
   Register RegSVL_GPRsp = MRI.createVirtualRegister(RC_GPRsp); // for ADDSVL dst
 
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // RDVL requires GPR64, ADDSVL requires GPR64sp
   // We need to insert COPY instructions, these will later be removed by the
@@ -3369,7 +3369,7 @@ AArch64TargetLowering::EmitTileLoad(unsigned Opc, unsigned BaseReg,
                                     MachineInstr &MI,
                                     MachineBasicBlock *BB) const {
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
-  MachineInstrBuilder MIB = BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(Opc));
+  MachineInstrBuilder MIB = BuildMI(*BB, MI, MI.getFullDebugLoc(), TII->get(Opc));
 
   MIB.addReg(BaseReg + MI.getOperand(0).getImm(), RegState::Define);
   MIB.add(MI.getOperand(1)); // slice index register
@@ -3386,7 +3386,7 @@ MachineBasicBlock *
 AArch64TargetLowering::EmitFill(MachineInstr &MI, MachineBasicBlock *BB) const {
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
   MachineInstrBuilder MIB =
-      BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(AArch64::LDR_ZA));
+      BuildMI(*BB, MI, MI.getFullDebugLoc(), TII->get(AArch64::LDR_ZA));
 
   MIB.addReg(AArch64::ZA, RegState::Define);
   MIB.add(MI.getOperand(0)); // Vector select register
@@ -3405,7 +3405,7 @@ MachineBasicBlock *AArch64TargetLowering::EmitZTInstr(MachineInstr &MI,
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
   MachineInstrBuilder MIB;
 
-  MIB = BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(Opcode))
+  MIB = BuildMI(*BB, MI, MI.getFullDebugLoc(), TII->get(Opcode))
             .addReg(MI.getOperand(0).getReg(), getDefRegState(Op0IsDef));
   for (unsigned I = 1; I < MI.getNumOperands(); ++I)
     MIB.add(MI.getOperand(I));
@@ -3419,7 +3419,7 @@ AArch64TargetLowering::EmitZAInstr(unsigned Opc, unsigned BaseReg,
                                    MachineInstr &MI,
                                    MachineBasicBlock *BB) const {
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
-  MachineInstrBuilder MIB = BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(Opc));
+  MachineInstrBuilder MIB = BuildMI(*BB, MI, MI.getFullDebugLoc(), TII->get(Opc));
   unsigned StartIdx = 0;
 
   bool HasTile = BaseReg != AArch64::ZA;
@@ -3452,7 +3452,7 @@ MachineBasicBlock *
 AArch64TargetLowering::EmitZero(MachineInstr &MI, MachineBasicBlock *BB) const {
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
   MachineInstrBuilder MIB =
-      BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(AArch64::ZERO_M));
+      BuildMI(*BB, MI, MI.getFullDebugLoc(), TII->get(AArch64::ZERO_M));
   MIB.add(MI.getOperand(0)); // Mask
 
   unsigned Mask = MI.getOperand(0).getImm();
@@ -3470,7 +3470,7 @@ AArch64TargetLowering::EmitEntryPStateSM(MachineInstr &MI,
                                          MachineBasicBlock *BB) const {
   MachineFunction *MF = BB->getParent();
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register ResultReg = MI.getOperand(0).getReg();
   if (MF->getRegInfo().use_empty(ResultReg)) {
     // Nothing to do. Pseudo erased below.
@@ -3523,7 +3523,7 @@ void AArch64TargetLowering::fixupPtrauthDiscriminator(
     MachineOperand &AddrDiscOp, const TargetRegisterClass *AddrDiscRC) const {
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
   MachineRegisterInfo &MRI = MI.getMF()->getRegInfo();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register AddrDisc = AddrDiscOp.getReg();
   int64_t IntDisc = IntDiscOp.getImm();
@@ -32708,7 +32708,7 @@ AArch64TargetLowering::EmitKCFICheck(MachineBasicBlock &MBB,
   assert(Target.isReg() && "Invalid target operand for an indirect call");
   Target.setIsRenamable(false);
 
-  return BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII->get(AArch64::KCFI_CHECK))
+  return BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII->get(AArch64::KCFI_CHECK))
       .addReg(Target.getReg())
       .addImm(MBBI->getCFIType())
       .getInstr();

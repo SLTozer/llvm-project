@@ -62,7 +62,7 @@ INITIALIZE_PASS(HexagonVExtract, "hexagon-vextract",
 unsigned HexagonVExtract::genElemLoad(MachineInstr *ExtI, unsigned BaseR,
                                       MachineRegisterInfo &MRI) {
   MachineBasicBlock &ExtB = *ExtI->getParent();
-  DebugLoc DL = ExtI->getDebugLoc();
+  DebugLoc DL = ExtI->getFullDebugLoc();
   Register ElemR = MRI.createVirtualRegister(&Hexagon::IntRegsRegClass);
 
   Register ExtIdxR = ExtI->getOperand(2).getReg();
@@ -147,8 +147,8 @@ bool HexagonVExtract::runOnMachineFunction(MachineFunction &MF) {
     unsigned StoreOpc = VecRC.getID() == Hexagon::HvxVRRegClassID
                           ? Hexagon::V6_vS32b_ai
                           : Hexagon::PS_vstorerw_ai;
-    Register AddrR = EmitAddr(DefB, At, DefI->getDebugLoc(), FI, 0);
-    BuildMI(DefB, At, DefI->getDebugLoc(), HII->get(StoreOpc))
+    Register AddrR = EmitAddr(DefB, At, DefI->getFullDebugLoc(), FI, 0);
+    BuildMI(DefB, At, DefI->getFullDebugLoc(), HII->get(StoreOpc))
       .addReg(AddrR)
       .addImm(0)
       .addReg(VecR);
@@ -161,7 +161,7 @@ bool HexagonVExtract::runOnMachineFunction(MachineFunction &MF) {
       assert(ExtI->getOperand(1).getReg() == VecR);
 
       MachineBasicBlock &ExtB = *ExtI->getParent();
-      Register BaseR = EmitAddr(ExtB, ExtI, ExtI->getDebugLoc(), FI,
+      Register BaseR = EmitAddr(ExtB, ExtI, ExtI->getFullDebugLoc(), FI,
                                 SR == 0 ? 0 : VecSize/2);
 
       unsigned ElemR = genElemLoad(ExtI, BaseR, MRI);

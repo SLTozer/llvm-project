@@ -539,7 +539,7 @@ Value *WebAssemblyLowerEmscriptenEHSjLj::wrapInvoke(CallBase *CI) {
   CallInst *NewCall = IRB.CreateCall(getInvokeWrapper(CI), Args);
   NewCall->takeName(CI);
   NewCall->setCallingConv(CallingConv::WASM_EmscriptenInvoke);
-  NewCall->setDebugLoc(CI->getDebugLoc());
+  NewCall->copyDebugLocFrom(CI);
 
   // Because we added the pointer to the callee as first argument, all
   // argument attribute indices have to be incremented by one.
@@ -1294,13 +1294,13 @@ bool WebAssemblyLowerEmscriptenEHSjLj::runEHOnFunction(Function &F) {
 static DebugLoc getOrCreateDebugLoc(const Instruction *InsertBefore,
                                     DISubprogram *SP) {
   assert(InsertBefore);
-  if (InsertBefore->getDebugLoc())
-    return InsertBefore->getDebugLoc();
+  if (InsertBefore->getFullDebugLoc())
+    return InsertBefore->getFullDebugLoc();
   const Instruction *Prev = InsertBefore->getPrevNode();
-  if (Prev && Prev->getDebugLoc())
-    return Prev->getDebugLoc();
+  if (Prev && Prev->getFullDebugLoc())
+    return Prev->getFullDebugLoc();
   if (SP)
-    return DILocation::get(SP->getContext(), SP->getLine(), 1, SP);
+    return DebugLoc::get(InsertBefore, SP->getLine(), 1, SP);
   return DebugLoc();
 }
 
@@ -1568,14 +1568,14 @@ void WebAssemblyLowerEmscriptenEHSjLj::handleLongjmpableCallsForEmscriptenSjLj(
       Value *Label = nullptr;
       Value *LongjmpResult = nullptr;
       BasicBlock *EndBB = nullptr;
-      wrapTestSetjmp(BB, CI->getDebugLoc(), Threw, FunctionInvocationId, Label,
+      wrapTestSetjmp(BB, CI->getFullDebugLoc(), Threw, FunctionInvocationId, Label,
                      LongjmpResult, CallEmLongjmpBB, CallEmLongjmpBBThrewPHI,
                      CallEmLongjmpBBThrewValuePHI, EndBB);
       assert(Label && LongjmpResult && EndBB);
 
       // Create switch instruction
       IRB.SetInsertPoint(EndBB);
-      IRB.SetCurrentDebugLocation(EndBB->back().getDebugLoc());
+      IRB.SetCurrentDebugLocation(EndBB->back().getFullDebugLoc());
       SwitchInst *SI = IRB.CreateSwitch(Label, Tail, SetjmpRetPHIs.size());
       // -1 means no longjmp happened, continue normally (will hit the default
       // switch case). 0 means a longjmp that is not ours to handle, needs a

@@ -1545,7 +1545,7 @@ void PPCFrameLowering::emitEpilogue(MachineFunction &MF,
   DebugLoc dl;
 
   if (MBBI != MBB.end())
-    dl = MBBI->getDebugLoc();
+    dl = MBBI->getFullDebugLoc();
 
   const PPCInstrInfo &TII = *Subtarget.getInstrInfo();
   const PPCRegisterInfo *RegInfo = Subtarget.getRegisterInfo();
@@ -1915,7 +1915,7 @@ void PPCFrameLowering::createTailCallBranchInstr(MachineBasicBlock &MBB) const {
   // If we got this far a first terminator should exist.
   assert(MBBI != MBB.end() && "Failed to find the first terminator.");
 
-  DebugLoc dl = MBBI->getDebugLoc();
+  DebugLoc dl = MBBI->getFullDebugLoc();
   const PPCInstrInfo &TII = *Subtarget.getInstrInfo();
 
   // Create branch instruction for pseudo tail call return instruction.
@@ -2576,7 +2576,7 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
       unsigned ADDInstr = is64Bit ? PPC::ADD8 : PPC::ADD4;
       unsigned LISInstr = is64Bit ? PPC::LIS8 : PPC::LIS;
       unsigned ORIInstr = is64Bit ? PPC::ORI8 : PPC::ORI;
-      const DebugLoc &dl = I->getDebugLoc();
+      DebugLoc dl = I->getFullDebugLoc();
 
       if (isInt<16>(CalleeAmt)) {
         BuildMI(MBB, I, dl, TII.get(ADDIInstr), StackReg)

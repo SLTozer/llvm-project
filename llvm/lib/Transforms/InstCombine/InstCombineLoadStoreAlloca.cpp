@@ -619,6 +619,8 @@ static StoreInst *combineStoreToNewValue(InstCombinerImpl &IC, StoreInst &SI,
   SI.getAllMetadata(MD);
 
   StoreInst *NewStore = IC.Builder.CreateStore(V, Ptr, SI.getProperties());
+  // DebugLocs must be copied separately.
+  NewStore->copyDebugLocFromIfPresent(&SI);
   for (const auto &MDPair : MD) {
     unsigned ID = MDPair.first;
     MDNode *N = MDPair.second;
@@ -1710,7 +1712,7 @@ bool InstCombinerImpl::mergeStoreIntoSuccessor(StoreInst &SI) {
   Value *MergedVal = OtherStore->getValueOperand();
   // The debug locations of the original instructions might differ. Merge them.
   DebugLoc MergedLoc =
-      DebugLoc::getMergedLocation(SI.getDebugLoc(), OtherStore->getDebugLoc());
+      DebugLoc::getMergedLocation(SI.getFullDebugLoc(), OtherStore->getFullDebugLoc());
   if (MergedVal != SI.getValueOperand()) {
     PHINode *PN =
         PHINode::Create(SI.getValueOperand()->getType(), 2, "storemerge");

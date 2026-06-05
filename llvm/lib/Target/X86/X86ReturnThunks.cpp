@@ -86,8 +86,8 @@ static bool runX86ReturnThunks(MachineFunction &MF) {
 
   for (MachineInstr *Ret : Rets) {
     if (IndCS)
-      BuildMI(Ret->getParent(), Ret->getDebugLoc(), CS);
-    BuildMI(Ret->getParent(), Ret->getDebugLoc(), JMP)
+      BuildMI(Ret->getParent(), Ret->getFullDebugLoc(), CS);
+    BuildMI(Ret->getParent(), Ret->getFullDebugLoc(), JMP)
         .addExternalSymbol(ThunkName.data());
     Ret->eraseFromParent();
     Modified = true;

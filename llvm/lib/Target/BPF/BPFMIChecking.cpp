@@ -159,7 +159,7 @@ void BPFMIPreEmitChecking::processAtomicInsts() {
 
       LLVM_DEBUG(MI.dump());
       if (hasLiveDefs(MI, TRI)) {
-        const DebugLoc &DL = MI.getDebugLoc();
+        DebugLoc DL = MI.getFullDebugLoc();
         const Function &F = MF->getFunction();
         F.getContext().diagnose(DiagnosticInfoUnsupported{
             F, "Invalid usage of the XADD return value", DL});

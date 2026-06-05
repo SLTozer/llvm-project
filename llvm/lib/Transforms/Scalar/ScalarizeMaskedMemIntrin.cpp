@@ -160,7 +160,7 @@ static void scalarizeMaskedLoad(const DataLayout &DL, bool HasBranchDivergence,
   BasicBlock *IfBlock = CI->getParent();
 
   Builder.SetInsertPoint(InsertPt);
-  Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+  Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
   // Short-cut if the mask is all-true.
   if (isa<Constant>(Mask) && cast<Constant>(Mask)->isAllOnesValue()) {
@@ -330,7 +330,7 @@ static void scalarizeMaskedStore(const DataLayout &DL, bool HasBranchDivergence,
   IRBuilder<> Builder(CI->getContext());
   Instruction *InsertPt = CI;
   Builder.SetInsertPoint(InsertPt);
-  Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+  Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
   // Short-cut if the mask is all-true.
   if (isa<Constant>(Mask) && cast<Constant>(Mask)->isAllOnesValue()) {
@@ -483,7 +483,7 @@ static void scalarizeMaskedGather(const DataLayout &DL,
   Builder.SetInsertPoint(InsertPt);
   Align AlignVal = CI->getParamAlign(0).valueOrOne();
 
-  Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+  Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
   // The result vector
   Value *VResult = Src0;
@@ -622,7 +622,7 @@ static void scalarizeMaskedScatter(const DataLayout &DL,
   IRBuilder<> Builder(CI->getContext());
   Instruction *InsertPt = CI;
   Builder.SetInsertPoint(InsertPt);
-  Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+  Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
   Align AlignVal = CI->getParamAlign(1).valueOrOne();
   unsigned VectorWidth = SrcFVTy->getNumElements();
@@ -719,7 +719,7 @@ static void scalarizeMaskedExpandLoad(const DataLayout &DL,
   BasicBlock *IfBlock = CI->getParent();
 
   Builder.SetInsertPoint(InsertPt);
-  Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+  Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
   unsigned VectorWidth = VecType->getNumElements();
 
@@ -855,7 +855,7 @@ static void scalarizeMaskedCompressStore(const DataLayout &DL,
   BasicBlock *IfBlock = CI->getParent();
 
   Builder.SetInsertPoint(InsertPt);
-  Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+  Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
   Type *EltTy = VecType->getElementType();
 
@@ -969,7 +969,7 @@ static void scalarizeMaskedVectorHistogram(const DataLayout &DL, CallInst *CI,
   Instruction *InsertPt = CI;
   Builder.SetInsertPoint(InsertPt);
 
-  Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+  Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
   // FIXME: Do we need to add an alignment parameter to the intrinsic?
   unsigned VectorWidth = AddrType->getNumElements();

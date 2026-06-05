@@ -468,7 +468,7 @@ static void setInsertPointSkippingPhis(IRBuilder<> &B, Instruction *I) {
 }
 
 static void setInsertPointAfterDef(IRBuilder<> &B, Instruction *I) {
-  B.SetCurrentDebugLocation(I->getDebugLoc());
+  B.SetCurrentDebugLocation(I->getFullDebugLoc());
   if (I->getType()->isVoidTy())
     B.SetInsertPoint(I->getNextNode());
   else

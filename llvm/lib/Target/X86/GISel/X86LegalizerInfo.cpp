@@ -942,7 +942,7 @@ bool X86LegalizerInfo::legalizeSETROUNDING(MachineInstr &MI,
       LLVMContext &C = MF.getFunction().getContext();
       C.diagnose(DiagnosticInfoUnsupported(
           MF.getFunction(), "rounding mode is not supported by X86 hardware",
-          DiagnosticLocation(MI.getDebugLoc()), DS_Error));
+          DiagnosticLocation(MI.getFullDebugLoc()), DS_Error));
       return false;
     }
 

@@ -164,7 +164,7 @@ bool SystemZFrameLowering::hasReservedCallFrame(
 
 void SystemZFrameLowering::emitIncrement(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator &MBBI,
-                                         const DebugLoc &DL, Register Reg,
+                                         DebugLoc DL, Register Reg,
                                          int64_t NumBytes,
                                          const TargetInstrInfo *TII) const {
   while (NumBytes) {
@@ -412,7 +412,7 @@ bool SystemZELFFrameLowering::restoreCalleeSavedRegisters(
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
   SystemZMachineFunctionInfo *ZFI = MF.getInfo<SystemZMachineFunctionInfo>();
   bool HasFP = hasFP(MF);
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
 
   // Restore FPRs/VRs in the normal TargetInstrInfo way.
   for (const CalleeSavedInfo &I : CSI) {
@@ -506,7 +506,7 @@ void SystemZELFFrameLowering::processFunctionBeforeFrameFinalized(
 // Add CFI for the new CFA offset.
 static void buildCFAOffs(MachineBasicBlock &MBB,
                          MachineBasicBlock::iterator MBBI,
-                         const DebugLoc &DL, int Offset,
+                         DebugLoc DL, int Offset,
                          const SystemZInstrInfo *ZII) {
   unsigned CFIIndex = MBB.getParent()->addFrameInst(
     MCCFIInstruction::cfiDefCfaOffset(nullptr, -Offset));
@@ -517,7 +517,7 @@ static void buildCFAOffs(MachineBasicBlock &MBB,
 // Add CFI for the new frame location.
 static void buildDefCFAReg(MachineBasicBlock &MBB,
                            MachineBasicBlock::iterator MBBI,
-                           const DebugLoc &DL, unsigned Reg,
+                           DebugLoc DL, unsigned Reg,
                            const SystemZInstrInfo *ZII) {
   MachineFunction &MF = *MBB.getParent();
   const MCRegisterInfo *MRI = MF.getContext().getRegisterInfo();
@@ -741,7 +741,7 @@ void SystemZELFFrameLowering::emitEpilogue(MachineFunction &MF,
       llvm_unreachable("Expected to see callee-save register restore code");
 
     unsigned AddrOpNo = 2;
-    DebugLoc DL = MBBI->getDebugLoc();
+    DebugLoc DL = MBBI->getFullDebugLoc();
     uint64_t Offset = StackSize + MBBI->getOperand(AddrOpNo + 1).getImm();
     unsigned NewOpcode = ZII->getOpcodeForOffset(Opcode, Offset);
 
@@ -759,7 +759,7 @@ void SystemZELFFrameLowering::emitEpilogue(MachineFunction &MF,
     MBBI->setDesc(ZII->get(NewOpcode));
     MBBI->getOperand(AddrOpNo + 1).ChangeToImmediate(Offset);
   } else if (StackSize) {
-    DebugLoc DL = MBBI->getDebugLoc();
+    DebugLoc DL = MBBI->getFullDebugLoc();
     emitIncrement(MBB, MBBI, DL, SystemZ::R15D, StackSize, ZII);
   }
 }
@@ -786,7 +786,7 @@ void SystemZELFFrameLowering::inlineStackProbe(
   int64_t SPOffsetFromCFA = -SystemZMC::ELFCFAOffsetFromInitialSP;
   MachineBasicBlock *MBB = &PrologMBB;
   MachineBasicBlock::iterator MBBI = StackAllocMI;
-  const DebugLoc DL = StackAllocMI->getDebugLoc();
+  const DebugLoc DL = StackAllocMI->getFullDebugLoc();
 
   // Allocate a block of Size bytes on the stack and probe it.
   auto allocateAndProbe = [&](MachineBasicBlock &InsMBB,
@@ -1190,7 +1190,7 @@ bool SystemZXPLINKFrameLowering::restoreCalleeSavedRegisters(
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   auto &Regs = Subtarget.getSpecialRegisters<SystemZXPLINK64Registers>();
 
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
 
   // Restore FPRs in the normal TargetInstrInfo way.
   for (const CalleeSavedInfo &I : llvm::reverse(CSI)) {
@@ -1380,7 +1380,7 @@ void SystemZXPLINKFrameLowering::emitEpilogue(MachineFunction &MF,
   if (StackSize) {
     unsigned SPReg = Regs.getStackPointerRegister();
     if (ZFI->getRestoreGPRRegs().LowGPR != SPReg) {
-      DebugLoc DL = MBBI->getDebugLoc();
+      DebugLoc DL = MBBI->getFullDebugLoc();
       emitIncrement(MBB, MBBI, DL, SPReg, StackSize, ZII);
     }
   }
@@ -1407,7 +1407,7 @@ void SystemZXPLINKFrameLowering::inlineStackProbe(
   const int64_t SaveSlotR3 = 2192;
 
   MachineBasicBlock &MBB = PrologMBB;
-  const DebugLoc DL = StackAllocMI->getDebugLoc();
+  const DebugLoc DL = StackAllocMI->getFullDebugLoc();
 
   // The 2nd half of block MBB after split.
   MachineBasicBlock *NextMBB;

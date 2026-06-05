@@ -608,7 +608,7 @@ bool SIInstrInfo::shouldScheduleLoadsNear(SDNode *Load0, SDNode *Load1,
 
 static void reportIllegalCopy(const SIInstrInfo *TII, MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator MI,
-                              const DebugLoc &DL, MCRegister DestReg,
+                              DbgLocStorage DL, MCRegister DestReg,
                               MCRegister SrcReg, bool KillSrc,
                               const char *Msg = "illegal VGPR to SGPR copy") {
   MachineFunction *MF = MBB.getParent();
@@ -625,7 +625,7 @@ static void reportIllegalCopy(const SIInstrInfo *TII, MachineBasicBlock &MBB,
 /// VGPR copy is required.
 static void indirectCopyToAGPR(const SIInstrInfo &TII, MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MI,
-                               const DebugLoc &DL, MCRegister DestReg,
+                               DbgLocStorage DL, MCRegister DestReg,
                                MCRegister SrcReg, bool KillSrc,
                                RegScavenger &RS, bool RegsOverlap,
                                Register ImpUseSuperReg = Register()) {
@@ -737,7 +737,7 @@ static void indirectCopyToAGPR(const SIInstrInfo &TII, MachineBasicBlock &MBB,
 }
 
 static void expandSGPRCopy(const SIInstrInfo &TII, MachineBasicBlock &MBB,
-                           MachineBasicBlock::iterator MI, const DebugLoc &DL,
+                           MachineBasicBlock::iterator MI, DbgLocStorage DL,
                            MCRegister DestReg, MCRegister SrcReg, bool KillSrc,
                            const TargetRegisterClass *RC, bool Forward) {
   const SIRegisterInfo &RI = TII.getRegisterInfo();
@@ -787,7 +787,7 @@ static void expandSGPRCopy(const SIInstrInfo &TII, MachineBasicBlock &MBB,
 
 void SIInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator MI,
-                              const DebugLoc &DL, Register DestReg,
+                              DbgLocStorage DL, Register DestReg,
                               Register SrcReg, bool KillSrc, bool RenamableDest,
                               bool RenamableSrc) const {
   const TargetRegisterClass *RC = RI.getPhysRegBaseClass(DestReg);
@@ -1569,7 +1569,7 @@ void SIInstrInfo::storeRegToStackSlotImpl(
   MachineFunction *MF = MBB.getParent();
   SIMachineFunctionInfo *MFI = MF->getInfo<SIMachineFunctionInfo>();
   MachineFrameInfo &FrameInfo = MF->getFrameInfo();
-  const DebugLoc &DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
 
   MachinePointerInfo PtrInfo
     = MachinePointerInfo::getFixedStack(*MF, FrameIndex);
@@ -1780,7 +1780,7 @@ void SIInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   MachineFunction *MF = MBB.getParent();
   SIMachineFunctionInfo *MFI = MF->getInfo<SIMachineFunctionInfo>();
   MachineFrameInfo &FrameInfo = MF->getFrameInfo();
-  const DebugLoc &DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
   unsigned SpillSize = RI.getSpillSize(*RC);
 
   MachinePointerInfo PtrInfo
@@ -1830,7 +1830,7 @@ void SIInstrInfo::insertNoop(MachineBasicBlock &MBB,
 void SIInstrInfo::insertNoops(MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator MI,
                               unsigned Quantity) const {
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
   unsigned MaxSNopCount = 1u << ST.getSNopBits();
   while (Quantity > 0) {
     unsigned Arg = std::min(Quantity, MaxSNopCount);
@@ -1842,7 +1842,7 @@ void SIInstrInfo::insertNoops(MachineBasicBlock &MBB,
 MachineBasicBlock *SIInstrInfo::insertSimulatedTrap(MachineRegisterInfo &MRI,
                                                     MachineBasicBlock &MBB,
                                                     MachineInstr &MI,
-                                                    const DebugLoc &DL) const {
+                                                    DbgLocStorage DL) const {
   MachineFunction *MF = MBB.getParent();
   constexpr unsigned DoorbellIDMask = 0x3ff;
   constexpr unsigned ECQueueWaveAbort = 0x400;
@@ -1911,7 +1911,7 @@ unsigned SIInstrInfo::getNumWaitStates(const MachineInstr &MI) {
 
 bool SIInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
   const AMDGPU::LaneMaskConstants &LMC = AMDGPU::LaneMaskConstants::get(ST);
   switch (MI.getOpcode()) {
   default: return TargetInstrInfo::expandPostRAPseudo(MI);
@@ -2586,7 +2586,7 @@ SIInstrInfo::expandMovDPP64(MachineInstr &MI) const {
   }
 
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
   MachineFunction *MF = MBB.getParent();
   MachineRegisterInfo &MRI = MF->getRegInfo();
   Register Dst = MI.getOperand(0).getReg();
@@ -2865,7 +2865,7 @@ bool SIInstrInfo::hasDivergentBranch(const MachineBasicBlock *MBB) const {
 void SIInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
                                        MachineBasicBlock &DestBB,
                                        MachineBasicBlock &RestoreBB,
-                                       const DebugLoc &DL, int64_t BrOffset,
+                                       DbgLocStorage DL, int64_t BrOffset,
                                        RegScavenger *RS) const {
   assert(MBB.empty() &&
          "new block should be inserted for expanding unconditional branch");
@@ -3159,7 +3159,7 @@ unsigned SIInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                    MachineBasicBlock *TBB,
                                    MachineBasicBlock *FBB,
                                    ArrayRef<MachineOperand> Cond,
-                                   const DebugLoc &DL,
+                                   DbgLocStorage DL,
                                    int *BytesAdded) const {
   if (!FBB && Cond.empty()) {
     BuildMI(&MBB, DL, get(AMDGPU::S_BRANCH))
@@ -3264,7 +3264,7 @@ bool SIInstrInfo::canInsertSelect(const MachineBasicBlock &MBB,
 }
 
 void SIInstrInfo::insertSelect(MachineBasicBlock &MBB,
-                               MachineBasicBlock::iterator I, const DebugLoc &DL,
+                               MachineBasicBlock::iterator I, DbgLocStorage DL,
                                Register DstReg, ArrayRef<MachineOperand> Cond,
                                Register TrueReg, Register FalseReg) const {
   BranchPredicate Pred = static_cast<BranchPredicate>(Cond[0].getImm());
@@ -6128,7 +6128,7 @@ unsigned SIInstrInfo::getVALUOp(unsigned Opc) const {
 void SIInstrInfo::insertScratchExecCopy(MachineFunction &MF,
                                         MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator MBBI,
-                                        const DebugLoc &DL, Register Reg,
+                                        DbgLocStorage DL, Register Reg,
                                         bool IsSCCLive,
                                         SlotIndexes *Indexes) const {
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
@@ -6157,7 +6157,7 @@ void SIInstrInfo::insertScratchExecCopy(MachineFunction &MF,
 
 void SIInstrInfo::restoreExec(MachineFunction &MF, MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator MBBI,
-                              const DebugLoc &DL, Register Reg,
+                              DbgLocStorage DL, Register Reg,
                               SlotIndexes *Indexes) const {
   const AMDGPU::LaneMaskConstants &LMC = AMDGPU::LaneMaskConstants::get(ST);
   auto ExecRestoreMI = BuildMI(MBB, MBBI, DL, get(LMC.MovOpc), LMC.ExecReg)
@@ -6215,7 +6215,7 @@ void SIInstrInfo::legalizeOpWithMove(MachineInstr &MI, unsigned OpIdx) const {
 
   const TargetRegisterClass *VRC = RI.getEquivalentVGPRClass(RC);
   Register Reg = MRI.createVirtualRegister(VRC);
-  DebugLoc DL = MBB->findDebugLoc(I);
+  DbgLocStorage DL = MBB->findDebugLoc(I);
   BuildMI(*MI.getParent(), I, DL, get(Opcode), Reg).add(MO);
   MO.ChangeToRegister(Reg, false);
 }
@@ -6228,7 +6228,7 @@ unsigned SIInstrInfo::buildExtractSubReg(
     return RI.getSubReg(SuperReg.getReg(), SubIdx);
 
   MachineBasicBlock *MBB = MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DbgLocStorage DL = MI->getDebugLoc();
   Register SubReg = MRI.createVirtualRegister(SubRC);
 
   unsigned NewSubIdx = RI.composeSubRegIndices(SuperReg.getSubReg(), SubIdx);
@@ -6613,7 +6613,7 @@ void SIInstrInfo::legalizeOperandsVOP2(MachineRegisterInfo &MRI,
   // both the value to write (src0) and lane select (src1).  Fix up non-SGPR
   // src0/src1 with V_READFIRSTLANE.
   if (Opc == AMDGPU::V_WRITELANE_B32) {
-    const DebugLoc &DL = MI.getDebugLoc();
+    DbgLocStorage DL = MI.getDebugLoc();
     if (Src0.isReg() && RI.isVGPR(MRI, Src0.getReg())) {
       Register Reg = MRI.createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
       BuildMI(*MI.getParent(), MI, DL, get(AMDGPU::V_READFIRSTLANE_B32), Reg)
@@ -6622,7 +6622,7 @@ void SIInstrInfo::legalizeOperandsVOP2(MachineRegisterInfo &MRI,
     }
     if (Src1.isReg() && RI.isVGPR(MRI, Src1.getReg())) {
       Register Reg = MRI.createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
-      const DebugLoc &DL = MI.getDebugLoc();
+      DbgLocStorage DL = MI.getDebugLoc();
       BuildMI(*MI.getParent(), MI, DL, get(AMDGPU::V_READFIRSTLANE_B32), Reg)
           .add(Src1);
       Src1.ChangeToRegister(Reg, false);
@@ -6648,7 +6648,7 @@ void SIInstrInfo::legalizeOperandsVOP2(MachineRegisterInfo &MRI,
   if (Opc == AMDGPU::V_READLANE_B32 && Src1.isReg() &&
       RI.isVGPR(MRI, Src1.getReg())) {
     Register Reg = MRI.createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
-    const DebugLoc &DL = MI.getDebugLoc();
+    DbgLocStorage DL = MI.getDebugLoc();
     BuildMI(*MI.getParent(), MI, DL, get(AMDGPU::V_READFIRSTLANE_B32), Reg)
         .add(Src1);
     Src1.ChangeToRegister(Reg, false);
@@ -6721,7 +6721,7 @@ void SIInstrInfo::legalizeOperandsVOP3(MachineRegisterInfo &MRI,
       Opc == AMDGPU::V_PERMLANE_IDX_GEN_B32_e64) {
     // src1 and src2 must be scalar
     MachineOperand &Src1 = MI.getOperand(VOP3Idx[1]);
-    const DebugLoc &DL = MI.getDebugLoc();
+    DbgLocStorage DL = MI.getDebugLoc();
     if (Src1.isReg() && !RI.isSGPRClass(MRI.getRegClass(Src1.getReg()))) {
       Register Reg = MRI.createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
       BuildMI(*MI.getParent(), MI, DL, get(AMDGPU::V_READFIRSTLANE_B32), Reg)
@@ -6976,7 +6976,7 @@ void SIInstrInfo::legalizeGenericOperand(MachineBasicBlock &InsertMBB,
                                          const TargetRegisterClass *DstRC,
                                          MachineOperand &Op,
                                          MachineRegisterInfo &MRI,
-                                         const DebugLoc &DL) const {
+                                         DbgLocStorage DL) const {
   Register OpReg = Op.getReg();
   unsigned OpSubReg = Op.getSubReg();
 
@@ -7017,7 +7017,7 @@ void SIInstrInfo::legalizeGenericOperand(MachineBasicBlock &InsertMBB,
 // iteration, in the worst case we execute 64 (once per lane).
 static void emitLoadScalarOpsFromVGPRLoop(
     const SIInstrInfo &TII, MachineRegisterInfo &MRI, MachineBasicBlock &PredBB,
-    MachineBasicBlock &LoopBB, MachineBasicBlock &BodyBB, const DebugLoc &DL,
+    MachineBasicBlock &LoopBB, MachineBasicBlock &BodyBB, DbgLocStorage DL,
     ArrayRef<MachineOperand *> ScalarOps, ArrayRef<Register> PhySGPRs = {}) {
   MachineFunction &MF = *LoopBB.getParent();
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
@@ -7270,7 +7270,7 @@ generateWaterFallLoop(const SIInstrInfo &TII, MachineInstr &MI,
     End = &MI;
     ++End;
   }
-  const DebugLoc &DL = MI.getDebugLoc();
+  DbgLocStorage DL = MI.getDebugLoc();
   const AMDGPU::LaneMaskConstants &LMC = AMDGPU::LaneMaskConstants::get(ST);
   const auto *BoolXExecRC = TRI->getWaveMaskRegClass();
 
@@ -7555,7 +7555,7 @@ SIInstrInfo::legalizeOperands(MachineInstr &MI,
 
   // Legalize s_sleep_var.
   if (MI.getOpcode() == AMDGPU::S_SLEEP_VAR) {
-    const DebugLoc &DL = MI.getDebugLoc();
+    DbgLocStorage DL = MI.getDebugLoc();
     Register Reg = MRI.createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
     int Src0Idx =
         AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::src0);
@@ -7637,7 +7637,7 @@ SIInstrInfo::legalizeOperands(MachineInstr &MI,
       std::tie(RsrcPtr, NewSRsrc) = extractRsrcPtr(*this, MI, *Rsrc);
 
       // NewVaddrLo = RsrcPtr:sub0 + VAddr:sub0
-      const DebugLoc &DL = MI.getDebugLoc();
+      DbgLocStorage DL = MI.getDebugLoc();
       BuildMI(MBB, MI, DL, get(AMDGPU::V_ADD_CO_U32_e64), NewVAddrLo)
           .addDef(CondReg0)
           .addReg(RsrcPtr, {}, AMDGPU::sub0)
@@ -7793,7 +7793,7 @@ void SIInstrInfo::legalizeOperandsVALUt16(MachineInstr &MI, unsigned OpIdx,
   if (RI.getMatchingSuperRegClass(CurrRC, ExpectedRC, AMDGPU::lo16)) {
     Op.setSubReg(AMDGPU::lo16);
   } else if (RI.getMatchingSuperRegClass(ExpectedRC, CurrRC, AMDGPU::lo16)) {
-    const DebugLoc &DL = MI.getDebugLoc();
+    DbgLocStorage DL = MI.getDebugLoc();
     Register NewDstReg = MRI.createVirtualRegister(&AMDGPU::VGPR_32RegClass);
     Register Undef = MRI.createVirtualRegister(&AMDGPU::VGPR_16RegClass);
     BuildMI(*MBB, MI, DL, get(AMDGPU::IMPLICIT_DEF), Undef);
@@ -7959,7 +7959,7 @@ void SIInstrInfo::moveToVALUImpl(
   MachineRegisterInfo &MRI = MBB->getParent()->getRegInfo();
   unsigned Opcode = Inst.getOpcode();
   unsigned NewOpcode = getVALUOp(Inst);
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   // Handle some special cases
   switch (Opcode) {
@@ -8671,7 +8671,7 @@ void SIInstrInfo::lowerSelect(SIInstrWorklist &Worklist, MachineInstr &Inst,
   MachineBasicBlock &MBB = *Inst.getParent();
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   MachineBasicBlock::iterator MII = Inst;
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src0 = Inst.getOperand(1);
@@ -8768,7 +8768,7 @@ void SIInstrInfo::lowerScalarAbs(SIInstrWorklist &Worklist,
   MachineBasicBlock &MBB = *Inst.getParent();
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   MachineBasicBlock::iterator MII = Inst;
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src = Inst.getOperand(1);
@@ -8795,7 +8795,7 @@ void SIInstrInfo::lowerScalarAbsDiff(SIInstrWorklist &Worklist,
   MachineBasicBlock &MBB = *Inst.getParent();
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   MachineBasicBlock::iterator MII = Inst;
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src1 = Inst.getOperand(1);
@@ -8826,7 +8826,7 @@ void SIInstrInfo::lowerScalarXnor(SIInstrWorklist &Worklist,
   MachineBasicBlock &MBB = *Inst.getParent();
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   MachineBasicBlock::iterator MII = Inst;
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src0 = Inst.getOperand(1);
@@ -8892,7 +8892,7 @@ void SIInstrInfo::splitScalarNotBinop(SIInstrWorklist &Worklist,
   MachineBasicBlock &MBB = *Inst.getParent();
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   MachineBasicBlock::iterator MII = Inst;
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src0 = Inst.getOperand(1);
@@ -8921,7 +8921,7 @@ void SIInstrInfo::splitScalarBinOpN2(SIInstrWorklist &Worklist,
   MachineBasicBlock &MBB = *Inst.getParent();
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   MachineBasicBlock::iterator MII = Inst;
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src0 = Inst.getOperand(1);
@@ -8952,7 +8952,7 @@ void SIInstrInfo::splitScalar64BitUnaryOp(SIInstrWorklist &Worklist,
 
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src0 = Inst.getOperand(1);
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineBasicBlock::iterator MII = Inst;
 
@@ -9018,7 +9018,7 @@ void SIInstrInfo::splitScalarSMulU64(SIInstrWorklist &Worklist,
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src0 = Inst.getOperand(1);
   MachineOperand &Src1 = Inst.getOperand(2);
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
   MachineBasicBlock::iterator MII = Inst;
 
   const TargetRegisterClass *Src0RC = MRI.getRegClass(Src0.getReg());
@@ -9127,7 +9127,7 @@ void SIInstrInfo::splitScalarSMulPseudo(SIInstrWorklist &Worklist,
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src0 = Inst.getOperand(1);
   MachineOperand &Src1 = Inst.getOperand(2);
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
   MachineBasicBlock::iterator MII = Inst;
 
   const TargetRegisterClass *Src0RC = MRI.getRegClass(Src0.getReg());
@@ -9186,7 +9186,7 @@ void SIInstrInfo::splitScalar64BitBinaryOp(SIInstrWorklist &Worklist,
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src0 = Inst.getOperand(1);
   MachineOperand &Src1 = Inst.getOperand(2);
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineBasicBlock::iterator MII = Inst;
 
@@ -9253,7 +9253,7 @@ void SIInstrInfo::splitScalar64BitXnor(SIInstrWorklist &Worklist,
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src0 = Inst.getOperand(1);
   MachineOperand &Src1 = Inst.getOperand(2);
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineBasicBlock::iterator MII = Inst;
 
@@ -9292,7 +9292,7 @@ void SIInstrInfo::splitScalar64BitBCNT(SIInstrWorklist &Worklist,
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
 
   MachineBasicBlock::iterator MII = Inst;
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src = Inst.getOperand(1);
@@ -9329,7 +9329,7 @@ void SIInstrInfo::splitScalar64BitBFE(SIInstrWorklist &Worklist,
   MachineBasicBlock &MBB = *Inst.getParent();
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   MachineBasicBlock::iterator MII = Inst;
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineOperand &Dest = Inst.getOperand(0);
   uint32_t Imm = Inst.getOperand(2).getImm();
@@ -9396,7 +9396,7 @@ void SIInstrInfo::splitScalar64BitCountOp(SIInstrWorklist &Worklist,
   MachineBasicBlock &MBB = *Inst.getParent();
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
   MachineBasicBlock::iterator MII = Inst;
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   MachineOperand &Dest = Inst.getOperand(0);
   MachineOperand &Src = Inst.getOperand(1);
@@ -9481,7 +9481,7 @@ void SIInstrInfo::movePackToVALU(SIInstrWorklist &Worklist,
   MachineBasicBlock *MBB = Inst.getParent();
   MachineOperand &Src0 = Inst.getOperand(1);
   MachineOperand &Src1 = Inst.getOperand(2);
-  const DebugLoc &DL = Inst.getDebugLoc();
+  DbgLocStorage DL = Inst.getDebugLoc();
 
   if (ST.useRealTrue16Insts()) {
     Register SrcReg0, SrcReg1;
@@ -10183,7 +10183,7 @@ bool SIInstrInfo::isBasicBlockPrologue(const MachineInstr &MI,
 MachineInstrBuilder
 SIInstrInfo::getAddNoCarry(MachineBasicBlock &MBB,
                            MachineBasicBlock::iterator I,
-                           const DebugLoc &DL,
+                           DbgLocStorage DL,
                            Register DestReg) const {
   if (ST.hasAddNoCarryInsts())
     return BuildMI(MBB, I, DL, get(AMDGPU::V_ADD_U32_e64), DestReg);
@@ -10198,7 +10198,7 @@ SIInstrInfo::getAddNoCarry(MachineBasicBlock &MBB,
 
 MachineInstrBuilder SIInstrInfo::getAddNoCarry(MachineBasicBlock &MBB,
                                                MachineBasicBlock::iterator I,
-                                               const DebugLoc &DL,
+                                               DbgLocStorage DL,
                                                Register DestReg,
                                                RegScavenger &RS) const {
   if (ST.hasAddNoCarryInsts())
@@ -10746,7 +10746,7 @@ bool llvm::execMayBeModifiedBeforeAnyUse(const MachineRegisterInfo &MRI,
 
 MachineInstr *SIInstrInfo::createPHIDestinationCopy(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator LastPHIIt,
-    const DebugLoc &DL, Register Src, Register Dst) const {
+    DbgLocStorage DL, Register Src, Register Dst) const {
   auto Cur = MBB.begin();
   if (Cur != MBB.end())
     do {
@@ -10761,7 +10761,7 @@ MachineInstr *SIInstrInfo::createPHIDestinationCopy(
 
 MachineInstr *SIInstrInfo::createPHISourceCopy(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator InsPt,
-    const DebugLoc &DL, Register Src, unsigned SrcSubReg, Register Dst) const {
+    DbgLocStorage DL, Register Src, unsigned SrcSubReg, Register Dst) const {
   if (InsPt != MBB.end() &&
       (InsPt->getOpcode() == AMDGPU::SI_IF ||
        InsPt->getOpcode() == AMDGPU::SI_ELSE ||
@@ -11484,7 +11484,7 @@ void SIInstrInfo::enforceOperandRCAlignment(MachineInstr &MI,
     return;
 
   // Add implicit aligned super-reg to force alignment on the data operand.
-  const DebugLoc &DL = MI.getDebugLoc();
+  DbgLocStorage DL = MI.getDebugLoc();
   MachineBasicBlock *BB = MI.getParent();
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
   Register DataReg = Op.getReg();

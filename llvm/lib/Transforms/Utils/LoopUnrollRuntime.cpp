@@ -814,7 +814,7 @@ bool llvm::UnrollRuntimeLoopRemainder(
     // original Loop.
     // Fix this by setting Loop's DebugLoc to NewExit.
     auto *NewExitTerminator = NewExit->getTerminator();
-    NewExitTerminator->setDebugLoc(Header->getTerminator()->getDebugLoc());
+    NewExitTerminator->copyDebugLocFrom(Header->getTerminator());
     // Split NewExit to insert epilog remainder loop.
     EpilogPreHeader = SplitBlock(NewExit, NewExitTerminator, DT, LI);
     EpilogPreHeader->setName(Header->getName() + ".epil.preheader");

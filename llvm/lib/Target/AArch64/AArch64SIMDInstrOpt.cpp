@@ -447,7 +447,7 @@ bool AArch64SIMDInstrOptImpl::optimizeVectElement(MachineInstr &MI) {
                          ReplInstrMCID))
     return false;
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock &MBB = *MI.getParent();
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
 
@@ -531,7 +531,7 @@ bool AArch64SIMDInstrOptImpl::optimizeLdStInterleave(MachineInstr &MI) {
   unsigned StReg[4];
   RegState StRegKill[4];
   MachineInstr *DefiningMI;
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock &MBB = *MI.getParent();
   SmallVector<unsigned, MaxNumRepl> ZipDest;
   SmallVector<const MCInstrDesc*, MaxNumRepl> ReplInstrMCID;

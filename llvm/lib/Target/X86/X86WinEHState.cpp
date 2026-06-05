@@ -533,7 +533,7 @@ void WinEHStateFnPassImpl::rewriteSetJmpCall(IRBuilder<> &Builder, Function &F,
   }
   NewCall->setCallingConv(Call.getCallingConv());
   NewCall->setAttributes(Call.getAttributes());
-  NewCall->setDebugLoc(Call.getDebugLoc());
+  NewCall->setDebugLoc(Call.getFullDebugLoc());
 
   NewCall->takeName(&Call);
   Call.replaceAllUsesWith(NewCall);

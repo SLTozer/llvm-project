@@ -172,12 +172,12 @@ bool HexagonGenMemAbsolute::runOnMachineFunction(MachineFunction &Fn) {
       MachineInstrBuilder MIB;
       if (IsLoad) { // Insert absolute-set load instruction
         ++HexagonNumLoadAbsConversions;
-        MIB = BuildMI(*ParentBlock, NextMI, NextMI->getDebugLoc(),
+        MIB = BuildMI(*ParentBlock, NextMI, NextMI->getFullDebugLoc(),
                       TII->get(NewOpc), LoadStoreReg)
                   .addReg(DstReg, RegState::Define);
       } else { // Insert absolute-set store instruction
         ++HexagonNumStoreAbsConversions;
-        MIB = BuildMI(*ParentBlock, NextMI, NextMI->getDebugLoc(),
+        MIB = BuildMI(*ParentBlock, NextMI, NextMI->getFullDebugLoc(),
                       TII->get(NewOpc), DstReg);
       }
 

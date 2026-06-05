@@ -217,7 +217,7 @@ void SwiftErrorValueTracking::propagateVRegs() {
       }
 
       auto DLoc = isa<Instruction>(SwiftErrorVal)
-                      ? cast<Instruction>(SwiftErrorVal)->getDebugLoc()
+                      ? cast<Instruction>(SwiftErrorVal)->getFullDebugLoc()
                       : DebugLoc();
       const auto *TII = MF->getSubtarget().getInstrInfo();
 

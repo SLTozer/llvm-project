@@ -584,7 +584,7 @@ bool SIOptimizeExecMasking::optimizeExecSequence() {
     CopyFromExecInst->eraseFromParent();
 
     auto InsPt = SaveExecInst->getIterator();
-    const DebugLoc &DL = SaveExecInst->getDebugLoc();
+    DebugLoc DL = SaveExecInst->getFullDebugLoc();
 
     BuildMI(MBB, InsPt, DL, TII->get(getSaveExecOp(SaveExecInst->getOpcode())),
             CopyFromExec)
@@ -623,14 +623,14 @@ bool SIOptimizeExecMasking::optimizeVCMPSaveExecSequence(
     bool IsSGPR32 = TRI->getRegSizeInBits(MoveDest, *MRI) == 32;
     unsigned MovOpcode = IsSGPR32 ? AMDGPU::S_MOV_B32 : AMDGPU::S_MOV_B64;
     BuildMI(*SaveExecInstr.getParent(), InsertPosIt,
-            SaveExecInstr.getDebugLoc(), TII->get(MovOpcode), MoveDest)
+            SaveExecInstr.getFullDebugLoc(), TII->get(MovOpcode), MoveDest)
         .addReg(LMC.ExecReg);
   }
 
   // Omit dst as V_CMPX is implicitly writing to EXEC.
   // Add dummy src and clamp modifiers, if needed.
   auto Builder = BuildMI(*VCmp.getParent(), std::next(InsertPosIt),
-                         VCmp.getDebugLoc(), TII->get(NewOpcode));
+                         VCmp.getFullDebugLoc(), TII->get(NewOpcode));
 
   auto TryAddImmediateValueFromNamedOperand =
       [&](AMDGPU::OpName OperandName) -> void {
@@ -800,7 +800,7 @@ bool SIOptimizeExecMasking::optimizeOrSaveexecXorSequences() {
     MachineInstr *Or = nullptr;
     MachineInstr *Xor = nullptr;
     std::tie(Or, Xor) = Pair;
-    BuildMI(*Or->getParent(), Or->getIterator(), Or->getDebugLoc(),
+    BuildMI(*Or->getParent(), Or->getIterator(), Or->getFullDebugLoc(),
             TII->get(LMC.AndN2SaveExecOpc), Or->getOperand(0).getReg())
         .addReg(Or->getOperand(1).getReg());
 

@@ -35,6 +35,7 @@
 #include "llvm/DebugInfo/DWARF/LowLevel/DWARFExpression.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Module.h"
@@ -1644,7 +1645,7 @@ void DwarfDebug::collectVariableInfoFromMFTable(
     assert(VI.Var->isValidLocationForIntrinsic(VI.Loc) &&
            "Expected inlined-at fields to agree");
 
-    InlinedEntity Var(VI.Var, VI.Loc->getInlinedAt());
+    InlinedEntity Var(VI.Var, VI.Loc.getInlinedAt());
     Processed.insert(Var);
     LexicalScope *Scope = LScopes.findLexicalScope(VI.Loc);
 
@@ -1682,7 +1683,7 @@ void DwarfDebug::collectVariableInfoFromMFTable(
     }
 
     auto RegVar = std::make_unique<DbgVariable>(
-                    cast<DILocalVariable>(Var.first), Var.second);
+                    cast<DILocalVariable>(Var.first), Var.second.withContext(*Asm->DbgLocCtx));
     if (VI.inStackSlot())
       RegVar->emplace<Loc::MMI>(VI.Expr, VI.getStackSlot());
     else
@@ -1703,9 +1704,9 @@ static bool validThroughout(LexicalScopes &LScopes,
                             const MachineInstr *DbgValue,
                             const MachineInstr *RangeEnd,
                             const InstructionOrdering &Ordering) {
-  assert(DbgValue->getDebugLoc() && "DBG_VALUE without a debug location");
+  assert(DbgValue->getFullDebugLoc() && "DBG_VALUE without a debug location");
   auto MBB = DbgValue->getParent();
-  auto DL = DbgValue->getDebugLoc();
+  auto DL = DbgValue->getFullDebugLoc();
   auto *LScope = LScopes.findLexicalScope(DL);
   // Scope doesn't exist; this is a dead DBG_VALUE.
   if (!LScope)
@@ -1727,12 +1728,12 @@ static bool validThroughout(LexicalScopes &LScopes,
     for (++Pred; Pred != MBB->rend(); ++Pred) {
       if (Pred->getFlag(MachineInstr::FrameSetup))
         break;
-      auto PredDL = Pred->getDebugLoc();
+      auto PredDL = Pred->getFullDebugLoc();
       if (!PredDL || Pred->isMetaInstruction())
         continue;
       // Check whether the instruction preceding the DBG_VALUE is in the same
       // (sub)scope as the DBG_VALUE.
-      if (DL->getScope() == PredDL->getScope())
+      if (DL.getScope() == PredDL.getScope())
         return false;
       auto *PredScope = LScopes.findLexicalScope(PredDL);
       if (!PredScope || LScope->dominates(PredScope))
@@ -1960,7 +1961,7 @@ bool DwarfDebug::buildLocationList(SmallVectorImpl<DebugLocEntry> &DebugLoc,
 DbgEntity *DwarfDebug::createConcreteEntity(DwarfCompileUnit &TheCU,
                                             LexicalScope &Scope,
                                             const DINode *Node,
-                                            const DILocation *Location,
+                                            DebugLoc Location,
                                             const MCSymbol *Sym) {
   ensureAbstractEntityIsCreatedIfScoped(TheCU, Node, Scope.getScopeNode());
   if (isa<const DILocalVariable>(Node)) {
@@ -2001,7 +2002,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
 
     LexicalScope *Scope = nullptr;
     const DILocalVariable *LocalVar = cast<DILocalVariable>(IV.first);
-    if (const DILocation *IA = IV.second)
+    if (DbgLocStorage IA = IV.second)
       Scope = LScopes.findInlinedScope(LocalVar->getScope(), IA);
     else
       Scope = LScopes.findLexicalScope(LocalVar->getScope());
@@ -2011,7 +2012,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
 
     Processed.insert(IV);
     DbgVariable *RegVar = cast<DbgVariable>(createConcreteEntity(TheCU,
-                                            *Scope, LocalVar, IV.second));
+                                            *Scope, LocalVar, IV.second.withContext(*Asm->DbgLocCtx)));
 
     const MachineInstr *MInsn = HistoryMapEntries.front().getInstr();
     assert(MInsn->isDebugValue() && "History must begin with debug value");
@@ -2070,8 +2071,8 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
     // The scope could have an extra lexical block file.
     const DILocalScope *LocalScope =
         Label->getScope()->getNonLexicalBlockFileScope();
-    // Get inlined DILocation if it is inlined label.
-    if (const DILocation *IA = IL.second)
+    // Get inlined DebugLoc if it is inlined label.
+    if (DbgLocStorage IA = IL.second)
       Scope = LScopes.findInlinedScope(LocalScope, IA);
     else
       Scope = LScopes.findLexicalScope(LocalScope);
@@ -2084,14 +2085,20 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
     /// Save the temporary label to DbgLabel entity to get the
     /// actually address when generating Dwarf DIE.
     MCSymbol *Sym = getLabelBeforeInsn(MI);
-    createConcreteEntity(TheCU, *Scope, Label, IL.second, Sym);
+    createConcreteEntity(TheCU, *Scope, Label, IL.second.withContext(*Asm->DbgLocCtx), Sym);
   }
 
   // Collect info for retained nodes.
   for (const DINode *DN : SP->getRetainedNodes()) {
     const auto *LS = getRetainedNodeScope(DN);
     if (isa<DILocalVariable>(DN) || isa<DILabel>(DN)) {
-      if (!Processed.insert(InlinedEntity(DN, nullptr)).second)
+      // FIXME: There is an issue that occurs here due to comparison between
+      // two empty DebugLocs with different FLContexts; the "nullptr" ctor for
+      // DebugLoc has no FLContext. For now, we can fix this by making all empty
+      // DLs compare equal, but long-term we should consider giving a harder
+      // rule to how empty DLs are constructed and handled, rather than having
+      // it be some kind of hidden-yet-meaningful state.
+      if (!Processed.insert(InlinedEntity(DN, {})).second)
         continue;
       LexicalScope *LexS = LScopes.findLexicalScope(LS);
       if (LexS)
@@ -2176,7 +2183,7 @@ void DwarfDebug::beginInstruction(const MachineInstr *MI) {
     return;
   }
 
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   unsigned Flags = 0;
 
   if (MI->getFlag(MachineInstr::FrameDestroy) && DL) {
@@ -2205,7 +2212,7 @@ void DwarfDebug::beginInstruction(const MachineInstr *MI) {
   // handling.
   bool ScopeUsesKeyInstructions =
       KeyInstructionsAreStmts && DL &&
-      DL->getScope()->getSubprogram()->getKeyInstructionsEnabled();
+      DL.getScope()->getSubprogram()->getKeyInstructionsEnabled();
 
   bool IsKey = false;
   if (ScopeUsesKeyInstructions && DL && DL.getLine())
@@ -2298,7 +2305,7 @@ void DwarfDebug::beginInstruction(const MachineInstr *MI) {
 }
 
 /// Default implementation of target-specific source line recording.
-void DwarfDebug::recordTargetSourceLine(const DebugLoc &DL, unsigned Flags) {
+void DwarfDebug::recordTargetSourceLine(DebugLoc DL, unsigned Flags) {
   SmallString<128> LocationString;
   if (Asm->OutStreamer->isVerboseAsm()) {
     raw_svector_ostream OS(LocationString);
@@ -2336,13 +2343,13 @@ findPrologueEndLoc(const MachineFunction *MF) {
     bool isTrivRemat = TII.isTriviallyReMaterializable(MI);
     bool isFrameSetup = MI.getFlag(MachineInstr::FrameSetup);
 
-    if (!isFrameSetup && MI.getDebugLoc()) {
+    if (!isFrameSetup && MI.getFullDebugLoc()) {
       // Scan forward to try to find a non-zero line number. The
       // prologue_end marks the first breakpoint in the function after the
       // frame setup, and a compiler-generated line 0 location is not a
       // meaningful breakpoint. If none is found, return the first
       // location after the frame setup.
-      if (MI.getDebugLoc().getLine())
+      if (MI.getFullDebugLoc().getLine())
         return std::make_pair(&MI, IsEmptyPrologue);
     }
 
@@ -2415,12 +2422,12 @@ findPrologueEndLoc(const MachineFunction *MF) {
     // is where execution in the function starts, and is less catastrophic than
     // stepping over the call.
     if (CurInst->isCall()) {
-      if (const DILocation *Loc = CurInst->getDebugLoc().get();
-          Loc && Loc->getLine() == 0) {
+      if (DebugLoc Loc = CurInst->getFullDebugLoc();
+          Loc && Loc.getLine() == 0) {
         // Create and assign the scope-line position.
         unsigned ScopeLine = SP->getScopeLine();
-        DILocation *ScopeLineDILoc =
-            DILocation::get(SP->getContext(), ScopeLine, 0, SP);
+        DebugLoc ScopeLineDILoc =
+            DebugLoc::get(&F, ScopeLine, 0, SP);
         const_cast<MachineInstr *>(&*CurInst)->setDebugLoc(ScopeLineDILoc);
 
         // Consider this position to be where prologue_end is placed.
@@ -2498,8 +2505,8 @@ DwarfDebug::emitInitialLocDirective(const MachineFunction &MF, unsigned CUID) {
       // Avoid trying to assign prologue_end to a line-zero location.
       // Instructions with no DebugLoc at all are fine, they'll be given the
       // scope line nuumber.
-      const DebugLoc &DL = PrologEndLoc->getDebugLoc();
-      if (!DL || DL->getLine() != 0)
+      DebugLoc DL = PrologEndLoc->getFullDebugLoc();
+      if (!DL || DL.getLine() != 0)
         return PrologEndLoc;
 
       // Later, don't place the prologue_end flag on this line-zero location.
@@ -2526,7 +2533,7 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
   // Map {(InlinedAt, Group): (Rank, Instructions)}.
   // NOTE: Anecdotally, for a large C++ blob, 99% of the instruction
   // SmallVectors contain 2 or fewer elements; use 2 inline elements.
-  DenseMap<std::pair<DILocation *, uint64_t>,
+  DenseMap<std::pair<DebugLoc, uint64_t>,
            std::pair<uint8_t, SmallVector<const MachineInstr *, 2>>>
       GroupCandidates;
 
@@ -2560,12 +2567,12 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
       if (MI.isMetaInstruction())
         continue;
 
-      const DILocation *Loc = MI.getDebugLoc().get();
-      if (!Loc || !Loc->getLine())
+      DebugLoc Loc = MI.getFullDebugLoc();
+      if (!Loc || !Loc.getLine())
         continue;
 
       // Reset the Buoy to this instruction if it has a different line number.
-      if (!Buoy || Buoy->getDebugLoc().getLine() != Loc->getLine()) {
+      if (!Buoy || Buoy->getFullDebugLoc().getLine() != Loc.getLine()) {
         Buoy = &MI;
         BuoyAtom = 0; // Set later when we know which atom the buoy is used by.
       }
@@ -2583,13 +2590,13 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
         Buoy = nullptr;
         BuoyAtom = 0;
 
-        if (!Loc->getAtomGroup() || !Loc->getAtomRank())
+        if (!Loc.getAtomGroup() || !Loc.getAtomRank())
           continue;
       }
 
-      auto *InlinedAt = Loc->getInlinedAt();
-      uint64_t Group = Loc->getAtomGroup();
-      uint8_t Rank = Loc->getAtomRank();
+      auto InlinedAt = Loc.getInlinedAt();
+      uint64_t Group = Loc.getAtomGroup();
+      uint8_t Rank = Loc.getAtomRank();
       if (!Group || !Rank)
         continue;
 
@@ -2631,8 +2638,8 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
         CandidateInsts.push_back(Buoy);
         CandidateRank = Rank;
 
-        assert(!BuoyAtom || BuoyAtom == Loc->getAtomGroup());
-        BuoyAtom = Loc->getAtomGroup();
+        assert(!BuoyAtom || BuoyAtom == Loc.getAtomGroup());
+        BuoyAtom = Loc.getAtomGroup();
       } else {
         // Don't add calls, because they've been dealt with already. This means
         // CandidateInsts might now be empty - handle that.
@@ -2693,7 +2700,7 @@ void DwarfDebug::findForceIsStmtInstrs(const MachineFunction *MF) {
     if (MBB.empty() || MBB.pred_empty())
       continue;
     for (auto &MI : MBB) {
-      if (MI.getDebugLoc() && MI.getDebugLoc()->getLine()) {
+      if (MI.getFullDebugLoc() && MI.getFullDebugLoc().getLine()) {
         PredMBBsToExamine.insert_range(MBB.predecessors());
         PotentialIsStmtMBBInstrs.insert({&MBB, &MI});
         break;
@@ -2712,7 +2719,7 @@ void DwarfDebug::findForceIsStmtInstrs(const MachineFunction *MF) {
       if (MBBInstrIt == PotentialIsStmtMBBInstrs.end())
         return;
       MachineInstr *MI = MBBInstrIt->second;
-      if (MI->getDebugLoc()->getLine() == OutgoingLine)
+      if (MI->getFullDebugLoc().getLine() == OutgoingLine)
         return;
       PotentialIsStmtMBBInstrs.erase(MBBInstrIt);
       ForceIsStmtInstrs.insert(MI);
@@ -2744,8 +2751,8 @@ void DwarfDebug::findForceIsStmtInstrs(const MachineFunction *MF) {
       // the the false destination only; otherwise, both destinations share an
       // outgoing loc.
       if (!AnalyzeFailed && !Cond.empty() && FBB != nullptr &&
-          MBB->back().getDebugLoc() && MBB->back().getDebugLoc()->getLine()) {
-        unsigned FBBLine = MBB->back().getDebugLoc()->getLine();
+          MBB->back().getFullDebugLoc() && MBB->back().getFullDebugLoc().getLine()) {
+        unsigned FBBLine = MBB->back().getFullDebugLoc().getLine();
         assert(MIIt->isBranch() && "Bad result from analyzeBranch?");
         CheckMBBEdge(FBB, FBBLine);
         ++MIIt;
@@ -2773,8 +2780,8 @@ void DwarfDebug::findForceIsStmtInstrs(const MachineFunction *MF) {
     // enough for this to be worthwhile.
     unsigned LastLine = 0;
     while (MIIt != MBB->rend()) {
-      if (auto DL = MIIt->getDebugLoc(); DL && DL->getLine()) {
-        LastLine = DL->getLine();
+      if (auto DL = MIIt->getFullDebugLoc(); DL && DL.getLine()) {
+        LastLine = DL.getLine();
         break;
       }
       ++MIIt;
@@ -2904,7 +2911,7 @@ void DwarfDebug::endFunctionImpl(const MachineFunction *MF) {
       assert(LexS && "Expected the LexicalScope to be created.");
       if (isa<DILocalVariable>(DN) || isa<DILabel>(DN)) {
         // Collect info for variables/labels that were optimized out.
-        if (!Processed.insert(InlinedEntity(DN, nullptr)).second ||
+        if (!Processed.insert(InlinedEntity(DN, {})).second ||
             TheCU.getExistingAbstractEntity(DN))
           continue;
         TheCU.createAbstractEntity(DN, LexS);

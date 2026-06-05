@@ -269,7 +269,7 @@ unsigned SPIRVInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                       MachineBasicBlock *TBB,
                                       MachineBasicBlock *FBB,
                                       ArrayRef<MachineOperand> Cond,
-                                      const DebugLoc &DL,
+                                      DbgLocStorage DL,
                                       int * /*BytesAdded*/) const {
   if (!TBB)
     return 0;
@@ -279,7 +279,7 @@ unsigned SPIRVInstrInfo::insertBranch(MachineBasicBlock &MBB,
 
 void SPIRVInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator I,
-                                 const DebugLoc &DL, Register DestReg,
+                                 DbgLocStorage DL, Register DestReg,
                                  Register SrcReg, bool KillSrc,
                                  bool RenamableDest, bool RenamableSrc) const {
   // Actually we don't need this COPY instruction. However if we do nothing with

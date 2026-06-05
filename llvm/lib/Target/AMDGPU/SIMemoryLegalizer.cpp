@@ -703,7 +703,7 @@ void diagnoseUnknownMMRAASName(const MachineInstr &MI, StringRef AS) {
   for (const auto &[Name, Val] : ASNames)
     OS << LS << '\'' << Name << '\'';
   Fn.getContext().diagnose(
-      DiagnosticInfoUnsupported(Fn, Str.str(), MI.getDebugLoc(), DS_Warning));
+      DiagnosticInfoUnsupported(Fn, Str.str(), MI.getFullDebugLoc(), DS_Warning));
 }
 
 /// Reads \p MI's MMRAs to parse the "amdgpu-synchronize-as" MMRA.
@@ -740,7 +740,7 @@ static void diagnoseUnknownAVMetadata(const MachineInstr &MI,
   const Function &Fn = MF->getFunction();
   Fn.getContext().diagnose(DiagnosticInfoUnsupported(
       Fn, Twine("unknown amdgcn-av metadata '") + Suffix + Twine('\''),
-      MI.getDebugLoc(), DS_Warning));
+      MI.getFullDebugLoc(), DS_Warning));
 }
 
 static bool hasAVNoneMMRA(const MachineInstr &MI) {
@@ -765,7 +765,7 @@ void SIMemOpAccess::reportUnsupported(const MachineBasicBlock::iterator &MI,
                                       const char *Msg) const {
   const Function &Func = MI->getMF()->getFunction();
   Func.getContext().diagnose(
-      DiagnosticInfoUnsupported(Func, Msg, MI->getDebugLoc()));
+      DiagnosticInfoUnsupported(Func, Msg, MI->getFullDebugLoc()));
 }
 
 std::optional<std::tuple<SIAtomicScope, SIAtomicAddrSpace, bool>>
@@ -1249,7 +1249,7 @@ bool SIGfx6CacheControl::insertWait(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1384,7 +1384,7 @@ bool SIGfx6CacheControl::insertAcquire(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1503,7 +1503,7 @@ bool SIGfx6CacheControl::insertWriteback(MachineBasicBlock::iterator &MI,
 
   bool Changed = false;
   MachineBasicBlock &MBB = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1659,7 +1659,7 @@ bool SIGfx10CacheControl::insertWait(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1794,7 +1794,7 @@ bool SIGfx10CacheControl::insertAcquire(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1877,7 +1877,7 @@ bool SIGfx12CacheControl::insertWaitsBeforeSystemScopeStore(
   // TODO: implement flag for frontend to give us a hint not to insert waits.
 
   MachineBasicBlock &MBB = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   BuildMI(MBB, MI, DL, TII->get(S_WAIT_LOADCNT_soft)).addImm(0);
   if (ST.hasImageInsts()) {
@@ -1899,7 +1899,7 @@ bool SIGfx12CacheControl::insertWait(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   bool LOADCnt = false;
   bool DSCnt = false;
@@ -2022,7 +2022,7 @@ bool SIGfx12CacheControl::insertAcquire(MachineBasicBlock::iterator &MI,
     return false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   /// The scratch address space does not need the global memory cache
   /// to be flushed as all memory operations by the same thread are
@@ -2100,7 +2100,7 @@ bool SIGfx12CacheControl::insertWriteback(MachineBasicBlock::iterator &MI,
 
   bool Changed = false;
   MachineBasicBlock &MBB = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -2192,7 +2192,7 @@ bool SIGfx12CacheControl::enableVolatileAndOrNonTemporal(
     if (ST.requiresWaitXCntForSingleAccessInstructions() &&
         SIInstrInfo::isVMEM(*MI)) {
       MachineBasicBlock &MBB = *MI->getParent();
-      BuildMI(MBB, MI, MI->getDebugLoc(), TII->get(S_WAIT_XCNT_soft)).addImm(0);
+      BuildMI(MBB, MI, MI->getFullDebugLoc(), TII->get(S_WAIT_XCNT_soft)).addImm(0);
       Changed = true;
     }
 
@@ -2217,7 +2217,7 @@ bool SIGfx12CacheControl::finalizeStore(MachineInstr &MI, bool Atomic) const {
   if (Atomic && ST.requiresWaitXCntForSingleAccessInstructions() &&
       SIInstrInfo::isVMEM(MI)) {
     MachineBasicBlock &MBB = *MI.getParent();
-    BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(S_WAIT_XCNT_soft)).addImm(0);
+    BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(S_WAIT_XCNT_soft)).addImm(0);
     Changed = true;
   }
 

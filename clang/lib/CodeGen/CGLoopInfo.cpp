@@ -14,6 +14,7 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Metadata.h"
@@ -403,6 +404,16 @@ SmallVector<Metadata *, 4> clang::CodeGen::LoopInfo::createMetadata(
     bool &HasUserTransforms) {
   SmallVector<Metadata *, 3> LoopProperties;
 
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  // If we have a valid start debug location for the loop, add it.
+  if (StartLoc) {
+    LoopProperties.push_back(DILocation::get(StartLoc.getContext(), StartLoc));
+
+    // If we also have a valid end debug location for the loop, add it.
+    if (EndLoc)
+      LoopProperties.push_back(DILocation::get(EndLoc.getContext(), EndLoc));
+  }
+#else
   // If we have a valid start debug location for the loop, add it.
   if (StartLoc) {
     LoopProperties.push_back(StartLoc.getAsMDNode());
@@ -411,6 +422,7 @@ SmallVector<Metadata *, 4> clang::CodeGen::LoopInfo::createMetadata(
     if (EndLoc)
       LoopProperties.push_back(EndLoc.getAsMDNode());
   }
+#endif
 
   LLVMContext &Ctx = Header->getContext();
   if (Attrs.MustProgress)

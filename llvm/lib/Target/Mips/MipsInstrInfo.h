@@ -74,7 +74,7 @@ public:
 
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
 
   bool
@@ -127,7 +127,7 @@ public:
   // FIXME: Add support for MIPS16e.
   MachineInstrBuilder insertNop(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator MI,
-                                DebugLoc DL) const;
+                                DbgLocStorage DL) const;
 
   /// getRegisterInfo - TargetInstrInfo is a superset of MRegister info.  As
   /// such, whenever a client has an instance of instruction info, it should
@@ -214,7 +214,7 @@ private:
                      SmallVectorImpl<MachineOperand> &Cond) const;
 
   void BuildCondBr(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
-                   const DebugLoc &DL, ArrayRef<MachineOperand> Cond) const;
+                   DbgLocStorage DL, ArrayRef<MachineOperand> Cond) const;
 };
 
 /// Create MipsInstrInfo objects.

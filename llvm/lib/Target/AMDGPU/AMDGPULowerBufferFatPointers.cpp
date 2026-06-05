@@ -1634,7 +1634,7 @@ PtrParts SplitPtrStructs::getPtrParts(Value *V) {
     // We'll be creating the new values after the relevant instruction.
     // This instruction generates a value and so isn't a terminator.
     IRB.SetInsertPoint(*I->getInsertionPointAfterDef());
-    IRB.SetCurrentDebugLocation(I->getDebugLoc());
+    IRB.SetCurrentDebugLocation(I->getFullDebugLoc());
   } else if (auto *A = dyn_cast<Argument>(V)) {
     IRB.SetInsertPointPastAllocas(A->getParent());
     IRB.SetCurrentDebugLocation(DebugLoc());
@@ -1739,7 +1739,7 @@ void SplitPtrStructs::processConditionals() {
       Value *NewRsrc;
       StructType *PHITy = cast<StructType>(PHI->getType());
       IRB.SetInsertPoint(*PHI->getInsertionPointAfterDef());
-      IRB.SetCurrentDebugLocation(PHI->getDebugLoc());
+      IRB.SetCurrentDebugLocation(PHI->getFullDebugLoc());
       if (MaybeRsrc) {
         NewRsrc = *MaybeRsrc;
       } else {
@@ -1855,7 +1855,7 @@ void SplitPtrStructs::killAndReplaceSplitInstructions(
       continue;
     }
     IRB.SetInsertPoint(*I->getInsertionPointAfterDef());
-    IRB.SetCurrentDebugLocation(I->getDebugLoc());
+    IRB.SetCurrentDebugLocation(I->getFullDebugLoc());
     auto [Rsrc, Off] = getPtrParts(I);
     Value *Struct = PoisonValue::get(I->getType());
     Struct = IRB.CreateInsertValue(Struct, Rsrc, 0);

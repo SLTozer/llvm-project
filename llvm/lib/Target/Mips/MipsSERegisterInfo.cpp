@@ -215,7 +215,7 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
       // If we have an offset that needs to fit into a signed n-bit immediate
       // (where n < 16) and doesn't, but does fit into 16-bits then use an ADDiu
       MachineBasicBlock &MBB = *MI.getParent();
-      DebugLoc DL = II->getDebugLoc();
+      DebugLoc DL = II->getFullDebugLoc();
       const TargetRegisterClass *PtrRC =
           ABI.ArePtrs64bit() ? &Mips::GPR64RegClass : &Mips::GPR32RegClass;
       MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
@@ -234,7 +234,7 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
       // Otherwise split the offset into 16-bit pieces and add it in multiple
       // instructions.
       MachineBasicBlock &MBB = *MI.getParent();
-      DebugLoc DL = II->getDebugLoc();
+      DebugLoc DL = II->getFullDebugLoc();
       unsigned NewImm = 0;
       const MipsSEInstrInfo &TII =
           *static_cast<const MipsSEInstrInfo *>(

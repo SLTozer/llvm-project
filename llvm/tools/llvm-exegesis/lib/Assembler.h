@@ -48,11 +48,11 @@ public:
   BasicBlockFiller(MachineFunction &MF, MachineBasicBlock *MBB,
                    const MCInstrInfo *MCII);
 
-  void addInstruction(const MCInst &Inst, const DebugLoc &DL = DebugLoc());
-  void addInstructions(ArrayRef<MCInst> Insts, const DebugLoc &DL = DebugLoc());
+  void addInstruction(const MCInst &Inst, DebugLoc DL = DebugLoc());
+  void addInstructions(ArrayRef<MCInst> Insts, DebugLoc DL = DebugLoc());
 
   void addReturn(const ExegesisTarget &ET, bool SubprocessCleanup,
-                 const DebugLoc &DL = DebugLoc());
+                 DebugLoc DL = DebugLoc());
 
   MachineFunction &MF;
   MachineBasicBlock *const MBB;

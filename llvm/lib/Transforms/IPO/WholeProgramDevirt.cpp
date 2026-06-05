@@ -455,7 +455,7 @@ struct VirtualCallSite {
   emitRemark(const StringRef OptName, const StringRef TargetName,
              function_ref<OptimizationRemarkEmitter &(Function &)> OREGetter) {
     Function *F = CB.getCaller();
-    DebugLoc DLoc = CB.getDebugLoc();
+    DebugLoc DLoc = CB.getFullDebugLoc();
     BasicBlock *Block = CB.getParent();
 
     using namespace ore;
@@ -1248,7 +1248,7 @@ void DevirtModule::applySingleImplDevirt(VTableSlotInfo &SlotInfo,
         Function *TrapFn =
             Intrinsic::getOrInsertDeclaration(&M, Intrinsic::debugtrap);
         auto *CallTrap = Builder.CreateCall(TrapFn);
-        CallTrap->setDebugLoc(CB.getDebugLoc());
+        CallTrap->copyDebugLocFrom(&CB);
       }
 
       // If fallback checking or speculative devirtualization are enabled,

@@ -183,7 +183,7 @@ bool LoongArchPreRAExpandPseudo::expandPcaxxu12iInstPair(
     unsigned FlagsHi, unsigned FlagsLo) {
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   const auto &STI = MF->getSubtarget<LoongArchSubtarget>();
   bool EnableRelax = STI.hasFeature(LoongArch::FeatureRelax);
@@ -271,7 +271,7 @@ bool LoongArchPreRAExpandPseudo::expandLargeAddressLoad(
 
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   assert(MF->getSubtarget<LoongArchSubtarget>().is64Bit() &&
          "Large code model requires LA64");
@@ -401,7 +401,7 @@ bool LoongArchPreRAExpandPseudo::expandLoadAddressTLSLE(
   // lu52i.d $rd, $rd, %le64_hi12(sym)
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   bool Large = MF->getTarget().getCodeModel() == CodeModel::Large;
   Register DestReg = MI.getOperand(0).getReg();
@@ -552,7 +552,7 @@ bool LoongArchPreRAExpandPseudo::expandLoadAddressTLSDesc(
     MachineBasicBlock::iterator &NextMBBI, bool Large) {
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   const auto &STI = MF->getSubtarget<LoongArchSubtarget>();
   bool Has32S = STI.hasFeature(LoongArch::Feature32S);
@@ -661,7 +661,7 @@ bool LoongArchPreRAExpandPseudo::expandFunctionCALL(
     MachineBasicBlock::iterator &NextMBBI, bool IsTailCall) {
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const MachineOperand &Func = MI.getOperand(0);
   MachineInstrBuilder CALL;
   unsigned Opcode;
@@ -820,7 +820,7 @@ bool LoongArchExpandPseudo::expandCopyCFR(
     MachineBasicBlock::iterator &NextMBBI) {
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // Expand:
   // MBB:
@@ -873,7 +873,7 @@ bool LoongArchExpandPseudo::expandFunctionCALL(
     MachineBasicBlock::iterator &NextMBBI, bool IsTailCall) {
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const MachineOperand &Func = MI.getOperand(0);
   MachineInstrBuilder CALL;
   unsigned Opcode;

@@ -1219,7 +1219,7 @@ MSP430TargetLowering::EmitShiftInstr(MachineInstr &MI,
                                      MachineBasicBlock *BB) const {
   MachineFunction *F = BB->getParent();
   MachineRegisterInfo &RI = F->getRegInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   const TargetInstrInfo &TII = *F->getSubtarget().getInstrInfo();
 
   unsigned Opc;
@@ -1356,7 +1356,7 @@ MSP430TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     return EmitShiftInstr(MI, BB);
 
   const TargetInstrInfo &TII = *BB->getParent()->getSubtarget().getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   assert((Opc == MSP430::Select16 || Opc == MSP430::Select8) &&
          "Unexpected instr type to insert");

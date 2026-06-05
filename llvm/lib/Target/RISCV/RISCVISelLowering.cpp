@@ -24272,7 +24272,7 @@ static MachineBasicBlock *emitReadCounterWidePseudo(MachineInstr &MI,
   Register HiReg = MI.getOperand(1).getReg();
   int64_t LoCounter = MI.getOperand(2).getImm();
   int64_t HiCounter = MI.getOperand(3).getImm();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
   BuildMI(LoopMBB, DL, TII->get(RISCV::CSRRS), HiReg)
@@ -24304,7 +24304,7 @@ static MachineBasicBlock *emitSplitF64Pseudo(MachineInstr &MI,
   assert(MI.getOpcode() == RISCV::SplitF64Pseudo && "Unexpected instruction");
 
   MachineFunction &MF = *BB->getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const RISCVInstrInfo &TII = *MF.getSubtarget<RISCVSubtarget>().getInstrInfo();
   Register LoReg = MI.getOperand(0).getReg();
   Register HiReg = MI.getOperand(1).getReg();
@@ -24344,7 +24344,7 @@ static MachineBasicBlock *emitBuildPairF64Pseudo(MachineInstr &MI,
          "Unexpected instruction");
 
   MachineFunction &MF = *BB->getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const RISCVInstrInfo &TII = *MF.getSubtarget<RISCVSubtarget>().getInstrInfo();
   Register DstReg = MI.getOperand(0).getReg();
   Register LoReg = MI.getOperand(1).getReg();
@@ -24386,7 +24386,7 @@ static MachineBasicBlock *emitBuildPairF64Pseudo(MachineInstr &MI,
 static MachineBasicBlock *emitQuietFCMP(MachineInstr &MI, MachineBasicBlock *BB,
                                         unsigned RelOpcode, unsigned EqOpcode,
                                         const RISCVSubtarget &Subtarget) {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register DstReg = MI.getOperand(0).getReg();
   Register Src1Reg = MI.getOperand(1).getReg();
   Register Src2Reg = MI.getOperand(2).getReg();
@@ -24459,7 +24459,7 @@ EmitLoweredCascadedSelect(MachineInstr &First, MachineInstr &Second,
   // E: PHI [X, A], [X, C], [Y, D]
 
   const RISCVInstrInfo &TII = *Subtarget.getInstrInfo();
-  const DebugLoc &DL = First.getDebugLoc();
+  DebugLoc DL = First.getFullDebugLoc();
   const BasicBlock *LLVM_BB = ThisMBB->getBasicBlock();
   MachineFunction *F = ThisMBB->getParent();
   MachineBasicBlock *FirstMBB = F->CreateMachineBasicBlock(LLVM_BB);
@@ -24608,7 +24608,7 @@ static MachineBasicBlock *emitSelectPseudo(MachineInstr &MI,
   }
 
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction::iterator I = ++BB->getIterator();
 
   MachineBasicBlock *HeadMBB = BB;
@@ -24662,7 +24662,7 @@ static MachineBasicBlock *emitSelectPseudo(MachineInstr &MI,
     auto Next = std::next(SelectMBBI);
     if (RISCVInstrInfo::isSelectPseudo(*SelectMBBI)) {
       // %Result = phi [ %TrueValue, HeadMBB ], [ %FalseValue, IfFalseMBB ]
-      BuildMI(*TailMBB, InsertionPoint, SelectMBBI->getDebugLoc(),
+      BuildMI(*TailMBB, InsertionPoint, SelectMBBI->getFullDebugLoc(),
               TII.get(RISCV::PHI), SelectMBBI->getOperand(0).getReg())
           .addReg(SelectMBBI->getOperand(4).getReg())
           .addMBB(HeadMBB)
@@ -24692,7 +24692,7 @@ lookupMaskedIntrinsic(uint16_t MCOpcode, RISCVVType::VLMUL LMul, unsigned SEW) {
 static MachineBasicBlock *emitVFROUND_NOEXCEPT_MASK(MachineInstr &MI,
                                                     MachineBasicBlock *BB,
                                                     unsigned CVTXOpc) {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   const TargetInstrInfo &TII = *BB->getParent()->getSubtarget().getInstrInfo();
 
@@ -24812,7 +24812,7 @@ static MachineBasicBlock *emitFROUND(MachineInstr &MI, MachineBasicBlock *MBB,
   }
 
   const BasicBlock *BB = MBB->getBasicBlock();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction::iterator I = ++MBB->getIterator();
 
   MachineFunction *F = MBB->getParent();
@@ -27409,7 +27409,7 @@ RISCVTargetLowering::EmitKCFICheck(MachineBasicBlock &MBB,
   MachineOperand &Target = MBBI->getOperand(0);
   Target.setIsRenamable(false);
 
-  return BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII->get(RISCV::KCFI_CHECK))
+  return BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII->get(RISCV::KCFI_CHECK))
       .addReg(Target.getReg())
       .addImm(MBBI->getCFIType())
       .getInstr();

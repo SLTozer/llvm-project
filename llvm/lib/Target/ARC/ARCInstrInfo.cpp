@@ -281,7 +281,7 @@ unsigned ARCInstrInfo::removeBranch(MachineBasicBlock &MBB,
 
 void ARCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator I,
-                               const DebugLoc &DL, Register DestReg,
+                               DbgLocStorage DL, Register DestReg,
                                Register SrcReg, bool KillSrc,
                                bool RenamableDest, bool RenamableSrc) const {
   assert(ARC::GPR32RegClass.contains(SrcReg) &&
@@ -296,7 +296,7 @@ void ARCInstrInfo::storeRegToStackSlot(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator I, Register SrcReg,
     bool IsKill, int FrameIndex, const TargetRegisterClass *RC, Register VReg,
     MachineInstr::MIFlag Flags) const {
-  DebugLoc DL = MBB.findDebugLoc(I);
+  DbgLocStorage DL = MBB.findDebugLoc(I);
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
 
@@ -325,7 +325,7 @@ void ARCInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                         const TargetRegisterClass *RC,
                                         Register VReg, unsigned SubReg,
                                         MachineInstr::MIFlag Flags) const {
-  DebugLoc DL = MBB.findDebugLoc(I);
+  DbgLocStorage DL = MBB.findDebugLoc(I);
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   MachineMemOperand *MMO = MF.getMachineMemOperand(
@@ -359,7 +359,7 @@ MachineBasicBlock::iterator
 ARCInstrInfo::loadImmediate(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MI, unsigned Reg,
                             uint64_t Value) const {
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
   if (isInt<12>(Value)) {
     return BuildMI(MBB, MI, DL, get(ARC::MOV_rs12), Reg)
         .addImm(Value)
@@ -372,7 +372,7 @@ unsigned ARCInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                     MachineBasicBlock *TBB,
                                     MachineBasicBlock *FBB,
                                     ArrayRef<MachineOperand> Cond,
-                                    const DebugLoc &DL, int *BytesAdded) const {
+                                    DbgLocStorage DL, int *BytesAdded) const {
   assert(!BytesAdded && "Code size not handled.");
 
   // Shouldn't be a fall through.

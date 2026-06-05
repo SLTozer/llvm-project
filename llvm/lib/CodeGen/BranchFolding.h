@@ -70,7 +70,7 @@ class TargetRegisterInfo;
         Block = MBB;
       }
 
-      const DebugLoc &getBranchDebugLoc() { return BranchDebugLoc; }
+      DebugLoc getBranchDebugLoc() { return BranchDebugLoc; }
 
       bool operator<(const MergePotentialsElt &) const;
     };
@@ -175,7 +175,7 @@ class TargetRegisterInfo;
     /// branches at ends of blocks as appropriate.
     void RemoveBlocksWithHash(unsigned CurHash, MachineBasicBlock *SuccBB,
                               MachineBasicBlock *PredBB,
-                              const DebugLoc &BranchDL);
+                              DebugLoc BranchDL);
 
     /// None of the blocks to be tail-merged consist only of the common tail.
     /// Create a block that does by splitting one.

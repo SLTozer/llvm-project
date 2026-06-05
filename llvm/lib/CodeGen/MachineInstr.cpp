@@ -98,9 +98,9 @@ void MachineInstr::addImplicitDefUseOperands(MachineFunction &MF) {
 /// implicit operands. It reserves space for the number of operands specified by
 /// the MCInstrDesc.
 MachineInstr::MachineInstr(MachineFunction &MF, const MCInstrDesc &TID,
-                           DebugLoc DL, bool NoImp)
+                           DbgLocStorage DL, bool NoImp)
     : MCID(&TID), NumOperands(0), Flags(0), AsmPrinterFlags(0),
-      Opcode(TID.Opcode), DebugInstrNum(0), DbgLoc(std::move(DL)) {
+      Opcode(TID.Opcode), DebugInstrNum(0), DbgLoc(DL) {
   // Reserve space for the expected number of operands.
   if (unsigned NumOps = MCID->getNumOperands() + MCID->implicit_defs().size() +
                         MCID->implicit_uses().size()) {
@@ -117,8 +117,8 @@ MachineInstr::MachineInstr(MachineFunction &MF, const MCInstrDesc &TID,
 /// uniqueness.
 MachineInstr::MachineInstr(MachineFunction &MF, const MachineInstr &MI)
     : MCID(&MI.getDesc()), NumOperands(0), Flags(0), AsmPrinterFlags(0),
-      Opcode(MI.getOpcode()), DebugInstrNum(0), Info(MI.Info),
-      DbgLoc(MI.getDebugLoc()) {
+      Opcode(MI.getOpcode()), DebugInstrNum(0), Info(MI.Info) {
+  copyDebugLocFrom(&MI);
   CapOperands = OperandCapacity::get(MI.getNumOperands());
   Operands = MF.allocateOperandArray(CapOperands);
 
@@ -730,8 +730,8 @@ bool MachineInstr::isIdenticalTo(const MachineInstr &Other,
   }
   // If DebugLoc does not match then two debug instructions are not identical.
   if (isDebugInstr())
-    if (getDebugLoc() && Other.getDebugLoc() &&
-        getDebugLoc() != Other.getDebugLoc())
+    if (getFullDebugLoc() && Other.getFullDebugLoc() &&
+        getFullDebugLoc() != Other.getFullDebugLoc())
       return false;
   // If pre- or post-instruction symbols do not match then the two instructions
   // are not identical.
@@ -760,10 +760,19 @@ bool MachineInstr::isIdenticalTo(const MachineInstr &Other,
   return true;
 }
 
+
+DebugLocContext MachineInstr::getDebugLocContext() const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  return DebugLocContext(getMF()->getFunction().getFLContext());
+#else
+  return DebugLocContext(getContext());
+#endif
+}
+
 bool MachineInstr::isEquivalentDbgInstr(const MachineInstr &Other) const {
   if (!isDebugValueLike() || !Other.isDebugValueLike())
     return false;
-  if (getDebugLoc() != Other.getDebugLoc())
+  if (getFullDebugLoc() != Other.getFullDebugLoc())
     return false;
   if (getDebugVariable() != Other.getDebugVariable())
     return false;
@@ -2072,11 +2081,11 @@ void MachineInstr::print(raw_ostream &OS, ModuleSlotTracker &MST,
   }
 
   if (!SkipDebugLoc) {
-    if (const DebugLoc &DL = getDebugLoc()) {
+    if (DebugLoc DL = getFullDebugLoc()) {
       if (!FirstOp)
         OS << ',';
       OS << " debug-location ";
-      DL->printAsOperand(OS, MST);
+      DL.printAsOperand(OS, MST);
     }
   }
 
@@ -2109,7 +2118,7 @@ void MachineInstr::print(raw_ostream &OS, ModuleSlotTracker &MST,
   bool HaveSemi = false;
 
   // Print debug location information.
-  if (const DebugLoc &DL = getDebugLoc()) {
+  if (DebugLoc DL = getFullDebugLoc()) {
     if (!HaveSemi) {
       OS << ';';
       HaveSemi = true;
@@ -2371,10 +2380,10 @@ void MachineInstr::emitInlineAsmError(const Twine &Msg) const {
 void MachineInstr::emitGenericError(const Twine &Msg) const {
   const Function &Fn = getMF()->getFunction();
   Fn.getContext().diagnose(
-      DiagnosticInfoGenericWithLoc(Msg, Fn, getDebugLoc()));
+      DiagnosticInfoGenericWithLoc(Msg, Fn, getFullDebugLoc()));
 }
 
-MachineInstrBuilder llvm::BuildMI(MachineFunction &MF, const DebugLoc &DL,
+MachineInstrBuilder llvm::BuildMI(MachineFunction &MF, DbgLocStorage DL,
                                   const MCInstrDesc &MCID, bool IsIndirect,
                                   Register Reg, const MDNode *Variable,
                                   const MDNode *Expr) {
@@ -2390,7 +2399,7 @@ MachineInstrBuilder llvm::BuildMI(MachineFunction &MF, const DebugLoc &DL,
   return MIB.addMetadata(Variable).addMetadata(Expr);
 }
 
-MachineInstrBuilder llvm::BuildMI(MachineFunction &MF, const DebugLoc &DL,
+MachineInstrBuilder llvm::BuildMI(MachineFunction &MF, DbgLocStorage DL,
                                   const MCInstrDesc &MCID, bool IsIndirect,
                                   ArrayRef<MachineOperand> DebugOps,
                                   const MDNode *Variable, const MDNode *Expr) {
@@ -2426,7 +2435,7 @@ MachineInstrBuilder llvm::BuildMI(MachineFunction &MF, const DebugLoc &DL,
 
 MachineInstrBuilder llvm::BuildMI(MachineBasicBlock &BB,
                                   MachineBasicBlock::iterator I,
-                                  const DebugLoc &DL, const MCInstrDesc &MCID,
+                                  DbgLocStorage DL, const MCInstrDesc &MCID,
                                   bool IsIndirect, Register Reg,
                                   const MDNode *Variable, const MDNode *Expr) {
   MachineFunction &MF = *BB.getParent();
@@ -2437,7 +2446,7 @@ MachineInstrBuilder llvm::BuildMI(MachineBasicBlock &BB,
 
 MachineInstrBuilder llvm::BuildMI(MachineBasicBlock &BB,
                                   MachineBasicBlock::iterator I,
-                                  const DebugLoc &DL, const MCInstrDesc &MCID,
+                                  DbgLocStorage DL, const MCInstrDesc &MCID,
                                   bool IsIndirect,
                                   ArrayRef<MachineOperand> DebugOps,
                                   const MDNode *Variable, const MDNode *Expr) {
@@ -2453,7 +2462,7 @@ MachineInstrBuilder llvm::BuildMI(MachineBasicBlock &BB,
 static const DIExpression *computeExprForSpill(
     const MachineInstr &MI,
     const SmallVectorImpl<const MachineOperand *> &SpilledOperands) {
-  assert(MI.getDebugVariable()->isValidLocationForIntrinsic(MI.getDebugLoc()) &&
+  assert(MI.getDebugVariable()->isValidLocationForIntrinsic(MI.getFullDebugLoc()) &&
          "Expected inlined-at fields to agree");
 
   const DIExpression *Expr = MI.getDebugExpression();
@@ -2488,7 +2497,7 @@ MachineInstr *llvm::buildDbgValueForSpill(MachineBasicBlock &BB,
          "DBG_INSTR_REF should not reference a virtual register.");
   const DIExpression *Expr = computeExprForSpill(Orig, SpillReg);
   MachineInstrBuilder NewMI =
-      BuildMI(BB, I, Orig.getDebugLoc(), Orig.getDesc());
+      BuildMI(BB, I, Orig.getFullDebugLoc(), Orig.getDesc());
   // Non-Variadic Operands: Location, Offset, Variable, Expression
   // Variadic Operands:     Variable, Expression, Locations...
   if (Orig.isNonListDebugValue())
@@ -2509,7 +2518,7 @@ MachineInstr *llvm::buildDbgValueForSpill(
     const SmallVectorImpl<const MachineOperand *> &SpilledOperands) {
   const DIExpression *Expr = computeExprForSpill(Orig, SpilledOperands);
   MachineInstrBuilder NewMI =
-      BuildMI(BB, I, Orig.getDebugLoc(), Orig.getDesc());
+      BuildMI(BB, I, Orig.getFullDebugLoc(), Orig.getDesc());
   // Non-Variadic Operands: Location, Offset, Variable, Expression
   // Variadic Operands:     Variable, Expression, Locations...
   if (Orig.isNonListDebugValue())

@@ -942,8 +942,8 @@ void GVNHoist::makeGepsAvailable(Instruction *Repl, BasicBlock *HoistPt,
     // in branches. When cloning, ClonedGep preserves the debug location of
     // Gepd, so Gep is skipped to avoid merging it twice.
     if (OtherGep != Gep) {
-      ClonedGep->applyMergedLocation(ClonedGep->getDebugLoc(),
-                                     OtherGep->getDebugLoc());
+      ClonedGep->applyMergedLocation(ClonedGep->getFullDebugLoc(),
+                                     OtherGep->getFullDebugLoc());
     }
   }
 

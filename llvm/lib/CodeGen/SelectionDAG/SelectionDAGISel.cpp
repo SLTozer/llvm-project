@@ -746,7 +746,7 @@ bool SelectionDAGISel::runOnMachineFunction(MachineFunction &mf) {
       MachineBasicBlock::iterator InsertPos = Def;
       const MDNode *Variable = MI->getDebugVariable();
       const MDNode *Expr = MI->getDebugExpression();
-      DebugLoc DL = MI->getDebugLoc();
+      DebugLoc DL = MI->getFullDebugLoc();
       bool IsIndirect = MI->isIndirectDebugValue();
       if (IsIndirect)
         assert(MI->getDebugOffset().getImm() == 0 &&
@@ -1633,7 +1633,7 @@ static void processDbgDeclares(FunctionLoweringInfo &FuncInfo) {
       if (DVR.Type == DbgVariableRecord::LocationType::Declare &&
           processDbgDeclare(FuncInfo, DVR.getVariableLocationOp(0),
                             DVR.getExpression(), DVR.getVariable(),
-                            DVR.getDebugLoc()))
+                            DVR.getFullDebugLoc()))
         FuncInfo.PreprocessedDVRDeclares.insert(&DVR);
     }
   }
@@ -1845,7 +1845,7 @@ void SelectionDAGISel::SelectAllBasicBlocks(const Function &Fn) {
         if (isa<CallInst>(Inst) && !isa<GCStatepointInst>(Inst) &&
             !isa<GCRelocateInst>(Inst) && !isa<GCResultInst>(Inst)) {
           OptimizationRemarkMissed R("sdagisel", "FastISelFailure",
-                                     Inst->getDebugLoc(), LLVMBB);
+                                     Inst->getFullDebugLoc(), LLVMBB);
 
           R << "FastISel missed call";
 
@@ -1895,7 +1895,7 @@ void SelectionDAGISel::SelectAllBasicBlocks(const Function &Fn) {
         }
 
         OptimizationRemarkMissed R("sdagisel", "FastISelFailure",
-                                   Inst->getDebugLoc(), LLVMBB);
+                                   Inst->getFullDebugLoc(), LLVMBB);
 
         bool ShouldAbort = EnableFastISelAbort;
         if (Inst->isTerminator()) {

@@ -118,7 +118,7 @@ static bool insertWaitInstruction(MachineFunction &MF) {
               X87ControlKind::NonWaiting)
         continue;
 
-      BuildMI(MBB, AfterMI, MI->getDebugLoc(), TII->get(X86::WAIT));
+      BuildMI(MBB, AfterMI, MI->getFullDebugLoc(), TII->get(X86::WAIT));
       LLVM_DEBUG(dbgs() << "\nInsert wait after:\t" << *MI);
       // Jump the newly inserting wait
       ++MI;

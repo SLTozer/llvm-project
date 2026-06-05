@@ -132,7 +132,7 @@ void XRayInstrumentation::replaceRetWithPatchableRet(
         Opc = TargetOpcode::PATCHABLE_TAIL_CALL;
       }
       if (Opc != 0) {
-        auto MIB = BuildMI(MBB, T, T.getDebugLoc(), TII->get(Opc))
+        auto MIB = BuildMI(MBB, T, T.getFullDebugLoc(), TII->get(Opc))
                        .addImm(T.getOpcode());
         for (auto &MO : T.operands())
           MIB.add(MO);
@@ -163,7 +163,7 @@ void XRayInstrumentation::prependRetWithPatchableExit(
       if (Opc != 0) {
         // Prepend the return instruction with PATCHABLE_FUNCTION_EXIT or
         //   PATCHABLE_TAIL_CALL .
-        BuildMI(MBB, T, T.getDebugLoc(), TII->get(Opc));
+        BuildMI(MBB, T, T.getFullDebugLoc(), TII->get(Opc));
       }
     }
 }
@@ -275,7 +275,7 @@ bool XRayInstrumentation::run(MachineFunction &MF) {
   if (!F.hasFnAttribute("xray-skip-entry")) {
     // First, insert an PATCHABLE_FUNCTION_ENTER as the first instruction of the
     // MachineFunction.
-    BuildMI(FirstMBB, FirstMI, FirstMI.getDebugLoc(),
+    BuildMI(FirstMBB, FirstMI, FirstMI.getFullDebugLoc(),
             TII->get(TargetOpcode::PATCHABLE_FUNCTION_ENTER));
   }
 

@@ -295,7 +295,7 @@ SystemZRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
   MachineFunction &MF = *MBB.getParent();
   auto *TII = MF.getSubtarget<SystemZSubtarget>().getInstrInfo();
   const SystemZFrameLowering *TFI = getFrameLowering(MF);
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   // Decompose the frame index into a base and offset.
   int FrameIndex = MI->getOperand(FIOperandNum).getIndex();

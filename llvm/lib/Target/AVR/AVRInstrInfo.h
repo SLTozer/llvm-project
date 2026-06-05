@@ -74,7 +74,7 @@ public:
   unsigned getInstSizeInBytes(const MachineInstr &MI) const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
   void storeRegToStackSlot(
@@ -98,7 +98,7 @@ public:
                      bool AllowModify = false) const override;
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
   unsigned removeBranch(MachineBasicBlock &MBB,
                         int *BytesRemoved = nullptr) const override;
@@ -112,7 +112,7 @@ public:
 
   void insertIndirectBranch(MachineBasicBlock &MBB,
                             MachineBasicBlock &NewDestBB,
-                            MachineBasicBlock &RestoreBB, const DebugLoc &DL,
+                            MachineBasicBlock &RestoreBB, DbgLocStorage DL,
                             int64_t BrOffset, RegScavenger *RS) const override;
 
 private:

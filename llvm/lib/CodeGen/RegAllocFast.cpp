@@ -1069,7 +1069,7 @@ bool RegAllocFastImpl::defineLiveThroughVirtReg(MachineInstr &MI,
           std::next((MachineBasicBlock::iterator)MI.getIterator());
       LLVM_DEBUG(dbgs() << "Copy " << printReg(LRI->PhysReg, TRI) << " to "
                         << printReg(PrevReg, TRI) << '\n');
-      BuildMI(*MBB, InsertBefore, MI.getDebugLoc(),
+      BuildMI(*MBB, InsertBefore, MI.getFullDebugLoc(),
               TII->get(TargetOpcode::COPY), PrevReg)
           .addReg(LRI->PhysReg, llvm::RegState::Kill);
     }
@@ -1226,7 +1226,7 @@ MCPhysReg RegAllocFastImpl::getErrorAssignment(const LiveReg &LR,
     if (EmitError) {
       Fn.getContext().diagnose(DiagnosticInfoRegAllocFailure(
           "no registers from class available to allocate", Fn,
-          MI.getDebugLoc()));
+          MI.getFullDebugLoc()));
     }
 
     ArrayRef<MCPhysReg> RawRegs = RC.getRegisters();
@@ -1244,7 +1244,7 @@ MCPhysReg RegAllocFastImpl::getErrorAssignment(const LiveReg &LR,
       const Function &Fn = MBB->getParent()->getFunction();
       Fn.getContext().diagnose(DiagnosticInfoRegAllocFailure(
           "ran out of registers during register allocation", Fn,
-          MI.getDebugLoc()));
+          MI.getFullDebugLoc()));
     }
   }
 

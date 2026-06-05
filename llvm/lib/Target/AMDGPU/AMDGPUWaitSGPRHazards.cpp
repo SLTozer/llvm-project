@@ -163,7 +163,7 @@ public:
     assert(!MI->isBundled());
     unsigned Count = DsNopCount;
     while (Count--)
-      BuildMI(MBB, MI, MI->getDebugLoc(), TII->get(AMDGPU::DS_NOP));
+      BuildMI(MBB, MI, MI->getFullDebugLoc(), TII->get(AMDGPU::DS_NOP));
   }
 
   unsigned mergeMasks(unsigned Mask1, unsigned Mask2) {
@@ -408,7 +408,7 @@ public:
         }
         if (Emit) {
           if (!mergeConsecutiveWaitAlus(MI, Mask)) {
-            auto NewMI = BuildMI(MBB, MI, MI->getDebugLoc(),
+            auto NewMI = BuildMI(MBB, MI, MI->getFullDebugLoc(),
                                  TII->get(AMDGPU::S_WAITCNT_DEPCTR))
                              .addImm(Mask);
             updateGetPCBundle(NewMI);

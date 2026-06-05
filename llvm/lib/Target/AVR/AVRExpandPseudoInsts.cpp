@@ -52,12 +52,12 @@ private:
   template <unsigned OP> bool expand(Block &MBB, BlockIt MBBI);
 
   MachineInstrBuilder buildMI(Block &MBB, BlockIt MBBI, unsigned Opcode) {
-    return BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII->get(Opcode));
+    return BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII->get(Opcode));
   }
 
   MachineInstrBuilder buildMI(Block &MBB, BlockIt MBBI, unsigned Opcode,
                               Register DstReg) {
-    return BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII->get(Opcode), DstReg);
+    return BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII->get(Opcode), DstReg);
   }
 
   MachineRegisterInfo &getRegInfo(Block &MBB) {

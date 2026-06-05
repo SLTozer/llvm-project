@@ -107,13 +107,13 @@ static void lowerAwaitSuspend(IRBuilder<> &Builder, CoroAwaitSuspendInst *CB,
     std::copy(Invoke->bundle_op_info_begin(), Invoke->bundle_op_info_end(),
               WrapperInvoke->bundle_op_info_begin());
     WrapperInvoke->setAttributes(NewAttributes);
-    WrapperInvoke->setDebugLoc(Invoke->getDebugLoc());
+    WrapperInvoke->copyDebugLocFrom(Invoke);
     NewCall = WrapperInvoke;
   } else if (auto Call = dyn_cast<CallInst>(CB)) {
     auto WrapperCall = Builder.CreateCall(Wrapper, {Awaiter, FramePtr});
 
     WrapperCall->setAttributes(NewAttributes);
-    WrapperCall->setDebugLoc(Call->getDebugLoc());
+    WrapperCall->copyDebugLocFrom(Call);
     NewCall = WrapperCall;
   } else {
     llvm_unreachable("Unexpected coro_await_suspend invocation method");
@@ -756,7 +756,7 @@ Value *coro::BaseCloner::deriveNewFramePointer() {
     auto *ProjectionFunc =
         ActiveAsyncSuspend->getAsyncContextProjectionFunction();
     auto DbgLoc =
-        cast<CoroSuspendAsyncInst>(VMap[ActiveSuspend])->getDebugLoc();
+        cast<CoroSuspendAsyncInst>(VMap[ActiveSuspend])->getFullDebugLoc();
     // Calling i8* (i8*)
     auto *CallerContext = Builder.CreateCall(ProjectionFunc->getFunctionType(),
                                              ProjectionFunc, CalleeContext);
@@ -806,9 +806,9 @@ static void updateScopeLine(Instruction *ActiveSuspend,
 
   // No subsequent instruction -> fallback to the location of ActiveSuspend.
   if (!ActiveSuspend->getNextNode()) {
-    if (auto DL = ActiveSuspend->getDebugLoc())
-      if (SPToUpdate.getFile() == DL->getFile())
-        SPToUpdate.setScopeLine(DL->getLine());
+    if (auto DL = ActiveSuspend->getFullDebugLoc())
+      if (SPToUpdate.getFile() == DL.getFile())
+        SPToUpdate.setScopeLine(DL.getLine());
     return;
   }
 
@@ -828,11 +828,11 @@ static void updateScopeLine(Instruction *ActiveSuspend,
   BasicBlock *PBB = Successor->getParent();
   for (; Successor != PBB->end(); Successor = std::next(Successor)) {
     Successor = skipDebugIntrinsics(Successor);
-    auto DL = Successor->getDebugLoc();
+    auto DL = Successor->getFullDebugLoc();
     if (!DL || DL.getLine() == 0)
       continue;
 
-    if (SPToUpdate.getFile() == DL->getFile()) {
+    if (SPToUpdate.getFile() == DL.getFile()) {
       SPToUpdate.setScopeLine(DL.getLine());
       return;
     }
@@ -841,9 +841,9 @@ static void updateScopeLine(Instruction *ActiveSuspend,
   }
 
   // If the search above failed, fallback to the location of ActiveSuspend.
-  if (auto DL = ActiveSuspend->getDebugLoc())
-    if (SPToUpdate.getFile() == DL->getFile())
-      SPToUpdate.setScopeLine(DL->getLine());
+  if (auto DL = ActiveSuspend->getFullDebugLoc())
+    if (SPToUpdate.getFile() == DL.getFile())
+      SPToUpdate.setScopeLine(DL.getLine());
 }
 
 static void addFramePointerAttrs(AttributeList &Attrs, LLVMContext &Context,
@@ -1565,7 +1565,7 @@ private:
       PN->addIncoming(S, ResumeBB);
 
       if (AddDebugLabels) {
-        if (DebugLoc SuspendLoc = S->getDebugLoc()) {
+        if (DebugLoc SuspendLoc = S->getFullDebugLoc()) {
           std::string LabelName =
               ("__coro_resume_" + Twine(SuspendIndex)).str();
           // Take the "inlined at" location recursively, if present. This is
@@ -1573,12 +1573,12 @@ private:
           // and the attached location match. This is not the case when the
           // suspend location has been inlined due to pointing to the original
           // scope.
-          DILocation *DILoc = SuspendLoc;
-          while (DILocation *InlinedAt = DILoc->getInlinedAt())
+          DebugLoc DILoc = SuspendLoc;
+          while (DebugLoc InlinedAt = DILoc.getInlinedAt())
             DILoc = InlinedAt;
 
           DILabel *ResumeLabel =
-              DBuilder.createLabel(DIS, LabelName, DILoc->getFile(),
+              DBuilder.createLabel(DIS, LabelName, DILoc.getFile(),
                                    SuspendLoc.getLine(), SuspendLoc.getCol(),
                                    /*IsArtificial=*/true,
                                    /*CoroSuspendIdx=*/SuspendIndex,
@@ -1790,7 +1790,7 @@ void coro::AsyncABI::splitCoroutine(Function &F, coro::Shape &Shape,
     SmallVector<Value *, 8> Args(Suspend->args());
     auto FnArgs = ArrayRef<Value *>(Args).drop_front(
         CoroSuspendAsyncInst::MustTailCallFuncArg + 1);
-    auto *TailCall = coro::createMustTailCall(Suspend->getDebugLoc(), Fn, TTI,
+    auto *TailCall = coro::createMustTailCall(Suspend->getFullDebugLoc(), Fn, TTI,
                                               FnArgs, Builder);
     Builder.CreateRetVoid();
     InlineFunctionInfo FnInfo;

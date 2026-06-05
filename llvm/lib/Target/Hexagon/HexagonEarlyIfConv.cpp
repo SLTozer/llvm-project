@@ -701,9 +701,9 @@ void HexagonEarlyIfConversion::predicateInstr(MachineBasicBlock *ToB,
       unsigned PredR, bool IfTrue) {
   DebugLoc DL;
   if (At != ToB->end())
-    DL = At->getDebugLoc();
+    DL = At->getFullDebugLoc();
   else if (!ToB->empty())
-    DL = ToB->back().getDebugLoc();
+    DL = ToB->back().getFullDebugLoc();
 
   unsigned Opc = MI->getOpcode();
 
@@ -850,7 +850,7 @@ void HexagonEarlyIfConversion::convert(const FlowPattern &FP) {
   MachineBasicBlock *TSB = nullptr, *FSB = nullptr;
   MachineBasicBlock::iterator OldTI = FP.SplitB->getFirstTerminator();
   assert(OldTI != FP.SplitB->end());
-  DebugLoc DL = OldTI->getDebugLoc();
+  DebugLoc DL = OldTI->getFullDebugLoc();
 
   if (FP.TrueB) {
     TSB = *FP.TrueB->succ_begin();
@@ -986,7 +986,7 @@ void HexagonEarlyIfConversion::eliminatePhis(MachineBasicBlock *B) {
       // MRI.replaceVregUsesWith does not allow to update the subregister,
       // so instead of doing the use-iteration here, create a copy into a
       // "non-subregistered" register.
-      const DebugLoc &DL = PN->getDebugLoc();
+      DebugLoc DL = PN->getFullDebugLoc();
       const TargetRegisterClass *RC = MRI->getRegClass(DefR);
       NewR = MRI->createVirtualRegister(RC);
       NonPHI = BuildMI(*B, NonPHI, DL, HII->get(TargetOpcode::COPY), NewR)

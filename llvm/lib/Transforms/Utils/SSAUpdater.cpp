@@ -174,7 +174,7 @@ Value *SSAUpdater::GetValueInMiddleOfBlock(BasicBlock *BB) {
   // Set the DebugLoc of the inserted PHI, if available.
   DebugLoc DL;
   if (BasicBlock::iterator It = BB->getFirstNonPHIIt(); It != BB->end())
-    DL = It->getDebugLoc();
+    DL = It->getFullDebugLoc();
   InsertedPHI->setDebugLoc(DL);
 
   // If the client wants to know about all new instructions, tell it.

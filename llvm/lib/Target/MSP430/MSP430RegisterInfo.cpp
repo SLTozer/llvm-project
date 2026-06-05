@@ -105,7 +105,7 @@ MSP430RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   MachineBasicBlock &MBB = *MI.getParent();
   MachineFunction &MF = *MBB.getParent();
   const MSP430FrameLowering *TFI = getFrameLowering(MF);
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
 
   unsigned BasePtr = (TFI->hasFP(MF) ? MSP430::R4 : MSP430::SP);

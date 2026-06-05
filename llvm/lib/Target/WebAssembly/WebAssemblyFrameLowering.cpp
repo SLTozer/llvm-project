@@ -236,7 +236,7 @@ WebAssemblyFrameLowering::getOpcGlobSet(const MachineFunction &MF) {
 
 void WebAssemblyFrameLowering::writeBackSP(
     unsigned SrcReg, MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator &InsertStore, const DebugLoc &DL) const {
+    MachineBasicBlock::iterator &InsertStore, DebugLoc DL) const {
   const auto *TII = MF.getSubtarget<WebAssemblySubtarget>().getInstrInfo();
 
   if (MF.getSubtarget<WebAssemblySubtarget>().hasLibcallThreadContext()) {
@@ -265,7 +265,7 @@ WebAssemblyFrameLowering::eliminateCallFramePseudoInstr(
   const auto *TII = ST.getInstrInfo();
   if (I->getOpcode() == TII->getCallFrameDestroyOpcode() &&
       needsSPWriteback(MF)) {
-    DebugLoc DL = I->getDebugLoc();
+    DebugLoc DL = I->getFullDebugLoc();
     writeBackSP(getSPReg(MF), MF, MBB, I, DL);
   }
   return MBB.erase(I);
@@ -360,7 +360,7 @@ void WebAssemblyFrameLowering::emitEpilogue(MachineFunction &MF,
   DebugLoc DL;
 
   if (InsertPt != MBB.end())
-    DL = InsertPt->getDebugLoc();
+    DL = InsertPt->getFullDebugLoc();
 
   // Restore the stack pointer. If we had fixed-size locals, add the offset
   // subtracted in the prolog.

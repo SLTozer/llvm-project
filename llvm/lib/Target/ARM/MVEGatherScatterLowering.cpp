@@ -419,7 +419,7 @@ Instruction *MVEGatherScatterLowering::lowerGather(IntrinsicInst *I) {
 
   IRBuilder<> Builder(I->getContext());
   Builder.SetInsertPoint(I);
-  Builder.SetCurrentDebugLocation(I->getDebugLoc());
+  Builder.SetCurrentDebugLocation(I->getFullDebugLoc());
 
   Instruction *Root = I;
 
@@ -594,7 +594,7 @@ Instruction *MVEGatherScatterLowering::lowerScatter(IntrinsicInst *I) {
 
   IRBuilder<> Builder(I->getContext());
   Builder.SetInsertPoint(I);
-  Builder.SetCurrentDebugLocation(I->getDebugLoc());
+  Builder.SetCurrentDebugLocation(I->getFullDebugLoc());
 
   Instruction *Store = tryCreateIncrementingGatScat(I, Ptr, Builder);
   if (!Store)
@@ -1079,7 +1079,7 @@ bool MVEGatherScatterLowering::optimiseOffsets(Value *Offsets, BasicBlock *BB,
 
   IRBuilder<> Builder(BB->getContext());
   Builder.SetInsertPoint(Phi);
-  Builder.SetCurrentDebugLocation(Offs->getDebugLoc());
+  Builder.SetCurrentDebugLocation(Offs->getFullDebugLoc());
 
   switch (Offs->getOpcode()) {
   case Instruction::Add:
@@ -1218,7 +1218,7 @@ bool MVEGatherScatterLowering::optimiseAddress(Value *Address, BasicBlock *BB,
   if (GEP->hasOneUse() && isa<GetElementPtrInst>(GEP->getPointerOperand())) {
     IRBuilder<> Builder(GEP->getContext());
     Builder.SetInsertPoint(GEP);
-    Builder.SetCurrentDebugLocation(GEP->getDebugLoc());
+    Builder.SetCurrentDebugLocation(GEP->getFullDebugLoc());
     Value *Offsets;
     unsigned Scale;
     Value *Base = foldGEP(GEP, Offsets, Scale, Builder);

@@ -548,7 +548,7 @@ void RISCVInsertVSETVLI::emitVSETVLIs(MachineBasicBlock &MBB) {
     if (EnsureWholeVectorRegisterMoveValidVTYPE &&
         RISCV::isVectorCopy(ST->getRegisterInfo(), MI)) {
       if (!PrevInfo.isCompatible(DemandedFields::all(), CurInfo, LIS)) {
-        insertVSETVLI(MBB, MI, MI.getDebugLoc(), CurInfo, PrevInfo);
+        insertVSETVLI(MBB, MI, MI.getFullDebugLoc(), CurInfo, PrevInfo);
         PrefixTransparent = false;
       }
       MI.addOperand(MachineOperand::CreateReg(RISCV::VTYPE, /*isDef*/ false,
@@ -566,7 +566,7 @@ void RISCVInsertVSETVLI::emitVSETVLIs(MachineBasicBlock &MBB) {
         // we *do* need to model the state as if it changed as while the
         // register contents are unchanged, the abstract model can change.
         if (!PrefixTransparent || needVSETVLIPHI(CurInfo, MBB))
-          insertVSETVLI(MBB, MI, MI.getDebugLoc(), CurInfo, PrevInfo);
+          insertVSETVLI(MBB, MI, MI.getFullDebugLoc(), CurInfo, PrevInfo);
         PrefixTransparent = false;
       }
 
@@ -940,7 +940,7 @@ void RISCVInsertVSETVLI::insertReadVL(MachineBasicBlock &MBB) {
       Register VLOutput = MI.getOperand(1).getReg();
       assert(VLOutput.isVirtual());
       if (!MI.getOperand(1).isDead()) {
-        auto ReadVLMI = BuildMI(MBB, I, MI.getDebugLoc(),
+        auto ReadVLMI = BuildMI(MBB, I, MI.getFullDebugLoc(),
                                 TII->get(RISCV::PseudoReadVL), VLOutput);
         // Move the LiveInterval's definition down to PseudoReadVL.
         if (LIS) {
@@ -992,7 +992,7 @@ bool RISCVInsertVSETVLI::insertVSETMTK(MachineBasicBlock &MBB,
 
     MachineOperand &Op = MI.getOperand(OpNum);
 
-    auto TmpMI = BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(Opcode))
+    auto TmpMI = BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(Opcode))
                      .addReg(RISCV::X0, RegState::Define | RegState::Dead)
                      .addReg(Op.getReg())
                      .addImm(Log2_32(CurrInfo.getSEW()))

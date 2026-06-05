@@ -3404,7 +3404,7 @@ public:
   /// Returns debug info, with additional annotation if
   /// CGM.getCodeGenOpts().SanitizeAnnotateDebugInfo[Ordinal] is enabled for
   /// any of the ordinals.
-  llvm::DILocation *
+  llvm::DebugLoc 
   SanitizerAnnotateDebugInfo(ArrayRef<SanitizerKind::SanitizerOrdinal> Ordinals,
                              SanitizerHandler Handler);
 

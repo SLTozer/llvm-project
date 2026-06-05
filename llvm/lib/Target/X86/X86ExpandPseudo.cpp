@@ -110,7 +110,7 @@ void X86ExpandPseudoImpl::expandICallBranchFunnel(
   ++InsPt;
 
   std::vector<std::pair<MachineBasicBlock *, unsigned>> TargetMBBs;
-  const DebugLoc &DL = JTInst->getDebugLoc();
+  DebugLoc DL = JTInst->getFullDebugLoc();
   MachineOperand Selector = JTInst->getOperand(0);
   const GlobalValue *CombinedGlobal = JTInst->getOperand(1).getGlobal();
 
@@ -220,7 +220,7 @@ void X86ExpandPseudoImpl::expandCALL_RVMARKER(
   else
     llvm_unreachable("unexpected opcode");
 
-  OriginalCall = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(Opc)).getInstr();
+  OriginalCall = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(Opc)).getInstr();
   bool RAXImplicitDead = false;
   for (MachineOperand &Op : llvm::drop_begin(MI.operands())) {
     // RAX may be 'implicit dead', if there are no other users of the return
@@ -240,7 +240,7 @@ void X86ExpandPseudoImpl::expandCALL_RVMARKER(
   // runtime call. On Windows targets, the runtime call follows the regular
   // x64 calling convention and expects the first argument in %rcx.
   auto TargetReg = STI->getTargetTriple().isOSWindows() ? X86::RCX : X86::RDI;
-  auto *Marker = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(X86::MOV64rr))
+  auto *Marker = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(X86::MOV64rr))
                      .addReg(TargetReg, RegState::Define)
                      .addReg(X86::RAX)
                      .getInstr();
@@ -251,7 +251,7 @@ void X86ExpandPseudoImpl::expandCALL_RVMARKER(
   const uint32_t *RegMask =
       TRI->getCallPreservedMask(*MBB.getParent(), CallingConv::C);
   MachineInstr *RtCall =
-      BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(X86::CALL64pcrel32))
+      BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(X86::CALL64pcrel32))
           .addGlobalAddress(MI.getOperand(0).getGlobal(), 0, 0)
           .addRegMask(RegMask)
           .addReg(X86::RAX,
@@ -276,7 +276,7 @@ bool X86ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator MBBI) {
   MachineInstr &MI = *MBBI;
   unsigned Opcode = MI.getOpcode();
-  const DebugLoc &DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
 #define GET_EGPR_IF_ENABLED(OPC) (STI->hasEGPR() ? OPC##_EVEX : OPC)
   switch (Opcode) {
   default:
@@ -833,7 +833,7 @@ void X86ExpandPseudoImpl::expandVastartSaveXmmRegs(
 
   MachineFunction *Func = EntryBlk->getParent();
   const TargetInstrInfo *TII = STI->getInstrInfo();
-  const DebugLoc &DL = VAStartPseudoInstr->getDebugLoc();
+  DebugLoc DL = VAStartPseudoInstr->getFullDebugLoc();
   Register CountReg = VAStartPseudoInstr->getOperand(0).getReg();
 
   // Calculate liveins for newly created blocks.

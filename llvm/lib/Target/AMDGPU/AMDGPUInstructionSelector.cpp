@@ -75,7 +75,7 @@ static Register getWaveAddress(const MachineInstr *Def) {
 static void diagnoseUnsupportedIntrinsic(const MachineInstr &I) {
   const Function &F = I.getMF()->getFunction();
   F.getContext().diagnose(DiagnosticInfoUnsupported(
-      F, "intrinsic not supported on subtarget", I.getDebugLoc(), DS_Error));
+      F, "intrinsic not supported on subtarget", I.getFullDebugLoc(), DS_Error));
 }
 
 bool AMDGPUInstructionSelector::isVCC(Register Reg,
@@ -131,7 +131,7 @@ bool AMDGPUInstructionSelector::constrainCopyLikeIntrin(MachineInstr &MI,
 }
 
 bool AMDGPUInstructionSelector::selectCOPY(MachineInstr &I) const {
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   MachineBasicBlock *BB = I.getParent();
   I.setDesc(TII.get(TargetOpcode::COPY));
 
@@ -229,7 +229,7 @@ bool AMDGPUInstructionSelector::selectCOPY(MachineInstr &I) const {
 }
 
 bool AMDGPUInstructionSelector::selectCOPY_SCC_VCC(MachineInstr &I) const {
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   MachineBasicBlock *BB = I.getParent();
   Register VCCReg = I.getOperand(1).getReg();
   MachineInstr *Cmp;
@@ -256,7 +256,7 @@ bool AMDGPUInstructionSelector::selectCOPY_SCC_VCC(MachineInstr &I) const {
 }
 
 bool AMDGPUInstructionSelector::selectCOPY_VCC_SCC(MachineInstr &I) const {
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   MachineBasicBlock *BB = I.getParent();
 
   Register DstReg = I.getOperand(0).getReg();
@@ -295,7 +295,7 @@ bool AMDGPUInstructionSelector::selectReadAnyLane(MachineInstr &I) const {
   Register DstReg = I.getOperand(0).getReg();
   Register SrcReg = I.getOperand(1).getReg();
 
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   MachineBasicBlock *BB = I.getParent();
 
   auto RFL = BuildMI(*BB, &I, DL, TII.get(AMDGPU::V_READFIRSTLANE_B32), DstReg)
@@ -369,7 +369,7 @@ AMDGPUInstructionSelector::getSubOperand64(MachineOperand &MO,
   if (MO.isReg()) {
     unsigned ComposedSubIdx = TRI.composeSubRegIndices(MO.getSubReg(), SubIdx);
     Register Reg = MO.getReg();
-    BuildMI(*BB, MI, MI->getDebugLoc(), TII.get(AMDGPU::COPY), DstReg)
+    BuildMI(*BB, MI, MI->getFullDebugLoc(), TII.get(AMDGPU::COPY), DstReg)
         .addReg(Reg, {}, ComposedSubIdx);
 
     return MachineOperand::CreateReg(DstReg, MO.isDef(), MO.isImplicit(),
@@ -431,7 +431,7 @@ bool AMDGPUInstructionSelector::selectG_ADD_SUB(MachineInstr &I) const {
   MachineBasicBlock *BB = I.getParent();
   MachineFunction *MF = BB->getParent();
   Register DstReg = I.getOperand(0).getReg();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   LLT Ty = MRI->getType(DstReg);
   if (Ty.isVector())
     return false;
@@ -536,7 +536,7 @@ bool AMDGPUInstructionSelector::selectG_UADDO_USUBO_UADDE_USUBE(
   MachineInstr &I) const {
   MachineBasicBlock *BB = I.getParent();
   MachineFunction *MF = BB->getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   Register Dst0Reg = I.getOperand(0).getReg();
   Register Dst1Reg = I.getOperand(1).getReg();
   const bool IsAdd = I.getOpcode() == AMDGPU::G_UADDO ||
@@ -660,7 +660,7 @@ bool AMDGPUInstructionSelector::selectG_EXTRACT(MachineInstr &I) const {
 
   SrcReg = constrainOperandRegClass(*MF, TRI, *MRI, TII, RBI, I,
                                     *SrcRC, I.getOperand(1));
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   BuildMI(*BB, &I, DL, TII.get(TargetOpcode::COPY), DstReg)
       .addReg(SrcReg, {}, SubReg);
 
@@ -684,7 +684,7 @@ bool AMDGPUInstructionSelector::selectS16MergeToS32(MachineInstr &MI) const {
   Register ShiftSrc0;
   Register ShiftSrc1;
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock *BB = MI.getParent();
 
   // VGPR case
@@ -791,7 +791,7 @@ bool AMDGPUInstructionSelector::selectG_MERGE_VALUES(MachineInstr &MI) const {
     return selectImpl(MI, *CoverageInfo);
   }
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const RegisterBank *DstBank = RBI.getRegBank(DstReg, *MRI, TRI);
   const unsigned DstSize = DstTy.getSizeInBits();
   const TargetRegisterClass *DstRC =
@@ -833,7 +833,7 @@ bool AMDGPUInstructionSelector::selectG_UNMERGE_VALUES(MachineInstr &MI) const {
 
   const unsigned DstSize = DstTy.getSizeInBits();
   const unsigned SrcSize = SrcTy.getSizeInBits();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const RegisterBank *SrcBank = RBI.getRegBank(SrcReg, *MRI, TRI);
 
   const TargetRegisterClass *SrcRC =
@@ -903,7 +903,7 @@ bool AMDGPUInstructionSelector::selectG_BUILD_VECTOR(MachineInstr &MI) const {
          DstBank->getID() == AMDGPU::VGPRRegBankID);
   const bool IsVector = DstBank->getID() == AMDGPU::VGPRRegBankID;
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock *BB = MI.getParent();
 
   // First, before trying TableGen patterns, check if both sources are
@@ -1017,7 +1017,7 @@ bool AMDGPUInstructionSelector::selectG_INSERT(MachineInstr &I) const {
       !RBI.constrainGenericRegister(Src1Reg, *Src1RC, *MRI))
     return false;
 
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   BuildMI(*BB, &I, DL, TII.get(TargetOpcode::INSERT_SUBREG), DstReg)
     .addReg(Src0Reg)
     .addReg(Src1Reg)
@@ -1038,7 +1038,7 @@ bool AMDGPUInstructionSelector::selectG_SBFX_UBFX(MachineInstr &MI) const {
   assert(MRI->getType(MI.getOperand(0).getReg()).getSizeInBits() == 32 &&
          "64-bit vector BFX instructions are expanded in regbankselect");
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock *MBB = MI.getParent();
 
   bool IsSigned = MI.getOpcode() == TargetOpcode::G_SBFX;
@@ -1072,7 +1072,7 @@ bool AMDGPUInstructionSelector::selectInterpP1F16(MachineInstr &MI) const {
   // TODO: Match source modifiers.
 
   Register InterpMov = MRI->createVirtualRegister(&AMDGPU::VGPR_32RegClass);
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock *MBB = MI.getParent();
 
   BuildMI(*MBB, &MI, DL, TII.get(AMDGPU::COPY), AMDGPU::M0)
@@ -1108,7 +1108,7 @@ bool AMDGPUInstructionSelector::selectWritelane(MachineInstr &MI) const {
     return selectImpl(MI, *CoverageInfo);
 
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register VDst = MI.getOperand(0).getReg();
   Register Val = MI.getOperand(2).getReg();
   Register LaneSelect = MI.getOperand(3).getReg();
@@ -1172,7 +1172,7 @@ bool AMDGPUInstructionSelector::selectDivScale(MachineInstr &MI) const {
 
   // TODO: Match source modifiers.
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock *MBB = MI.getParent();
 
   Register Numer = MI.getOperand(3).getReg();
@@ -1205,7 +1205,7 @@ bool AMDGPUInstructionSelector::selectG_INTRINSIC(MachineInstr &I) const {
 
     // FIXME: Manually selecting to avoid dealing with the SReg_1 trick
     // SelectionDAG uses for wave32 vs wave64.
-    BuildMI(*BB, &I, I.getDebugLoc(), TII.get(AMDGPU::SI_IF_BREAK))
+    BuildMI(*BB, &I, I.getFullDebugLoc(), TII.get(AMDGPU::SI_IF_BREAK))
       .add(I.getOperand(0))
       .add(I.getOperand(2))
       .add(I.getOperand(3));
@@ -1566,7 +1566,7 @@ int AMDGPUInstructionSelector::getS_CMPOpcode(CmpInst::Predicate P,
 bool AMDGPUInstructionSelector::selectG_ICMP_or_FCMP(MachineInstr &I) const {
 
   MachineBasicBlock *BB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
 
   Register SrcReg = I.getOperand(2).getReg();
   unsigned Size = RBI.getSizeInBits(SrcReg, *MRI, TRI);
@@ -1629,7 +1629,7 @@ bool AMDGPUInstructionSelector::selectIntrinsicCmp(MachineInstr &I) const {
     return false;
 
   MachineBasicBlock *BB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   Register SrcReg = I.getOperand(2).getReg();
   unsigned Size = RBI.getSizeInBits(SrcReg, *MRI, TRI);
 
@@ -1714,7 +1714,7 @@ static bool isLaneMaskFromSameBlock(Register Reg, MachineRegisterInfo &MRI,
 
 bool AMDGPUInstructionSelector::selectBallot(MachineInstr &I) const {
   MachineBasicBlock *BB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   Register DstReg = I.getOperand(0).getReg();
   Register SrcReg = I.getOperand(2).getReg();
   const unsigned BallotSize = MRI->getType(DstReg).getSizeInBits();
@@ -1795,7 +1795,7 @@ bool AMDGPUInstructionSelector::selectRelocConstant(MachineInstr &I) const {
       M->getOrInsertGlobal(SymbolName, Type::getInt32Ty(M->getContext())));
 
   MachineBasicBlock *BB = I.getParent();
-  BuildMI(*BB, &I, I.getDebugLoc(),
+  BuildMI(*BB, &I, I.getFullDebugLoc(),
           TII.get(IsVALU ? AMDGPU::V_MOV_B32_e32 : AMDGPU::S_MOV_B32), DstReg)
     .addGlobalAddress(RelocSymbol, 0, SIInstrInfo::MO_ABS32_LO);
 
@@ -1812,7 +1812,7 @@ bool AMDGPUInstructionSelector::selectGroupStaticSize(MachineInstr &I) const {
     AMDGPU::S_MOV_B32 : AMDGPU::V_MOV_B32_e32;
 
   MachineBasicBlock *MBB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
 
   auto MIB = BuildMI(*MBB, &I, DL, TII.get(Mov), DstReg);
 
@@ -1834,7 +1834,7 @@ bool AMDGPUInstructionSelector::selectGroupStaticSize(MachineInstr &I) const {
 bool AMDGPUInstructionSelector::selectReturnAddress(MachineInstr &I) const {
   MachineBasicBlock *MBB = I.getParent();
   MachineFunction &MF = *MBB->getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
 
   MachineOperand &Dst = I.getOperand(0);
   Register DstReg = Dst.getReg();
@@ -1873,7 +1873,7 @@ bool AMDGPUInstructionSelector::selectEndCfIntrinsic(MachineInstr &MI) const {
   // FIXME: Manually selecting to avoid dealing with the SReg_1 trick
   // SelectionDAG uses for wave32 vs wave64.
   MachineBasicBlock *BB = MI.getParent();
-  BuildMI(*BB, &MI, MI.getDebugLoc(), TII.get(AMDGPU::SI_END_CF))
+  BuildMI(*BB, &MI, MI.getFullDebugLoc(), TII.get(AMDGPU::SI_END_CF))
       .add(MI.getOperand(1));
 
   Register Reg = MI.getOperand(1).getReg();
@@ -1888,7 +1888,7 @@ bool AMDGPUInstructionSelector::selectDSOrderedIntrinsic(
   MachineInstr &MI, Intrinsic::ID IntrID) const {
   MachineBasicBlock *MBB = MI.getParent();
   MachineFunction *MF = MBB->getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   unsigned IndexOperand = MI.getOperand(7).getImm();
   bool WaveRelease = MI.getOperand(8).getImm() != 0;
@@ -1995,7 +1995,7 @@ bool AMDGPUInstructionSelector::selectDSGWSIntrinsic(MachineInstr &MI,
   unsigned ImmOffset;
 
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   MachineInstr *Readfirstlane = nullptr;
 
@@ -2115,7 +2115,7 @@ bool AMDGPUInstructionSelector::selectDSAppendConsume(MachineInstr &MI,
   }
 
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const unsigned Opc = IsAppend ? AMDGPU::DS_APPEND : AMDGPU::DS_CONSUME;
 
   BuildMI(*MBB, &MI, DL, TII.get(AMDGPU::COPY), AMDGPU::M0)
@@ -2156,7 +2156,7 @@ static bool parseTexFail(uint64_t TexFailCtrl, bool &TFE, bool &LWE,
 bool AMDGPUInstructionSelector::selectImageIntrinsic(
   MachineInstr &MI, const AMDGPU::ImageDimIntrinsicInfo *Intr) const {
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   unsigned IntrOpcode = Intr->BaseOpcode;
 
   // For image atomic: use no-return opcode if result is unused.
@@ -2414,7 +2414,7 @@ bool AMDGPUInstructionSelector::selectDSBvhStackIntrinsic(
   Register Dst0 = MI.getOperand(0).getReg();
   Register Dst1 = MI.getOperand(1).getReg();
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock *MBB = MI.getParent();
 
   Register Addr = MI.getOperand(3).getReg();
@@ -2512,7 +2512,7 @@ bool AMDGPUInstructionSelector::selectG_INTRINSIC_W_SIDE_EFFECTS(
     // S_ALLOC_VGPR doesn't have a destination register, it just implicitly sets
     // SCC. We then need to COPY it into the result vreg.
     MachineBasicBlock *MBB = I.getParent();
-    const DebugLoc &DL = I.getDebugLoc();
+    DebugLoc DL = I.getFullDebugLoc();
 
     Register ResReg = I.getOperand(0).getReg();
 
@@ -2550,7 +2550,7 @@ bool AMDGPUInstructionSelector::selectG_SELECT(MachineInstr &I) const {
     return true;
 
   MachineBasicBlock *BB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
 
   Register DstReg = I.getOperand(0).getReg();
   unsigned Size = RBI.getSizeInBits(DstReg, *MRI, TRI);
@@ -2634,7 +2634,7 @@ bool AMDGPUInstructionSelector::selectG_TRUNC(MachineInstr &I) const {
 
   if (DstRC == &AMDGPU::VGPR_16RegClass && SrcSize == 32) {
     assert(STI.useRealTrue16Insts());
-    const DebugLoc &DL = I.getDebugLoc();
+    DebugLoc DL = I.getFullDebugLoc();
     MachineBasicBlock *MBB = I.getParent();
     BuildMI(*MBB, I, DL, TII.get(AMDGPU::COPY), DstReg)
         .addReg(SrcReg, {}, AMDGPU::lo16);
@@ -2644,7 +2644,7 @@ bool AMDGPUInstructionSelector::selectG_TRUNC(MachineInstr &I) const {
 
   if (DstTy == LLT::fixed_vector(2, 16) && SrcTy == LLT::fixed_vector(2, 32)) {
     MachineBasicBlock *MBB = I.getParent();
-    const DebugLoc &DL = I.getDebugLoc();
+    DebugLoc DL = I.getFullDebugLoc();
 
     Register LoReg = MRI->createVirtualRegister(DstRC);
     Register HiReg = MRI->createVirtualRegister(DstRC);
@@ -2757,7 +2757,7 @@ const RegisterBank *AMDGPUInstructionSelector::getArtifactRegBank(
 bool AMDGPUInstructionSelector::selectG_SZA_EXT(MachineInstr &I) const {
   bool InReg = I.getOpcode() == AMDGPU::G_SEXT_INREG;
   bool Signed = I.getOpcode() == AMDGPU::G_SEXT || InReg;
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   MachineBasicBlock &MBB = *I.getParent();
   const Register DstReg = I.getOperand(0).getReg();
   const Register SrcReg = I.getOperand(1).getReg();
@@ -2978,7 +2978,7 @@ bool AMDGPUInstructionSelector::selectG_FPEXT(MachineInstr &I) const {
       MRI->getType(Src) == LLT::scalar(16)) {
     if (isExtractHiElt(*MRI, Src, Src)) {
       MachineBasicBlock *BB = I.getParent();
-      BuildMI(*BB, &I, I.getDebugLoc(), TII.get(AMDGPU::S_CVT_HI_F32_F16), Dst)
+      BuildMI(*BB, &I, I.getFullDebugLoc(), TII.get(AMDGPU::S_CVT_HI_F32_F16), Dst)
           .addUse(Src);
       I.eraseFromParent();
       return RBI.constrainGenericRegister(Dst, AMDGPU::SReg_32RegClass, *MRI);
@@ -3016,7 +3016,7 @@ bool AMDGPUInstructionSelector::selectG_FNEG(MachineInstr &MI) const {
     return false;
 
   MachineBasicBlock *BB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register LoReg = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
   Register HiReg = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
   Register ConstReg = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
@@ -3054,7 +3054,7 @@ bool AMDGPUInstructionSelector::selectG_FABS(MachineInstr &MI) const {
 
   Register Src = MI.getOperand(1).getReg();
   MachineBasicBlock *BB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register LoReg = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
   Register HiReg = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
   Register ConstReg = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
@@ -3172,7 +3172,7 @@ void AMDGPUInstructionSelector::initM0(MachineInstr &I) const {
     MachineBasicBlock *BB = I.getParent();
 
     // If DS instructions require M0 initialization, insert it before selecting.
-    BuildMI(*BB, &I, I.getDebugLoc(), TII.get(AMDGPU::S_MOV_B32), AMDGPU::M0)
+    BuildMI(*BB, &I, I.getFullDebugLoc(), TII.get(AMDGPU::S_MOV_B32), AMDGPU::M0)
       .addImm(-1);
   }
 }
@@ -3208,7 +3208,7 @@ bool AMDGPUInstructionSelector::selectG_BRCOND(MachineInstr &I) const {
   MachineBasicBlock *BB = I.getParent();
   MachineOperand &CondOp = I.getOperand(0);
   Register CondReg = CondOp.getReg();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
 
   unsigned BrOpcode;
   Register CondPhysReg;
@@ -3281,7 +3281,7 @@ bool AMDGPUInstructionSelector::selectG_PTRMASK(MachineInstr &I) const {
   LLT Ty = MRI->getType(DstReg);
   LLT MaskTy = MRI->getType(MaskReg);
   MachineBasicBlock *BB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
 
   const RegisterBank *DstRB = RBI.getRegBank(DstReg, *MRI, TRI);
   const RegisterBank *SrcRB = RBI.getRegBank(SrcReg, *MRI, TRI);
@@ -3444,7 +3444,7 @@ bool AMDGPUInstructionSelector::selectG_EXTRACT_VECTOR_ELT(
     return false;
 
   MachineBasicBlock *BB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const bool Is64 = DstTy.getSizeInBits() == 64;
 
   unsigned SubReg;
@@ -3536,7 +3536,7 @@ bool AMDGPUInstructionSelector::selectG_INSERT_VECTOR_ELT(
                          STI.useVGPRIndexMode();
 
   MachineBasicBlock *BB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (!IndexMode) {
     BuildMI(*BB, &MI, DL, TII.get(AMDGPU::COPY), AMDGPU::M0)
@@ -3640,7 +3640,7 @@ bool AMDGPUInstructionSelector::selectBufferLoadLds(MachineInstr &MI) const {
   }
 
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   BuildMI(*MBB, &MI, DL, TII.get(AMDGPU::COPY), AMDGPU::M0)
     .add(MI.getOperand(2));
 
@@ -3822,7 +3822,7 @@ bool AMDGPUInstructionSelector::selectGlobalLoadLds(MachineInstr &MI) const{
   }
 
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   BuildMI(*MBB, &MI, DL, TII.get(AMDGPU::COPY), AMDGPU::M0)
     .add(MI.getOperand(2));
 
@@ -3916,7 +3916,7 @@ bool AMDGPUInstructionSelector::selectTensorLoadStore(MachineInstr &MI,
   // TODO: Handle the fifth group: MI.getOpetand(5), which is silently ignored
   // for now because all existing targets only support up to 4 groups.
   MachineBasicBlock *MBB = MI.getParent();
-  auto MIB = BuildMI(*MBB, &MI, MI.getDebugLoc(), TII.get(Opc))
+  auto MIB = BuildMI(*MBB, &MI, MI.getFullDebugLoc(), TII.get(Opc))
                  .add(MI.getOperand(1))  // D# group 0
                  .add(MI.getOperand(2)); // D# group 1
 
@@ -4080,7 +4080,7 @@ bool AMDGPUInstructionSelector::selectWaveAddress(MachineInstr &MI) const {
   const RegisterBank *DstRB = RBI.getRegBank(DstReg, *MRI, TRI);
   const bool IsVALU = DstRB->getID() == AMDGPU::VGPRRegBankID;
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (IsVALU) {
     BuildMI(*MBB, MI, DL, TII.get(AMDGPU::V_LSHRREV_B32_e64), DstReg)
@@ -4106,7 +4106,7 @@ bool AMDGPUInstructionSelector::selectWaveShuffleIntrin(
     MachineInstr &MI) const {
   assert(MI.getNumOperands() == 4);
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register DstReg = MI.getOperand(0).getReg();
   Register ValReg = MI.getOperand(2).getReg();
@@ -4479,7 +4479,7 @@ bool AMDGPUInstructionSelector::selectBITOP3(MachineInstr &MI) const {
                                    : AMDGPU::V_BITOP3_B16_gfx1250_fake16_e64;
   unsigned CBL = STI.getConstantBusLimit(Opc);
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   for (unsigned I = 0; I < Src.size(); ++I) {
     const RegisterBank *RB = RBI.getRegBank(Src[I], *MRI, TRI);
@@ -4533,7 +4533,7 @@ bool AMDGPUInstructionSelector::selectStackRestore(MachineInstr &MI) const {
       Subtarget->getTargetLowering()->getStackPointerRegisterToSaveRestore();
   Register WaveAddr = getWaveAddress(DefMI);
   MachineBasicBlock *MBB = MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (!WaveAddr) {
     WaveAddr = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
@@ -4772,7 +4772,7 @@ Register AMDGPUInstructionSelector::copyToVGPRIfSrcFolded(
     // we now have an SGPR register source. To avoid potentially violating the
     // constant bus restriction, we need to insert a copy to a VGPR.
     Register VGPRSrc = MRI->cloneVirtualRegister(Root.getReg());
-    BuildMI(*InsertPt->getParent(), InsertPt, InsertPt->getDebugLoc(),
+    BuildMI(*InsertPt->getParent(), InsertPt, InsertPt->getFullDebugLoc(),
             TII.get(AMDGPU::COPY), VGPRSrc)
         .addReg(Src);
     Src = VGPRSrc;
@@ -5441,7 +5441,7 @@ static Register getLegalRegBank(Register NewReg, Register RootReg,
   Register DstReg = MRI.cloneVirtualRegister(RootReg);
 
   MachineInstrBuilder MIB =
-      BuildMI(*BB, MI, MI->getDebugLoc(), TII.get(AMDGPU::COPY), DstReg)
+      BuildMI(*BB, MI, MI->getFullDebugLoc(), TII.get(AMDGPU::COPY), DstReg)
           .addReg(NewReg);
 
   // Only accept VGPR.
@@ -5949,7 +5949,7 @@ bool AMDGPUInstructionSelector::selectSmrdOffset(MachineOperand &Root,
     // the _IMM Patterns are considered before the _SGPR patterns.
     Base = GEPI.SgprParts[0];
     *SOffset = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
-    BuildMI(*MBB, MI, MI->getDebugLoc(), TII.get(AMDGPU::S_MOV_B32), *SOffset)
+    BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII.get(AMDGPU::S_MOV_B32), *SOffset)
         .addImm(GEPI.Imm);
     return true;
   }
@@ -6139,7 +6139,7 @@ AMDGPUInstructionSelector::selectGlobalSAddr(MachineOperand &Root,
             Register HighBits =
                 MRI->createVirtualRegister(&AMDGPU::VGPR_32RegClass);
 
-            BuildMI(*MBB, MI, MI->getDebugLoc(), TII.get(AMDGPU::V_MOV_B32_e32),
+            BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII.get(AMDGPU::V_MOV_B32_e32),
                     HighBits)
                 .addImm(RemainderOffset);
 
@@ -6234,7 +6234,7 @@ AMDGPUInstructionSelector::selectGlobalSAddr(MachineOperand &Root,
   MachineBasicBlock *MBB = MI->getParent();
   Register VOffset = MRI->createVirtualRegister(&AMDGPU::VGPR_32RegClass);
 
-  BuildMI(*MBB, MI, MI->getDebugLoc(), TII.get(AMDGPU::V_MOV_B32_e32), VOffset)
+  BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII.get(AMDGPU::V_MOV_B32_e32), VOffset)
       .addImm(0);
 
   if (NeedIOffset)
@@ -6344,7 +6344,7 @@ AMDGPUInstructionSelector::selectScratchSAddr(MachineOperand &Root) const {
       int FI = LHSDef->MI->getOperand(1).getIndex();
       MachineInstr &I = *Root.getParent();
       MachineBasicBlock *BB = I.getParent();
-      const DebugLoc &DL = I.getDebugLoc();
+      DebugLoc DL = I.getFullDebugLoc();
       SAddr = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
 
       BuildMI(*BB, &I, DL, TII.get(AMDGPU::S_ADD_I32), SAddr)
@@ -6466,7 +6466,7 @@ AMDGPUInstructionSelector::selectMUBUFScratchOffen(MachineOperand &Root) const {
     // TODO: Should this be inside the render function? The iterator seems to
     // move.
     const int64_t MaxOffset = SIInstrInfo::getMaxMUBUFImmOffset(*Subtarget);
-    BuildMI(*MBB, MI, MI->getDebugLoc(), TII.get(AMDGPU::V_MOV_B32_e32),
+    BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII.get(AMDGPU::V_MOV_B32_e32),
             HighBits)
         .addImm(Offset & ~MaxOffset);
 
@@ -7264,7 +7264,7 @@ AMDGPUInstructionSelector::selectVOP3PMadMixMods(MachineOperand &Root) const {
 bool AMDGPUInstructionSelector::selectSBarrierSignalIsfirst(
     MachineInstr &I, Intrinsic::ID IntrID) const {
   MachineBasicBlock *MBB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   Register CCReg = I.getOperand(0).getReg();
 
   // Set SCC to true, in case the barrier instruction gets converted to a NOP.
@@ -7283,7 +7283,7 @@ bool AMDGPUInstructionSelector::selectSBarrierSignalIsfirst(
 bool AMDGPUInstructionSelector::selectSGetBarrierState(
     MachineInstr &I, Intrinsic::ID IntrID) const {
   MachineBasicBlock *MBB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   const MachineOperand &BarOp = I.getOperand(2);
   std::optional<int64_t> BarValImm =
       getIConstantVRegSExtVal(BarOp.getReg(), *MRI);
@@ -7340,7 +7340,7 @@ unsigned getNamedBarrierOp(bool HasInlineConst, Intrinsic::ID IntrID) {
 bool AMDGPUInstructionSelector::selectNamedBarrierInit(
     MachineInstr &I, Intrinsic::ID IntrID) const {
   MachineBasicBlock *MBB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   const MachineOperand &BarOp = I.getOperand(1);
   const MachineOperand &CntOp = I.getOperand(2);
 
@@ -7412,7 +7412,7 @@ bool AMDGPUInstructionSelector::selectNamedBarrierInit(
 bool AMDGPUInstructionSelector::selectNamedBarrierInst(
     MachineInstr &I, Intrinsic::ID IntrID) const {
   MachineBasicBlock *MBB = I.getParent();
-  const DebugLoc &DL = I.getDebugLoc();
+  DebugLoc DL = I.getFullDebugLoc();
   MachineOperand BarOp = IntrID == Intrinsic::amdgcn_s_get_named_barrier_state
                              ? I.getOperand(2)
                              : I.getOperand(1);

@@ -707,7 +707,7 @@ bool MicroMipsSizeReduce::ReplaceInstruction(MachineInstr *MI,
   } else {
     MachineBasicBlock &MBB = *MI->getParent();
     const MCInstrDesc &NewMCID = MipsII->get(Entry.NarrowOpc());
-    DebugLoc dl = MI->getDebugLoc();
+    DebugLoc dl = MI->getFullDebugLoc();
     MachineInstrBuilder MIB = BuildMI(MBB, MI, dl, NewMCID);
     switch (OpTransfer) {
     case OT_Operand2:

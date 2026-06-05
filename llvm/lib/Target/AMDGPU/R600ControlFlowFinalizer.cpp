@@ -366,7 +366,7 @@ private:
     for (unsigned i = 0, e = Literals.size(); i < e; i+=2) {
       unsigned LiteralPair0 = Literals[i];
       unsigned LiteralPair1 = (i + 1 < e)?Literals[i + 1]:0;
-      InsertPos = BuildMI(MBB, InsertPos->getDebugLoc(),
+      InsertPos = BuildMI(MBB, InsertPos->getFullDebugLoc(),
           TII->get(R600::LITERALS))
           .addImm(LiteralPair0)
           .addImm(LiteralPair1);
@@ -408,7 +408,7 @@ private:
         I++;
       }
       for (unsigned i = 0, e = Literals.size(); i < e; i += 2) {
-        MachineInstrBuilder MILit = BuildMI(MBB, I, I->getDebugLoc(),
+        MachineInstrBuilder MILit = BuildMI(MBB, I, I->getFullDebugLoc(),
             TII->get(R600::LITERALS));
         if (Literals[i]->isImm()) {
             MILit.addImm(Literals[i]->getImm());
@@ -434,7 +434,7 @@ private:
   }
 
   void EmitFetchClause(MachineBasicBlock::iterator InsertPos,
-                       const DebugLoc &DL, ClauseFile &Clause,
+                       DebugLoc DL, ClauseFile &Clause,
                        unsigned &CfCount) {
     CounterPropagateAddr(*Clause.first, CfCount);
     MachineBasicBlock *BB = Clause.first->getParent();
@@ -444,7 +444,7 @@ private:
     CfCount += 2 * Clause.second.size();
   }
 
-  void EmitALUClause(MachineBasicBlock::iterator InsertPos, const DebugLoc &DL,
+  void EmitALUClause(MachineBasicBlock::iterator InsertPos, DebugLoc DL,
                      ClauseFile &Clause, unsigned &CfCount) {
     Clause.first->getOperand(0).setImm(0);
     CounterPropagateAddr(*Clause.first, CfCount);

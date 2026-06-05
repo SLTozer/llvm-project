@@ -2391,10 +2391,10 @@ bool AArch64FastISel::selectBranch(const Instruction *I) {
       default:
         break;
       case CmpInst::FCMP_FALSE:
-        fastEmitBranch(FBB, MIMD.getDL());
+        fastEmitBranch(FBB, getCurDebugLoc());
         return true;
       case CmpInst::FCMP_TRUE:
-        fastEmitBranch(TBB, MIMD.getDL());
+        fastEmitBranch(TBB, getCurDebugLoc());
         return true;
       }
 

@@ -456,17 +456,17 @@ public:
                         int *BytesRemoved = nullptr) const override;
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
   bool canInsertSelect(const MachineBasicBlock &, ArrayRef<MachineOperand> Cond,
                        Register, Register, Register, int &, int &,
                        int &) const override;
   void insertSelect(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                    const DebugLoc &DL, Register DstReg,
+                    DbgLocStorage DL, Register DstReg,
                     ArrayRef<MachineOperand> Cond, Register TrueReg,
                     Register FalseReg) const override;
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
   void storeRegToStackSlot(
@@ -651,7 +651,7 @@ public:
                      outliner::Candidate &C) const override;
 
   void buildClearRegister(Register Reg, MachineBasicBlock &MBB,
-                          MachineBasicBlock::iterator Iter, DebugLoc &DL,
+                          MachineBasicBlock::iterator Iter, DbgLocStorage DL,
                           bool AllowSideEffects = true) const override;
 
   bool verifyInstruction(const MachineInstr &MI,

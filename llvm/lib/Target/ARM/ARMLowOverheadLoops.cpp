@@ -1469,7 +1469,7 @@ void ARMLowOverheadLoops::RevertLoopEndDec(MachineInstr *MI) const {
   MachineBasicBlock *MBB = MI->getParent();
 
   MachineInstrBuilder MIB =
-      BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::t2SUBri));
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::t2SUBri));
   MIB.addDef(ARM::LR);
   MIB.add(MI->getOperand(1));
   MIB.addImm(1);
@@ -1483,7 +1483,7 @@ void ARMLowOverheadLoops::RevertLoopEndDec(MachineInstr *MI) const {
       BBUtils->isBBInRange(MI, DestBB, 254) ? ARM::tBcc : ARM::t2Bcc;
 
   // Create bne
-  MIB = BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(BrOpc));
+  MIB = BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(BrOpc));
   MIB.add(MI->getOperand(2)); // branch target
   MIB.addImm(ARMCC::NE);      // condition code
   MIB.addReg(ARM::CPSR);
@@ -1554,7 +1554,7 @@ MachineInstr* ARMLowOverheadLoops::ExpandLoopStart(LowOverheadLoop &LoLoop) {
     NewStart = nullptr;
   } else {
     MachineInstrBuilder MIB =
-      BuildMI(*MBB, InsertPt, Start->getDebugLoc(), TII->get(Opc));
+      BuildMI(*MBB, InsertPt, Start->getFullDebugLoc(), TII->get(Opc));
 
     MIB.addDef(ARM::LR);
     MIB.add(Count);
@@ -1589,7 +1589,7 @@ void ARMLowOverheadLoops::ConvertVPTBlocks(LowOverheadLoop &LoLoop) {
       assert(TheVCMP && "Replacing a removed or non-existent VCMP");
       // Replace the VCMP with a VPT
       MachineInstrBuilder MIB =
-          BuildMI(*At->getParent(), At, At->getDebugLoc(),
+          BuildMI(*At->getParent(), At, At->getFullDebugLoc(),
                   TII->get(VCMPOpcodeToVPT(TheVCMP->getOpcode())));
       MIB.addImm(ARMVCC::Then);
       // Register one
@@ -1650,7 +1650,7 @@ void ARMLowOverheadLoops::ConvertVPTBlocks(LowOverheadLoop &LoLoop) {
             // later)
             MachineInstrBuilder MIB =
                 BuildMI(*Divergent->getParent(), Divergent,
-                        Divergent->getDebugLoc(), TII->get(ARM::MVE_VPST));
+                        Divergent->getFullDebugLoc(), TII->get(ARM::MVE_VPST));
             MIB.addImm(0);
             LLVM_DEBUG(dbgs() << "ARM Loops: Created VPST: " << *MIB);
             LoLoop.BlockMasksToRecompute.insert(MIB.getInstr());
@@ -1714,7 +1714,7 @@ void ARMLowOverheadLoops::Expand(LowOverheadLoop &LoLoop) {
     MachineBasicBlock *MBB = End->getParent();
     unsigned Opc = LoLoop.IsTailPredicationLegal() ?
       ARM::MVE_LETP : ARM::t2LEUpdate;
-    MachineInstrBuilder MIB = BuildMI(*MBB, End, End->getDebugLoc(),
+    MachineInstrBuilder MIB = BuildMI(*MBB, End, End->getFullDebugLoc(),
                                       TII->get(Opc));
     MIB.addDef(ARM::LR);
     unsigned Off = LoLoop.Dec == LoLoop.End ? 1 : 0;
@@ -1752,13 +1752,13 @@ void ARMLowOverheadLoops::Expand(LowOverheadLoop &LoLoop) {
       MachineBasicBlock *MBB = MI->getParent();
       Register Dst = MI->getOperand(0).getReg();
       Register Src = MI->getOperand(1).getReg();
-      auto MIB1 = BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::VMOVD),
+      auto MIB1 = BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::VMOVD),
                           ARM::D0 + (Dst - ARM::Q0) * 2)
                       .addReg(ARM::D0 + (Src - ARM::Q0) * 2)
                       .add(predOps(ARMCC::AL));
       (void)MIB1;
       LLVM_DEBUG(dbgs() << " into " << *MIB1);
-      auto MIB2 = BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::VMOVD),
+      auto MIB2 = BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::VMOVD),
                           ARM::D0 + (Dst - ARM::Q0) * 2 + 1)
                       .addReg(ARM::D0 + (Src - ARM::Q0) * 2 + 1)
                       .add(predOps(ARMCC::AL));
@@ -1856,7 +1856,7 @@ bool ARMLowOverheadLoops::RevertNonLoops() {
       LLVM_DEBUG(dbgs() << "Converting copy to VORR: " << *MI);
       assert(MI->getOpcode() == ARM::MQPRCopy && "Only expected MQPRCOPY!");
       MachineBasicBlock *MBB = MI->getParent();
-      auto MIB = BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::MVE_VORR),
+      auto MIB = BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::MVE_VORR),
                          MI->getOperand(0).getReg())
                      .add(MI->getOperand(1))
                      .add(MI->getOperand(1));

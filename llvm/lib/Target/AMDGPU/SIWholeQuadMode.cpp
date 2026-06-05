@@ -837,7 +837,7 @@ void SIWholeQuadMode::splitBlock(MachineInstr *TermMI) {
 MachineInstr *SIWholeQuadMode::lowerKillF32(MachineInstr &MI) {
   assert(LiveMaskReg.isVirtual());
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   unsigned Opcode = 0;
 
   assert(MI.getOperand(0).isReg());
@@ -956,7 +956,7 @@ MachineInstr *SIWholeQuadMode::lowerKillI1(MachineInstr &MI, bool IsWQM) {
 
   MachineBasicBlock &MBB = *MI.getParent();
 
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineInstr *MaskUpdateMI = nullptr;
 
   const bool IsDemote = IsWQM && (MI.getOpcode() == AMDGPU::SI_DEMOTE_I1);
@@ -1215,7 +1215,7 @@ void SIWholeQuadMode::toExact(MachineBasicBlock &MBB,
     }
   }
 
-  const DebugLoc &DL = MBB.findDebugLoc(Before);
+  DebugLoc DL = MBB.findDebugLoc(Before);
   MachineInstr *MI;
 
   if (SaveWQM) {
@@ -1238,7 +1238,7 @@ void SIWholeQuadMode::toExact(MachineBasicBlock &MBB,
 void SIWholeQuadMode::toWQM(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator Before,
                             Register SavedWQM) {
-  const DebugLoc &DL = MBB.findDebugLoc(Before);
+  DebugLoc DL = MBB.findDebugLoc(Before);
   MachineInstr *MI;
 
   if (SavedWQM) {
@@ -1261,7 +1261,7 @@ void SIWholeQuadMode::toStrictMode(MachineBasicBlock &MBB,
   assert(StrictStateNeeded == StateStrictWWM ||
          StrictStateNeeded == StateStrictWQM);
 
-  const DebugLoc &DL = MBB.findDebugLoc(Before);
+  DebugLoc DL = MBB.findDebugLoc(Before);
 
   if (StrictStateNeeded == StateStrictWWM) {
     MI = BuildMI(MBB, Before, DL, TII->get(AMDGPU::ENTER_STRICT_WWM), SaveOrig)
@@ -1284,7 +1284,7 @@ void SIWholeQuadMode::fromStrictMode(MachineBasicBlock &MBB,
   assert(CurrentStrictState == StateStrictWWM ||
          CurrentStrictState == StateStrictWQM);
 
-  const DebugLoc &DL = MBB.findDebugLoc(Before);
+  DebugLoc DL = MBB.findDebugLoc(Before);
 
   if (CurrentStrictState == StateStrictWWM) {
     MI =
@@ -1508,7 +1508,7 @@ void SIWholeQuadMode::processBlock(MachineBasicBlock &MBB, BlockInfo &BI,
 
 bool SIWholeQuadMode::lowerLiveMaskQueries() {
   for (MachineInstr *MI : LiveMaskQueries) {
-    const DebugLoc &DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
     Register Dest = MI->getOperand(0).getReg();
 
     MachineInstr *Copy =
@@ -1612,7 +1612,7 @@ void SIWholeQuadMode::lowerInitExec(MachineInstr &MI) {
     assert(MBB == &MBB->getParent()->front() &&
            "init whole wave not in entry block");
     Register EntryExec = MRI->createVirtualRegister(TRI->getBoolRC());
-    MachineInstr *SaveExec = BuildMI(*MBB, MBB->begin(), MI.getDebugLoc(),
+    MachineInstr *SaveExec = BuildMI(*MBB, MBB->begin(), MI.getFullDebugLoc(),
                                      TII->get(LMC.OrSaveExecOpc), EntryExec)
                                  .addImm(-1);
 
@@ -1634,7 +1634,7 @@ void SIWholeQuadMode::lowerInitExec(MachineInstr &MI) {
 
   if (MI.getOpcode() == AMDGPU::SI_INIT_EXEC) {
     // This should be before all vector instructions.
-    MachineInstr *InitMI = BuildMI(*MBB, MBB->begin(), MI.getDebugLoc(),
+    MachineInstr *InitMI = BuildMI(*MBB, MBB->begin(), MI.getFullDebugLoc(),
                                    TII->get(LMC.MovOpc), LMC.ExecReg)
                                .addImm(MI.getOperand(0).getImm());
     if (LIS) {
@@ -1673,7 +1673,7 @@ void SIWholeQuadMode::lowerInitExec(MachineInstr &MI) {
   }
 
   // Insert instruction sequence at block beginning (before vector operations).
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const unsigned WavefrontSize = ST->getWavefrontSize();
   const unsigned Mask = (WavefrontSize << 1) - 1;
   Register CountReg = MRI->createVirtualRegister(&AMDGPU::SGPR_32RegClass);

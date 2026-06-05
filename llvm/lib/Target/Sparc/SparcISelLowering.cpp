@@ -3392,7 +3392,7 @@ MachineBasicBlock *
 SparcTargetLowering::expandSelectCC(MachineInstr &MI, MachineBasicBlock *BB,
                                     unsigned BROpcode) const {
   const TargetInstrInfo &TII = *Subtarget->getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   unsigned CC = (SPCC::CondCodes)MI.getOperand(3).getImm();
 
   // To "insert" a SELECT_CC instruction, we actually have to insert the

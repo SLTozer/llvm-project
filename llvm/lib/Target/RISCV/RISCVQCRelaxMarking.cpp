@@ -187,7 +187,7 @@ bool RISCVQCRelaxMarking::runOnMachineFunction(MachineFunction &MF) {
       LLVM_DEBUG(dbgs() << "Load/Store " << TII->getName(NextMI->getOpcode())
                         << " will become " << TII->getName(NewOpc) << "\n");
       MachineInstrBuilder MIB =
-          BuildMI(MBB, NextMI, NextMI->getDebugLoc(), TII->get(NewOpc))
+          BuildMI(MBB, NextMI, NextMI->getFullDebugLoc(), TII->get(NewOpc))
               .add(NextMI->getOperand(0))
               .add(NextMI->getOperand(1))
               .add(NextMI->getOperand(2))

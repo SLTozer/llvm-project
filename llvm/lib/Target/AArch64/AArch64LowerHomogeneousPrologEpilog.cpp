@@ -476,7 +476,7 @@ bool AArch64LowerHomogeneousPrologEpilogImpl::lowerEpilog(
   auto &MF = *MBB.getParent();
   MachineInstr &MI = *MBBI;
 
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   SmallVector<unsigned, 8> Regs;
   bool HasUnpairedReg = false;
   for (auto &MO : MI.operands())
@@ -566,7 +566,7 @@ bool AArch64LowerHomogeneousPrologEpilogImpl::lowerProlog(
   auto &MF = *MBB.getParent();
   MachineInstr &MI = *MBBI;
 
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   SmallVector<unsigned, 8> Regs;
   bool HasUnpairedReg = false;
   int LRIdx = 0;

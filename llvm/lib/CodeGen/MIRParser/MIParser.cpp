@@ -1196,7 +1196,7 @@ bool MIParser::parse(MachineInstr *&MI) {
     } else {
       return error("expected a metadata node after 'debug-location'");
     }
-    DebugLocation = DebugLoc(dyn_cast<DILocation>(Node));
+    DebugLocation = DebugLoc::getFromDILocation(dyn_cast<DILocation>(Node));
     if (!DebugLocation)
       return error("referenced metadata is not a DILocation");
   }
@@ -2560,7 +2560,6 @@ bool MIParser::parseDIExpression(MDNode *&Expr) {
     return error(Error.getMessage());
   return false;
 }
-
 bool MIParser::parseDILocation(MDNode *&Loc) {
   assert(Token.is(MIToken::md_dilocation));
   lex();

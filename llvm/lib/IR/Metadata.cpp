@@ -36,6 +36,7 @@
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalObject.h"
+#include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/LLVMContext.h"
@@ -1592,6 +1593,11 @@ void GlobalObject::getMetadata(StringRef Kind,
                                SmallVectorImpl<MDNode *> &MDs) const {
   getMetadata(getContext().getMDKindID(Kind), MDs);
 }
+void Function::getMetadata(StringRef Kind,
+                           SmallVectorImpl<MDNode *> &MDs) const {
+  unsigned KindID = getContext().getMDKindID(Kind);
+  getMetadata(KindID, MDs);
+}
 
 void Value::getAllMetadata(
     SmallVectorImpl<std::pair<unsigned, MDNode *>> &MDs) const {
@@ -1687,18 +1693,39 @@ void Instruction::setMetadata(StringRef Kind, MDNode *Node) {
     return;
   setMetadata(getContext().getMDKindID(Kind), Node);
 }
+void Function::setMetadata(StringRef Kind, MDNode *Node) {
+  if (!Node && MetadataIndex == 0)
+    return;
+  setMetadata(getContext().getMDKindID(Kind), Node);
+}
+void Function::addMetadata(StringRef Kind, MDNode &MD) {
+  addMetadata(getContext().getMDKindID(Kind), MD);
+}
 
 MDNode *Instruction::getMetadataImpl(StringRef Kind) const {
   const LLVMContext &Ctx = getContext();
   unsigned KindID = Ctx.getMDKindID(Kind);
   if (KindID == LLVMContext::MD_dbg)
-    return DbgLoc.getAsMDNode();
+    return getFullDebugLoc().getAsMDNode();
+  return Value::getMetadataImpl(KindID);
+}
+MDNode *Function::getMetadataImpl(StringRef Kind) const {
+  const LLVMContext &Ctx = getContext();
+  unsigned KindID = Ctx.getMDKindID(Kind);
+  if (KindID == LLVMContext::MD_flmd)
+    return FLContext;
   return Value::getMetadataImpl(KindID);
 }
 
 void Instruction::eraseMetadataIf(function_ref<bool(unsigned, MDNode *)> Pred) {
-  if (DbgLoc && Pred(LLVMContext::MD_dbg, DbgLoc.getAsMDNode()))
-    DbgLoc = {};
+  if (DbgLoc && Pred(LLVMContext::MD_dbg, getFullDebugLoc().getAsMDNode()))
+    DbgLoc = DbgLocStorage();
+
+  Value::eraseMetadataIf(Pred);
+}
+void Function::eraseMetadataIf(function_ref<bool(unsigned, MDNode *)> Pred) {
+  if (FLContext && Pred(LLVMContext::MD_flmd, FLContext))
+    FLContext = nullptr;
 
   Value::eraseMetadataIf(Pred);
 }
@@ -1754,7 +1781,10 @@ void Instruction::setMetadata(unsigned KindID, MDNode *Node) {
 
   // Handle 'dbg' as a special case since it is not stored in the hash table.
   if (KindID == LLVMContext::MD_dbg) {
-    DbgLoc = DebugLoc(cast_or_null<DILocation>(Node));
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    llvm_unreachable("Should not be using this with FLMD enabled!");
+#endif
+    DbgLoc = DebugLoc::getFromDILocation(cast_or_null<DILocation>(Node)).getStorage();
     return;
   }
 
@@ -1769,6 +1799,27 @@ void Instruction::setMetadata(unsigned KindID, MDNode *Node) {
   }
 
   Value::setMetadata(KindID, Node);
+}
+void Function::setMetadata(unsigned KindID, MDNode *Node) {
+  // Handle 'flmd' as a special case since it is not stored in the hash table.
+  if (KindID == LLVMContext::MD_flmd) {
+    FLContext = cast_if_present<DIFunctionLocalMetadata>(Node);
+    return;
+  }
+
+  if (!Node && !hasMetadata())
+    return;
+
+  Value::setMetadata(KindID, Node);
+}
+
+void Function::addMetadata(unsigned KindID, MDNode &MD) {
+  // Handle 'flmd' as a special case since it is not stored in the hash table.
+  if (KindID == LLVMContext::MD_flmd) {
+    FLContext = cast<DIFunctionLocalMetadata>(&MD);
+    return;
+  }
+  GlobalValue::addMetadata(KindID, MD);
 }
 
 void Instruction::addAnnotationMetadata(SmallVector<StringRef> Annotations) {
@@ -1867,10 +1918,17 @@ void Instruction::getAllMetadataImpl(
   Result.clear();
 
   // Handle 'dbg' as a special case since it is not stored in the hash table.
-  if (DbgLoc) {
-    Result.push_back(
-        std::make_pair((unsigned)LLVMContext::MD_dbg, DbgLoc.getAsMDNode()));
-  }
+  // FIXME: Ignore Dbg entirely. We *must* now handle it separately.
+
+  Value::getAllMetadata(Result);
+}
+void Function::getAllMetadataImpl(
+    SmallVectorImpl<std::pair<unsigned, MDNode *>> &Result) const {
+  Result.clear();
+
+  if (FLContext)
+    Result.emplace_back(LLVMContext::MD_flmd, FLContext);
+
   Value::getAllMetadata(Result);
 }
 
@@ -1926,6 +1984,11 @@ void GlobalObject::copyMetadata(const GlobalObject *Other, unsigned Offset) {
     addMetadata(MD.first, *Attachment);
   }
 }
+void Function::copyMetadata(const Function *Other, unsigned Offset) {
+  if (Other->FLContext)
+    FLContext = Other->FLContext;
+  GlobalObject::copyMetadata(Other, Offset);
+}
 
 void GlobalObject::addTypeMetadata(unsigned Offset, Metadata *TypeID) {
   addMetadata(
@@ -1958,7 +2021,19 @@ GlobalObject::VCallVisibility GlobalObject::getVCallVisibility() const {
 }
 
 void Function::setSubprogram(DISubprogram *SP) {
+  // FIXME: We track a context-level mapping from DISubprogram to Function, in
+  // order to be able to map arbitrary DILocations to the sole Function that
+  // it is valid for them to appear in.
+  // NB: The above statement is not fully correct; there is a niche exception
+  // for instructions inlined from a function with debug info to a function
+  // without debug info, because in this case the caller function does not have
+  // a DISubprogram, and thus DILocations can only map to the callee. This
+  // should not be a problem until after we've fixed the need to use this
+  // context map anyway.
+  // getContext().pImpl->unsetFunctionSPMapping(
+  //   dyn_cast_if_present<DISubprogram>(getMetadata(LLVMContext::MD_dbg)), this);
   setMetadata(LLVMContext::MD_dbg, SP);
+  // getContext().pImpl->setFunctionSPMapping(SP, this);
 }
 
 DISubprogram *Function::getSubprogram() const {

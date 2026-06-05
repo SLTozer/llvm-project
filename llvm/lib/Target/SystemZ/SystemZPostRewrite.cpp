@@ -116,7 +116,7 @@ void SystemZPostRewrite::selectSELRMux(MachineBasicBlock &MBB,
   // machine-cp) if the kill flag on Src1 isn't cleared (with
   // expandCondMove()).
   if (Src1Reg == Src2Reg) {
-    CopyInst = BuildMI(*MBBI->getParent(), MBBI, MBBI->getDebugLoc(),
+    CopyInst = BuildMI(*MBBI->getParent(), MBBI, MBBI->getFullDebugLoc(),
                        TII->get(SystemZ::COPY), DestReg)
                    .addReg(Src1Reg, getRegState(Src1MO) & getRegState(Src2MO));
     MBB.getParent()->substituteDebugValuesForInst(*MBBI, *CopyInst, 1);
@@ -129,14 +129,14 @@ void SystemZPostRewrite::selectSELRMux(MachineBasicBlock &MBB,
   // first.  But only if this doesn't clobber the other source.
   if (DestReg != Src1Reg && DestReg != Src2Reg) {
     if (DestIsHigh != Src1IsHigh) {
-      CopyInst = BuildMI(*MBBI->getParent(), MBBI, MBBI->getDebugLoc(),
+      CopyInst = BuildMI(*MBBI->getParent(), MBBI, MBBI->getFullDebugLoc(),
                          TII->get(SystemZ::COPY), DestReg)
                      .addReg(Src1Reg, getRegState(Src1MO));
       Src1MO.setReg(DestReg);
       Src1Reg = DestReg;
       Src1IsHigh = DestIsHigh;
     } else if (DestIsHigh != Src2IsHigh) {
-      CopyInst = BuildMI(*MBBI->getParent(), MBBI, MBBI->getDebugLoc(),
+      CopyInst = BuildMI(*MBBI->getParent(), MBBI, MBBI->getFullDebugLoc(),
                          TII->get(SystemZ::COPY), DestReg)
                      .addReg(Src2Reg, getRegState(Src2MO));
       Src2MO.setReg(DestReg);
@@ -173,7 +173,7 @@ bool SystemZPostRewrite::expandCondMove(MachineBasicBlock &MBB,
   MachineFunction &MF = *MBB.getParent();
   const BasicBlock *BB = MBB.getBasicBlock();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register DestReg = MI.getOperand(0).getReg();
   Register SrcReg = MI.getOperand(2).getReg();
   unsigned CCValid = MI.getOperand(3).getImm();
@@ -241,7 +241,7 @@ bool SystemZPostRewrite::selectMI(MachineBasicBlock &MBB,
     Register DstReg = MI.getOperand(0).getReg();
     MachineOperand &SrcMO = MI.getOperand(1);
     if (DstReg != SrcMO.getReg()) {
-      BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(SystemZ::COPY), DstReg)
+      BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(SystemZ::COPY), DstReg)
         .addReg(SrcMO.getReg());
       SrcMO.setReg(DstReg);
       MemFoldCopies++;

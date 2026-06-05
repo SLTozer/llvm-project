@@ -86,7 +86,7 @@ bool RISCVPostRAExpandPseudo::expandMI(MachineBasicBlock &MBB,
 
 bool RISCVPostRAExpandPseudo::expandMovImm(MachineBasicBlock &MBB,
                                            MachineBasicBlock::iterator MBBI) {
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
 
   int64_t Val = MBBI->getOperand(1).getImm();
 
@@ -103,7 +103,7 @@ bool RISCVPostRAExpandPseudo::expandMovImm(MachineBasicBlock &MBB,
 
 bool RISCVPostRAExpandPseudo::expandMovAddr(MachineBasicBlock &MBB,
                                             MachineBasicBlock::iterator MBBI) {
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
 
   Register DstReg = MBBI->getOperand(0).getReg();
   bool DstIsDead = MBBI->getOperand(0).isDead();
@@ -136,7 +136,7 @@ static void transferImpOps(MachineInstr &OldMI, MachineInstrBuilder &MI) {
 bool RISCVPostRAExpandPseudo::expandMERGE(MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator MBBI) {
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register DstReg = MI.getOperand(0).getReg();
   if (DstReg == MI.getOperand(3).getReg()) {
@@ -171,11 +171,11 @@ bool RISCVPostRAExpandPseudo::expandMERGE(MachineBasicBlock &MBB,
                         MI.getOperand(1).getReg() !=
                             MI.getOperand(2).getReg() &&
                         MI.getOperand(1).getReg() != MI.getOperand(3).getReg());
-    BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(RISCV::ADDI))
+    BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(RISCV::ADDI))
         .addDef(DstReg, getRenamableRegState(MI.getOperand(0).isRenamable()))
         .addReg(MI.getOperand(1).getReg(), RegState)
         .addImm(0);
-    auto I = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(RISCV::MERGE))
+    auto I = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(RISCV::MERGE))
                  .add(MI.getOperand(0))
                  .addReg(DstReg,
                          RegState::Kill | getRenamableRegState(

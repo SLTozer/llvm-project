@@ -49,7 +49,7 @@ bool AVRFrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
 void AVRFrameLowering::emitPrologue(MachineFunction &MF,
                                     MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.begin();
-  DebugLoc DL = (MBBI != MBB.end()) ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = (MBBI != MBB.end()) ? MBBI->getFullDebugLoc() : DebugLoc();
   const AVRSubtarget &STI = MF.getSubtarget<AVRSubtarget>();
   const AVRInstrInfo &TII = *STI.getInstrInfo();
   const AVRMachineFunctionInfo *AFI = MF.getInfo<AVRMachineFunctionInfo>();
@@ -140,7 +140,7 @@ static void restoreStatusRegister(MachineFunction &MF, MachineBasicBlock &MBB) {
 
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
 
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   const AVRSubtarget &STI = MF.getSubtarget<AVRSubtarget>();
   const AVRInstrInfo &TII = *STI.getInstrInfo();
 
@@ -172,7 +172,7 @@ void AVRFrameLowering::emitEpilogue(MachineFunction &MF,
   assert(MBBI->getDesc().isReturn() &&
          "Can only insert epilog into returning blocks");
 
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize();
   const AVRSubtarget &STI = MF.getSubtarget<AVRSubtarget>();
@@ -353,7 +353,7 @@ MachineBasicBlock::iterator AVRFrameLowering::eliminateCallFramePseudoInstr(
     return MBB.erase(MI);
   }
 
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   unsigned int Opcode = MI->getOpcode();
   int Amount = TII.getFrameSize(*MI);
 

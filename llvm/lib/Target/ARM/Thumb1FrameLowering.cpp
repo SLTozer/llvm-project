@@ -63,7 +63,7 @@ bool Thumb1FrameLowering::hasReservedCallFrame(const MachineFunction &MF) const{
 static void
 emitPrologueEpilogueSPUpdate(MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator &MBBI,
-                             const TargetInstrInfo &TII, const DebugLoc &dl,
+                             const TargetInstrInfo &TII, DebugLoc dl,
                              const ThumbRegisterInfo &MRI, int NumBytes,
                              unsigned ScratchReg, unsigned MIFlags) {
   // If it would take more than three instructions to adjust the stack pointer
@@ -101,7 +101,7 @@ emitPrologueEpilogueSPUpdate(MachineBasicBlock &MBB,
 
 static void emitCallSPUpdate(MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator &MBBI,
-                             const TargetInstrInfo &TII, const DebugLoc &dl,
+                             const TargetInstrInfo &TII, DebugLoc dl,
                              const ThumbRegisterInfo &MRI, int NumBytes,
                              unsigned MIFlags = MachineInstr::NoFlags) {
   emitThumbRegPlusImmediate(MBB, MBBI, dl, ARM::SP, ARM::SP, NumBytes, TII,
@@ -121,7 +121,7 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
     // ADJCALLSTACKDOWN -> sub, sp, sp, amount
     // ADJCALLSTACKUP   -> add, sp, sp, amount
     MachineInstr &Old = *I;
-    DebugLoc dl = Old.getDebugLoc();
+    DebugLoc dl = Old.getFullDebugLoc();
     unsigned Amount = TII.getFrameSize(Old);
     if (Amount != 0) {
       // We need to keep the stack aligned properly.  To do this, we round the
@@ -472,7 +472,7 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
 void Thumb1FrameLowering::emitEpilogue(MachineFunction &MF,
                                    MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.getFirstTerminator();
-  DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc dl = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   ARMFunctionInfo *AFI = MF.getInfo<ARMFunctionInfo>();
   const ThumbRegisterInfo *RegInfo =
@@ -638,7 +638,7 @@ bool Thumb1FrameLowering::emitPopSpecialFixUp(MachineBasicBlock &MBB,
     if (!DoIt || MBBI->getOpcode() == ARM::tPOP_RET)
       return true;
     MachineInstrBuilder MIB =
-        BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII.get(ARM::tPOP_RET))
+        BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII.get(ARM::tPOP_RET))
             .add(predOps(ARMCC::AL))
             .setMIFlag(MachineInstr::FrameDestroy);
     // Copy implicit ops and popped registers, if any.
@@ -666,7 +666,7 @@ bool Thumb1FrameLowering::emitPopSpecialFixUp(MachineBasicBlock &MBB,
 
   DebugLoc dl = DebugLoc();
   if (MBBI != MBB.end()) {
-    dl = MBBI->getDebugLoc();
+    dl = MBBI->getFullDebugLoc();
     auto InstUpToMBBI = MBB.end();
     while (InstUpToMBBI != MBBI)
       // The pre-decrement is on purpose here.
@@ -754,7 +754,7 @@ bool Thumb1FrameLowering::emitPopSpecialFixUp(MachineBasicBlock &MBB,
     // We couldn't use the direct restoration above, so
     // perform the opposite conversion: tPOP_RET to tPOP.
     MachineInstrBuilder MIB =
-        BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII.get(ARM::tPOP))
+        BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII.get(ARM::tPOP))
             .add(predOps(ARMCC::AL))
             .setMIFlag(MachineInstr::FrameDestroy);
     bool Popped = false;
@@ -933,7 +933,7 @@ static void popRegsFromStack(MachineBasicBlock &MBB,
 
   MachineFunction &MF = *MBB.getParent();
   ARMFunctionInfo *AFI = MF.getInfo<ARMFunctionInfo>();
-  DebugLoc DL = MI != MBB.end() ? MI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MI != MBB.end() ? MI->getFullDebugLoc() : DebugLoc();
 
   std::set<Register> LowRegs, HighRegs;
   splitLowAndHighRegs(RegsToRestore, LowRegs, HighRegs);

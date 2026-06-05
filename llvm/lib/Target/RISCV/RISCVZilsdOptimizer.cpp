@@ -360,7 +360,7 @@ bool RISCVPreAllocZilsdOpt::rescheduleOps(
 
     // Create the paired instruction
     MachineInstrBuilder MIB;
-    DebugLoc DL = MI0->getDebugLoc();
+    DebugLoc DL = MI0->getFullDebugLoc();
 
     if (IsLoad) {
       MIB = BuildMI(*MBB, InsertPos, DL, TII->get(RISCV::PseudoLD_RV32_OPT))

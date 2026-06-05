@@ -349,7 +349,7 @@ Value *VPTransformState::get(const VPValue *Def, bool NeedsScalar) {
 }
 
 void VPTransformState::setDebugLocFrom(DebugLoc DL) {
-  const DILocation *DIL = DL;
+  DebugLoc DIL = DL;
   // When a FSDiscriminator is enabled, we don't need to add the multiply
   // factors to the discriminators.
   if (DIL &&
@@ -360,12 +360,12 @@ void VPTransformState::setDebugLocFrom(DebugLoc DL) {
     // FIXME: For scalable vectors, assume vscale=1.
     unsigned UF = Plan->getConcreteUF();
     auto NewDIL =
-        DIL->cloneByMultiplyingDuplicationFactor(UF * VF.getKnownMinValue());
+        DIL.cloneByMultiplyingDuplicationFactor(UF * VF.getKnownMinValue());
     if (NewDIL)
       Builder.SetCurrentDebugLocation(*NewDIL);
     else
       LLVM_DEBUG(dbgs() << "Failed to create new discriminator: "
-                        << DIL->getFilename() << " Line: " << DIL->getLine());
+                        << DIL.getFilename() << " Line: " << DIL.getLine());
   } else
     Builder.SetCurrentDebugLocation(DL);
 }
@@ -443,7 +443,7 @@ void VPBasicBlock::connectToPredecessors(VPTransformState &State) {
     if (isa<UnreachableInst>(PredBBTerminator)) {
       assert(PredVPSuccessors.size() == 1 &&
              "Predecessor ending w/o branch must have single successor.");
-      DebugLoc DL = PredBBTerminator->getDebugLoc();
+      DebugLoc DL = PredBBTerminator->getFullDebugLoc();
       PredBBTerminator->eraseFromParent();
       auto *Br = UncondBrInst::Create(NewBB, PredBB);
       Br->setDebugLoc(DL);

@@ -193,7 +193,7 @@ bool Thumb2ITBlock::InsertITInstructions(MachineBasicBlock &MBB) {
 
   while (MBBI != E) {
     MachineInstr *MI = &*MBBI;
-    DebugLoc dl = MI->getDebugLoc();
+    DebugLoc dl = MI->getFullDebugLoc();
     Register PredReg;
     ARMCC::CondCodes CC = getITInstrPredicate(*MI, PredReg);
     if (CC == ARMCC::AL) {

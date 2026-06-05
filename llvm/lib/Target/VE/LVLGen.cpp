@@ -86,7 +86,7 @@ bool LVLGen::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
         // So, generate new LVL instruction just before the current instruction.
         LLVM_DEBUG(dbgs() << "Generate a LVL instruction to load "
                           << RegName(Reg) << ".\n");
-        BuildMI(MBB, I, MI->getDebugLoc(), TII->get(VE::LVLr)).addReg(Reg);
+        BuildMI(MBB, I, MI->getFullDebugLoc(), TII->get(VE::LVLr)).addReg(Reg);
         HasRegForVL = true;
         RegForVL = Reg;
         Changed = true;

@@ -236,6 +236,8 @@ static void copyMetadataForAtomic(Instruction &Dest,
                                   const Instruction &Source) {
   SmallVector<std::pair<unsigned, MDNode *>, 8> MD;
   Source.getAllMetadata(MD);
+  // DebugLocs must be handled separately.
+  Dest.copyDebugLocFromIfPresent(&Source);
   LLVMContext &Ctx = Dest.getContext();
   MDBuilder MDB(Ctx);
 

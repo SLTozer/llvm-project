@@ -65,7 +65,7 @@ void LanaiFrameLowering::replaceAdjDynAllocPseudo(MachineFunction &MF) const {
   for (MachineBasicBlock &MBB : MF) {
     for (MachineInstr &MI : llvm::make_early_inc_range(MBB)) {
       if (MI.getOpcode() == Lanai::ADJDYNALLOC) {
-        DebugLoc DL = MI.getDebugLoc();
+        DebugLoc DL = MI.getFullDebugLoc();
         Register Dst = MI.getOperand(0).getReg();
         Register Src = MI.getOperand(1).getReg();
 
@@ -172,7 +172,7 @@ void LanaiFrameLowering::emitEpilogue(MachineFunction & /*MF*/,
                                       MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
   const LanaiInstrInfo &LII = *STI.getInstrInfo();
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
 
   // Restore the stack pointer using the callee's frame pointer value.
   BuildMI(MBB, MBBI, DL, LII.get(Lanai::ADD_I_LO), Lanai::SP)

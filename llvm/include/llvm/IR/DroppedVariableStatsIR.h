@@ -72,13 +72,13 @@ private:
 
   /// Override base class method to run on an llvm::Function specifically.
   void visitEveryInstruction(unsigned &DroppedCount,
-                             DenseMap<VarID, DILocation *> &InlinedAtsMap,
+                             DenseMap<VarID, DebugLoc> &InlinedAtsMap,
                              VarID Var) override;
 
   /// Override base class method to run on #dbg_values specifically.
   void visitEveryDebugRecord(
       DenseSet<VarID> &VarIDSet,
-      DenseMap<StringRef, DenseMap<VarID, DILocation *>> &InlinedAtsMap,
+      DenseMap<StringRef, DenseMap<VarID, DebugLoc>> &InlinedAtsMap,
       StringRef FuncName, bool Before) override;
 
   template <typename IRUnitT> static const IRUnitT *unwrapIR(Any IR);

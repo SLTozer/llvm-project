@@ -331,7 +331,7 @@ llvm::DebugLoc CodeGenFunction::EmitReturnBlock() {
     if (BI && BI->getSuccessor(0) == ReturnBlock.getBlock()) {
       // Record/return the DebugLoc of the simple 'return' expression to be used
       // later by the actual 'ret' instruction.
-      llvm::DebugLoc Loc = BI->getDebugLoc();
+      llvm::DebugLoc Loc = BI->getFullDebugLoc();
       Builder.SetInsertPoint(BI->getParent());
       BI->eraseFromParent();
       delete ReturnBlock.getBlock();
@@ -435,7 +435,7 @@ void CodeGenFunction::FinishFunction(SourceLocation EndLoc) {
 
   // Reset the debug location to that of the simple 'return' expression, if any
   // rather than that of the end of the function's scope '}'.
-  uint64_t RetKeyInstructionsAtomGroup = Loc ? Loc->getAtomGroup() : 0;
+  uint64_t RetKeyInstructionsAtomGroup = Loc ? Loc.getAtomGroup() : 0;
   ApplyDebugLocation AL(*this, Loc);
   EmitFunctionEpilog(*CurFnInfo, EmitRetDbgLoc, EndLoc,
                      RetKeyInstructionsAtomGroup);
@@ -443,6 +443,9 @@ void CodeGenFunction::FinishFunction(SourceLocation EndLoc) {
 
   assert(EHStack.empty() &&
          "did not remove all scopes from cleanup stack!");
+
+  if (CGDebugInfo *DI = getDebugInfo())
+    DI->FinalizeFunctionSourceLocs(CurFn);
 
   // If someone did an indirect goto, emit the indirect goto block at the end of
   // the function.

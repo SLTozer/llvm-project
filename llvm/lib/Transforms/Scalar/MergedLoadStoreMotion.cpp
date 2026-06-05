@@ -219,7 +219,7 @@ PHINode *MergedLoadStoreMotion::getPHIOperand(BasicBlock *BB, StoreInst *S0,
 
   auto *NewPN = PHINode::Create(Opd1->getType(), 2, Opd2->getName() + ".sink");
   NewPN->insertBefore(BB->begin());
-  NewPN->applyMergedLocation(S0->getDebugLoc(), S1->getDebugLoc());
+  NewPN->applyMergedLocation(S0->getFullDebugLoc(), S1->getFullDebugLoc());
   NewPN->addIncoming(Opd1, S0->getParent());
   NewPN->addIncoming(Opd2, S1->getParent());
   return NewPN;
@@ -258,7 +258,7 @@ void MergedLoadStoreMotion::sinkStoresAndGEPs(BasicBlock *BB, StoreInst *S0,
   S0->andIRFlags(S1);
 
   combineMetadataForCSE(S0, S1, true);
-  S0->applyMergedLocation(S0->getDebugLoc(), S1->getDebugLoc());
+  S0->applyMergedLocation(S0->getFullDebugLoc(), S1->getFullDebugLoc());
   S0->mergeDIAssignID(S1);
 
   // Insert bitcast for conflicting typed stores (or just use original value if
@@ -282,7 +282,7 @@ void MergedLoadStoreMotion::sinkStoresAndGEPs(BasicBlock *BB, StoreInst *S0,
     auto *GEP1 = cast<GetElementPtrInst>(Ptr1);
     Instruction *GEPNew = GEP0->clone();
     GEPNew->insertBefore(SNew->getIterator());
-    GEPNew->applyMergedLocation(GEP0->getDebugLoc(), GEP1->getDebugLoc());
+    GEPNew->applyMergedLocation(GEP0->getFullDebugLoc(), GEP1->getFullDebugLoc());
     SNew->setOperand(1, GEPNew);
     GEP0->replaceAllUsesWith(GEPNew);
     GEP0->eraseFromParent();

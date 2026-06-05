@@ -2858,7 +2858,7 @@ bool HexagonConstEvaluator::rewriteHexConstDefs(MachineInstr &MI,
   }
 
   MachineBasicBlock &B = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   unsigned ChangedNum = 0;
 #ifndef NDEBUG
   SmallVector<const MachineInstr*,4> NewInstrs;
@@ -2967,7 +2967,7 @@ bool HexagonConstEvaluator::rewriteHexConstUses(MachineInstr &MI,
   bool Changed = false;
   unsigned Opc = MI.getOpcode();
   MachineBasicBlock &B = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock::iterator At = MI.getIterator();
   MachineInstr *NewMI = nullptr;
 
@@ -3166,7 +3166,7 @@ bool HexagonConstEvaluator::rewriteHexBranch(MachineInstr &BrI,
       // as executable here, so we need to overwrite the BrI, which we
       // know is executable.
       const MCInstrDesc &JD = HII.get(Hexagon::J2_jump);
-      auto NI = BuildMI(B, BrI.getIterator(), BrI.getDebugLoc(), JD)
+      auto NI = BuildMI(B, BrI.getIterator(), BrI.getFullDebugLoc(), JD)
                   .addMBB(TargetB);
       BrI.setDesc(JD);
       while (BrI.getNumOperands() > 0)

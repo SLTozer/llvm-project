@@ -2369,7 +2369,7 @@ void MachineVerifier::visitMachineInstrBefore(const MachineInstr *MI) {
   // DBG_VALUEs: these are convenient to use in tests, but should never get
   // generated.
   if (MI->isDebugValue() && MI->getNumOperands() == 4)
-    if (!MI->getDebugLoc())
+    if (!MI->getFullDebugLoc())
       report("Missing DebugLoc for debug instruction", MI);
 
   // Meta instructions should never be the subject of debug value tracking,

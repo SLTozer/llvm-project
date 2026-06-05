@@ -24,6 +24,7 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalAlias.h"
 #include "llvm/IR/GlobalIFunc.h"
 #include "llvm/IR/GlobalObject.h"
@@ -144,6 +145,7 @@ public:
   void addFlags(RemapFlags Flags);
 
   void remapGlobalObjectMetadata(GlobalObject &GO);
+  void remapGlobalObjectMetadata(Function &GO);
 
   Value *mapValue(const Value *V);
   void remapInstruction(Instruction *I);
@@ -159,6 +161,9 @@ public:
   /// Find the mapping for MD.  Guarantees that the return will be resolved
   /// (not an MDNode, or MDNode::isResolved() returns true).
   Metadata *mapMetadata(const Metadata *MD);
+
+  /// Map a DebugLoc.
+  DebugLoc mapDebugLoc(DebugLoc DL);
 
   void scheduleMapGlobalInitializer(GlobalVariable &GV, Constant &Init,
                                     unsigned MCID);
@@ -184,6 +189,7 @@ private:
 
   /// Map metadata that doesn't require visiting operands.
   std::optional<Metadata *> mapSimpleMetadata(const Metadata *MD);
+  Metadata *mapFLMetadata(const DIFunctionLocalMetadata *FLMD);
 
   Metadata *mapToMetadata(const Metadata *Key, Metadata *Val);
   Metadata *mapToSelf(const Metadata *MD);
@@ -544,8 +550,10 @@ Value *Mapper::mapValue(const Value *V) {
 
 void Mapper::remapDbgRecord(DbgRecord &DR) {
   // Remap DILocations.
-  auto *MappedDILoc = mapMetadata(DR.getDebugLoc());
-  DR.setDebugLoc(DebugLoc(cast<DILocation>(MappedDILoc)));
+#if !LLVM_USE_FLMD_SOURCE_LOCS
+  auto *MappedDILoc = mapMetadata(DR.getDebugLoc().getAsMDNode());
+  DR.setDebugLoc(DebugLoc::getFromDILocation(cast<DILocation>(MappedDILoc)));
+#endif
 
   if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
     // Remap labels.
@@ -916,12 +924,56 @@ std::optional<Metadata *> Mapper::mapSimpleMetadata(const Metadata *MD) {
   return std::nullopt;
 }
 
+Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
+  // Mapping FLMD means:
+  // 1. Map the DISubprogram and all other local scopes using standard MD
+  //    mapping logic.
+  // 2. Remap all self-references in the InlinedCalls array.
+
+  // Set up the new FLMD and its builder, manually handling the mapping of the
+  // subprogram.
+  const DISubprogram *OldSP = cast<DISubprogram>(FLMD->Scopes[0].get());
+  DISubprogram *NewSP = cast_or_null<DISubprogram>(mapMetadata(OldSP));
+  assert(NewSP && "Missing a mapped subprogram?");
+  if (OldSP == NewSP) {
+    return const_cast<DIFunctionLocalMetadata*>(FLMD);
+  }
+  assert(OldSP != NewSP && "Cannot have non-identity FLMD mapping with an identity subprogram mapping.");
+  DIFunctionLocalMetadata *NewFLMD = DIFunctionLocalMetadata::getDistinct(FLMD->getContext());
+  NewFLMD->MaxAtomGroup = FLMD->MaxAtomGroup;
+  FLMDBuilder Builder(NewFLMD, NewSP);
+
+  // Add SrcLocs, which are unchanged.
+  NewFLMD->SrcLocs.append(FLMD->SrcLocs.begin() + DIFunctionLocalMetadata::FirstNormalSrcLoxIdx, FLMD->SrcLocs.end());
+  // Add FLScopes, which must each be remapped.
+  for (FLScope Scope : drop_begin(FLMD->Scopes))
+    NewFLMD->Scopes.emplace_back(cast<DILocalScope>(mapMetadata(Scope.get())));
+  // Add InlinedCalls, which probably don't need to be remapped at all.
+  // TODO: We should be sure that we have the right principled approach. There
+  // are potential advantages to keeping references to the old FLMD from the new
+  // one, namely that it allows us to copy only non-inline-used SrcLocs/Scopes
+  // over to the new FLMD; there probably aren't any issues, unless we would end
+  // up otherwise able to delete the old FLMD. This seems uncommon enough for
+  // the performance concerns to be unimportant either way, so we just take the
+  // simplest approach here.
+  NewFLMD->InlinedCalls.append(FLMD->InlinedCalls);
+  // FIXME: Loops contain MDOperands which may need remapping, revisit this
+  // later.
+  NewFLMD->Loops.append(FLMD->Loops);
+
+  mapToMetadata(FLMD, NewFLMD);
+  return NewFLMD;
+}
+
 Metadata *Mapper::mapMetadata(const Metadata *MD) {
   assert(MD && "Expected valid metadata");
   assert(!isa<LocalAsMetadata>(MD) && "Unexpected local metadata");
 
   if (std::optional<Metadata *> NewMD = mapSimpleMetadata(MD))
     return *NewMD;
+
+  if (auto *FLMD = dyn_cast<DIFunctionLocalMetadata>(MD))
+    return mapFLMetadata(FLMD);
 
   return MDNodeMapper(*this).map(*cast<MDNode>(MD));
 }
@@ -1016,13 +1068,20 @@ void Mapper::remapInstruction(Instruction *I) {
 
   // Remap attached metadata.
   SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
-  I->getAllMetadata(MDs);
+  I->getAllMetadataOtherThanDebugLoc(MDs);
   for (const auto &MI : MDs) {
     MDNode *Old = MI.second;
     MDNode *New = cast_or_null<MDNode>(mapMetadata(Old));
     if (New != Old)
       I->setMetadata(MI.first, New);
   }
+  #if !LLVM_USE_FLMD_SOURCE_LOCS
+  // With FLMD, we don't need to remap the FLDebugLoc attached to the
+  // instruction, and getDebugLoc() will fail for Instructions not inserted
+  // into a function.
+  if (I->getDebugLoc())
+    I->setDebugLoc(DebugLoc::getFromDILocation(cast<DILocation>(mapMetadata(I->getDebugLoc().getAsDILocation()))));
+  #endif
 
   // Remap source location atom instance.
   if (!(Flags & RF_DoNotRemapAtoms))
@@ -1070,11 +1129,22 @@ void Mapper::remapInstruction(Instruction *I) {
 }
 
 void Mapper::remapGlobalObjectMetadata(GlobalObject &GO) {
+  if (auto *F = dyn_cast<Function>(&GO)) {
+    remapGlobalObjectMetadata(*F);
+    return;
+  }
   SmallVector<std::pair<unsigned, MDNode *>, 8> MDs;
   GO.getAllMetadata(MDs);
   GO.clearMetadata();
   for (const auto &I : MDs)
     GO.addMetadata(I.first, *cast<MDNode>(mapMetadata(I.second)));
+}
+void Mapper::remapGlobalObjectMetadata(Function &F) {
+  SmallVector<std::pair<unsigned, MDNode *>, 8> MDs;
+  F.getAllMetadata(MDs);
+  F.clearMetadata();
+  for (const auto &I : MDs)
+    F.addMetadata(I.first, *cast<MDNode>(mapMetadata(I.second)));
 }
 
 void Mapper::remapFunction(Function &F) {
@@ -1318,22 +1388,54 @@ void ValueMapper::scheduleRemapFunction(Function &F, unsigned MCID) {
 }
 
 void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
-  const DebugLoc &DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
   if (!DL)
     return;
 
-  auto AtomGroup = DL->getAtomGroup();
+  auto AtomGroup = DL.getAtomGroup();
   if (!AtomGroup)
     return;
 
-  auto R = VM.AtomMap.find({DL->getInlinedAt(), AtomGroup});
+  
+  auto R = VM.AtomMap.find({DL.getAtomContext(), AtomGroup});
   if (R == VM.AtomMap.end())
     return;
   AtomGroup = R->second;
 
   // Remap the atom group and copy all other fields.
-  DILocation *New = DILocation::get(
-      I->getContext(), DL.getLine(), DL.getCol(), DL.getScope(),
-      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL->getAtomRank());
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  assert(AtomGroup <= DL.getFLContext()->getAtomGroupWaterline(DL.getInlinedAtIdx()));
+  DebugLoc New = DL.getWithAtom(AtomGroup, DL.getAtomRank());
+#else
+  DebugLoc New = DebugLoc::get(
+      I, DL.getLine(), DL.getCol(), DL.getScope(),
+      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL.getAtomRank());
+#endif
+  I->setDebugLoc(New);
+}
+
+void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM, Function *F) {
+  DebugLoc DL = I->getFullDebugLoc(F);
+  if (!DL)
+    return;
+
+  auto AtomGroup = DL.getAtomGroup();
+  if (!AtomGroup)
+    return;
+
+  auto R = VM.AtomMap.find({DL.getAtomContext(), AtomGroup});
+  if (R == VM.AtomMap.end())
+    return;
+  AtomGroup = R->second;
+
+  // Remap the atom group and copy all other fields.
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  assert(AtomGroup <= DL.getFLContext()->getAtomGroupWaterline(DL.getInlinedAtIdx()));
+  DebugLoc New = DL.getWithAtom(AtomGroup, DL.getAtomRank());
+#else
+  DebugLoc New = DebugLoc::get(
+      I, DL.getLine(), DL.getCol(), DL.getScope(),
+      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL.getAtomRank());
+#endif
   I->setDebugLoc(New);
 }

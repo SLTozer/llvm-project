@@ -481,7 +481,7 @@ Instruction *MemCpyOptPass::tryMergingIntoMemset(Instruction *StartInst,
                                               << *SI << '\n';
                dbgs() << "With: " << *AMemSet << '\n');
     if (!Range.TheStores.empty())
-      AMemSet->setDebugLoc(Range.TheStores[0]->getDebugLoc());
+      AMemSet->copyDebugLocFrom(Range.TheStores[0]);
 
     auto *NewDef = cast<MemoryDef>(
         MemInsertPoint->getMemoryInst() == &*BI
@@ -1350,7 +1350,7 @@ bool MemCpyOptPass::processMemSetMemCpyDependence(MemCpyInst *MemCpy,
   // block.
   assert(MemSet->getParent() == MemCpy->getParent() &&
          "Preserving debug location based on moving memset within BB.");
-  Builder.SetCurrentDebugLocation(MemSet->getDebugLoc());
+  Builder.SetCurrentDebugLocation(MemSet->getFullDebugLoc());
 
   // If the sizes have different types, zext the smaller one.
   if (DestSize->getType() != SrcSize->getType()) {

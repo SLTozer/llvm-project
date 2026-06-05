@@ -26,6 +26,7 @@
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineMemOperand.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/EHPersonalities.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/ArrayRecycler.h"
@@ -51,7 +52,6 @@ class DebugLoc;
 struct DenormalMode;
 class DIExpression;
 class DILocalVariable;
-class DILocation;
 class Function;
 class GISelChangeObserver;
 class GlobalValue;
@@ -460,14 +460,14 @@ public:
   public:
     const DILocalVariable *Var;
     const DIExpression *Expr;
-    const DILocation *Loc;
+    DebugLoc Loc;
 
     VariableDbgInfo(const DILocalVariable *Var, const DIExpression *Expr,
-                    int Slot, const DILocation *Loc)
+                    int Slot, DebugLoc Loc)
         : Address(Slot), Var(Var), Expr(Expr), Loc(Loc) {}
 
     VariableDbgInfo(const DILocalVariable *Var, const DIExpression *Expr,
-                    MCRegister EntryValReg, const DILocation *Loc)
+                    MCRegister EntryValReg, DebugLoc Loc)
         : Address(EntryValReg), Var(Var), Expr(Expr), Loc(Loc) {}
 
     /// Return true if this variable is in a stack slot.
@@ -1075,7 +1075,7 @@ public:
 
   /// CreateMachineInstr - Allocate a new MachineInstr. Use this instead
   /// of `new MachineInstr'.
-  MachineInstr *CreateMachineInstr(const MCInstrDesc &MCID, DebugLoc DL,
+  MachineInstr *CreateMachineInstr(const MCInstrDesc &MCID, DbgLocStorage DL,
                                    bool NoImplicit = false);
 
   /// Create a new MachineInstr which is a copy of \p Orig, identical in all
@@ -1437,14 +1437,14 @@ public:
   /// Collect information used to emit debugging information of a variable in a
   /// stack slot.
   void setVariableDbgInfo(const DILocalVariable *Var, const DIExpression *Expr,
-                          int Slot, const DILocation *Loc) {
+                          int Slot, DebugLoc Loc) {
     VariableDbgInfos.emplace_back(Var, Expr, Slot, Loc);
   }
 
   /// Collect information used to emit debugging information of a variable in
   /// the entry value of a register.
   void setVariableDbgInfo(const DILocalVariable *Var, const DIExpression *Expr,
-                          MCRegister Reg, const DILocation *Loc) {
+                          MCRegister Reg, DebugLoc Loc) {
     VariableDbgInfos.emplace_back(Var, Expr, Reg, Loc);
   }
 

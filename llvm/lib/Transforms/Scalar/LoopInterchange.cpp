@@ -1557,7 +1557,7 @@ bool LoopInterchangeLegality::canInterchangeLoops(unsigned InnerLoopId,
           << "Loops contain instructions that cannot be safely interchanged\n");
       ORE->emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "UnsafeInst",
-                                        I.getDebugLoc(), I.getParent())
+                                        I.getFullDebugLoc(), I.getParent())
                << "Cannot interchange loops due to instruction that is "
                   "potentially unsafe to interchange.";
       });

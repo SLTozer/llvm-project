@@ -136,7 +136,7 @@ bool RISCVVMV0Elimination::runOnMachineFunction(MachineFunction &MF) {
             Src = SrcMI->getOperand(1).getReg();
           }
 
-          BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(RISCV::COPY), RISCV::V0)
+          BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(RISCV::COPY), RISCV::V0)
               .addReg(Src);
 
           MO.setReg(RISCV::V0);

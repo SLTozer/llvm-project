@@ -468,7 +468,7 @@ public:
   // with indirect memory location (frame index).
   MachineInstr *rewriteStatepoint() {
     MachineInstr *NewMI =
-        MF.CreateMachineInstr(TII.get(MI.getOpcode()), MI.getDebugLoc(), true);
+        MF.CreateMachineInstr(TII.get(MI.getOpcode()), MI.getFullDebugLoc(), true);
     MachineInstrBuilder MIB(MF, NewMI);
 
     unsigned NumOps = MI.getNumOperands();

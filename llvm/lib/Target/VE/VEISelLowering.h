@@ -227,10 +227,10 @@ public:
                               int Offset) const;
   // Setup basic block address.
   Register prepareMBB(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                      MachineBasicBlock *TargetBB, const DebugLoc &DL) const;
+                      MachineBasicBlock *TargetBB, DebugLoc DL) const;
   // Prepare function/variable address.
   Register prepareSymbol(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                         StringRef Symbol, const DebugLoc &DL, bool IsLocal,
+                         StringRef Symbol, DebugLoc DL, bool IsLocal,
                          bool IsCall) const;
   /// } Custom Inserter
 

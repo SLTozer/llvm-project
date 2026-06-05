@@ -1907,8 +1907,8 @@ HexagonTargetLowering::validateConstPtrAlignment(SDValue Ptr, Align NeedAlign,
   O << "Misaligned constant address: " << format_hex(Addr, 10)
     << " has alignment " << HaveAlign.value()
     << ", but the memory access requires " << NeedAlign.value();
-  if (DebugLoc DL = dl.getDebugLoc())
-    DL.print(O << ", at ");
+  if (DbgLocStorage DL = dl.getDebugLoc())
+    O << ", at " << DL.get();
   O << ". The instruction has been replaced with a trap.";
 
   DAG.getContext()->diagnose(DiagnosticInfoMisalignedTrap(O.str()));
@@ -3988,7 +3988,7 @@ HexagonTargetLowering::EmitKCFICheck(MachineBasicBlock &MBB,
   assert(Target.isReg() && "Invalid target operand for an indirect call");
   Target.setIsRenamable(false);
 
-  return BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII->get(Hexagon::KCFI_CHECK))
+  return BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII->get(Hexagon::KCFI_CHECK))
       .addReg(Target.getReg())
       .addImm(MBBI->getCFIType())
       .getInstr();

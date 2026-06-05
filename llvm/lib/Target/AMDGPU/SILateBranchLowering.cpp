@@ -159,7 +159,7 @@ void SILateBranchLowering::expandChainCall(MachineInstr &MI,
   int ExecIdx =
       AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::exec);
   assert(ExecIdx != -1 && "Missing EXEC operand");
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   if (DynamicVGPR) {
     // We have 3 extra operands and we need to:
     // * Try to change the VGPR allocation
@@ -204,7 +204,7 @@ void SILateBranchLowering::expandChainCall(MachineInstr &MI,
 void SILateBranchLowering::earlyTerm(MachineInstr &MI,
                                      MachineBasicBlock *EarlyExitBlock) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   auto BranchMI = BuildMI(MBB, MI, DL, TII->get(AMDGPU::S_CBRANCH_SCC0))
                       .addMBB(EarlyExitBlock);
@@ -323,7 +323,7 @@ bool SILateBranchLowering::run(MachineFunction &MF) {
 
       MBB->addSuccessor(EmptyMBBAtEnd);
       MDT->insertEdge(MBB, EmptyMBBAtEnd);
-      BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(AMDGPU::S_BRANCH))
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(AMDGPU::S_BRANCH))
           .addMBB(EmptyMBBAtEnd);
       MI->eraseFromParent();
       MadeChange = true;

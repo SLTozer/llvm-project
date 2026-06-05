@@ -373,7 +373,7 @@ void SystemZLongBranch::setWorstCaseAddresses() {
 void SystemZLongBranch::splitBranchOnCount(MachineInstr *MI,
                                            unsigned AddOpcode) {
   MachineBasicBlock *MBB = MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   MachineInstr *AddImm = BuildMI(*MBB, MI, DL, TII->get(AddOpcode))
                              .add(MI->getOperand(0))
                              .add(MI->getOperand(1))
@@ -395,7 +395,7 @@ void SystemZLongBranch::splitBranchOnCount(MachineInstr *MI,
 void SystemZLongBranch::splitCompareBranch(MachineInstr *MI,
                                            unsigned CompareOpcode) {
   MachineBasicBlock *MBB = MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   BuildMI(*MBB, MI, DL, TII->get(CompareOpcode))
       .add(MI->getOperand(0))
       .add(MI->getOperand(1));

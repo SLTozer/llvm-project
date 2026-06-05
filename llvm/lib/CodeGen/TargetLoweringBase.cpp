@@ -1625,7 +1625,7 @@ TargetLoweringBase::emitPatchPoint(MachineInstr &InitialMI,
                     [](MachineOperand &Operand) { return Operand.isFI(); }))
     return MBB;
 
-  MachineInstrBuilder MIB = BuildMI(MF, MI->getDebugLoc(), MI->getDesc());
+  MachineInstrBuilder MIB = BuildMI(MF, MI->getFullDebugLoc(), MI->getDesc());
 
   // Inherit previous memory operands.
   MIB.cloneMemRefs(*MI);

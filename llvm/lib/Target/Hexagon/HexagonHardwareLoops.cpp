@@ -840,7 +840,7 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
   MachineBasicBlock::iterator InsertPos = PH->getFirstTerminator();
   DebugLoc DL;
   if (InsertPos != PH->end())
-    DL = InsertPos->getDebugLoc();
+    DL = InsertPos->getFullDebugLoc();
 
   // If Start is an immediate and End is a register, the trip count
   // will be "reg - imm".  Hexagon's "subtract immediate" instruction
@@ -1317,7 +1317,7 @@ bool HexagonHardwareLoops::convertToHardwareLoop(MachineLoop *L,
   LLVM_DEBUG(dbgs() << "Change to hardware loop at "; L->dump());
   DebugLoc DL;
   if (InsertPos != Preheader->end())
-    DL = InsertPos->getDebugLoc();
+    DL = InsertPos->getFullDebugLoc();
 
   if (TripCount->isReg()) {
     // Create a copy of the loop count register.
@@ -1348,7 +1348,7 @@ bool HexagonHardwareLoops::convertToHardwareLoop(MachineLoop *L,
   LoopStart->setMachineBlockAddressTaken();
 
   // Replace the loop branch with an endloop instruction.
-  DebugLoc LastIDL = LastI->getDebugLoc();
+  DebugLoc LastIDL = LastI->getFullDebugLoc();
   BuildMI(*LastMBB, LastI, LastIDL, TII->get(ENDLOOP)).addMBB(LoopStart);
 
   // The loop ends with either:
@@ -1664,7 +1664,7 @@ void HexagonHardwareLoops::setImmediate(MachineOperand &MO, int64_t Val) {
   const TargetRegisterClass *RC = MRI->getRegClass(R);
   Register NewR = MRI->createVirtualRegister(RC);
   MachineBasicBlock &B = *DI->getParent();
-  DebugLoc DL = DI->getDebugLoc();
+  DebugLoc DL = DI->getFullDebugLoc();
   BuildMI(B, DI, DL, TII->get(DI->getOpcode()), NewR).addImm(Val);
   MO.setReg(NewR);
 }

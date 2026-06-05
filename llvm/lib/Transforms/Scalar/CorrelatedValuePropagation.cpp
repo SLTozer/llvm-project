@@ -667,7 +667,7 @@ static bool processSaturatingInst(SaturatingInst *SI, LazyValueInfo *LVI) {
   bool NUW = !SI->isSigned();
   BinaryOperator *BinOp = BinaryOperator::Create(
       Opcode, SI->getLHS(), SI->getRHS(), SI->getName(), SI->getIterator());
-  BinOp->setDebugLoc(SI->getDebugLoc());
+  BinOp->copyDebugLocFrom(SI);
   setDeducedOverflowingFlags(BinOp, Opcode, NSW, NUW);
 
   SI->replaceAllUsesWith(BinOp);
@@ -980,13 +980,13 @@ static bool processSRem(BinaryOperator *SDI, const ConstantRange &LCR,
       continue;
     auto *BO = BinaryOperator::CreateNeg(Op.V, Op.V->getName() + ".nonneg",
                                          SDI->getIterator());
-    BO->setDebugLoc(SDI->getDebugLoc());
+    BO->copyDebugLocFrom(SDI);
     Op.V = BO;
   }
 
   auto *URem = BinaryOperator::CreateURem(Ops[0].V, Ops[1].V, SDI->getName(),
                                           SDI->getIterator());
-  URem->setDebugLoc(SDI->getDebugLoc());
+  URem->copyDebugLocFrom(SDI);
 
   auto *Res = URem;
 
@@ -994,7 +994,7 @@ static bool processSRem(BinaryOperator *SDI, const ConstantRange &LCR,
   if (Ops[0].D == Domain::NonPositive) {
     Res = BinaryOperator::CreateNeg(Res, Res->getName() + ".neg",
                                     SDI->getIterator());
-    Res->setDebugLoc(SDI->getDebugLoc());
+    Res->copyDebugLocFrom(SDI);
   }
 
   SDI->replaceAllUsesWith(Res);
@@ -1041,13 +1041,13 @@ static bool processSDiv(BinaryOperator *SDI, const ConstantRange &LCR,
       continue;
     auto *BO = BinaryOperator::CreateNeg(Op.V, Op.V->getName() + ".nonneg",
                                          SDI->getIterator());
-    BO->setDebugLoc(SDI->getDebugLoc());
+    BO->copyDebugLocFrom(SDI);
     Op.V = BO;
   }
 
   auto *UDiv = BinaryOperator::CreateUDiv(Ops[0].V, Ops[1].V, SDI->getName(),
                                           SDI->getIterator());
-  UDiv->setDebugLoc(SDI->getDebugLoc());
+  UDiv->copyDebugLocFrom(SDI);
   UDiv->setIsExact(SDI->isExact());
 
   auto *Res = UDiv;
@@ -1056,7 +1056,7 @@ static bool processSDiv(BinaryOperator *SDI, const ConstantRange &LCR,
   if (Ops[0].D != Ops[1].D) {
     Res = BinaryOperator::CreateNeg(Res, Res->getName() + ".neg",
                                     SDI->getIterator());
-    Res->setDebugLoc(SDI->getDebugLoc());
+    Res->copyDebugLocFrom(SDI);
   }
 
   SDI->replaceAllUsesWith(Res);
@@ -1109,7 +1109,7 @@ static bool processAShr(BinaryOperator *SDI, LazyValueInfo *LVI) {
   auto *BO = BinaryOperator::CreateLShr(SDI->getOperand(0), SDI->getOperand(1),
                                         "", SDI->getIterator());
   BO->takeName(SDI);
-  BO->setDebugLoc(SDI->getDebugLoc());
+  BO->copyDebugLocFrom(SDI);
   BO->setIsExact(SDI->isExact());
   SDI->replaceAllUsesWith(BO);
   SDI->eraseFromParent();
@@ -1127,7 +1127,7 @@ static bool processSExt(SExtInst *SDI, LazyValueInfo *LVI) {
   auto *ZExt = CastInst::CreateZExtOrBitCast(Base, SDI->getType(), "",
                                              SDI->getIterator());
   ZExt->takeName(SDI);
-  ZExt->setDebugLoc(SDI->getDebugLoc());
+  ZExt->copyDebugLocFrom(SDI);
   ZExt->setNonNeg();
   SDI->replaceAllUsesWith(ZExt);
   SDI->eraseFromParent();
@@ -1168,7 +1168,7 @@ static bool processSIToFP(SIToFPInst *SIToFP, LazyValueInfo *LVI) {
   auto *UIToFP = CastInst::Create(Instruction::UIToFP, Base, SIToFP->getType(),
                                   "", SIToFP->getIterator());
   UIToFP->takeName(SIToFP);
-  UIToFP->setDebugLoc(SIToFP->getDebugLoc());
+  UIToFP->copyDebugLocFrom(SIToFP);
   UIToFP->setNonNeg();
   SIToFP->replaceAllUsesWith(UIToFP);
   SIToFP->eraseFromParent();

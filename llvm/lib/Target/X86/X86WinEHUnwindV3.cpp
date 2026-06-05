@@ -293,7 +293,7 @@ bool X86WinEHUnwindV3::runOnMachineFunction(MachineFunction &MF) {
     const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
     auto SplitAfter = [&](const EpilogSplitPoint &Epilog) {
       MachineBasicBlock *MBB = Epilog.BeginEpilog->getParent();
-      BuildMI(*MBB, MBB->begin(), Epilog.BeginEpilog->getDebugLoc(),
+      BuildMI(*MBB, MBB->begin(), Epilog.BeginEpilog->getFullDebugLoc(),
               TII->get(X86::SEH_SplitChainedAtEndOfBlock));
       SubFragmentSplits++;
       Changed = true;

@@ -188,7 +188,7 @@ bool foldCopyDup(MachineInstr &MI) {
     Register DupSrc = SrcMI->getOperand(1).getReg();
     int64_t DupImm = SrcMI->getOperand(2).getImm();
 
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII->get(UMOV), Dst)
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII->get(UMOV), Dst)
         .addReg(DupSrc)
         .addImm(DupImm);
     SrcMI->eraseFromParent();

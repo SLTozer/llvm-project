@@ -174,7 +174,7 @@ FixupLEAsImpl::postRAConvertToLEA(MachineBasicBlock &MBB,
     const MachineOperand &Src = MI.getOperand(1);
     const MachineOperand &Dest = MI.getOperand(0);
     MachineInstr *NewMI =
-        BuildMI(MBB, MBBI, MI.getDebugLoc(),
+        BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
                 TII->get(MI.getOpcode() == X86::MOV32rr ? X86::LEA32r
                                                         : X86::LEA64r))
             .add(Dest)
@@ -525,12 +525,12 @@ bool FixupLEAsImpl::optLEAALU(MachineBasicBlock::iterator &I,
   // Now it's safe to change instructions.
   MachineInstr *NewMI1, *NewMI2;
   unsigned NewOpcode = AluI->getOpcode();
-  NewMI1 = BuildMI(MBB, InsertPos, AluI->getDebugLoc(), TII->get(NewOpcode),
+  NewMI1 = BuildMI(MBB, InsertPos, AluI->getFullDebugLoc(), TII->get(NewOpcode),
                    AluDestReg)
                .addReg(AluDestReg, RegState::Kill)
                .addReg(BaseReg, getKillRegState(KilledBase));
   NewMI1->addRegisterDead(X86::EFLAGS, TRI);
-  NewMI2 = BuildMI(MBB, InsertPos, AluI->getDebugLoc(), TII->get(NewOpcode),
+  NewMI2 = BuildMI(MBB, InsertPos, AluI->getFullDebugLoc(), TII->get(NewOpcode),
                    AluDestReg)
                .addReg(AluDestReg, RegState::Kill)
                .addReg(IndexReg, getKillRegState(KilledIndex));
@@ -594,12 +594,12 @@ bool FixupLEAsImpl::optTwoAddrLEA(MachineBasicBlock::iterator &I,
 
     if (MI.getOpcode() == X86::LEA64_32r) {
       // TODO: Do we need the super register implicit use?
-      NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpcode), DestReg)
+      NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpcode), DestReg)
         .addReg(BaseReg).addReg(IndexReg)
         .addReg(Base.getReg(), RegState::Implicit)
         .addReg(Index.getReg(), RegState::Implicit);
     } else {
-      NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpcode), DestReg)
+      NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpcode), DestReg)
         .addReg(BaseReg).addReg(IndexReg);
     }
   } else if (DestReg == BaseReg && !IndexReg) {
@@ -616,21 +616,21 @@ bool FixupLEAsImpl::optTwoAddrLEA(MachineBasicBlock::iterator &I,
 
       if (MI.getOpcode() == X86::LEA64_32r) {
         // TODO: Do we need the super register implicit use?
-        NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpcode), DestReg)
+        NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpcode), DestReg)
           .addReg(BaseReg).addReg(Base.getReg(), RegState::Implicit);
       } else {
-        NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpcode), DestReg)
+        NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpcode), DestReg)
           .addReg(BaseReg);
       }
     } else {
       unsigned NewOpcode = getADDriFromLEA(MI.getOpcode(), Disp);
       if (MI.getOpcode() == X86::LEA64_32r) {
         // TODO: Do we need the super register implicit use?
-        NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpcode), DestReg)
+        NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpcode), DestReg)
           .addReg(BaseReg).addImm(Disp.getImm())
           .addReg(Base.getReg(), RegState::Implicit);
       } else {
-        NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpcode), DestReg)
+        NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpcode), DestReg)
           .addReg(BaseReg).addImm(Disp.getImm());
       }
     }
@@ -719,7 +719,7 @@ void FixupLEAsImpl::processInstructionForSlowLEA(MachineBasicBlock::iterator &I,
     const MCInstrDesc &ADDrr = TII->get(getADDrrFromLEA(Opcode));
     const MachineOperand &Src = SrcR1 == DstR ? Index : Base;
     NewMI =
-        BuildMI(MBB, I, MI.getDebugLoc(), ADDrr, DstR).addReg(DstR).add(Src);
+        BuildMI(MBB, I, MI.getFullDebugLoc(), ADDrr, DstR).addReg(DstR).add(Src);
     LLVM_DEBUG(NewMI->dump(););
   }
   // Make ADD instruction for immediate
@@ -727,7 +727,7 @@ void FixupLEAsImpl::processInstructionForSlowLEA(MachineBasicBlock::iterator &I,
     const MCInstrDesc &ADDri =
         TII->get(getADDriFromLEA(Opcode, Offset));
     const MachineOperand &SrcR = SrcR1 == DstR ? Base : Index;
-    NewMI = BuildMI(MBB, I, MI.getDebugLoc(), ADDri, DstR)
+    NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), ADDri, DstR)
                 .add(SrcR)
                 .addImm(Offset.getImm());
     LLVM_DEBUG(NewMI->dump(););
@@ -791,7 +791,7 @@ void FixupLEAsImpl::processInstrForSlow3OpLEA(MachineBasicBlock::iterator &I,
   // (either it has a an Offset or neither base nor index are dst)
   if (IsScale1 && BaseReg == IndexReg &&
       (mayHaveOffset(Offset) || (IsInefficientBase && !BaseOrIndexIsDst))) {
-    NewMI = BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(LEAOpcode))
+    NewMI = BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(LEAOpcode))
                 .add(Dest)
                 .addReg(0)
                 .addImm(2)
@@ -816,13 +816,13 @@ void FixupLEAsImpl::processInstrForSlow3OpLEA(MachineBasicBlock::iterator &I,
 
     if (MI.getOpcode() == X86::LEA64_32r) {
       // TODO: Do we need the super register implicit use?
-      NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpc), DestReg)
+      NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpc), DestReg)
                   .addReg(BaseReg)
                   .addReg(IndexReg)
                   .addReg(Base.getReg(), RegState::Implicit)
                   .addReg(Index.getReg(), RegState::Implicit);
     } else {
-      NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpc), DestReg)
+      NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpc), DestReg)
                   .addReg(BaseReg)
                   .addReg(IndexReg);
     }
@@ -831,7 +831,7 @@ void FixupLEAsImpl::processInstrForSlow3OpLEA(MachineBasicBlock::iterator &I,
     // otherwise just break the 3-Ops LEA inst into 2-Ops LEA + ADD instruction:
     // lea offset(%base,%index,scale),%dst =>
     // lea (%base,%index,scale); add offset,%dst
-    NewMI = BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(LEAOpcode))
+    NewMI = BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(LEAOpcode))
                 .add(Dest)
                 .add(IsInefficientBase ? Index : Base)
                 .add(Scale)
@@ -850,12 +850,12 @@ void FixupLEAsImpl::processInstrForSlow3OpLEA(MachineBasicBlock::iterator &I,
           (Offset.getImm() == 1 || Offset.getImm() == -1)) {
         unsigned NewOpc =
             getINCDECFromLEA(MI.getOpcode(), Offset.getImm() == 1);
-        NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpc), DestReg)
+        NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpc), DestReg)
                     .addReg(DestReg);
         LLVM_DEBUG(NewMI->dump(););
       } else {
         unsigned NewOpc = getADDriFromLEA(MI.getOpcode(), Offset);
-        NewMI = BuildMI(MBB, I, MI.getDebugLoc(), TII->get(NewOpc), DestReg)
+        NewMI = BuildMI(MBB, I, MI.getFullDebugLoc(), TII->get(NewOpc), DestReg)
                     .addReg(DestReg)
                     .add(Offset);
         LLVM_DEBUG(NewMI->dump(););
@@ -879,11 +879,11 @@ void FixupLEAsImpl::processInstrForSlow3OpLEA(MachineBasicBlock::iterator &I,
   // lea (%base,%index,1), %dst => mov %base,%dst; add %index,%dst
   if (IsScale1 && !mayHaveOffset(Offset)) {
     bool BIK = Base.isKill() && BaseReg != IndexReg;
-    TII->copyPhysReg(MBB, MI, MI.getDebugLoc(), DestReg, BaseReg, BIK);
+    TII->copyPhysReg(MBB, MI, MI.getFullDebugLoc(), DestReg, BaseReg, BIK);
     LLVM_DEBUG(MI.getPrevNode()->dump(););
 
     unsigned NewOpc = getADDrrFromLEA(MI.getOpcode());
-    NewMI = BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(NewOpc), DestReg)
+    NewMI = BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(NewOpc), DestReg)
                 .addReg(DestReg)
                 .add(Index);
     LLVM_DEBUG(NewMI->dump(););
@@ -896,7 +896,7 @@ void FixupLEAsImpl::processInstrForSlow3OpLEA(MachineBasicBlock::iterator &I,
 
   // lea offset(%base,%index,scale), %dst =>
   // lea offset( ,%index,scale), %dst; add %base,%dst
-  NewMI = BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(LEAOpcode))
+  NewMI = BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(LEAOpcode))
               .add(Dest)
               .addReg(0)
               .add(Scale)
@@ -906,7 +906,7 @@ void FixupLEAsImpl::processInstrForSlow3OpLEA(MachineBasicBlock::iterator &I,
   LLVM_DEBUG(NewMI->dump(););
 
   unsigned NewOpc = getADDrrFromLEA(MI.getOpcode());
-  NewMI = BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(NewOpc), DestReg)
+  NewMI = BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(NewOpc), DestReg)
               .addReg(DestReg)
               .add(Base);
   LLVM_DEBUG(NewMI->dump(););

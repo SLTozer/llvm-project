@@ -1028,7 +1028,7 @@ bool SystemZTargetLowering::isFPImmLegal(const APFloat &Imm, EVT VT,
 MachineBasicBlock *
 SystemZTargetLowering::emitEHSjLjSetJmp(MachineInstr &MI,
                                         MachineBasicBlock *MBB) const {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const SystemZRegisterInfo *TRI = Subtarget.getRegisterInfo();
 
@@ -1189,7 +1189,7 @@ MachineBasicBlock *
 SystemZTargetLowering::emitEHSjLjLongJmp(MachineInstr &MI,
                                          MachineBasicBlock *MBB) const {
 
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
 
   MachineFunction *MF = MBB->getParent();
@@ -9771,13 +9771,13 @@ static Register forceReg(MachineInstr &MI, MachineOperand &Base,
     // Copy Base into a new virtual register to help register coalescing in
     // cases with multiple uses.
     Register Reg = MRI.createVirtualRegister(&SystemZ::ADDR64BitRegClass);
-    BuildMI(*MBB, MI, MI.getDebugLoc(), TII->get(SystemZ::COPY), Reg)
+    BuildMI(*MBB, MI, MI.getFullDebugLoc(), TII->get(SystemZ::COPY), Reg)
       .add(Base);
     return Reg;
   }
 
   Register Reg = MRI.createVirtualRegister(&SystemZ::ADDR64BitRegClass);
-  BuildMI(*MBB, MI, MI.getDebugLoc(), TII->get(SystemZ::LA), Reg)
+  BuildMI(*MBB, MI, MI.getFullDebugLoc(), TII->get(SystemZ::LA), Reg)
       .add(Base)
       .addImm(0)
       .addReg(0);
@@ -9871,7 +9871,7 @@ static void createPHIsForSelects(SmallVector<MachineInstr*, 8> &Selects,
     if (auto It = RegRewriteTable.find(FalseReg); It != RegRewriteTable.end())
       FalseReg = It->second.second;
 
-    DebugLoc DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
     BuildMI(*SinkMBB, SinkInsertionPoint, DL, TII->get(SystemZ::PHI), DestReg)
       .addReg(TrueReg).addMBB(TrueMBB)
       .addReg(FalseReg).addMBB(FalseMBB);
@@ -9969,7 +9969,7 @@ SystemZTargetLowering::emitSelect(MachineInstr &MI,
   //   BRC CCMask, JoinMBB
   //   # fallthrough to FalseMBB
   MBB = StartMBB;
-  BuildMI(MBB, MI.getDebugLoc(), TII->get(SystemZ::BRC))
+  BuildMI(MBB, MI.getFullDebugLoc(), TII->get(SystemZ::BRC))
     .addImm(CCValid).addImm(CCMask).addMBB(JoinMBB);
   MBB->addSuccessor(JoinMBB);
   MBB->addSuccessor(FalseMBB);
@@ -10011,7 +10011,7 @@ MachineBasicBlock *SystemZTargetLowering::emitCondStore(MachineInstr &MI,
   Register IndexReg = MI.getOperand(3).getReg();
   unsigned CCValid = MI.getOperand(4).getImm();
   unsigned CCMask = MI.getOperand(5).getImm();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   StoreOpcode = TII->getOpcodeForOffset(StoreOpcode, Disp);
 
@@ -10117,9 +10117,9 @@ SystemZTargetLowering::emitICmp128Hi(MachineInstr &MI,
   //   # fallthrough to HiEqMBB
   MBB = StartMBB;
   int HiOpcode = Unsigned? SystemZ::VECLG : SystemZ::VECG;
-  BuildMI(MBB, MI.getDebugLoc(), TII->get(HiOpcode))
+  BuildMI(MBB, MI.getFullDebugLoc(), TII->get(HiOpcode))
     .addReg(Op1).addReg(Op0);
-  BuildMI(MBB, MI.getDebugLoc(), TII->get(SystemZ::BRC))
+  BuildMI(MBB, MI.getFullDebugLoc(), TII->get(SystemZ::BRC))
     .addImm(SystemZ::CCMASK_ICMP).addImm(SystemZ::CCMASK_CMP_NE).addMBB(JoinMBB);
   MBB->addSuccessor(JoinMBB);
   MBB->addSuccessor(HiEqMBB);
@@ -10136,7 +10136,7 @@ SystemZTargetLowering::emitICmp128Hi(MachineInstr &MI,
   //   # fallthrough to JoinMBB
   MBB = HiEqMBB;
   Register Temp = MRI.createVirtualRegister(&SystemZ::VR128BitRegClass);
-  BuildMI(MBB, MI.getDebugLoc(), TII->get(SystemZ::VCHLGS), Temp)
+  BuildMI(MBB, MI.getFullDebugLoc(), TII->get(SystemZ::VCHLGS), Temp)
     .addReg(Op0).addReg(Op1);
   MBB->addSuccessor(JoinMBB);
 
@@ -10168,7 +10168,7 @@ MachineBasicBlock *SystemZTargetLowering::emitAtomicLoadBinary(
   Register BitShift = MI.getOperand(4).getReg();
   Register NegBitShift = MI.getOperand(5).getReg();
   unsigned BitSize = MI.getOperand(6).getImm();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // Get the right opcodes for the displacement.
   unsigned LOpcode  = TII->getOpcodeForOffset(SystemZ::L,  Disp);
@@ -10263,7 +10263,7 @@ MachineBasicBlock *SystemZTargetLowering::emitAtomicLoadMinMax(
   Register BitShift = MI.getOperand(4).getReg();
   Register NegBitShift = MI.getOperand(5).getReg();
   unsigned BitSize = MI.getOperand(6).getImm();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // Get the right opcodes for the displacement.
   unsigned LOpcode  = TII->getOpcodeForOffset(SystemZ::L,  Disp);
@@ -10365,7 +10365,7 @@ SystemZTargetLowering::emitAtomicCmpSwapW(MachineInstr &MI,
   Register BitShift = MI.getOperand(5).getReg();
   Register NegBitShift = MI.getOperand(6).getReg();
   int64_t BitSize = MI.getOperand(7).getImm();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   const TargetRegisterClass *RC = &SystemZ::GR32BitRegClass;
 
@@ -10469,7 +10469,7 @@ MachineBasicBlock *
 SystemZTargetLowering::emitPair128(MachineInstr &MI,
                                    MachineBasicBlock *MBB) const {
   const SystemZInstrInfo *TII = Subtarget.getInstrInfo();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register Dest = MI.getOperand(0).getReg();
   BuildMI(*MBB, MI, DL, TII->get(TargetOpcode::REG_SEQUENCE), Dest)
@@ -10490,7 +10490,7 @@ MachineBasicBlock *SystemZTargetLowering::emitExt128(MachineInstr &MI,
   MachineFunction &MF = *MBB->getParent();
   const SystemZInstrInfo *TII = Subtarget.getInstrInfo();
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register Dest = MI.getOperand(0).getReg();
   Register Src = MI.getOperand(1).getReg();
@@ -10521,7 +10521,7 @@ SystemZTargetLowering::emitMemMemWrapper(MachineInstr &MI,
   MachineFunction &MF = *MBB->getParent();
   const SystemZInstrInfo *TII = Subtarget.getInstrInfo();
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   MachineOperand DestBase = earlyUseOperand(MI.getOperand(0));
   uint64_t DestDisp = MI.getOperand(1).getImm();
@@ -10533,7 +10533,7 @@ SystemZTargetLowering::emitMemMemWrapper(MachineInstr &MI,
     if (!isUInt<12>(Disp)) {
       Register Reg = MRI.createVirtualRegister(&SystemZ::ADDR64BitRegClass);
       unsigned Opcode = TII->getOpcodeForOffset(SystemZ::LA, Disp);
-      BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII->get(Opcode), Reg)
+      BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII->get(Opcode), Reg)
         .add(Base).addImm(Disp).addReg(0);
       Base = MachineOperand::CreateReg(Reg, false);
       Disp = 0;
@@ -10877,7 +10877,7 @@ MachineBasicBlock *SystemZTargetLowering::emitStringWrapper(
   MachineFunction &MF = *MBB->getParent();
   const SystemZInstrInfo *TII = Subtarget.getInstrInfo();
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   uint64_t End1Reg = MI.getOperand(0).getReg();
   uint64_t Start1Reg = MI.getOperand(1).getReg();
@@ -10981,7 +10981,7 @@ MachineBasicBlock *SystemZTargetLowering::emitLoadAndTestCmp0(
   MachineFunction &MF = *MBB->getParent();
   MachineRegisterInfo *MRI = &MF.getRegInfo();
   const SystemZInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register SrcReg = MI.getOperand(0).getReg();
 
@@ -11004,7 +11004,7 @@ MachineBasicBlock *SystemZTargetLowering::emitProbedAlloca(
   MachineFunction &MF = *MBB->getParent();
   MachineRegisterInfo *MRI = &MF.getRegInfo();
   const SystemZInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const unsigned ProbeSize = getStackProbeSize(MF);
   Register DstReg = MI.getOperand(0).getReg();
   Register SizeReg = MI.getOperand(2).getReg();
@@ -11105,7 +11105,7 @@ MachineBasicBlock *SystemZTargetLowering::emitStackGuardPseudo(
     MachineInstr &MI, MachineBasicBlock *MBB, unsigned PseudoOp) const {
   MachineRegisterInfo *MRI = &MBB->getParent()->getRegInfo();
   const SystemZInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register AddrReg = MRI->createVirtualRegister(&SystemZ::ADDR64BitRegClass);
   BuildMI(*MBB, MI, DL, TII->get(PseudoOp), AddrReg)
       .addFrameIndex(MI.getOperand(0).getIndex())

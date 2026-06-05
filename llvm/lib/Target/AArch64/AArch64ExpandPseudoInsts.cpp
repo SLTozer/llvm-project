@@ -169,7 +169,7 @@ bool AArch64ExpandPseudoImpl::expandMOVImm(MachineBasicBlock &MBB,
     case AArch64::ANDXri:
     case AArch64::EORXri:
       if (I->Op1 == 0) {
-        MIBS.push_back(BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(I->Opcode))
+        MIBS.push_back(BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(I->Opcode))
                            .add(MI.getOperand(0))
                            .addReg(BitSize == 32 ? AArch64::WZR : AArch64::XZR)
                            .addImm(I->Op2));
@@ -177,7 +177,7 @@ bool AArch64ExpandPseudoImpl::expandMOVImm(MachineBasicBlock &MBB,
         Register DstReg = MI.getOperand(0).getReg();
         bool DstIsDead = MI.getOperand(0).isDead();
         MIBS.push_back(
-            BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(I->Opcode))
+            BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(I->Opcode))
                 .addReg(DstReg, RegState::Define |
                                     getDeadRegState(DstIsDead && LastItem) |
                                     RenamableState)
@@ -192,7 +192,7 @@ bool AArch64ExpandPseudoImpl::expandMOVImm(MachineBasicBlock &MBB,
       Register DstReg = MI.getOperand(0).getReg();
       bool DstIsDead = MI.getOperand(0).isDead();
       MIBS.push_back(
-          BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(I->Opcode))
+          BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(I->Opcode))
               .addReg(DstReg, RegState::Define |
                                   getDeadRegState(DstIsDead && LastItem) |
                                   RenamableState)
@@ -205,7 +205,7 @@ bool AArch64ExpandPseudoImpl::expandMOVImm(MachineBasicBlock &MBB,
     case AArch64::MOVZWi:
     case AArch64::MOVZXi: {
       bool DstIsDead = MI.getOperand(0).isDead();
-      MIBS.push_back(BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(I->Opcode))
+      MIBS.push_back(BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(I->Opcode))
         .addReg(DstReg, RegState::Define |
                 getDeadRegState(DstIsDead && LastItem) |
                 RenamableState)
@@ -216,7 +216,7 @@ bool AArch64ExpandPseudoImpl::expandMOVImm(MachineBasicBlock &MBB,
     case AArch64::MOVKXi: {
       Register DstReg = MI.getOperand(0).getReg();
       bool DstIsDead = MI.getOperand(0).isDead();
-      MIBS.push_back(BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(I->Opcode))
+      MIBS.push_back(BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(I->Opcode))
         .addReg(DstReg,
                 RegState::Define |
                 getDeadRegState(DstIsDead && LastItem) |
@@ -636,7 +636,7 @@ bool AArch64ExpandPseudoImpl::expand_DestructiveOp(
            "This instruction is unpredicated");
 
     // Merge source operand into destination register
-    PRFX = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(MovPrfxZero))
+    PRFX = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(MovPrfxZero))
                .addReg(DstReg, RegState::Define)
                .addReg(MI.getOperand(PredIdx).getReg())
                .addReg(MI.getOperand(DOPIdx).getReg(), DOPRegState);
@@ -652,7 +652,7 @@ bool AArch64ExpandPseudoImpl::expand_DestructiveOp(
          DType == AArch64::DestructiveBinaryComm ||
          DType == AArch64::DestructiveBinaryCommWithRev) &&
         !DOPRegIsUnique) {
-      BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(LSLZero))
+      BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(LSLZero))
           .addReg(DstReg, RegState::Define)
           .add(MI.getOperand(PredIdx))
           .addReg(DstReg)
@@ -660,7 +660,7 @@ bool AArch64ExpandPseudoImpl::expand_DestructiveOp(
     }
   } else if (DstReg != MI.getOperand(DOPIdx).getReg()) {
     assert(DOPRegIsUnique && "The destructive operand should be unique");
-    PRFX = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(MovPrfx))
+    PRFX = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(MovPrfx))
                .addReg(DstReg, RegState::Define)
                .addReg(MI.getOperand(DOPIdx).getReg(), DOPRegState);
     DOPIdx = 0;
@@ -670,7 +670,7 @@ bool AArch64ExpandPseudoImpl::expand_DestructiveOp(
   //
   // Create the destructive operation
   //
-  DOP = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(Opcode))
+  DOP = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(Opcode))
     .addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead));
   DOPRegState = DOPRegState | RegState::Kill;
 
@@ -732,7 +732,7 @@ bool AArch64ExpandPseudoImpl::expandSVEBitwisePseudo(
   } else if (DOPReg != Op1->getReg()) {
     // If not in destructive form, emit a MOVPRFX. The input should only be
     // killed if unused by the subsequent instruction.
-    PRFX = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::MOVPRFX_ZZ))
+    PRFX = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::MOVPRFX_ZZ))
                .addDef(DOPReg, getRenamableRegState(Op0.isRenamable()))
                .addReg(Op1->getReg(),
                        getRenamableRegState(Op1->isRenamable()) |
@@ -751,21 +751,21 @@ bool AArch64ExpandPseudoImpl::expandSVEBitwisePseudo(
   default:
     llvm_unreachable("unhandled opcode");
   case AArch64::EON_ZZZ:
-    DOP = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::BSL2N_ZZZZ))
+    DOP = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::BSL2N_ZZZZ))
               .add(Op0)
               .addReg(DOPReg, DOPRegState)
               .add(*Op1)
               .add(*Op2);
     break;
   case AArch64::NAND_ZZZ:
-    DOP = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::NBSL_ZZZZ))
+    DOP = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::NBSL_ZZZZ))
               .add(Op0)
               .addReg(DOPReg, DOPRegState)
               .add(*Op2)
               .add(*Op2);
     break;
   case AArch64::NOR_ZZZ:
-    DOP = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::NBSL_ZZZZ))
+    DOP = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::NBSL_ZZZZ))
               .add(Op0)
               .addReg(DOPReg, DOPRegState)
               .add(*Op2)
@@ -788,7 +788,7 @@ bool AArch64ExpandPseudoImpl::expandSetTagLoop(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     MachineBasicBlock::iterator &NextMBBI) {
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register SizeReg = MI.getOperand(0).getReg();
   Register AddressReg = MI.getOperand(1).getReg();
 
@@ -880,7 +880,7 @@ bool AArch64ExpandPseudoImpl::expandSVESpillFill(
     bool Kill = (Offset + 1 == N) ? MI.getOperand(1).isKill() : false;
     assert(ImmOffset >= -256 && ImmOffset < 256 &&
            "Immediate spill offset out of range");
-    BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(Opc))
+    BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(Opc))
         .addReg(TRI->getSubReg(MI.getOperand(0).getReg(), sub0 + Offset),
                 RState)
         .addReg(MI.getOperand(1).getReg(), getKillRegState(Kill))
@@ -899,7 +899,7 @@ static MachineInstr *createCallWithOps(MachineBasicBlock &MBB,
                                        ArrayRef<MachineOperand> ExplicitOps,
                                        unsigned RegMaskStartIdx) {
   // Build the MI, with explicit operands first (including the call target).
-  MachineInstr *Call = BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII->get(Opcode))
+  MachineInstr *Call = BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII->get(Opcode))
                            .add(ExplicitOps)
                            .getInstr();
 
@@ -972,13 +972,13 @@ bool AArch64ExpandPseudoImpl::expandCALL_RVMARKER(
   }
 
   if (DoEmitMarker)
-    BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::ORRXrs))
+    BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::ORRXrs))
         .addReg(AArch64::FP, RegState::Define)
         .addReg(AArch64::XZR)
         .addReg(AArch64::FP)
         .addImm(0);
 
-  auto *RVCall = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::BL))
+  auto *RVCall = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::BL))
                      .add(RVTarget)
                      .getInstr();
 
@@ -1006,7 +1006,7 @@ bool AArch64ExpandPseudoImpl::expandCALL_BTI(MachineBasicBlock &MBB,
   Call->setCFIType(*MBB.getParent(), MI.getCFIType());
 
   MachineInstr *BTI =
-      BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::HINT))
+      BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::HINT))
           // BTI J so that setjmp can to BR to this.
           .addImm(36)
           .getInstr();
@@ -1024,7 +1024,7 @@ bool AArch64ExpandPseudoImpl::expandStoreSwiftAsyncContext(
   Register CtxReg = MBBI->getOperand(0).getReg();
   Register BaseReg = MBBI->getOperand(1).getReg();
   int Offset = MBBI->getOperand(2).getImm();
-  DebugLoc DL(MBBI->getDebugLoc());
+  DebugLoc DL(MBBI->getFullDebugLoc());
   auto &STI = MBB.getParent()->getSubtarget<AArch64Subtarget>();
 
   if (STI.getTargetTriple().getArchName() != "arm64e") {
@@ -1111,7 +1111,7 @@ MachineBasicBlock *
 AArch64ExpandPseudoImpl::expandRestoreZASave(MachineBasicBlock &MBB,
                                              MachineBasicBlock::iterator MBBI) {
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // Compare TPIDR2_EL0 against 0. Restore ZA if TPIDR2_EL0 is zero.
   MachineInstrBuilder Branch =
@@ -1137,7 +1137,7 @@ MachineBasicBlock *
 AArch64ExpandPseudoImpl::expandCommitZASave(MachineBasicBlock &MBB,
                                             MachineBasicBlock::iterator MBBI) {
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   [[maybe_unused]] auto *RI = MBB.getParent()->getSubtarget().getRegisterInfo();
 
   // Compare TPIDR2_EL0 against 0. Commit ZA if TPIDR2_EL0 is non-zero.
@@ -1219,7 +1219,7 @@ AArch64ExpandPseudoImpl::expandCondSMToggle(MachineBasicBlock &MBB,
   //   bl @normal_callee
   //   MSRcond_pstatesvcrImm1 3, 1, <regmask>             <- SMSTART
   //
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // Create the conditional branch based on the third operand of the
   // instruction, which tells us if we are wrapping a normal or streaming
@@ -1246,7 +1246,7 @@ AArch64ExpandPseudoImpl::expandCondSMToggle(MachineBasicBlock &MBB,
 
   auto [CondBB, EndBB] = expandConditionalPseudo(MBB, MBBI, DL, Tbx);
   // Create the SMSTART/SMSTOP (MSRpstatesvcrImm1) instruction in SMBB.
-  MachineInstrBuilder MIB = BuildMI(CondBB, CondBB.back(), MI.getDebugLoc(),
+  MachineInstrBuilder MIB = BuildMI(CondBB, CondBB.back(), MI.getFullDebugLoc(),
                                     TII->get(AArch64::MSRpstatesvcrImm1));
   // Copy all but the second and third operands of MSRcond_pstatesvcrImm1 (as
   // these contain the CopyFromReg for the first argument and the flag to
@@ -1278,7 +1278,7 @@ bool AArch64ExpandPseudoImpl::expandMultiVecPseudo(
   } else
     llvm_unreachable("Cannot expand Multi-Vector pseudo");
 
-  MachineInstrBuilder MIB = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(Opc))
+  MachineInstrBuilder MIB = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(Opc))
                                 .add(MI.getOperand(0))
                                 .add(MI.getOperand(1))
                                 .add(MI.getOperand(2))
@@ -1295,7 +1295,7 @@ bool AArch64ExpandPseudoImpl::expandCopyIntoTuplePseudo(
   Register Dest = MI.getOperand(0).getReg();
 
   if (Src != Dest)
-    BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::ORR_ZZZ))
+    BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::ORR_ZZZ))
         .addReg(Dest, RegState::Define)
         .addReg(Src)
         .addReg(Src);
@@ -1331,7 +1331,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
     Register DstReg = MI.getOperand(0).getReg();
     if (DstReg == MI.getOperand(3).getReg()) {
       // Expand to BIT
-      auto I = BuildMI(MBB, MBBI, MI.getDebugLoc(),
+      auto I = BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
                        TII->get(Opcode == AArch64::BSPv8i8 ? AArch64::BITv8i8
                                                            : AArch64::BITv16i8))
                    .add(MI.getOperand(0))
@@ -1341,7 +1341,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
       transferImpOps(MI, I, I);
     } else if (DstReg == MI.getOperand(2).getReg()) {
       // Expand to BIF
-      auto I = BuildMI(MBB, MBBI, MI.getDebugLoc(),
+      auto I = BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
                        TII->get(Opcode == AArch64::BSPv8i8 ? AArch64::BIFv8i8
                                                            : AArch64::BIFv16i8))
                    .add(MI.getOperand(0))
@@ -1353,7 +1353,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
       // Expand to BSL, use additional move if required
       if (DstReg == MI.getOperand(1).getReg()) {
         auto I =
-            BuildMI(MBB, MBBI, MI.getDebugLoc(),
+            BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
                     TII->get(Opcode == AArch64::BSPv8i8 ? AArch64::BSLv8i8
                                                         : AArch64::BSLv16i8))
                 .add(MI.getOperand(0))
@@ -1368,7 +1368,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
                 MI.getOperand(1).isKill() &&
                 MI.getOperand(1).getReg() != MI.getOperand(2).getReg() &&
                 MI.getOperand(1).getReg() != MI.getOperand(3).getReg());
-        BuildMI(MBB, MBBI, MI.getDebugLoc(),
+        BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
                 TII->get(Opcode == AArch64::BSPv8i8 ? AArch64::ORRv8i8
                                                     : AArch64::ORRv16i8))
             .addReg(DstReg,
@@ -1377,7 +1377,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
             .addReg(MI.getOperand(1).getReg(), RegState)
             .addReg(MI.getOperand(1).getReg(), RegState);
         auto I2 =
-            BuildMI(MBB, MBBI, MI.getDebugLoc(),
+            BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
                     TII->get(Opcode == AArch64::BSPv8i8 ? AArch64::BSLv8i8
                                                         : AArch64::BSLv16i8))
                 .add(MI.getOperand(0))
@@ -1449,7 +1449,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
     MachineFunction &MF = *MBB.getParent();
     // Try to create new inst without implicit operands added.
     MachineInstr *NewMI = MF.CreateMachineInstr(
-        TII->get(Opcode), MI.getDebugLoc(), /*NoImplicit=*/true);
+        TII->get(Opcode), MI.getFullDebugLoc(), /*NoImplicit=*/true);
     MBB.insert(MBBI, NewMI);
     MachineInstrBuilder MIB1(MF, NewMI);
     MIB1->setPCSections(MF, MI.getPCSections());
@@ -1472,7 +1472,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
 
     if (MF->getTarget().getCodeModel() == CodeModel::Tiny) {
       // Tiny codemodel expand to LDR
-      MachineInstrBuilder MIB = BuildMI(MBB, MBBI, MI.getDebugLoc(),
+      MachineInstrBuilder MIB = BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
                                         TII->get(AArch64::LDRXl), DstReg);
 
       if (MO1.isGlobal()) {
@@ -1487,15 +1487,15 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
     } else {
       // Small codemodel expand into ADRP + LDR.
       MachineFunction &MF = *MI.getParent()->getParent();
-      DebugLoc DL = MI.getDebugLoc();
+      DebugLoc DL = MI.getFullDebugLoc();
       MachineInstrBuilder MIB1 =
-          BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::ADRP), DstReg);
+          BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::ADRP), DstReg);
 
       MachineInstrBuilder MIB2;
       if (MF.getSubtarget<AArch64Subtarget>().isTargetILP32()) {
         auto TRI = MBB.getParent()->getSubtarget().getRegisterInfo();
         unsigned Reg32 = TRI->getSubReg(DstReg, AArch64::sub_32);
-        MIB2 = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::LDRWui))
+        MIB2 = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::LDRWui))
                    .addDef(Reg32)
                    .addReg(DstReg, RegState::Kill)
                    .addReg(DstReg, RegState::Implicit);
@@ -1568,7 +1568,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
       MachineInstrBuilder MIB;
       switch (I.Opcode) {
       case AArch64::ADRP:
-        MIB = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::ADRP),
+        MIB = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::ADRP),
                       DstReg);
         if (CPIdx)
           MIB.addConstantPoolIndex(*CPIdx, 0, AArch64II::MO_PAGE);
@@ -1576,7 +1576,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
           MIB.add(MI.getOperand(1));
         break;
       case AArch64::LDRXui:
-        MIB = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::LDRXui),
+        MIB = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::LDRXui),
                       DstReg)
                   .addUse(DstReg)
                   .addConstantPoolIndex(
@@ -1593,7 +1593,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
         auto Tag = MI.getOperand(1);
         Tag.setTargetFlags(AArch64II::MO_PREL | AArch64II::MO_G3);
         Tag.setOffset(0x100000000);
-        MIB = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::MOVKXi),
+        MIB = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::MOVKXi),
                       DstReg)
                   .addReg(DstReg)
                   .add(Tag)
@@ -1601,7 +1601,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
         break;
       }
       case AArch64::ADDXri:
-        MIB = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::ADDXri))
+        MIB = BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::ADDXri))
                   .add(MI.getOperand(0))
                   .addReg(DstReg)
                   .add(MI.getOperand(2))
@@ -1622,7 +1622,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
   }
   case AArch64::ADDlowTLS:
     // Produce a plain ADD
-    BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::ADDXri))
+    BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::ADDXri))
         .add(MI.getOperand(0))
         .add(MI.getOperand(1))
         .add(MI.getOperand(2))
@@ -1642,7 +1642,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
       SysReg = AArch64SysReg::TPIDR_EL1;
     else if (MF->getSubtarget<AArch64Subtarget>().useROEL0ForTP())
       SysReg = AArch64SysReg::TPIDRRO_EL0;
-    BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::MRS), DstReg)
+    BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::MRS), DstReg)
         .addImm(SysReg);
     MI.eraseFromParent();
     return true;
@@ -1659,7 +1659,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
     // RET, but we need the undef flag here to appease the MachineVerifier
     // liveness checks.
     MachineInstrBuilder MIB =
-        BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::RET))
+        BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::RET))
           .addReg(AArch64::LR, RegState::Undef);
     transferImpOps(MI, MIB, MIB);
     MI.eraseFromParent();
@@ -1694,7 +1694,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
   case AArch64::AESMCrrTied:
   case AArch64::AESIMCrrTied: {
     MachineInstrBuilder MIB =
-    BuildMI(MBB, MBBI, MI.getDebugLoc(),
+    BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
             TII->get(Opcode == AArch64::AESMCrrTied ? AArch64::AESMCrr :
                                                       AArch64::AESIMCrr))
       .add(MI.getOperand(0))
@@ -1723,10 +1723,10 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
     if (FrameRegOffset) {
       // Use output register as temporary.
       SrcReg = MI.getOperand(0).getReg();
-      emitFrameOffset(MBB, &MI, MI.getDebugLoc(), SrcReg, FrameReg,
+      emitFrameOffset(MBB, &MI, MI.getFullDebugLoc(), SrcReg, FrameReg,
                       FrameRegOffset, TII);
     }
-    BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::IRG))
+    BuildMI(MBB, MBBI, MI.getFullDebugLoc(), TII->get(AArch64::IRG))
         .add(MI.getOperand(0))
         .addUse(SrcReg)
         .add(MI.getOperand(2));
@@ -1735,7 +1735,7 @@ bool AArch64ExpandPseudoImpl::expandMI(MachineBasicBlock &MBB,
   }
   case AArch64::TAGPstack: {
     int64_t Offset = MI.getOperand(2).getImm();
-    BuildMI(MBB, MBBI, MI.getDebugLoc(),
+    BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
             TII->get(Offset >= 0 ? AArch64::ADDG : AArch64::SUBG))
         .add(MI.getOperand(0))
         .add(MI.getOperand(1))

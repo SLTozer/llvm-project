@@ -268,7 +268,7 @@ QuotRemWithBB FastDivInsertionTask::createSlowBB(BasicBlock *SuccessorBB) {
   DivRemPair.BB = BasicBlock::Create(MainBB->getParent()->getContext(), "",
                                      MainBB->getParent(), SuccessorBB);
   IRBuilder<> Builder(DivRemPair.BB, DivRemPair.BB->begin());
-  Builder.SetCurrentDebugLocation(SlowDivOrRem->getDebugLoc());
+  Builder.SetCurrentDebugLocation(SlowDivOrRem->getFullDebugLoc());
 
   Value *Dividend = SlowDivOrRem->getOperand(0);
   Value *Divisor = SlowDivOrRem->getOperand(1);
@@ -292,7 +292,7 @@ QuotRemWithBB FastDivInsertionTask::createFastBB(BasicBlock *SuccessorBB) {
   DivRemPair.BB = BasicBlock::Create(MainBB->getParent()->getContext(), "",
                                      MainBB->getParent(), SuccessorBB);
   IRBuilder<> Builder(DivRemPair.BB, DivRemPair.BB->begin());
-  Builder.SetCurrentDebugLocation(SlowDivOrRem->getDebugLoc());
+  Builder.SetCurrentDebugLocation(SlowDivOrRem->getFullDebugLoc());
 
   Value *Dividend = SlowDivOrRem->getOperand(0);
   Value *Divisor = SlowDivOrRem->getOperand(1);
@@ -318,7 +318,7 @@ QuotRemPair FastDivInsertionTask::createDivRemPhiNodes(QuotRemWithBB &LHS,
                                                        QuotRemWithBB &RHS,
                                                        BasicBlock *PhiBB) {
   IRBuilder<> Builder(PhiBB, PhiBB->begin());
-  Builder.SetCurrentDebugLocation(SlowDivOrRem->getDebugLoc());
+  Builder.SetCurrentDebugLocation(SlowDivOrRem->getFullDebugLoc());
   PHINode *QuoPhi = Builder.CreatePHI(getSlowType(), 2);
   QuoPhi->addIncoming(LHS.Quotient, LHS.BB);
   QuoPhi->addIncoming(RHS.Quotient, RHS.BB);
@@ -335,7 +335,7 @@ QuotRemPair FastDivInsertionTask::createDivRemPhiNodes(QuotRemWithBB &LHS,
 Value *FastDivInsertionTask::insertOperandRuntimeCheck(Value *Op1, Value *Op2) {
   assert((Op1 || Op2) && "Nothing to check");
   IRBuilder<> Builder(MainBB, MainBB->end());
-  Builder.SetCurrentDebugLocation(SlowDivOrRem->getDebugLoc());
+  Builder.SetCurrentDebugLocation(SlowDivOrRem->getFullDebugLoc());
 
   Value *OrV;
   if (Op1 && Op2)
@@ -405,7 +405,7 @@ std::optional<QuotRemPair> FastDivInsertionTask::insertFastDivAndRem() {
       return std::nullopt;
 
   IRBuilder<> Builder(MainBB, MainBB->end());
-  Builder.SetCurrentDebugLocation(SlowDivOrRem->getDebugLoc());
+  Builder.SetCurrentDebugLocation(SlowDivOrRem->getFullDebugLoc());
 
   if (DividendShort && !isSignedOp()) {
     // If the division is unsigned and Dividend is known to be short, then

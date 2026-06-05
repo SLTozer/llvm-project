@@ -376,7 +376,7 @@ static bool splitLoopBound(Loop &L, DominatorTree &DT, LoopInfo &LI,
     // Create LCSSA phi node in preheader of post-loop.
     PHINode *LCSSAPhi =
         Builder.CreatePHI(PN.getType(), 1, PN.getName() + ".lcssa");
-    LCSSAPhi->setDebugLoc(PN.getDebugLoc());
+    LCSSAPhi->copyDebugLocFrom(&PN);
     // If the exiting block is loop latch, the phi does not have the update at
     // last iteration. In this case, update lcssa phi with value from backedge.
     LCSSAPhi->addIncoming(
@@ -454,7 +454,7 @@ static bool splitLoopBound(Loop &L, DominatorTree &DT, LoopInfo &LI,
         // Create LCSSA phi node for incoming value.
         PHINode *LCSSAPhi =
             Builder.CreatePHI(PN.getType(), 1, PN.getName() + ".lcssa");
-        LCSSAPhi->setDebugLoc(PN.getDebugLoc());
+        LCSSAPhi->copyDebugLocFrom(&PN);
         LCSSAPhi->addIncoming(IncomingValue, PN.getIncomingBlock(i));
 
         // Replace pre-loop's exiting block by post-loop's preheader.

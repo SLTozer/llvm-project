@@ -199,7 +199,7 @@ bool HexagonQFPOptimizer::optimizeQfpOneOp(MachineInstr *MI,
     MachineOperand &SrcOp = DefMI->getOperand(1);
     Op0F = getKillRegState(SrcOp.isKill());
     SrcOp.setIsKill(false);
-    MIB = BuildMI(*MBB, MI, MI->getDebugLoc(), HII->get(InstTy), Res.getReg())
+    MIB = BuildMI(*MBB, MI, MI->getFullDebugLoc(), HII->get(InstTy), Res.getReg())
               .addReg(SrcOp.getReg(), Op0F, SrcOp.getSubReg());
     LLVM_DEBUG(dbgs() << "\n[Inserting]: "; MIB.getInstr()->dump());
     return true;
@@ -285,7 +285,7 @@ bool HexagonQFPOptimizer::optimizeQfpTwoOp(MachineInstr *MI,
       InstTy = InnerIt->second;
     }
 
-    MIB = BuildMI(*MBB, MI, MI->getDebugLoc(), HII->get(InstTy), Res.getReg())
+    MIB = BuildMI(*MBB, MI, MI->getFullDebugLoc(), HII->get(InstTy), Res.getReg())
               .addReg(Src1.getReg(), Op0F, Src1.getSubReg())
               .addReg(Src2.getReg(), Op1F, Src2.getSubReg());
     LLVM_DEBUG(dbgs() << "\n[Inserting]: "; MIB.getInstr()->dump());
@@ -309,7 +309,7 @@ bool HexagonQFPOptimizer::optimizeQfpTwoOp(MachineInstr *MI,
     Op0F = getKillRegState(Src1.isKill());
     Src1.setIsKill(false);
     Op1F = getKillRegState(Src2.isKill());
-    MIB = BuildMI(*MBB, MI, MI->getDebugLoc(), HII->get(InstTy), Res.getReg())
+    MIB = BuildMI(*MBB, MI, MI->getFullDebugLoc(), HII->get(InstTy), Res.getReg())
               .addReg(Src1.getReg(), Op0F, Src1.getSubReg())
               .addReg(Src2.getReg(), Op1F, Src2.getSubReg());
     LLVM_DEBUG(dbgs() << "\n[Inserting]: "; MIB.getInstr()->dump());
@@ -344,11 +344,11 @@ bool HexagonQFPOptimizer::optimizeQfpTwoOp(MachineInstr *MI,
         InstTy = Hexagon::V6_vsub_sf_mix;
       else if (Def2OP == Hexagon::V6_vconv_hf_qf16)
         InstTy = Hexagon::V6_vsub_hf_mix;
-      MIB = BuildMI(*MBB, MI, MI->getDebugLoc(), HII->get(InstTy), Res.getReg())
+      MIB = BuildMI(*MBB, MI, MI->getFullDebugLoc(), HII->get(InstTy), Res.getReg())
                 .addReg(Src1.getReg(), Op0F, Src1.getSubReg())
                 .addReg(Src2.getReg(), Op1F, Src2.getSubReg());
     } else {
-      MIB = BuildMI(*MBB, MI, MI->getDebugLoc(), HII->get(InstTy), Res.getReg())
+      MIB = BuildMI(*MBB, MI, MI->getFullDebugLoc(), HII->get(InstTy), Res.getReg())
                 .addReg(Src2.getReg(), Op1F,
                         Src2.getSubReg()) // Notice the operands are flipped.
                 .addReg(Src1.getReg(), Op0F, Src1.getSubReg());

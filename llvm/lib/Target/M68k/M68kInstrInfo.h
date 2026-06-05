@@ -266,11 +266,11 @@ public:
 
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -295,11 +295,11 @@ public:
 
   /// Add appropriate SExt nodes
   void AddSExt(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-               DebugLoc DL, unsigned Reg, MVT From, MVT To) const;
+               DbgLocStorage DL, unsigned Reg, MVT From, MVT To) const;
 
   /// Add appropriate ZExt nodes
   void AddZExt(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-               DebugLoc DL, unsigned Reg, MVT From, MVT To) const;
+               DbgLocStorage DL, unsigned Reg, MVT From, MVT To) const;
 
   /// Move immediate to register
   bool ExpandMOVI(MachineInstrBuilder &MIB, MVT MVTSize) const;

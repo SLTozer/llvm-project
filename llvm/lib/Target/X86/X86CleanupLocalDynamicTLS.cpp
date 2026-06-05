@@ -64,7 +64,7 @@ static MachineInstr *ReplaceTLSBaseAddrCall(MachineInstr &I,
 
   // Insert a Copy from TLSBaseAddrReg to RAX/EAX.
   MachineInstr *Copy =
-      BuildMI(*I.getParent(), I, I.getDebugLoc(), TII->get(TargetOpcode::COPY),
+      BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII->get(TargetOpcode::COPY),
               is64Bit ? X86::RAX : X86::EAX)
           .addReg(TLSBaseAddrReg);
 
@@ -89,7 +89,7 @@ static MachineInstr *SetRegister(MachineInstr &I, Register *TLSBaseAddrReg) {
 
   // Insert a copy from RAX/EAX to TLSBaseAddrReg.
   MachineInstr *Next = I.getNextNode();
-  MachineInstr *Copy = BuildMI(*I.getParent(), Next, I.getDebugLoc(),
+  MachineInstr *Copy = BuildMI(*I.getParent(), Next, I.getFullDebugLoc(),
                                TII->get(TargetOpcode::COPY), *TLSBaseAddrReg)
                            .addReg(is64Bit ? X86::RAX : X86::EAX);
 

@@ -833,7 +833,7 @@ CallInst *CallInst::Create(CallInst *CI, ArrayRef<OperandBundleDef> OpB,
   NewCI->setCallingConv(CI->getCallingConv());
   NewCI->FMF = CI->FMF;
   NewCI->setAttributes(CI->getAttributes());
-  NewCI->setDebugLoc(CI->getDebugLoc());
+  NewCI->copyDebugLocFrom(CI);
   return NewCI;
 }
 
@@ -912,7 +912,7 @@ InvokeInst *InvokeInst::Create(InvokeInst *II, ArrayRef<OperandBundleDef> OpB,
   NewII->setCallingConv(II->getCallingConv());
   NewII->SubclassOptionalData = II->SubclassOptionalData;
   NewII->setAttributes(II->getAttributes());
-  NewII->setDebugLoc(II->getDebugLoc());
+  NewII->copyDebugLocFrom(II);
   return NewII;
 }
 
@@ -998,7 +998,7 @@ CallBrInst *CallBrInst::Create(CallBrInst *CBI, ArrayRef<OperandBundleDef> OpB,
   NewCBI->setCallingConv(CBI->getCallingConv());
   NewCBI->SubclassOptionalData = CBI->SubclassOptionalData;
   NewCBI->setAttributes(CBI->getAttributes());
-  NewCBI->setDebugLoc(CBI->getDebugLoc());
+  NewCBI->copyDebugLocFrom(CBI);
   NewCBI->NumIndirectDests = CBI->NumIndirectDests;
   return NewCBI;
 }

@@ -326,7 +326,7 @@ private:
                  PointerSumTypeMember<EIIK_OutOfLine, ExtraInfo *>>
       Info;
 
-  DebugLoc DbgLoc; // Source line information.
+  DbgLocStorage DbgLoc; // Source line information.
 
   // Intrusive list support
   friend struct ilist_traits<MachineInstr>;
@@ -340,7 +340,7 @@ private:
   /// This constructor create a MachineInstr and add the implicit operands.
   /// It reserves space for number of operands specified by
   /// MCInstrDesc.  An explicit DebugLoc is supplied.
-  MachineInstr(MachineFunction &, const MCInstrDesc &TID, DebugLoc DL,
+  MachineInstr(MachineFunction &, const MCInstrDesc &TID, DbgLocStorage DL,
                bool NoImp = false);
 
   // MachineInstrs are pool-allocated and owned by MachineFunction.
@@ -523,8 +523,26 @@ public:
   LLVM_ABI void unbundleFromSucc();
 
   /// Returns the debug location id of this MachineInstr.
-  const DebugLoc &getDebugLoc() const { return DbgLoc; }
-
+  DebugLocContext getDebugLocContext() const;
+  DbgLocStorage getDebugLoc() const { return DbgLoc; }
+  DebugLoc getFullDebugLoc() const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    if (!DbgLoc)
+      return DebugLoc();
+    return DebugLoc(DbgLoc, getDebugLocContext());
+#else
+    return DebugLoc(DbgLoc);
+#endif
+  }
+  DebugLoc getFullDebugLoc(Function *FunctionContext) const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    if (!DbgLoc)
+      return DebugLoc();
+    return DebugLoc(DbgLoc, getFLMDForFunction(FunctionContext));
+#else
+    return DebugLoc(DbgLoc);
+#endif
+  }
   /// Return the operand containing the offset to be used if this DBG_VALUE
   /// instruction is indirect; will be an invalid register if this value is
   /// not indirect, and an immediate with value 0 otherwise.
@@ -1922,7 +1940,24 @@ public:
 
   /// Replace current source information with new such.
   /// Avoid using this, the constructor argument is preferable.
-  void setDebugLoc(DebugLoc DL) { DbgLoc = std::move(DL); }
+  void setDebugLoc(DebugLoc DL) {
+    DbgLoc = DL.getStorage();
+    assert(!DbgLoc || DbgLoc.get().isInstrLoc());
+  }
+  void setDebugLoc(DbgLocStorage Loc) {
+    DbgLoc = Loc.getCopied();
+    assert(!DbgLoc || DbgLoc.get().isInstrLoc());
+  }
+  void setDebugLocIfPresent(DebugLoc Loc) {
+    DbgLoc = Loc.getStorage().orElse(DbgLoc);
+  }
+  void setDebugLocIfPresent(DbgLocStorage Loc) { DbgLoc = Loc.orElse(DbgLoc); }
+  void copyDebugLocFrom(const MachineInstr *Other) {
+    DbgLoc = Other->DbgLoc;
+  }
+  void copyDebugLocFromIfPresent(const MachineInstr *Other) {
+    DbgLoc = Other->DbgLoc.orElse(DbgLoc);
+  }
 
   /// Erase an operand from an instruction, leaving it with one
   /// fewer operand than it started with.

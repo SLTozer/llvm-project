@@ -69,6 +69,9 @@ public:
   /// cannot find a terminating instruction with location information,
   /// it returns an unknown location.
   LLVM_ABI DebugLoc getStartLoc() const;
+  LLVM_ABI DebugLoc getFullStartLoc() const {
+    return DebugLoc(getStartLoc(), &getHeader()->getParent()->getFunction());
+  }
 
   /// Find the llvm.loop metadata for this loop.
   /// If each branch to the header of this loop contains the same llvm.loop

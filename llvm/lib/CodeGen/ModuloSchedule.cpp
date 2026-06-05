@@ -840,7 +840,7 @@ void ModuloScheduleExpander::splitLifetimes(MachineBasicBlock *KernelBB,
             if (!SplitReg) {
               SplitReg = MRI.createVirtualRegister(MRI.getRegClass(Def));
               MachineInstr *newCopy =
-                  BuildMI(*KernelBB, MI, MI->getDebugLoc(),
+                  BuildMI(*KernelBB, MI, MI->getFullDebugLoc(),
                           TII->get(TargetOpcode::COPY), SplitReg)
                       .addReg(Def);
               LIS.InsertMachineInstrInMaps(*newCopy);
@@ -1197,7 +1197,7 @@ void ModuloScheduleExpander::rewriteScheduledInstr(
         UseOp.setReg(ReplaceReg);
       else {
         Register SplitReg = MRI.createVirtualRegister(MRI.getRegClass(OldReg));
-        MachineInstr *newCopy = BuildMI(*BB, UseMI, UseMI->getDebugLoc(),
+        MachineInstr *newCopy = BuildMI(*BB, UseMI, UseMI->getFullDebugLoc(),
                                         TII->get(TargetOpcode::COPY), SplitReg)
                                     .addReg(ReplaceReg);
         UseOp.setReg(SplitReg);
@@ -2363,7 +2363,7 @@ void ModuloScheduleExpanderMVE::updateInstrUse(
       UseMO.setReg(NewReg);
     else {
       Register SplitReg = MRI.createVirtualRegister(MRI.getRegClass(OrigReg));
-      MachineInstr *NewCopy = BuildMI(*OrigKernel, MI, MI->getDebugLoc(),
+      MachineInstr *NewCopy = BuildMI(*OrigKernel, MI, MI->getFullDebugLoc(),
                                       TII->get(TargetOpcode::COPY), SplitReg)
                                   .addReg(NewReg);
       LIS.InsertMachineInstrInMaps(*NewCopy);
@@ -2522,7 +2522,7 @@ void ModuloScheduleExpanderMVE::mergeRegUsesAfterPipeline(Register OrigReg,
       Register NewInit = MRI.createVirtualRegister(MRI.getRegClass(InitReg));
       MachineInstr *NewPhi =
           BuildMI(*NewPreheader, NewPreheader->getFirstNonPHI(),
-                  Phi->getDebugLoc(), TII->get(TargetOpcode::PHI), NewInit)
+                  Phi->getFullDebugLoc(), TII->get(TargetOpcode::PHI), NewInit)
               .addReg(InitReg)
               .addMBB(Check)
               .addReg(NewReg)

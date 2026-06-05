@@ -195,10 +195,10 @@ static void insertNopBeforeInstruction(MachineBasicBlock &MBB, MachineInstr* MI,
   if (MI == &MBB.front()) {
     MachineInstr *I = getLastNonPseudo(MBB, TII);
     assert(I && "Expected instruction");
-    DebugLoc DL = I->getDebugLoc();
+    DebugLoc DL = I->getFullDebugLoc();
     BuildMI(I->getParent(), DL, TII->get(AArch64::NOP));
   } else {
-    DebugLoc DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
     BuildMI(MBB, MI, DL, TII->get(AArch64::NOP));
   }
 

@@ -43,7 +43,7 @@ public:
                               int &FrameIndex) const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -72,7 +72,7 @@ public:
   /// non-NULL parameter, the last instruction is not emitted, but instead
   /// its immediate operand is returned in NewImm.
   unsigned loadImmediate(int64_t Imm, MachineBasicBlock &MBB,
-                         MachineBasicBlock::iterator II, const DebugLoc &DL,
+                         MachineBasicBlock::iterator II, DbgLocStorage DL,
                          unsigned *NewImm) const;
 
 protected:

@@ -1084,7 +1084,7 @@ static bool selectCopy(MachineInstr &I, const TargetInstrInfo &TII,
       getSubRegForClass(SrcRC, TRI, SubReg);
 
       Register PromoteReg = MRI.createVirtualRegister(PromotionRC);
-      BuildMI(*I.getParent(), I, I.getDebugLoc(),
+      BuildMI(*I.getParent(), I, I.getFullDebugLoc(),
               TII.get(AArch64::SUBREG_TO_REG), PromoteReg)
           .addUse(SrcReg)
           .addImm(SubReg);
@@ -1996,7 +1996,7 @@ bool AArch64InstructionSelector::selectVaStartAAPCS(
   // and increment OffsetBytes by PtrSize.
   const auto PushAddress = [&](const int FrameIndex, const int64_t Imm) {
     const Register Top = MRI.createVirtualRegister(PtrRegClass);
-    auto MIB = BuildMI(*I.getParent(), I, I.getDebugLoc(), MCIDAddAddr)
+    auto MIB = BuildMI(*I.getParent(), I, I.getFullDebugLoc(), MCIDAddAddr)
                    .addDef(Top)
                    .addFrameIndex(FrameIndex)
                    .addImm(Imm)
@@ -2004,7 +2004,7 @@ bool AArch64InstructionSelector::selectVaStartAAPCS(
     constrainSelectedInstRegOperands(*MIB, TII, TRI, RBI);
 
     const auto *MMO = *I.memoperands_begin();
-    MIB = BuildMI(*I.getParent(), I, I.getDebugLoc(), MCIDStoreAddr)
+    MIB = BuildMI(*I.getParent(), I, I.getFullDebugLoc(), MCIDStoreAddr)
               .addUse(Top)
               .addUse(VAList)
               .addImm(OffsetBytes / PtrSize)
@@ -2033,13 +2033,13 @@ bool AArch64InstructionSelector::selectVaStartAAPCS(
     constexpr int IntSize = 4;
     const Register Temp = MRI.createVirtualRegister(&AArch64::GPR32RegClass);
     auto MIB =
-        BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(AArch64::MOVi32imm))
+        BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(AArch64::MOVi32imm))
             .addDef(Temp)
             .addImm(Value);
     constrainSelectedInstRegOperands(*MIB, TII, TRI, RBI);
 
     const auto *MMO = *I.memoperands_begin();
-    MIB = BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(AArch64::STRWui))
+    MIB = BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(AArch64::STRWui))
               .addUse(Temp)
               .addUse(VAList)
               .addImm(OffsetBytes / IntSize)
@@ -2078,7 +2078,7 @@ bool AArch64InstructionSelector::selectVaStartDarwin(
   }
 
   auto MIB =
-      BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(AArch64::ADDXri))
+      BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(AArch64::ADDXri))
           .addDef(ArgsAddrReg)
           .addFrameIndex(FrameIdx)
           .addImm(0)
@@ -2086,7 +2086,7 @@ bool AArch64InstructionSelector::selectVaStartDarwin(
 
   constrainSelectedInstRegOperands(*MIB, TII, TRI, RBI);
 
-  MIB = BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(AArch64::STRXui))
+  MIB = BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(AArch64::STRXui))
             .addUse(ArgsAddrReg)
             .addUse(ListReg)
             .addImm(0)
@@ -2877,7 +2877,7 @@ bool AArch64InstructionSelector::select(MachineInstr &I) {
     }
 
     Register SrcReg = MRI.createGenericVirtualRegister(LLT::scalar(64));
-    BuildMI(MBB, I.getIterator(), I.getDebugLoc(),
+    BuildMI(MBB, I.getIterator(), I.getFullDebugLoc(),
             TII.get(AArch64::SUBREG_TO_REG))
         .addDef(SrcReg)
         .addUse(I.getOperand(2).getReg())
@@ -3337,7 +3337,7 @@ bool AArch64InstructionSelector::select(MachineInstr &I) {
     // to explicitly form the 64-bit value if any.
     if (DstSize > 32) {
       Register ExtSrc = MRI.createVirtualRegister(&AArch64::GPR64allRegClass);
-      BuildMI(MBB, I, I.getDebugLoc(), TII.get(AArch64::SUBREG_TO_REG))
+      BuildMI(MBB, I, I.getFullDebugLoc(), TII.get(AArch64::SUBREG_TO_REG))
           .addDef(ExtSrc)
           .addUse(SrcReg)
           .addImm(AArch64::sub_32);
@@ -3563,7 +3563,7 @@ bool AArch64InstructionSelector::select(MachineInstr &I) {
       return true;
     } else {
       I.setDesc(TII.get(AArch64::MOVaddrBA));
-      auto MovMI = BuildMI(MBB, I, I.getDebugLoc(), TII.get(AArch64::MOVaddrBA),
+      auto MovMI = BuildMI(MBB, I, I.getFullDebugLoc(), TII.get(AArch64::MOVaddrBA),
                            I.getOperand(0).getReg())
                        .addBlockAddress(I.getOperand(1).getBlockAddress(),
                                         /* Offset */ 0, AArch64II::MO_PAGE)
@@ -3893,20 +3893,20 @@ bool AArch64InstructionSelector::selectMergeValues(
 
   auto *DstRC = &AArch64::GPR64RegClass;
   Register SubToRegDef = MRI.createVirtualRegister(DstRC);
-  MachineInstr &SubRegMI = *BuildMI(*I.getParent(), I, I.getDebugLoc(),
+  MachineInstr &SubRegMI = *BuildMI(*I.getParent(), I, I.getFullDebugLoc(),
                                     TII.get(TargetOpcode::SUBREG_TO_REG))
                                 .addDef(SubToRegDef)
                                 .addUse(I.getOperand(1).getReg())
                                 .addImm(AArch64::sub_32);
   Register SubToRegDef2 = MRI.createVirtualRegister(DstRC);
   // Need to anyext the second scalar before we can use bfm
-  MachineInstr &SubRegMI2 = *BuildMI(*I.getParent(), I, I.getDebugLoc(),
+  MachineInstr &SubRegMI2 = *BuildMI(*I.getParent(), I, I.getFullDebugLoc(),
                                      TII.get(TargetOpcode::SUBREG_TO_REG))
                                  .addDef(SubToRegDef2)
                                  .addUse(I.getOperand(2).getReg())
                                  .addImm(AArch64::sub_32);
   MachineInstr &BFM =
-      *BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(AArch64::BFMXri))
+      *BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(AArch64::BFMXri))
            .addDef(I.getOperand(0).getReg())
            .addUse(SubToRegDef)
            .addUse(SubToRegDef2)
@@ -4139,13 +4139,13 @@ bool AArch64InstructionSelector::selectUnmergeValues(MachineInstr &I,
     for (unsigned Idx = 0; Idx < NumInsertRegs; ++Idx) {
       Register ImpDefReg = MRI.createVirtualRegister(&AArch64::FPR128RegClass);
       MachineInstr &ImpDefMI =
-          *BuildMI(MBB, I, I.getDebugLoc(), TII.get(TargetOpcode::IMPLICIT_DEF),
+          *BuildMI(MBB, I, I.getFullDebugLoc(), TII.get(TargetOpcode::IMPLICIT_DEF),
                    ImpDefReg);
 
       // Now, create the subregister insert from SrcReg.
       Register InsertReg = MRI.createVirtualRegister(&AArch64::FPR128RegClass);
       MachineInstr &InsMI =
-          *BuildMI(MBB, I, I.getDebugLoc(),
+          *BuildMI(MBB, I, I.getFullDebugLoc(),
                    TII.get(TargetOpcode::INSERT_SUBREG), InsertReg)
                .addUse(ImpDefReg)
                .addUse(SrcReg)
@@ -4173,7 +4173,7 @@ bool AArch64InstructionSelector::selectUnmergeValues(MachineInstr &I,
   for (Register InsReg : InsertRegs) {
     Register CopyTo = I.getOperand(LaneIdx).getReg();
     MachineInstr &CopyInst =
-        *BuildMI(MBB, I, I.getDebugLoc(), TII.get(CopyOpc), CopyTo)
+        *BuildMI(MBB, I, I.getFullDebugLoc(), TII.get(CopyOpc), CopyTo)
              .addUse(InsReg)
              .addImm(LaneIdx);
     constrainSelectedInstRegOperands(CopyInst, TII, TRI, RBI);
@@ -6797,7 +6797,7 @@ bool AArch64InstructionSelector::selectIntrinsic(MachineInstr &I,
         // clobbered by anything.
         MFI.setReturnAddressIsTaken(true);
         MFReturnAddr = getFunctionLiveInPhysReg(
-            MF, TII, AArch64::LR, AArch64::GPR64RegClass, I.getDebugLoc());
+            MF, TII, AArch64::LR, AArch64::GPR64RegClass, I.getFullDebugLoc());
       }
 
       if (STI.hasPAuth()) {

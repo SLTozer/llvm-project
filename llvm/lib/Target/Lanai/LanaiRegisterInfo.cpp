@@ -135,7 +135,7 @@ bool LanaiRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
   bool HasFP = TFI->hasFP(MF);
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
 

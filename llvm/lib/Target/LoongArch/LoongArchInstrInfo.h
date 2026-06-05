@@ -34,7 +34,7 @@ public:
   MCInst getNop() const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                   const DebugLoc &DL, Register DstReg, Register SrcReg,
+                   DbgLocStorage DL, Register DstReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -59,7 +59,7 @@ public:
 
   // Materializes the given integer Val into DstReg.
   void movImm(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-              const DebugLoc &DL, Register DstReg, uint64_t Val,
+              DbgLocStorage DL, Register DstReg, uint64_t Val,
               MachineInstr::MIFlag Flag = MachineInstr::NoFlags) const;
 
   unsigned getInstSizeInBytes(const MachineInstr &MI) const override;
@@ -88,12 +88,12 @@ public:
 
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &dl,
+                        DbgLocStorage dl,
                         int *BytesAdded = nullptr) const override;
 
   void insertIndirectBranch(MachineBasicBlock &MBB,
                             MachineBasicBlock &NewDestBB,
-                            MachineBasicBlock &RestoreBB, const DebugLoc &DL,
+                            MachineBasicBlock &RestoreBB, DbgLocStorage DL,
                             int64_t BrOffset, RegScavenger *RS) const override;
 
   bool

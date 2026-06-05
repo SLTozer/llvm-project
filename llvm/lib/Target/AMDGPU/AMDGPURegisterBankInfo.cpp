@@ -832,7 +832,7 @@ bool AMDGPURegisterBankInfo::executeInWaterfallLoop(
       .addReg(NewExec)
       .addMBB(BodyBB);
 
-  const DebugLoc &DL = B.getDL();
+  DebugLoc DL = B.getDL();
 
   MachineInstr &FirstInst = *Range.begin();
 

@@ -46,7 +46,7 @@ private:
 };
 
 static void PairedCopy(const PPCInstrInfo *TII, MachineBasicBlock &MBB,
-                       MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+                       MachineBasicBlock::iterator MBBI, DebugLoc DL,
                        Register Dest0, Register Dest1, Register Src0,
                        Register Src1) {
   const MCInstrDesc &OR = TII->get(PPC::OR8);
@@ -104,7 +104,7 @@ bool PPCExpandAtomicPseudo::expandMI(MachineBasicBlock &MBB, MachineInstr &MI,
     Register DstLo = TRI->getSubReg(Dst, PPC::sub_gp8_x1);
     Register Lo = MI.getOperand(1).getReg();
     Register Hi = MI.getOperand(2).getReg();
-    PairedCopy(TII, MBB, MI, MI.getDebugLoc(), DstHi, DstLo, Hi, Lo);
+    PairedCopy(TII, MBB, MI, MI.getFullDebugLoc(), DstHi, DstLo, Hi, Lo);
     MI.eraseFromParent();
     return true;
   }
@@ -118,7 +118,7 @@ bool PPCExpandAtomicPseudo::expandAtomicRMW128(
     MachineBasicBlock::iterator &NMBBI) {
   const MCInstrDesc &LL = TII->get(PPC::LQARX);
   const MCInstrDesc &SC = TII->get(PPC::STQCX);
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction *MF = MBB.getParent();
   const BasicBlock *BB = MBB.getBasicBlock();
   // Create layout of control flow.
@@ -216,7 +216,7 @@ bool PPCExpandAtomicPseudo::expandAtomicCmpSwap128(
     MachineBasicBlock::iterator &NMBBI) {
   const MCInstrDesc &LL = TII->get(PPC::LQARX);
   const MCInstrDesc &SC = TII->get(PPC::STQCX);
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction *MF = MBB.getParent();
   const BasicBlock *BB = MBB.getBasicBlock();
   Register Old = MI.getOperand(0).getReg();

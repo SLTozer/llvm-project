@@ -80,7 +80,7 @@ Register XtensaInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
 void XtensaInstrInfo::adjustStackPtr(MCRegister SP, int64_t Amount,
                                      MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator I) const {
-  DebugLoc DL = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
+  DbgLocStorage DL = I != MBB.end() ? I->getDebugLoc() : DbgLocStorage();
 
   if (Amount == 0)
     return;
@@ -112,7 +112,7 @@ void XtensaInstrInfo::adjustStackPtr(MCRegister SP, int64_t Amount,
 
 void XtensaInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator MBBI,
-                                  const DebugLoc &DL, Register DestReg,
+                                  DbgLocStorage DL, Register DestReg,
                                   Register SrcReg, bool KillSrc,
                                   bool RenamableDest, bool RenamableSrc) const {
   unsigned Opcode;
@@ -147,7 +147,7 @@ void XtensaInstrInfo::storeRegToStackSlot(
     bool isKill, int FrameIdx, const TargetRegisterClass *RC,
 
     Register VReg, MachineInstr::MIFlag Flags) const {
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DbgLocStorage DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DbgLocStorage();
   unsigned LoadOpcode, StoreOpcode;
   getLoadStoreOpcodes(RC, LoadOpcode, StoreOpcode, FrameIdx);
   MachineInstrBuilder MIB = BuildMI(MBB, MBBI, DL, get(StoreOpcode))
@@ -161,7 +161,7 @@ void XtensaInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                            const TargetRegisterClass *RC,
                                            Register VReg, unsigned SubReg,
                                            MachineInstr::MIFlag Flags) const {
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DbgLocStorage DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DbgLocStorage();
   unsigned LoadOpcode, StoreOpcode;
   getLoadStoreOpcodes(RC, LoadOpcode, StoreOpcode, FrameIdx);
   addFrameReference(BuildMI(MBB, MBBI, DL, get(LoadOpcode), DestReg), FrameIdx);
@@ -185,7 +185,7 @@ void XtensaInstrInfo::getLoadStoreOpcodes(const TargetRegisterClass *RC,
 void XtensaInstrInfo::loadImmediate(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator MBBI,
                                     MCRegister *Reg, int64_t Value) const {
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DbgLocStorage DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DbgLocStorage();
   MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
   const TargetRegisterClass *RC = &Xtensa::ARRegClass;
 
@@ -481,7 +481,7 @@ unsigned XtensaInstrInfo::removeBranch(MachineBasicBlock &MBB,
 
 unsigned XtensaInstrInfo::insertBranch(
     MachineBasicBlock &MBB, MachineBasicBlock *TBB, MachineBasicBlock *FBB,
-    ArrayRef<MachineOperand> Cond, const DebugLoc &DL, int *BytesAdded) const {
+    ArrayRef<MachineOperand> Cond, DbgLocStorage DL, int *BytesAdded) const {
   unsigned Count = 0;
   if (BytesAdded)
     *BytesAdded = 0;
@@ -504,7 +504,7 @@ unsigned XtensaInstrInfo::insertBranch(
 void XtensaInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
                                            MachineBasicBlock &DestBB,
                                            MachineBasicBlock &RestoreBB,
-                                           const DebugLoc &DL, int64_t BrOffset,
+                                           DbgLocStorage DL, int64_t BrOffset,
                                            RegScavenger *RS) const {
   assert(RS && "RegScavenger required for long branching");
   assert(MBB.empty() &&
@@ -572,7 +572,7 @@ void XtensaInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
 
 unsigned XtensaInstrInfo::insertConstBranchAtInst(
     MachineBasicBlock &MBB, MachineInstr *I, int64_t offset,
-    ArrayRef<MachineOperand> Cond, DebugLoc DL, int *BytesAdded) const {
+    ArrayRef<MachineOperand> Cond, DbgLocStorage DL, int *BytesAdded) const {
   assert(Cond.size() <= 4 &&
          "Xtensa branch conditions have less than four components!");
 
@@ -633,7 +633,7 @@ unsigned XtensaInstrInfo::insertBranchAtInst(MachineBasicBlock &MBB,
                                              MachineBasicBlock::iterator I,
                                              MachineBasicBlock *TBB,
                                              ArrayRef<MachineOperand> Cond,
-                                             const DebugLoc &DL,
+                                             DbgLocStorage DL,
                                              int *BytesAdded) const {
   // Shouldn't be a fall through.
   assert(TBB && "InsertBranch must not be told to insert a fallthrough");

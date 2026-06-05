@@ -252,7 +252,7 @@ bool optimizeSection(ArrayRef<SmallVector<IntrinsicInst *, 4>> MergeableInsts) {
     for (auto &II : IIList) {
       Value *VecOp = nullptr;
       auto *Idx = cast<ConstantInt>(II->getArgOperand(FragIdIndex));
-      B.SetCurrentDebugLocation(II->getDebugLoc());
+      B.SetCurrentDebugLocation(II->getFullDebugLoc());
       if (NumElts == 1) {
         VecOp = B.CreateExtractElement(NewCalls[0], Idx->getValue().urem(4));
         LLVM_DEBUG(dbgs() << "Add: " << *VecOp << "\n");

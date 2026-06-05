@@ -67,7 +67,7 @@ bool stripDebugMachineModuleImpl(
             continue;
           }
         }
-        if (MI.getDebugLoc()) {
+        if (MI.getFullDebugLoc()) {
           LLVM_DEBUG(dbgs() << "Removing location " << MI);
           MI.setDebugLoc(DebugLoc());
           Changed |= true;

@@ -73,7 +73,7 @@ void fixBrTableIndex(MachineInstr &MI, MachineBasicBlock *MBB,
     // Incoming 64-bit value that needs to be truncated.
     Register Reg32 =
         MF.getRegInfo().createVirtualRegister(&WebAssembly::I32RegClass);
-    BuildMI(*MBB, MI.getIterator(), MI.getDebugLoc(),
+    BuildMI(*MBB, MI.getIterator(), MI.getFullDebugLoc(),
             WST.getInstrInfo()->get(WebAssembly::I32_WRAP_I64), Reg32)
         .addReg(MI.getOperand(0).getReg());
     MI.getOperand(0).setReg(Reg32);

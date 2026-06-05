@@ -50,7 +50,7 @@ public:
                               int &FrameIndex) const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator Position,
-                   const DebugLoc &DL, Register DestinationRegister,
+                   DbgLocStorage DL, Register DestinationRegister,
                    Register SourceRegister, bool KillSource,
                    bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
@@ -128,7 +128,7 @@ public:
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TrueBlock,
                         MachineBasicBlock *FalseBlock,
                         ArrayRef<MachineOperand> Condition,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
 };
 

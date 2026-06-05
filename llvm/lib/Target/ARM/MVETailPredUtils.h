@@ -106,14 +106,14 @@ inline void RevertWhileLoopStartLR(MachineInstr *MI, const TargetInstrInfo *TII,
   // Subs/Cmp
   if (UseCmp) {
     MachineInstrBuilder MIB =
-        BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::t2CMPri));
+        BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::t2CMPri));
     MIB.add(MI->getOperand(1));
     MIB.addImm(0);
     MIB.addImm(ARMCC::AL);
     MIB.addReg(ARM::NoRegister);
   } else {
     MachineInstrBuilder MIB =
-        BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::t2SUBri));
+        BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::t2SUBri));
     MIB.add(MI->getOperand(0));
     MIB.add(MI->getOperand(1));
     MIB.addImm(0);
@@ -124,7 +124,7 @@ inline void RevertWhileLoopStartLR(MachineInstr *MI, const TargetInstrInfo *TII,
 
   // Branch
   MachineInstrBuilder MIB =
-      BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(BrOpc));
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(BrOpc));
   MIB.addMBB(getWhileLoopStartTargetBB(*MI)); // branch target
   MIB.addImm(ARMCC::EQ);                      // condition code
   MIB.addReg(ARM::CPSR);
@@ -134,7 +134,7 @@ inline void RevertWhileLoopStartLR(MachineInstr *MI, const TargetInstrInfo *TII,
 
 inline void RevertDoLoopStart(MachineInstr *MI, const TargetInstrInfo *TII) {
   MachineBasicBlock *MBB = MI->getParent();
-  BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::tMOVr))
+  BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::tMOVr))
       .add(MI->getOperand(0))
       .add(MI->getOperand(1))
       .add(predOps(ARMCC::AL));
@@ -147,7 +147,7 @@ inline void RevertLoopDec(MachineInstr *MI, const TargetInstrInfo *TII,
   MachineBasicBlock *MBB = MI->getParent();
 
   MachineInstrBuilder MIB =
-      BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::t2SUBri));
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::t2SUBri));
   MIB.add(MI->getOperand(0));
   MIB.add(MI->getOperand(1));
   MIB.add(MI->getOperand(2));
@@ -171,7 +171,7 @@ inline void RevertLoopEnd(MachineInstr *MI, const TargetInstrInfo *TII,
   // Create cmp
   if (!SkipCmp) {
     MachineInstrBuilder MIB =
-        BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::t2CMPri));
+        BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::t2CMPri));
     MIB.add(MI->getOperand(0));
     MIB.addImm(0);
     MIB.addImm(ARMCC::AL);
@@ -180,7 +180,7 @@ inline void RevertLoopEnd(MachineInstr *MI, const TargetInstrInfo *TII,
 
   // Create bne
   MachineInstrBuilder MIB =
-      BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(BrOpc));
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(BrOpc));
   MIB.add(MI->getOperand(1)); // branch target
   MIB.addImm(ARMCC::NE);      // condition code
   MIB.addReg(ARM::CPSR);

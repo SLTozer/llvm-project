@@ -125,7 +125,7 @@ namespace {
 class EliminateFrameIndex {
   const TargetInstrInfo &TII;
   const TargetRegisterInfo &TRI;
-  const DebugLoc &DL;
+  DebugLoc DL;
   MachineBasicBlock &MBB;
   MachineBasicBlock::iterator II;
   Register clobber;
@@ -180,7 +180,7 @@ class EliminateFrameIndex {
 
 public:
   EliminateFrameIndex(const TargetInstrInfo &TII, const TargetRegisterInfo &TRI,
-                      const DebugLoc &DL, MachineBasicBlock &MBB,
+                      DebugLoc DL, MachineBasicBlock &MBB,
                       MachineBasicBlock::iterator II)
       : TII(TII), TRI(TRI), DL(DL), MBB(MBB), II(II), clobber(VE::SX13) {}
 
@@ -487,7 +487,7 @@ bool VERegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   const VEFrameLowering &TFI = *getFrameLowering(MF);
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   const VERegisterInfo &TRI = *Subtarget.getRegisterInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   EliminateFrameIndex EFI(TII, TRI, DL, *MI.getParent(), II);
 
   // Retrieve FrameReg and byte offset for stack slot.

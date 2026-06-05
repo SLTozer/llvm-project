@@ -101,7 +101,7 @@ public:
       if (isInstLegal({TargetOpcode::G_CONSTANT, {DstTy}})) {
         auto &CstVal = SrcMI->getOperand(1);
         auto MergedLocation =
-            DebugLoc::getMergedLocation(MI.getDebugLoc(), SrcMI->getDebugLoc());
+            DebugLoc::getMergedLocation(MI.getFullDebugLoc(), SrcMI->getFullDebugLoc());
         // Set the debug location to the merged location of the SrcMI and the MI
         // if the aext fold is successful.
         Builder.setDebugLoc(MergedLocation);

@@ -86,7 +86,7 @@ bool RISCVInsertReadWriteCSR::emitWriteRoundingModeOpt(MachineBasicBlock &MBB) {
         MI.readsRegister(RISCV::FRM, /*TRI=*/nullptr)) {
       // Restore FRM before unknown operations.
       if (SavedFRM.isValid())
-        BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(RISCV::WriteFRM))
+        BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(RISCV::WriteFRM))
             .addReg(SavedFRM);
       CurrentRM = RISCVFPRndMode::DYN;
       SavedFRM = Register();
@@ -116,11 +116,11 @@ bool RISCVInsertReadWriteCSR::emitWriteRoundingModeOpt(MachineBasicBlock &MBB) {
       // Save current FRM value to SavedFRM.
       MachineRegisterInfo *MRI = &MBB.getParent()->getRegInfo();
       SavedFRM = MRI->createVirtualRegister(&RISCV::GPRRegClass);
-      BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(RISCV::SwapFRMImm), SavedFRM)
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(RISCV::SwapFRMImm), SavedFRM)
           .addImm(InstrRM);
     } else {
       // Don't need to save current FRM when SavedFRM having value.
-      BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(RISCV::WriteFRMImm))
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(RISCV::WriteFRMImm))
           .addImm(InstrRM);
     }
     CurrentRM = InstrRM;
@@ -158,7 +158,7 @@ bool RISCVInsertReadWriteCSR::emitWriteRoundingMode(MachineBasicBlock &MBB) {
     // Save
     MachineRegisterInfo *MRI = &MBB.getParent()->getRegInfo();
     Register SavedFRM = MRI->createVirtualRegister(&RISCV::GPRRegClass);
-    BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(RISCV::SwapFRMImm),
+    BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(RISCV::SwapFRMImm),
             SavedFRM)
         .addImm(FRMImm);
     MI.addOperand(MachineOperand::CreateReg(RISCV::FRM, /*IsDef*/ false,

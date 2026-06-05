@@ -758,7 +758,7 @@ bool RISCVMergeBaseOffsetOpt::foldShxaddIntoScaledMemory(MachineInstr &Hi,
   // Ensure index register satisfies GPRNoX0 class required by QC_LR*/QC_SR*.
   MRI->constrainRegClass(IndexReg, &RISCV::GPRNoX0RegClass);
 
-  BuildMI(*MBB, TailMem, TailMem.getDebugLoc(), TII->get(NewOpc))
+  BuildMI(*MBB, TailMem, TailMem.getFullDebugLoc(), TII->get(NewOpc))
       .add(TailMem.getOperand(0))
       .addReg(BaseReg, getKillRegState(ShxAdd.getOperand(2).isKill()))
       .addReg(IndexReg, getKillRegState(ShxAdd.getOperand(1).isKill()))

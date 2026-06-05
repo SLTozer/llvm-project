@@ -175,6 +175,19 @@ typedef struct LLVMOpaqueBinary *LLVMBinaryRef;
 typedef struct LLVMOpaqueDbgRecord *LLVMDbgRecordRef;
 
 /**
+ * @see llvm::FLDebugLoc
+ */
+typedef uint64_t LLVMFLDebugLoc;
+
+/**
+ * @see llvm::DebugLoc
+ */
+typedef struct {
+    LLVMFLDebugLoc Loc;
+    LLVMMetadataRef Context;
+} LLVMDebugLoc;
+
+/**
  * @}
  */
 

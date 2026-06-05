@@ -1796,7 +1796,7 @@ public:
 
 class DeclAsInlineDebugLocation {
   CGDebugInfo *DI;
-  llvm::DILocation *InlinedAt;
+  llvm::DebugLoc InlinedAt;
   std::optional<ApplyDebugLocation> Location;
 
 public:
@@ -1805,7 +1805,12 @@ public:
     if (!DI)
       return;
     InlinedAt = DI->getInlinedAt();
-    DI->setInlinedAt(CGF.Builder.getCurrentDebugLocation());
+    // FIXME: Figure out what to do for this case; we probably want a context
+    // for the function here, but it's not clear how we get there, or even if a
+    // DISubprogram is being created for this in practice (since we don't seem
+    // to add any scope information for it).
+    llvm::DebugLoc::DebugLocContext InlineFnContext = CGF.Builder.getCurrentDebugLocation().getDLContext();
+    DI->setInlinedAt(CGF.Builder.getCurrentDebugLocation().convertToInlinedCall(InlineFnContext));
     Location.emplace(CGF, Decl.getLocation());
   }
 

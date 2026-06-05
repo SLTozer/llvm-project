@@ -185,17 +185,17 @@ private:
 
   Register saveEFLAGS(MachineBasicBlock &MBB,
                       MachineBasicBlock::iterator InsertPt,
-                      const DebugLoc &Loc);
+                      DebugLoc Loc);
   void restoreEFLAGS(MachineBasicBlock &MBB,
-                     MachineBasicBlock::iterator InsertPt, const DebugLoc &Loc,
+                     MachineBasicBlock::iterator InsertPt, DebugLoc Loc,
                      Register Reg);
 
   void mergePredStateIntoSP(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator InsertPt,
-                            const DebugLoc &Loc, Register PredStateReg);
+                            DebugLoc Loc, Register PredStateReg);
   Register extractPredStateFromSP(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator InsertPt,
-                                  const DebugLoc &Loc);
+                                  DebugLoc Loc);
 
   void
   hardenLoadAddr(MachineInstr &MI, MachineOperand &BaseMO,
@@ -207,7 +207,7 @@ private:
   bool canHardenRegister(Register Reg);
   Register hardenValueInRegister(Register Reg, MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator InsertPt,
-                                 const DebugLoc &Loc);
+                                 DebugLoc Loc);
   Register hardenPostLoad(MachineInstr &MI);
   void hardenReturnInstr(MachineInstr &MI);
   void tracePredStateThroughCall(MachineInstr &MI);
@@ -274,7 +274,7 @@ static MachineBasicBlock &splitEdge(MachineBasicBlock &MBB,
     // necessary.
     if (!NewMBB.isLayoutSuccessor(&Succ)) {
       SmallVector<MachineOperand, 4> Cond;
-      TII.insertBranch(NewMBB, &Succ, nullptr, Cond, Br->getDebugLoc());
+      TII.insertBranch(NewMBB, &Succ, nullptr, Cond, Br->getFullDebugLoc());
     }
   } else {
     assert(!UncondBr &&
@@ -1500,7 +1500,7 @@ void X86SpeculativeLoadHardeningImpl::tracePredStateThroughBlocksAndHarden(
 /// as the save so that no PHI nodes are inserted.
 Register X86SpeculativeLoadHardeningImpl::saveEFLAGS(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator InsertPt,
-    const DebugLoc &Loc) {
+    DebugLoc Loc) {
   // FIXME: Hard coding this to a 32-bit register class seems weird, but matches
   // what instruction selection does.
   Register Reg = MRI->createVirtualRegister(&X86::GR32RegClass);
@@ -1518,7 +1518,7 @@ Register X86SpeculativeLoadHardeningImpl::saveEFLAGS(
 /// reliably lower.
 void X86SpeculativeLoadHardeningImpl::restoreEFLAGS(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator InsertPt,
-    const DebugLoc &Loc, Register Reg) {
+    DebugLoc Loc, Register Reg) {
   BuildMI(MBB, InsertPt, Loc, TII->get(X86::COPY), X86::EFLAGS).addReg(Reg);
   ++NumInstsInserted;
 }
@@ -1529,7 +1529,7 @@ void X86SpeculativeLoadHardeningImpl::restoreEFLAGS(
 /// across normal stack adjustments.
 void X86SpeculativeLoadHardeningImpl::mergePredStateIntoSP(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator InsertPt,
-    const DebugLoc &Loc, Register PredStateReg) {
+    DebugLoc Loc, Register PredStateReg) {
   Register TmpReg = MRI->createVirtualRegister(PS->RC);
   // FIXME: This hard codes a shift distance based on the number of bits needed
   // to stay canonical on 64-bit. We should compute this somehow and support
@@ -1549,7 +1549,7 @@ void X86SpeculativeLoadHardeningImpl::mergePredStateIntoSP(
 /// Extracts the predicate state stored in the high bits of the stack pointer.
 Register X86SpeculativeLoadHardeningImpl::extractPredStateFromSP(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator InsertPt,
-    const DebugLoc &Loc) {
+    DebugLoc Loc) {
   Register PredStateReg = MRI->createVirtualRegister(PS->RC);
   Register TmpReg = MRI->createVirtualRegister(PS->RC);
 
@@ -1572,7 +1572,7 @@ void X86SpeculativeLoadHardeningImpl::hardenLoadAddr(
     MachineInstr &MI, MachineOperand &BaseMO, MachineOperand &IndexMO,
     SmallDenseMap<Register, Register, 32> &AddrRegToHardenedReg) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &Loc = MI.getDebugLoc();
+  DebugLoc Loc = MI.getFullDebugLoc();
 
   // Check if EFLAGS are alive by seeing if there is a def of them or they
   // live-in, and then seeing if that def is in turn used.
@@ -1909,7 +1909,7 @@ bool X86SpeculativeLoadHardeningImpl::canHardenRegister(Register Reg) {
 /// register class as `Reg`.
 Register X86SpeculativeLoadHardeningImpl::hardenValueInRegister(
     Register Reg, MachineBasicBlock &MBB, MachineBasicBlock::iterator InsertPt,
-    const DebugLoc &Loc) {
+    DebugLoc Loc) {
   assert(canHardenRegister(Reg) && "Cannot harden this register!");
 
   auto *RC = MRI->getRegClass(Reg);
@@ -1959,7 +1959,7 @@ Register X86SpeculativeLoadHardeningImpl::hardenValueInRegister(
 /// Returns the newly hardened register.
 Register X86SpeculativeLoadHardeningImpl::hardenPostLoad(MachineInstr &MI) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &Loc = MI.getDebugLoc();
+  DebugLoc Loc = MI.getFullDebugLoc();
 
   auto &DefOp = MI.getOperand(0);
   Register OldDefReg = DefOp.getReg();
@@ -2010,7 +2010,7 @@ Register X86SpeculativeLoadHardeningImpl::hardenPostLoad(MachineInstr &MI) {
 /// predicate state from the stack pointer and continue to harden loads.
 void X86SpeculativeLoadHardeningImpl::hardenReturnInstr(MachineInstr &MI) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &Loc = MI.getDebugLoc();
+  DebugLoc Loc = MI.getFullDebugLoc();
   auto InsertPt = MI.getIterator();
 
   if (FenceCallAndRet)
@@ -2059,7 +2059,7 @@ void X86SpeculativeLoadHardeningImpl::tracePredStateThroughCall(
   MachineBasicBlock &MBB = *MI.getParent();
   MachineFunction &MF = *MBB.getParent();
   auto InsertPt = MI.getIterator();
-  const DebugLoc &Loc = MI.getDebugLoc();
+  DebugLoc Loc = MI.getFullDebugLoc();
 
   if (FenceCallAndRet) {
     if (MI.isReturn())
@@ -2260,7 +2260,7 @@ void X86SpeculativeLoadHardeningImpl::hardenIndirectCallOrJumpInstr(
   // eliminating it.
   if (!HardenedTargetReg)
     HardenedTargetReg = hardenValueInRegister(
-        OldTargetReg, *MI.getParent(), MI.getIterator(), MI.getDebugLoc());
+        OldTargetReg, *MI.getParent(), MI.getIterator(), MI.getFullDebugLoc());
 
   // Set the target operand to the hardened register.
   TargetOp.setReg(HardenedTargetReg);

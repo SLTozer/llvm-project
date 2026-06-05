@@ -536,7 +536,7 @@ MachineBasicBlock::iterator CSKYFrameLowering::eliminateCallFramePseudoInstr(
 
 void CSKYFrameLowering::adjustReg(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator MBBI,
-                                  const DebugLoc &DL, Register DestReg,
+                                  DebugLoc DL, Register DestReg,
                                   Register SrcReg, int64_t Val,
                                   MachineInstr::MIFlag Flag) const {
   const CSKYInstrInfo *TII = STI.getInstrInfo();

@@ -303,7 +303,7 @@ public:
                                int64_t Offset1, unsigned NumLoads) const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -397,7 +397,7 @@ public:
 
   void insertIndirectBranch(MachineBasicBlock &MBB,
                             MachineBasicBlock &NewDestBB,
-                            MachineBasicBlock &RestoreBB, const DebugLoc &DL,
+                            MachineBasicBlock &RestoreBB, DbgLocStorage DL,
                             int64_t BrOffset, RegScavenger *RS) const override;
 
   bool analyzeBranchImpl(MachineBasicBlock &MBB,
@@ -417,7 +417,7 @@ public:
 
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
 
   bool reverseBranchCondition(
@@ -429,7 +429,7 @@ public:
                        int &TrueCycles, int &FalseCycles) const override;
 
   void insertSelect(MachineBasicBlock &MBB,
-                    MachineBasicBlock::iterator I, const DebugLoc &DL,
+                    MachineBasicBlock::iterator I, DbgLocStorage DL,
                     Register DstReg, ArrayRef<MachineOperand> Cond,
                     Register TrueReg, Register FalseReg) const override;
 
@@ -1407,11 +1407,11 @@ public:
 
   void insertScratchExecCopy(MachineFunction &MF, MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator MBBI,
-                             const DebugLoc &DL, Register Reg, bool IsSCCLive,
+                             DbgLocStorage DL, Register Reg, bool IsSCCLive,
                              SlotIndexes *Indexes = nullptr) const;
 
   void restoreExec(MachineFunction &MF, MachineBasicBlock &MBB,
-                   MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+                   MachineBasicBlock::iterator MBBI, DbgLocStorage DL,
                    Register Reg, SlotIndexes *Indexes = nullptr) const;
 
   MachineInstr *getWholeWaveFunctionSetup(MachineFunction &MF) const;
@@ -1517,7 +1517,7 @@ public:
                               MachineBasicBlock::iterator I,
                               const TargetRegisterClass *DstRC,
                               MachineOperand &Op, MachineRegisterInfo &MRI,
-                              const DebugLoc &DL) const;
+                              DbgLocStorage DL) const;
 
   /// Legalize all operands in this instruction.  This function may create new
   /// instructions and control-flow around \p MI.  If present, \p MDT is
@@ -1566,7 +1566,7 @@ public:
   MachineBasicBlock *insertSimulatedTrap(MachineRegisterInfo &MRI,
                                          MachineBasicBlock &MBB,
                                          MachineInstr &MI,
-                                         const DebugLoc &DL) const;
+                                         DbgLocStorage DL) const;
 
   /// Return the number of wait states that result from executing this
   /// instruction.
@@ -1667,12 +1667,12 @@ public:
 
   MachineInstr *createPHIDestinationCopy(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator InsPt,
-                                         const DebugLoc &DL, Register Src,
+                                         DbgLocStorage DL, Register Src,
                                          Register Dst) const override;
 
   MachineInstr *createPHISourceCopy(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator InsPt,
-                                    const DebugLoc &DL, Register Src,
+                                    DbgLocStorage DL, Register Src,
                                     unsigned SrcSubReg,
                                     Register Dst) const override;
 
@@ -1689,12 +1689,12 @@ public:
   /// TODO: After GFX9 it should return a no-carry operation.
   MachineInstrBuilder getAddNoCarry(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator I,
-                                    const DebugLoc &DL,
+                                    DbgLocStorage DL,
                                     Register DestReg) const;
 
   MachineInstrBuilder getAddNoCarry(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator I,
-                                    const DebugLoc &DL,
+                                    DbgLocStorage DL,
                                     Register DestReg,
                                     RegScavenger &RS) const;
 

@@ -87,7 +87,7 @@ static std::string getStringReg(unsigned R) {
 
 static void addAsmInstr(MachineBasicBlock *MBB, unsigned Reg,
                         MachineBasicBlock::instr_iterator I,
-                        const DebugLoc &DL, const HexagonInstrInfo *QII,
+                        DebugLoc DL, const HexagonInstrInfo *QII,
                         MachineFunction &Fn) {
   std::string VDescStr = ".long 0x1dffe0" + getStringReg(Reg);
   const char *cstr = Fn.createExternalSymbolName(VDescStr);
@@ -154,7 +154,7 @@ bool HexagonVectorPrint::runOnMachineFunction(MachineFunction &Fn) {
     return Changed;
 
   for (auto *I : VecPrintList) {
-    DebugLoc DL = I->getDebugLoc();
+    DebugLoc DL = I->getFullDebugLoc();
     MachineBasicBlock *MBB = I->getParent();
     LLVM_DEBUG(dbgs() << "Evaluating V MI\n"; I->dump());
     unsigned Reg = 0;

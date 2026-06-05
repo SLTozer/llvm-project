@@ -354,15 +354,15 @@ public:
                            unsigned NumBytes) const override;
 
   void copyPhysRegTuple(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                        const DebugLoc &DL, MCRegister DestReg,
+                        DbgLocStorage DL, MCRegister DestReg,
                         MCRegister SrcReg, bool KillSrc, unsigned Opcode,
                         llvm::ArrayRef<unsigned> Indices) const;
   void copyGPRRegTuple(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                       const DebugLoc &DL, MCRegister DestReg, MCRegister SrcReg,
+                       DbgLocStorage DL, MCRegister DestReg, MCRegister SrcReg,
                        bool KillSrc, unsigned Opcode, unsigned ZeroReg,
                        llvm::ArrayRef<unsigned> Indices) const;
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -397,7 +397,7 @@ public:
 
   void insertIndirectBranch(MachineBasicBlock &MBB,
                             MachineBasicBlock &NewDestBB,
-                            MachineBasicBlock &RestoreBB, const DebugLoc &DL,
+                            MachineBasicBlock &RestoreBB, DbgLocStorage DL,
                             int64_t BrOffset, RegScavenger *RS) const override;
 
   bool analyzeBranch(MachineBasicBlock &MBB, MachineBasicBlock *&TBB,
@@ -411,7 +411,7 @@ public:
                         int *BytesRemoved = nullptr) const override;
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
 
   std::unique_ptr<TargetInstrInfo::PipelinerLoopInfo>
@@ -423,7 +423,7 @@ public:
                        Register, Register, Register, int &, int &,
                        int &) const override;
   void insertSelect(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                    const DebugLoc &DL, Register DstReg,
+                    DbgLocStorage DL, Register DstReg,
                     ArrayRef<MachineOperand> Cond, Register TrueReg,
                     Register FalseReg) const override;
 
@@ -522,7 +522,7 @@ public:
   bool shouldOutlineFromFunctionByDefault(MachineFunction &MF) const override;
 
   void buildClearRegister(Register Reg, MachineBasicBlock &MBB,
-                          MachineBasicBlock::iterator Iter, DebugLoc &DL,
+                          MachineBasicBlock::iterator Iter, DbgLocStorage DL,
                           bool AllowSideEffects = true) const override;
 
   /// Returns the vector element size (B, H, S or D) of an SVE opcode.
@@ -586,7 +586,7 @@ public:
   /// it additionally implicit defines X15 and X17 to cover clobbered registers
   /// for the required sequence on subtargets both with and without PAuthLR
   /// instructions.
-  void createPauthEpilogueInstr(MachineBasicBlock &MBB, DebugLoc DL) const;
+  void createPauthEpilogueInstr(MachineBasicBlock &MBB, DbgLocStorage DL) const;
 
 #define GET_INSTRINFO_HELPER_DECLS
 #include "AArch64GenInstrInfo.inc"
@@ -607,7 +607,7 @@ private:
   /// \param MBB A \p MachineBasicBlock in an outlined function.
   void fixupPostOutline(MachineBasicBlock &MBB) const;
 
-  void instantiateCondBranch(MachineBasicBlock &MBB, const DebugLoc &DL,
+  void instantiateCondBranch(MachineBasicBlock &MBB, DbgLocStorage DL,
                              MachineBasicBlock *TBB,
                              ArrayRef<MachineOperand> Cond) const;
   bool substituteCmpToZero(MachineInstr &CmpInstr, unsigned SrcReg,
@@ -679,7 +679,7 @@ createCFAOffset(const TargetRegisterInfo &MRI, unsigned Reg,
 /// insertion (PEI) pass, where a virtual scratch register may be allocated
 /// if necessary, to be replaced by the scavenger at the end of PEI.
 void emitFrameOffset(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                     const DebugLoc &DL, unsigned DestReg, unsigned SrcReg,
+                     DbgLocStorage DL, unsigned DestReg, unsigned SrcReg,
                      StackOffset Offset, const TargetInstrInfo *TII,
                      MachineInstr::MIFlag = MachineInstr::NoFlags,
                      bool SetNZCV = false, bool NeedsWinCFI = false,

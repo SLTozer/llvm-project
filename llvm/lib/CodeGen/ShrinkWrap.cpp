@@ -840,7 +840,7 @@ bool ShrinkWrapImpl::performShrinkWrapping(
     if (MBB->isEHFuncletEntry())
       return giveUpWithRemarks(ORE, "UnsupportedEHFunclets",
                                "EH Funclets are not supported yet.",
-                               MBB->front().getDebugLoc(), MBB);
+                               MBB->front().getFullDebugLoc(), MBB);
 
     if (MBB->isEHPad() || MBB->isInlineAsmBrIndirectTarget()) {
       // Push the prologue and epilogue outside of the region that may throw (or

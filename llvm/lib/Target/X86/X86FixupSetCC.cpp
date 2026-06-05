@@ -124,15 +124,15 @@ static bool fixupSetCC(MachineFunction &MF) {
       Register ZeroReg = MRI->createVirtualRegister(RC);
       if (UseSetZUCC) {
         MI.setDesc(TII->get(X86::SETZUCCr));
-        BuildMI(*ZExt->getParent(), ZExt, ZExt->getDebugLoc(),
+        BuildMI(*ZExt->getParent(), ZExt, ZExt->getFullDebugLoc(),
                 TII->get(TargetOpcode::IMPLICIT_DEF), ZeroReg);
       } else {
         // Initialize a register with 0. This must go before the eflags def
-        BuildMI(MBB, FlagsDefMI, MI.getDebugLoc(), TII->get(X86::MOV32r0),
+        BuildMI(MBB, FlagsDefMI, MI.getFullDebugLoc(), TII->get(X86::MOV32r0),
                 ZeroReg);
       }
 
-      BuildMI(*ZExt->getParent(), ZExt, ZExt->getDebugLoc(),
+      BuildMI(*ZExt->getParent(), ZExt, ZExt->getFullDebugLoc(),
               TII->get(X86::INSERT_SUBREG), ZExt->getOperand(0).getReg())
           .addReg(ZeroReg)
           .addReg(Reg0)

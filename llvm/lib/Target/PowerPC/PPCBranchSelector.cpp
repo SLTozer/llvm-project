@@ -349,7 +349,7 @@ bool PPCBSel::runOnMachineFunction(MachineFunction &Fn) {
 
         // Otherwise, we have to expand it to a long branch.
         MachineInstr &OldBranch = *I;
-        DebugLoc dl = OldBranch.getDebugLoc();
+        DebugLoc dl = OldBranch.getFullDebugLoc();
 
         if (I->getOpcode() == PPC::BCC) {
           // The BCC operands are:

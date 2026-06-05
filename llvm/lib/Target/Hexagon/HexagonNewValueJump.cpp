@@ -669,7 +669,7 @@ bool HexagonNewValueJump::runOnMachineFunction(MachineFunction &MF) {
 
           MBB->splice(jmpPos, MI.getParent(), MI);
           MBB->splice(jmpPos, MI.getParent(), cmpInstr);
-          DebugLoc dl = MI.getDebugLoc();
+          DebugLoc dl = MI.getFullDebugLoc();
           MachineInstr *NewMI;
 
           assert((isNewValueJumpCandidate(*cmpInstr)) &&

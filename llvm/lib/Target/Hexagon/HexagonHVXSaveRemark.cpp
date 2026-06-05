@@ -182,7 +182,7 @@ struct HexagonHVXSaveRemark : public MachineFunctionPass {
           if (TotalBytes >= HVXSaveThreshold) {
             MORE.emit([&]() {
               MachineOptimizationRemarkAnalysis R(
-                  DEBUG_TYPE, "HVXSaveAroundCall", MI.getDebugLoc(), &MBB);
+                  DEBUG_TYPE, "HVXSaveAroundCall", MI.getFullDebugLoc(), &MBB);
               R << ore::NV("NumVecs", NumVecs)
                 << " HVX caller-saved register(s) ("
                 << ore::NV("TotalBytes", TotalBytes)

@@ -978,7 +978,7 @@ OptimizeGlobalAddressOfAllocation(GlobalVariable *GV, CallInst *CI,
                                                      SI->getValueOperand())),
           InitBool, false, Align(1), SI->getOrdering(), SI->getSyncScopeID(),
           SI->getIterator());
-      NewSI->setDebugLoc(SI->getDebugLoc());
+      NewSI->copyDebugLocFrom(SI);
       SI->eraseFromParent();
       continue;
     }
@@ -1001,7 +1001,7 @@ OptimizeGlobalAddressOfAllocation(GlobalVariable *GV, CallInst *CI,
       // the predicate? The load seems most appropriate, but there's an argument
       // that the new load does not represent the old load, but is simply a
       // component of recomputing the predicate.
-      cast<LoadInst>(LV)->setDebugLoc(LI->getDebugLoc());
+      cast<LoadInst>(LV)->copyDebugLocFrom(LI);
       InitBoolUsed = true;
       switch (ICI->getPredicate()) {
       default: llvm_unreachable("Unknown ICmp Predicate!");
@@ -1014,7 +1014,7 @@ OptimizeGlobalAddressOfAllocation(GlobalVariable *GV, CallInst *CI,
       case ICmpInst::ICMP_ULE:
       case ICmpInst::ICMP_EQ:
         LV = BinaryOperator::CreateNot(LV, "notinit", ICI->getIterator());
-        cast<BinaryOperator>(LV)->setDebugLoc(ICI->getDebugLoc());
+        cast<BinaryOperator>(LV)->copyDebugLocFrom(ICI);
         break;
       case ICmpInst::ICMP_NE:
       case ICmpInst::ICMP_UGT:
@@ -1287,7 +1287,7 @@ static bool TryToShrinkGlobalToBoolean(GlobalVariable *GV, Constant *OtherVal) {
               new LoadInst(NewGV->getValueType(), NewGV, LI->getName() + ".b",
                            false, Align(1), LI->getOrdering(),
                            LI->getSyncScopeID(), LI->getIterator());
-          cast<LoadInst>(StoreVal)->setDebugLoc(LI->getDebugLoc());
+          cast<LoadInst>(StoreVal)->copyDebugLocFrom(LI);
         } else {
           assert((isa<CastInst>(StoredVal) || isa<SelectInst>(StoredVal)) &&
                  "This is not a form that we understand!");
@@ -1298,7 +1298,7 @@ static bool TryToShrinkGlobalToBoolean(GlobalVariable *GV, Constant *OtherVal) {
       StoreInst *NSI =
           new StoreInst(StoreVal, NewGV, false, Align(1), SI->getOrdering(),
                         SI->getSyncScopeID(), SI->getIterator());
-      NSI->setDebugLoc(SI->getDebugLoc());
+      NSI->copyDebugLocFrom(SI);
     } else {
       // Change the load into a load of bool then a select.
       LoadInst *LI = cast<LoadInst>(UI);
@@ -1315,8 +1315,8 @@ static bool TryToShrinkGlobalToBoolean(GlobalVariable *GV, Constant *OtherVal) {
       NSI->takeName(LI);
       // Since LI is split into two instructions, NLI and NSI both inherit the
       // same DebugLoc
-      NLI->setDebugLoc(LI->getDebugLoc());
-      NSI->setDebugLoc(LI->getDebugLoc());
+      NLI->copyDebugLocFrom(LI);
+      NSI->copyDebugLocFrom(LI);
       LI->replaceAllUsesWith(NSI);
     }
     UI->eraseFromParent();

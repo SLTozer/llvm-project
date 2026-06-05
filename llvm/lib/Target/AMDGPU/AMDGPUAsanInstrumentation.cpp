@@ -177,7 +177,7 @@ static void instrumentAddressImpl(Module &M, IRBuilder<> &IRB,
   Instruction *Crash =
       generateCrashCode(M, IRB, IntptrTy, CrashTerm, AddrLong, IsWrite,
                         AccessSizeIndex, SizeArgument, Recover);
-  Crash->setDebugLoc(OrigIns->getDebugLoc());
+  Crash->copyDebugLocFrom(OrigIns);
 }
 
 void instrumentAddress(Module &M, IRBuilder<> &IRB, Instruction *OrigIns,

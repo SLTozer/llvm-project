@@ -2702,7 +2702,7 @@ bool RewriteMFMAFormStage::rewrite(
           if (ReachingDefCopyMap[Src2Reg].insert(RD).second) {
             MachineInstrBuilder VGPRCopy =
                 BuildMI(*RD->getParent(), std::next(RD->getIterator()),
-                        RD->getDebugLoc(), TII->get(TargetOpcode::COPY))
+                        RD->getFullDebugLoc(), TII->get(TargetOpcode::COPY))
                     .addDef(MappedReg, {}, 0)
                     .addUse(Src2Reg, {}, 0);
             DAG.LIS->InsertMachineInstrInMaps(*VGPRCopy);
@@ -2792,7 +2792,7 @@ bool RewriteMFMAFormStage::rewrite(
         if (ReachingDefCopyMap[DstReg].insert(RD).second) {
           MachineInstrBuilder VGPRCopy =
               BuildMI(*RD->getParent(), std::next(RD->getIterator()),
-                      RD->getDebugLoc(), TII->get(TargetOpcode::COPY))
+                      RD->getFullDebugLoc(), TII->get(TargetOpcode::COPY))
                   .addDef(MappedReg, {}, 0)
                   .addUse(DstReg, {}, 0);
           DAG.LIS->InsertMachineInstrInMaps(*VGPRCopy);
@@ -2827,7 +2827,7 @@ bool RewriteMFMAFormStage::rewrite(
       MachineInstr *UseInst = RU->getParent();
       MachineInstrBuilder VGPRCopy =
           BuildMI(*UseInst->getParent(), UseInst->getIterator(),
-                  UseInst->getDebugLoc(), TII->get(TargetOpcode::COPY))
+                  UseInst->getFullDebugLoc(), TII->get(TargetOpcode::COPY))
               .addDef(NewUseReg, {}, 0)
               .addUse(DstReg, {}, 0);
       DAG.LIS->InsertMachineInstrInMaps(*VGPRCopy);
@@ -2870,7 +2870,7 @@ bool RewriteMFMAFormStage::rewrite(
 
       MachineInstrBuilder VGPRCopy =
           BuildMI(*UseInst->getParent(), UseInst->getIterator(),
-                  UseInst->getDebugLoc(), TII->get(TargetOpcode::COPY))
+                  UseInst->getFullDebugLoc(), TII->get(TargetOpcode::COPY))
               .addDef(NewUseReg, {}, 0)
               .addUse(RUDst.first, {}, 0);
       DAG.LIS->InsertMachineInstrInMaps(*VGPRCopy);

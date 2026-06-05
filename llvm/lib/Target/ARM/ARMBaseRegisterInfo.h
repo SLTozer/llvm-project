@@ -18,6 +18,7 @@
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
 #include "llvm/IR/CallingConv.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include <cstdint>
 
@@ -134,7 +135,7 @@ public:
   /// specified immediate.
   virtual void
   emitLoadConstPool(MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                    const DebugLoc &dl, Register DestReg, unsigned SubIdx,
+                    DbgLocStorage dl, Register DestReg, unsigned SubIdx,
                     int Val, ARMCC::CondCodes Pred = ARMCC::AL,
                     Register PredReg = Register(),
                     unsigned MIFlags = MachineInstr::NoFlags) const;

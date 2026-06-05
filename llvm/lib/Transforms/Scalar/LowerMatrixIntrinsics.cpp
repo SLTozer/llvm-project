@@ -2721,7 +2721,7 @@ public:
         for (Value *S : SI->second) {
           if (S == Leaf)
             continue;
-          DebugLoc DL = cast<Instruction>(S)->getDebugLoc();
+          DebugLoc DL = cast<Instruction>(S)->getFullDebugLoc();
           write("shared with remark at line " + std::to_string(DL.getLine()) +
                 " column " + std::to_string(DL.getCol()) + " (");
         }
@@ -2871,9 +2871,9 @@ public:
       for (const auto &KV : Inst2Matrix) {
         if (Func.getSubprogram()) {
           auto *I = cast<Instruction>(KV.first);
-          DILocation *Context = I->getDebugLoc();
+          DebugLoc Context = I->getFullDebugLoc();
           while (Context) {
-            Subprog2Exprs[getSubprogram(Context->getScope())].push_back(
+            Subprog2Exprs[getSubprogram(Context.getScope())].push_back(
                 KV.first);
             Context = DebugLoc(Context).getInlinedAt();
           }
@@ -2893,10 +2893,10 @@ public:
         // Generate remarks for each leaf.
         for (auto *L : Leaves) {
 
-          DebugLoc Loc = cast<Instruction>(L)->getDebugLoc();
-          DILocation *Context = cast<Instruction>(L)->getDebugLoc();
+          DebugLoc Loc = cast<Instruction>(L)->getFullDebugLoc();
+          DebugLoc Context = cast<Instruction>(L)->getFullDebugLoc();
           while (Context) {
-            if (getSubprogram(Context->getScope()) == KV.first) {
+            if (getSubprogram(Context.getScope()) == KV.first) {
               Loc = Context;
               break;
             }

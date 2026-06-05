@@ -196,7 +196,7 @@ class SystemZInstrInfo : public SystemZGenInstrInfo {
   void expandStackGuardPseudo(MachineInstr &MI, unsigned Opcode) const;
   MachineInstrBuilder
   emitGRX32Move(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                const DebugLoc &DL, unsigned DestReg, unsigned SrcReg,
+                DbgLocStorage DL, unsigned DestReg, unsigned SrcReg,
                 unsigned LowLowOpcode, unsigned Size, bool KillSrc,
                 bool UndefSrc) const;
 
@@ -240,7 +240,7 @@ public:
                         int *BytesRemoved = nullptr) const override;
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
   bool analyzeCompare(const MachineInstr &MI, Register &SrcReg,
                       Register &SrcReg2, int64_t &Mask,
@@ -249,7 +249,7 @@ public:
                        Register, Register, Register, int &, int &,
                        int &) const override;
   void insertSelect(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                    const DebugLoc &DL, Register DstReg,
+                    DbgLocStorage DL, Register DstReg,
                     ArrayRef<MachineOperand> Cond, Register TrueReg,
                     Register FalseReg) const override;
   bool foldImmediate(MachineInstr &UseMI, MachineInstr &DefMI, Register Reg,
@@ -269,7 +269,7 @@ public:
   bool PredicateInstruction(MachineInstr &MI,
                             ArrayRef<MachineOperand> Pred) const override;
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
   void storeRegToStackSlot(

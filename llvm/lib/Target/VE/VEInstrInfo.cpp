@@ -226,7 +226,7 @@ unsigned VEInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                    MachineBasicBlock *TBB,
                                    MachineBasicBlock *FBB,
                                    ArrayRef<MachineOperand> Cond,
-                                   const DebugLoc &DL, int *BytesAdded) const {
+                                   DbgLocStorage DL, int *BytesAdded) const {
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
   assert((Cond.size() == 3 || Cond.size() == 0) &&
          "VE branch conditions should have three component!");
@@ -323,7 +323,7 @@ static bool IsAliasOfSX(Register Reg) {
 }
 
 static void copyPhysSubRegs(MachineBasicBlock &MBB,
-                            MachineBasicBlock::iterator I, const DebugLoc &DL,
+                            MachineBasicBlock::iterator I, DbgLocStorage DL,
                             MCRegister DestReg, MCRegister SrcReg, bool KillSrc,
                             const MCInstrDesc &MCID, unsigned int NumSubRegs,
                             const unsigned *SubRegIdx,
@@ -356,7 +356,7 @@ static void copyPhysSubRegs(MachineBasicBlock &MBB,
 }
 
 void VEInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
-                              MachineBasicBlock::iterator I, const DebugLoc &DL,
+                              MachineBasicBlock::iterator I, DbgLocStorage DL,
                               Register DestReg, Register SrcReg, bool KillSrc,
                               bool RenamableDest, bool RenamableSrc) const {
 
@@ -461,9 +461,9 @@ void VEInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                       const TargetRegisterClass *RC,
                                       Register VReg,
                                       MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (I != MBB.end())
-    DL = I->getDebugLoc();
+    DL = I->getFullDebugLoc();
 
   MachineFunction *MF = MBB.getParent();
   const MachineFrameInfo &MFI = MF->getFrameInfo();
@@ -524,9 +524,9 @@ void VEInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                        const TargetRegisterClass *RC,
                                        Register VReg, unsigned SubReg,
                                        MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (I != MBB.end())
-    DL = I->getDebugLoc();
+    DL = I->getFullDebugLoc();
 
   MachineFunction *MF = MBB.getParent();
   const MachineFrameInfo &MFI = MF->getFrameInfo();
@@ -765,7 +765,7 @@ Register VEInstrInfo::getGlobalBaseReg(MachineFunction *MF) const {
   // MBB of the function
   MachineBasicBlock &FirstMBB = MF->front();
   MachineBasicBlock::iterator MBBI = FirstMBB.begin();
-  DebugLoc dl;
+  DbgLocStorage dl;
   BuildMI(FirstMBB, MBBI, dl, get(VE::GETGOT), GlobalBaseReg);
   VEFI->setGlobalBaseReg(GlobalBaseReg);
   return GlobalBaseReg;
@@ -780,7 +780,7 @@ static Register getVM512Lower(Register reg) { return getVM512Upper(reg) + 1; }
 // Expand pseudo logical vector instructions for VM512 registers.
 static void expandPseudoLogM(MachineInstr &MI, const MCInstrDesc &MCID) {
   MachineBasicBlock *MBB = MI.getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DbgLocStorage DL = MI.getDebugLoc();
 
   Register VMXu = getVM512Upper(MI.getOperand(0).getReg());
   Register VMXl = getVM512Lower(MI.getOperand(0).getReg());
@@ -862,7 +862,7 @@ static void expandPseudoVFMK(const TargetInstrInfo &TI, MachineInstr &MI) {
   unsigned OpcodeLower = (*Found).second.second;
 
   MachineBasicBlock *MBB = MI.getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DbgLocStorage DL = MI.getDebugLoc();
 
   MachineInstrBuilder Bu = BuildMI(*MBB, MI, DL, TI.get(OpcodeUpper));
   addOperandsForVFMK(Bu, MI, /* Upper */ true);
@@ -922,7 +922,7 @@ bool VEInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       Imm -= 4;
     }
     MachineBasicBlock *MBB = MI.getParent();
-    DebugLoc DL = MI.getDebugLoc();
+    DbgLocStorage DL = MI.getDebugLoc();
     switch (MI.getOpcode()) {
     case VE::LVMyir:
       BuildMI(*MBB, MI, DL, get(VE::LVMir))
@@ -970,7 +970,7 @@ bool VEInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       Imm -= 4;
     }
     MachineBasicBlock *MBB = MI.getParent();
-    DebugLoc DL = MI.getDebugLoc();
+    DbgLocStorage DL = MI.getDebugLoc();
     MachineInstrBuilder MIB =
         BuildMI(*MBB, MI, DL, get(VE::SVMmi), Dest).addReg(VMZ).addImm(Imm);
     MachineInstr *Inst = MIB.getInstr();
@@ -998,7 +998,7 @@ bool VEInstrInfo::expandExtendStackPseudo(MachineInstr &MI) const {
   MachineFunction &MF = *MBB.getParent();
   const VESubtarget &STI = MF.getSubtarget<VESubtarget>();
   const VEInstrInfo &TII = *STI.getInstrInfo();
-  DebugLoc dl = MBB.findDebugLoc(MI);
+  DbgLocStorage dl = MBB.findDebugLoc(MI);
 
   // Create following instructions and multiple basic blocks.
   //
@@ -1082,7 +1082,7 @@ bool VEInstrInfo::expandGetStackTopPseudo(MachineInstr &MI) const {
   MachineFunction &MF = *MBB->getParent();
   const VESubtarget &STI = MF.getSubtarget<VESubtarget>();
   const VEInstrInfo &TII = *STI.getInstrInfo();
-  DebugLoc DL = MBB->findDebugLoc(MI);
+  DbgLocStorage DL = MBB->findDebugLoc(MI);
 
   // Create following instruction
   //

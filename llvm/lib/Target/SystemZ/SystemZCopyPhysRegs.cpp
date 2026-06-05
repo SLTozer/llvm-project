@@ -69,7 +69,7 @@ bool SystemZCopyPhysRegs::visitMBB(MachineBasicBlock &MBB) {
     if (!MI->isCopy())
       continue;
 
-    DebugLoc DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
     Register SrcReg = MI->getOperand(1).getReg();
     Register DstReg = MI->getOperand(0).getReg();
 

@@ -94,8 +94,8 @@ static OptimizationRemarkAnalysis createLVAnalysis(StringRef RemarkName,
   BasicBlock *CodeRegion = I ? I->getParent() : TheLoop->getHeader();
   // If debug location is attached to the instruction, use it. Otherwise if DL
   // was not provided, use the loop's.
-  if (I && I->getDebugLoc())
-    DL = I->getDebugLoc();
+  if (I && I->getFullDebugLoc())
+    DL = I->getFullDebugLoc();
   else if (!DL)
     DL = TheLoop->getStartLoc();
 

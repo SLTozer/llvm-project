@@ -222,7 +222,7 @@ bool UnreachableMachineBlockElim::run(MachineFunction &F) {
             // insert a COPY instead of simply replacing the output
             // with the input.
             const TargetInstrInfo *TII = F.getSubtarget().getInstrInfo();
-            BuildMI(BB, BB.getFirstNonPHI(), Phi.getDebugLoc(),
+            BuildMI(BB, BB.getFirstNonPHI(), Phi.getFullDebugLoc(),
                     TII->get(TargetOpcode::COPY), OutputReg)
                 .addReg(InputReg, getRegState(Input), InputSub);
           }

@@ -236,7 +236,7 @@ MCPhysReg RegAllocBase::getErrorAssignment(const TargetRegisterClass &RC,
     if (EmitError) {
       Context.diagnose(DiagnosticInfoRegAllocFailure(
           "no registers from class available to allocate", Fn,
-          CtxMI ? CtxMI->getDebugLoc() : DiagnosticLocation()));
+          CtxMI ? CtxMI->getFullDebugLoc() : DiagnosticLocation()));
     }
 
     assert(!RawRegs.empty() && "register classes cannot have no registers");
@@ -250,7 +250,7 @@ MCPhysReg RegAllocBase::getErrorAssignment(const TargetRegisterClass &RC,
     } else {
       Context.diagnose(DiagnosticInfoRegAllocFailure(
           "ran out of registers during register allocation", Fn,
-          CtxMI ? CtxMI->getDebugLoc() : DiagnosticLocation()));
+          CtxMI ? CtxMI->getFullDebugLoc() : DiagnosticLocation()));
     }
   }
 

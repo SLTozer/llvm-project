@@ -198,7 +198,7 @@ M68kFrameLowering::calculateMaxStackAlign(const MachineFunction &MF) const {
 
 void M68kFrameLowering::BuildStackAlignAND(MachineBasicBlock &MBB,
                                            MachineBasicBlock::iterator MBBI,
-                                           const DebugLoc &DL, unsigned Reg,
+                                           DebugLoc DL, unsigned Reg,
                                            uint64_t MaxAlign) const {
   uint64_t Val = -MaxAlign;
   unsigned AndOp = M68k::AND32di;
@@ -419,7 +419,7 @@ int M68kFrameLowering::mergeSPUpdates(MachineBasicBlock &MBB,
 
 MachineInstrBuilder M68kFrameLowering::BuildStackAdjustment(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, int64_t Offset, bool InEpilogue) const {
+    DebugLoc DL, int64_t Offset, bool InEpilogue) const {
   assert(Offset != 0 && "zero offset stack adjustment requested");
 
   // TODO can `lea` be used to adjust stack?
@@ -439,7 +439,7 @@ MachineInstrBuilder M68kFrameLowering::BuildStackAdjustment(
 
 void M68kFrameLowering::BuildCFI(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator MBBI,
-                                 const DebugLoc &DL,
+                                 DebugLoc DL,
                                  const MCCFIInstruction &CFIInst) const {
   MachineFunction &MF = *MBB.getParent();
   unsigned CFIIndex = MF.addFrameInst(CFIInst);
@@ -449,7 +449,7 @@ void M68kFrameLowering::BuildCFI(MachineBasicBlock &MBB,
 
 void M68kFrameLowering::emitPrologueCalleeSavedFrameMoves(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL) const {
+    DebugLoc DL) const {
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   const MCRegisterInfo *MRI = MF.getContext().getRegisterInfo();

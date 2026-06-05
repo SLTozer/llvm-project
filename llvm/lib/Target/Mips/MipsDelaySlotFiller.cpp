@@ -313,7 +313,7 @@ namespace {
                                 MachineInstr *FirstNextMBBInstr);
 
     Iter replaceWithCompactBranch(MachineBasicBlock &MBB, Iter Branch,
-                                  const DebugLoc &DL);
+                                  DebugLoc DL);
 
     /// This function checks if it is valid to move Candidate to the delay slot
     /// and returns true if it isn't. It also updates memory and register
@@ -698,7 +698,7 @@ getUnderlyingObjects(const MachineInstr &MI,
 // Replace Branch with the compact branch instruction.
 Iter MipsDelaySlotFiller::replaceWithCompactBranch(MachineBasicBlock &MBB,
                                                    Iter Branch,
-                                                   const DebugLoc &DL) {
+                                                   DebugLoc DL) {
   const MipsSubtarget &STI = MBB.getParent()->getSubtarget<MipsSubtarget>();
   const MipsInstrInfo *TII = STI.getInstrInfo();
 
@@ -828,7 +828,7 @@ bool MipsDelaySlotFiller::runOnMachineBasicBlock(
     if ((InMicroMipsMode ||
          (STI.hasMips32r6() && MipsCompactBranchPolicy != CB_Never)) &&
         TII->getEquivalentCompactForm(I)) {
-      I = replaceWithCompactBranch(MBB, I, I->getDebugLoc());
+      I = replaceWithCompactBranch(MBB, I, I->getFullDebugLoc());
       Changed = true;
       continue;
     }
@@ -836,7 +836,7 @@ bool MipsDelaySlotFiller::runOnMachineBasicBlock(
     // Bundle the NOP to the instruction with the delay slot.
     LLVM_DEBUG(dbgs() << DEBUG_TYPE << ": could not fill delay slot for ";
                I->dump());
-    TII->insertNop(MBB, std::next(I), I->getDebugLoc());
+    TII->insertNop(MBB, std::next(I), I->getFullDebugLoc());
     MIBundleBuilder(MBB, I, std::next(I, 2));
     ++FilledSlots;
     Changed = true;

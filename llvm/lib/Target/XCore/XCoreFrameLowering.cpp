@@ -57,7 +57,7 @@ static bool CompareSSIOffset(const StackSlotInfo& a, const StackSlotInfo& b) {
 
 static void EmitDefCfaRegister(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MBBI,
-                               const DebugLoc &dl, const TargetInstrInfo &TII,
+                               DebugLoc dl, const TargetInstrInfo &TII,
                                MachineFunction &MF, unsigned DRegNum) {
   unsigned CFIIndex = MF.addFrameInst(
       MCCFIInstruction::createDefCfaRegister(nullptr, DRegNum));
@@ -67,7 +67,7 @@ static void EmitDefCfaRegister(MachineBasicBlock &MBB,
 
 static void EmitDefCfaOffset(MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator MBBI,
-                             const DebugLoc &dl, const TargetInstrInfo &TII,
+                             DebugLoc dl, const TargetInstrInfo &TII,
                              int Offset) {
   MachineFunction &MF = *MBB.getParent();
   unsigned CFIIndex =
@@ -77,7 +77,7 @@ static void EmitDefCfaOffset(MachineBasicBlock &MBB,
 }
 
 static void EmitCfiOffset(MachineBasicBlock &MBB,
-                          MachineBasicBlock::iterator MBBI, const DebugLoc &dl,
+                          MachineBasicBlock::iterator MBBI, DebugLoc dl,
                           const TargetInstrInfo &TII, unsigned DRegNum,
                           int Offset) {
   MachineFunction &MF = *MBB.getParent();
@@ -94,7 +94,7 @@ static void EmitCfiOffset(MachineBasicBlock &MBB,
 /// \param OffsetFromTop the spill offset from the top of the frame.
 /// \param [in,out] Adjusted the current SP offset from the top of the frame.
 static void IfNeededExtSP(MachineBasicBlock &MBB,
-                          MachineBasicBlock::iterator MBBI, const DebugLoc &dl,
+                          MachineBasicBlock::iterator MBBI, DebugLoc dl,
                           const TargetInstrInfo &TII, int OffsetFromTop,
                           int &Adjusted, int FrameSize, bool emitFrameMoves) {
   while (OffsetFromTop > Adjusted) {
@@ -117,7 +117,7 @@ static void IfNeededExtSP(MachineBasicBlock &MBB,
 /// \param [in,out] RemainingAdj the current SP offset from the top of the
 /// frame.
 static void IfNeededLDAWSP(MachineBasicBlock &MBB,
-                           MachineBasicBlock::iterator MBBI, const DebugLoc &dl,
+                           MachineBasicBlock::iterator MBBI, DebugLoc dl,
                            const TargetInstrInfo &TII, int OffsetFromTop,
                            int &RemainingAdj) {
   while (OffsetFromTop < RemainingAdj - MaxImmU16) {
@@ -187,7 +187,7 @@ static MachineMemOperand *getFrameIndexMMO(MachineBasicBlock &MBB,
 /// with the largest (negative) offsets first.
 static void RestoreSpillList(MachineBasicBlock &MBB,
                              MachineBasicBlock::iterator MBBI,
-                             const DebugLoc &dl, const TargetInstrInfo &TII,
+                             DebugLoc dl, const TargetInstrInfo &TII,
                              int &RemainingAdj,
                              SmallVectorImpl<StackSlotInfo> &SpillList) {
   for (unsigned i = 0, e = SpillList.size(); i != e; ++i) {
@@ -343,7 +343,7 @@ void XCoreFrameLowering::emitEpilogue(MachineFunction &MF,
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
   const XCoreInstrInfo &TII = *MF.getSubtarget<XCoreSubtarget>().getInstrInfo();
   XCoreFunctionInfo *XFI = MF.getInfo<XCoreFunctionInfo>();
-  DebugLoc dl = MBBI->getDebugLoc();
+  DebugLoc dl = MBBI->getFullDebugLoc();
   unsigned RetOpcode = MBBI->getOpcode();
 
   // Work out frame sizes.
@@ -422,7 +422,7 @@ bool XCoreFrameLowering::spillCalleeSavedRegisters(
 
   DebugLoc DL;
   if (MI != MBB.end() && !MI->isDebugInstr())
-    DL = MI->getDebugLoc();
+    DL = MI->getFullDebugLoc();
 
   for (const CalleeSavedInfo &I : CSI) {
     MCRegister Reg = I.getReg();
@@ -506,11 +506,11 @@ MachineBasicBlock::iterator XCoreFrameLowering::eliminateCallFramePseudoInstr(
       MachineInstr *New;
       if (Old.getOpcode() == XCore::ADJCALLSTACKDOWN) {
         int Opcode = isU6 ? XCore::EXTSP_u6 : XCore::EXTSP_lu6;
-        New = BuildMI(MF, Old.getDebugLoc(), TII.get(Opcode)).addImm(Amount);
+        New = BuildMI(MF, Old.getFullDebugLoc(), TII.get(Opcode)).addImm(Amount);
       } else {
         assert(Old.getOpcode() == XCore::ADJCALLSTACKUP);
         int Opcode = isU6 ? XCore::LDAWSP_ru6 : XCore::LDAWSP_lru6;
-        New = BuildMI(MF, Old.getDebugLoc(), TII.get(Opcode), XCore::SP)
+        New = BuildMI(MF, Old.getFullDebugLoc(), TII.get(Opcode), XCore::SP)
                   .addImm(Amount);
       }
 

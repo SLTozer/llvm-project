@@ -44,6 +44,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
@@ -158,20 +159,20 @@ CGDebugInfo::~CGDebugInfo() {
 
 void CGDebugInfo::addInstSourceAtomMetadata(llvm::Instruction *I,
                                             uint64_t Group, uint8_t Rank) {
-  if (!I->getDebugLoc() || Group == 0 || !I->getDebugLoc()->getLine())
+  if (!I->getFullDebugLoc() || Group == 0 || !I->getFullDebugLoc().getLine())
     return;
 
   // Saturate the 3-bit rank.
   Rank = std::min<uint8_t>(Rank, 7);
 
-  const llvm::DebugLoc &DL = I->getDebugLoc();
+  const llvm::DebugLoc &DL = I->getFullDebugLoc();
 
   // Each instruction can only be attributed to one source atom (a limitation of
   // the implementation). If this instruction is already part of a source atom,
   // pick the group in which it has highest precedence (lowest rank).
-  if (DL->getAtomGroup() && DL->getAtomRank() && DL->getAtomRank() < Rank) {
-    Group = DL->getAtomGroup();
-    Rank = DL->getAtomRank();
+  if (DL.getAtomGroup() && DL.getAtomRank() && DL.getAtomRank() < Rank) {
+    Group = DL.getAtomGroup();
+    Rank = DL.getAtomRank();
   }
 
   // Update the function-local watermark so we don't reuse this number for
@@ -180,8 +181,8 @@ void CGDebugInfo::addInstSourceAtomMetadata(llvm::Instruction *I,
       std::max(Group, KeyInstructionsInfo.HighestEmittedAtom);
 
   // Apply the new DILocation to the instruction.
-  llvm::DILocation *NewDL = llvm::DILocation::get(
-      I->getContext(), DL.getLine(), DL.getCol(), DL.getScope(),
+  llvm::DebugLoc NewDL = DBuilder.getLoc(
+      DL, DL.getLine(), DL.getCol(), DL.getScope(),
       DL.getInlinedAt(), DL.isImplicitCode(), Group, Rank);
   I->setDebugLoc(NewDL);
 }
@@ -289,7 +290,7 @@ void ApplyDebugLocation::init(SourceLocation TemporaryLocation,
   // Construct a location that has a valid scope, but no line info.
   assert(!DI->LexicalBlockStack.empty());
   CGF->Builder.SetCurrentDebugLocation(
-      llvm::DILocation::get(DI->LexicalBlockStack.back()->getContext(), 0, 0,
+      DI->DBuilder.getLoc(DI->FnContextStack.back(), 0, 0,
                             DI->LexicalBlockStack.back(), DI->getInlinedAt()));
 }
 
@@ -308,10 +309,8 @@ ApplyDebugLocation::ApplyDebugLocation(CodeGenFunction &CGF, llvm::DebugLoc Loc)
   if (Loc) {
     // Key Instructions: drop the atom group and rank to avoid accidentally
     // propagating it around.
-    if (Loc->getAtomGroup())
-      Loc = llvm::DILocation::get(Loc->getContext(), Loc.getLine(),
-                                  Loc->getColumn(), Loc->getScope(),
-                                  Loc->getInlinedAt(), Loc.isImplicitCode());
+    if (Loc.getAtomGroup())
+      Loc = Loc.getWithoutAtom();
     CGF.Builder.SetCurrentDebugLocation(std::move(Loc));
   }
 }
@@ -333,7 +332,7 @@ ApplyInlineDebugLocation::ApplyInlineDebugLocation(CodeGenFunction &CGF,
   auto &DI = *CGF.getDebugInfo();
   SavedLocation = DI.getLocation();
   assert((DI.getInlinedAt() ==
-          CGF.Builder.getCurrentDebugLocation()->getInlinedAt()) &&
+          CGF.Builder.getCurrentDebugLocation().getInlinedAt()) &&
          "CGDebugInfo and IRBuilder are out of sync");
 
   DI.EmitInlineFunctionStart(CGF.Builder, InlinedFn);
@@ -4075,22 +4074,23 @@ llvm::DIMacroFile *CGDebugInfo::CreateTempMacroFile(llvm::DIMacroFile *Parent,
   return DBuilder.createTempMacroFile(Parent, Line, FName);
 }
 
-llvm::DILocation *
+llvm::DebugLoc 
 CGDebugInfo::CreateSyntheticInlineAt(llvm::DebugLoc ParentLocation,
                                      llvm::DISubprogram *SynthSubprogram) {
-  return llvm::DILocation::get(CGM.getLLVMContext(), /*Line=*/0, /*Column=*/0,
+  return DBuilder.getLoc(FnContextStack.back(), /*Line=*/0, /*Column=*/0,
                                SynthSubprogram, ParentLocation);
 }
 
-llvm::DILocation *
+llvm::DebugLoc 
 CGDebugInfo::CreateSyntheticInlineAt(llvm::DebugLoc ParentLocation,
                                      StringRef SynthFuncName,
                                      llvm::DIFile *SynthFile) {
   llvm::DISubprogram *SP = createInlinedSubprogram(SynthFuncName, SynthFile);
-  return CreateSyntheticInlineAt(ParentLocation, SP);
+  llvm::DebugLoc InlinedAt = DBuilder.addInlinedFunctionContext(SP, ParentLocation);
+  return CreateSyntheticInlineAt(InlinedAt, SP);
 }
 
-llvm::DILocation *CGDebugInfo::CreateTrapFailureMessageFor(
+llvm::DebugLoc CGDebugInfo::CreateTrapFailureMessageFor(
     llvm::DebugLoc TrapLocation, StringRef Category, StringRef FailureMsg) {
   // Create a debug location from `TrapLocation` that adds an artificial inline
   // frame.
@@ -4102,7 +4102,7 @@ llvm::DILocation *CGDebugInfo::CreateTrapFailureMessageFor(
   FuncName += FailureMsg;
 
   return CreateSyntheticInlineAt(TrapLocation, FuncName,
-                                 TrapLocation->getFile());
+                                 TrapLocation.getFile());
 }
 
 static QualType UnwrapTypeForDebugInfo(QualType T, const ASTContext &C) {
@@ -5032,6 +5032,8 @@ void CGDebugInfo::emitFunctionStart(GlobalDecl GD, SourceLocation Loc,
       FlagsForDef, SPFlagsForDef, TParamsArray.get(), Decl, nullptr,
       Annotations, "", KeyInstructions);
   Fn->setSubprogram(SP);
+  auto FnDLContext = DBuilder.startFunctionContext(Fn, SP);
+  FnContextStack.push_back(FnDLContext);
 
   // We might get here with a VarDecl in the case we're generating
   // code for the initialization of globals. Do not record these decls
@@ -5174,15 +5176,22 @@ void CGDebugInfo::EmitInlineFunctionStart(CGBuilderTy &Builder, GlobalDecl GD) {
   if (!SP || !SP->isDefinition())
     SP = getFunctionStub(GD);
   FnBeginRegionCount.push_back(LexicalBlockStack.size());
+  // TODO: Is this the right way to get the current function? It seems odd that
+  // we don't have any direct access to it from here, though not too odd since
+  // this is just the debug info builder.
+  auto InlinedAt = DBuilder.addInlinedFunctionContext(
+    SP, Builder.getCurrentDebugLocation());
+  /// We reuse the same function context for an inlined function.
+  FnContextStack.push_back(FnContextStack.back());
   LexicalBlockStack.emplace_back(SP);
-  setInlinedAt(Builder.getCurrentDebugLocation());
+  setInlinedAt(InlinedAt);
   EmitLocation(Builder, FD->getLocation());
 }
 
 void CGDebugInfo::EmitInlineFunctionEnd(CGBuilderTy &Builder) {
   assert(CurInlinedAt && "unbalanced inline scope stack");
   EmitFunctionEnd(Builder, nullptr);
-  setInlinedAt(llvm::DebugLoc(CurInlinedAt).getInlinedAt());
+  setInlinedAt(CurInlinedAt.getInlinedAt());
 }
 
 void CGDebugInfo::EmitLocation(CGBuilderTy &Builder, SourceLocation Loc) {
@@ -5195,8 +5204,8 @@ void CGDebugInfo::EmitLocation(CGBuilderTy &Builder, SourceLocation Loc) {
     return;
 
   llvm::MDNode *Scope = LexicalBlockStack.back();
-  Builder.SetCurrentDebugLocation(llvm::DILocation::get(
-      CGM.getLLVMContext(), CurLocLine, CurLocColumn, Scope, CurInlinedAt));
+  Builder.SetCurrentDebugLocation(DBuilder.getLoc(
+      FnContextStack.back(), CurLocLine, CurLocColumn, Scope, CurInlinedAt));
 }
 
 void CGDebugInfo::CreateLexicalBlock(SourceLocation Loc) {
@@ -5227,8 +5236,8 @@ void CGDebugInfo::EmitLexicalBlockStart(CGBuilderTy &Builder,
   setLocation(Loc);
 
   // Emit a line table change for the current location inside the new scope.
-  Builder.SetCurrentDebugLocation(llvm::DILocation::get(
-      CGM.getLLVMContext(), getLineNumber(Loc), getColumnNumber(Loc),
+  Builder.SetCurrentDebugLocation(DBuilder.getLoc(
+      FnContextStack.back(), getLineNumber(Loc), getColumnNumber(Loc),
       LexicalBlockStack.back(), CurInlinedAt));
 
   if (DebugKind <= llvm::codegenoptions::DebugLineTablesOnly)
@@ -5263,9 +5272,14 @@ void CGDebugInfo::EmitFunctionEnd(CGBuilderTy &Builder, llvm::Function *Fn) {
     LexicalBlockStack.pop_back();
   }
   FnBeginRegionCount.pop_back();
+  FnContextStack.pop_back();
 
   if (Fn && Fn->getSubprogram())
     DBuilder.finalizeSubprogram(Fn->getSubprogram());
+}
+
+void CGDebugInfo::FinalizeFunctionSourceLocs(llvm::Function *Fn) {
+    DBuilder.finalizeFunctionContext(Fn);
 }
 
 CGDebugInfo::BlockByRefType
@@ -5451,7 +5465,7 @@ llvm::DILocalVariable *CGDebugInfo::EmitDeclare(const VarDecl *VD,
 
         // Insert an llvm.dbg.declare into the current block.
         DBuilder.insertDeclare(Storage, D, DBuilder.createExpression(Expr),
-                               llvm::DILocation::get(CGM.getLLVMContext(), Line,
+                               DBuilder.getLoc(FnContextStack.back(), Line,
                                                      Column, Scope,
                                                      CurInlinedAt),
                                Builder.GetInsertBlock());
@@ -5521,7 +5535,7 @@ llvm::DILocalVariable *CGDebugInfo::EmitDeclare(const VarDecl *VD,
   }
   // Insert an llvm.dbg.declare into the current block.
   DBuilder.insertDeclare(Storage, D, DBuilder.createExpression(Expr),
-                         llvm::DILocation::get(CGM.getLLVMContext(), Line,
+                         DBuilder.getLoc(FnContextStack.back(), Line,
                                                Column, Scope, CurInlinedAt),
                          Builder.GetInsertBlock());
 
@@ -5627,7 +5641,7 @@ llvm::DILocalVariable *CGDebugInfo::EmitDeclare(const BindingDecl *BD,
 
   // Insert an llvm.dbg.declare into the current block.
   DBuilder.insertDeclare(Storage, D, DBuilder.createExpression(Expr),
-                         llvm::DILocation::get(CGM.getLLVMContext(), Line,
+                         DBuilder.getLoc(FnContextStack.back(), Line,
                                                Column, Scope, CurInlinedAt),
                          Builder.GetInsertBlock());
 
@@ -5676,7 +5690,7 @@ void CGDebugInfo::EmitLabel(const LabelDecl *D, CGBuilderTy &Builder) {
 
   // Insert an llvm.dbg.label into the current block.
   DBuilder.insertLabel(L,
-                       llvm::DILocation::get(CGM.getLLVMContext(), Line, Column,
+                       DBuilder.getLoc(FnContextStack.back(), Line, Column,
                                              Scope, CurInlinedAt),
                        Builder.GetInsertBlock()->end());
 }
@@ -5752,7 +5766,7 @@ void CGDebugInfo::EmitDeclareOfBlockDeclRefVariable(
       Line, Ty, false, llvm::DINode::FlagZero, Align);
 
   // Insert an llvm.dbg.declare into the current block.
-  auto DL = llvm::DILocation::get(CGM.getLLVMContext(), Line, Column,
+  auto DL = DBuilder.getLoc(FnContextStack.back(), Line, Column,
                                   LexicalBlockStack.back(), CurInlinedAt);
   auto *Expr = DBuilder.createExpression(addr);
   if (InsertPoint)
@@ -5940,7 +5954,7 @@ void CGDebugInfo::EmitDeclareOfBlockLiteralArgVariable(const CGBlockInfo &block,
 
   // Insert an llvm.dbg.declare into the current block.
   DBuilder.insertDeclare(Alloca, debugVar, DBuilder.createExpression(),
-                         llvm::DILocation::get(CGM.getLLVMContext(), line,
+                         DBuilder.getLoc(FnContextStack.back(), line,
                                                column, scope, CurInlinedAt),
                          Builder.GetInsertBlock());
 }
@@ -6383,11 +6397,11 @@ void CGDebugInfo::EmitPseudoVariable(CGBuilderTy &Builder,
       llvm::codegenoptions::DebugLineTablesOnly)
     return;
 
-  llvm::DILocation *DIL = Value->getDebugLoc().get();
+  llvm::DebugLoc DIL = Value->getFullDebugLoc();
   if (!DIL)
     return;
 
-  llvm::DIFile *Unit = DIL->getFile();
+  llvm::DIFile *Unit = DIL.getFile();
   llvm::DIType *Type = getOrCreateType(Ty, Unit);
 
   // Check if Value is already a declared variable and has debug info, in this
@@ -6695,7 +6709,7 @@ llvm::DebugLoc CGDebugInfo::SourceLocToDebugLoc(SourceLocation Loc) {
     return llvm::DebugLoc();
 
   llvm::MDNode *Scope = LexicalBlockStack.back();
-  return llvm::DILocation::get(CGM.getLLVMContext(), getLineNumber(Loc),
+  return DBuilder.getLoc(FnContextStack.back(), getLineNumber(Loc),
                                getColumnNumber(Loc), Scope);
 }
 
@@ -6809,10 +6823,10 @@ SanitizerOrdinalToCheckLabel(SanitizerKind::SanitizerOrdinal Ordinal) {
   return Label;
 }
 
-llvm::DILocation *CodeGenFunction::SanitizerAnnotateDebugInfo(
+llvm::DebugLoc CodeGenFunction::SanitizerAnnotateDebugInfo(
     ArrayRef<SanitizerKind::SanitizerOrdinal> Ordinals,
     SanitizerHandler Handler) {
-  llvm::DILocation *CheckDebugLoc = Builder.getCurrentDebugLocation();
+  llvm::DebugLoc CheckDebugLoc = Builder.getCurrentDebugLocation();
   auto *DI = getDebugInfo();
   if (!DI || !CheckDebugLoc)
     return CheckDebugLoc;

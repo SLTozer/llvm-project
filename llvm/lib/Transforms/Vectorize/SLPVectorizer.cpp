@@ -22085,7 +22085,7 @@ void BoUpSLP::setInsertPointAfterBundle(const TreeEntry *E) {
         LastInstructionToPos.try_emplace(LastInst, Res);
     }
   }
-  Builder.SetCurrentDebugLocation(Front->getDebugLoc());
+  Builder.SetCurrentDebugLocation(Front->getFullDebugLoc());
 }
 
 Value *BoUpSLP::gather(
@@ -23424,7 +23424,7 @@ static Instruction *propagateMetadata(Instruction *Inst, ArrayRef<Value *> VL) {
 }
 
 static DebugLoc getDebugLocFromPHI(PHINode &PN) {
-  if (DebugLoc DL = PN.getDebugLoc())
+  if (DebugLoc DL = PN.getFullDebugLoc())
     return DL;
   return DebugLoc::getUnknown();
 }
@@ -24836,7 +24836,7 @@ Value *BoUpSLP::vectorizeTree(
   for (auto &Entry : GatherEntries) {
     IRBuilderBase::InsertPointGuard Guard(Builder);
     Builder.SetInsertPoint(Entry.second);
-    Builder.SetCurrentDebugLocation(Entry.second->getDebugLoc());
+    Builder.SetCurrentDebugLocation(Entry.second->getFullDebugLoc());
     (void)vectorizeTree(Entry.first);
   }
   // Emit gathered loads first to emit better code for the users of those
@@ -24890,7 +24890,7 @@ Value *BoUpSLP::vectorizeTree(
     } else {
       Builder.SetInsertPoint(PrevVec);
     }
-    Builder.SetCurrentDebugLocation(UserI->getDebugLoc());
+    Builder.SetCurrentDebugLocation(UserI->getFullDebugLoc());
     Value *Vec = vectorizeTree(TE);
     if (auto *VecI = dyn_cast<Instruction>(Vec);
         VecI && VecI->getParent() == Builder.GetInsertBlock() &&
@@ -29930,7 +29930,7 @@ public:
       if (VectorizedTree) {
         // Update the final value in the reduction.
         Builder.SetCurrentDebugLocation(
-            cast<Instruction>(ReductionOps.front().front())->getDebugLoc());
+            cast<Instruction>(ReductionOps.front().front())->getFullDebugLoc());
         if (AnyBoolLogicOp) {
           auto It = ReducedValsToOps.find(VectorizedTree);
           auto It1 = ReducedValsToOps.find(Res);
@@ -30603,7 +30603,7 @@ public:
       SmallVector<std::pair<Instruction *, Value *>> ExtraReds(Sz / 2 + Sz % 2);
       for (unsigned I = 0, E = (Sz / 2) * 2; I < E; I += 2) {
         Instruction *RedOp = InstVals[I + 1].first;
-        Builder.SetCurrentDebugLocation(RedOp->getDebugLoc());
+        Builder.SetCurrentDebugLocation(RedOp->getFullDebugLoc());
         Value *RdxVal1 = InstVals[I].second;
         Value *StableRdxVal1 = RdxVal1;
         auto It1 = TrackedVals.find(RdxVal1);
@@ -30875,7 +30875,7 @@ public:
     WeakTrackingVH VectorizedTree = nullptr;
     for (Value *RdxVal : ArrayRef(Candidates).take_front(SuccessStart)) {
       Builder.SetCurrentDebugLocation(
-          ReducedValsToOps.at(RdxVal).front()->getDebugLoc());
+          ReducedValsToOps.at(RdxVal).front()->getFullDebugLoc());
       if (!VectorizedTree)
         VectorizedTree = TrackedVals.at(RdxVal);
       else
@@ -30890,7 +30890,7 @@ public:
            SuccessRoot->getType()->isFPOrFPVectorTy() &&
            "Expected floating point types for ordered reduction");
     Builder.SetCurrentDebugLocation(
-        cast<Instruction>(ReductionRoot)->getDebugLoc());
+        cast<Instruction>(ReductionRoot)->getFullDebugLoc());
     VectorizedTree = createSingleOp(Builder, *TTI, SuccessRoot, /*Scale=*/1,
                                     /*IsSigned=*/false, DestTy,
                                     /*ReducedInTree=*/false, VectorizedTree);
@@ -30899,7 +30899,7 @@ public:
     for (Value *RdxVal :
          ArrayRef(Candidates).drop_front(SuccessStart + SuccessWidth)) {
       Builder.SetCurrentDebugLocation(
-          ReducedValsToOps.at(RdxVal).front()->getDebugLoc());
+          ReducedValsToOps.at(RdxVal).front()->getFullDebugLoc());
       VectorizedTree = createOp(Builder, RdxKind, VectorizedTree,
                                 TrackedVals.at(RdxVal), "op.rdx", ReductionOps);
     }

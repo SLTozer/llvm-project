@@ -4559,7 +4559,7 @@ void CodeGenFunction::EmitTrapCheck(llvm::Value *Checked,
 
   llvm::BasicBlock *&TrapBB = TrapBBs[CheckHandlerID];
 
-  llvm::DILocation *TrapLocation = Builder.getCurrentDebugLocation();
+  llvm::DebugLoc TrapLocation = Builder.getCurrentDebugLocation();
   llvm::StringRef TrapMessage;
   llvm::StringRef TrapCategory;
   auto DebugTrapReasonKind = CGM.getCodeGenOpts().getSanitizeDebugTrapReasons();
@@ -4589,7 +4589,7 @@ void CodeGenFunction::EmitTrapCheck(llvm::Value *Checked,
     auto Call = TrapBB->begin();
     assert(isa<llvm::CallInst>(Call) && "Expected call in trap BB");
 
-    Call->applyMergedLocation(Call->getDebugLoc(), TrapLocation);
+    Call->applyMergedLocation(Call->getFullDebugLoc(), TrapLocation);
 
     Builder.CreateCondBr(Checked, Cont, TrapBB,
                          MDHelper.createLikelyBranchWeights());

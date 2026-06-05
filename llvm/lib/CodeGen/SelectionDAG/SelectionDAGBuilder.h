@@ -329,7 +329,7 @@ public:
   }
 
   DebugLoc getCurDebugLoc() const {
-    return CurInst ? CurInst->getDebugLoc() : DebugLoc();
+    return CurInst ? CurInst->getFullDebugLoc() : DebugLoc();
   }
 
   void CopyValueToVirtualRegister(const Value *V, Register Reg,
@@ -717,7 +717,7 @@ private:
   /// instruction for it now. At the end of instruction selection, they will be
   /// inserted to the entry BB.
   bool EmitFuncArgumentDbgValue(const Value *V, DILocalVariable *Variable,
-                                DIExpression *Expr, DILocation *DL,
+                                DIExpression *Expr, DebugLoc DL,
                                 FuncArgumentDbgValueKind Kind,
                                 const SDValue &N);
 
@@ -730,7 +730,7 @@ private:
 
   /// Return the appropriate SDDbgValue based on N.
   SDDbgValue *getDbgValue(SDValue N, DILocalVariable *Variable,
-                          DIExpression *Expr, const DebugLoc &dl,
+                          DIExpression *Expr, DebugLoc dl,
                           unsigned DbgSDNodeOrder);
 
 public:

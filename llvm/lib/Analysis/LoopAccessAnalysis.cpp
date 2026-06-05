@@ -2976,9 +2976,9 @@ void LoopAccessInfo::emitUnsafeDependenceRemark() {
   }
 
   if (Instruction *I = Dep.getSource(getDepChecker())) {
-    DebugLoc SourceLoc = I->getDebugLoc();
+    DebugLoc SourceLoc = I->getFullDebugLoc();
     if (auto *DD = dyn_cast_or_null<Instruction>(getPointerOperand(I)))
-      SourceLoc = DD->getDebugLoc();
+      SourceLoc = DD->getFullDebugLoc();
     if (SourceLoc)
       R << " Memory location is the same as accessed at "
         << ore::NV("Location", SourceLoc);
@@ -3007,8 +3007,8 @@ LoopAccessInfo::recordAnalysis(StringRef RemarkName, const Instruction *I) {
     CodeRegion = I->getParent();
     // If there is no debug location attached to the instruction, revert back to
     // using the loop's.
-    if (I->getDebugLoc())
-      DL = I->getDebugLoc();
+    if (I->getFullDebugLoc())
+      DL = I->getFullDebugLoc();
   }
 
   Report = std::make_unique<OptimizationRemarkAnalysis>(DEBUG_TYPE, RemarkName,

@@ -281,7 +281,7 @@ unsigned M68kInstrInfo::removeBranch(MachineBasicBlock &MBB,
 
 unsigned M68kInstrInfo::insertBranch(
     MachineBasicBlock &MBB, MachineBasicBlock *TBB, MachineBasicBlock *FBB,
-    ArrayRef<MachineOperand> Cond, const DebugLoc &DL, int *BytesAdded) const {
+    ArrayRef<MachineOperand> Cond, DbgLocStorage DL, int *BytesAdded) const {
   // Shouldn't be a fall through.
   assert(TBB && "InsertBranch must not be told to insert a fallthrough");
   assert((Cond.size() == 1 || Cond.size() == 0) &&
@@ -313,7 +313,7 @@ unsigned M68kInstrInfo::insertBranch(
 }
 
 void M68kInstrInfo::AddSExt(MachineBasicBlock &MBB,
-                            MachineBasicBlock::iterator I, DebugLoc DL,
+                            MachineBasicBlock::iterator I, DbgLocStorage DL,
                             unsigned Reg, MVT From, MVT To) const {
   if (From == MVT::i8) {
     unsigned R = Reg;
@@ -330,7 +330,7 @@ void M68kInstrInfo::AddSExt(MachineBasicBlock &MBB,
 }
 
 void M68kInstrInfo::AddZExt(MachineBasicBlock &MBB,
-                            MachineBasicBlock::iterator I, DebugLoc DL,
+                            MachineBasicBlock::iterator I, DbgLocStorage DL,
                             unsigned Reg, MVT From, MVT To) const {
 
   unsigned Mask, And;
@@ -384,7 +384,7 @@ bool M68kInstrInfo::ExpandMOVI(MachineInstrBuilder &MIB, MVT MVTSize) const {
     LLVM_DEBUG(dbgs() << "MOVEQ and NOT\n");
 
     MachineBasicBlock &MBB = *MIB->getParent();
-    DebugLoc DL = MIB->getDebugLoc();
+    DbgLocStorage DL = MIB->getDebugLoc();
 
     unsigned SubReg = RI.getSubReg(Reg, M68k::MxSubRegIndex8Lo);
     assert(SubReg && "No viable SUB register available");
@@ -399,7 +399,7 @@ bool M68kInstrInfo::ExpandMOVI(MachineInstrBuilder &MIB, MVT MVTSize) const {
     LLVM_DEBUG(dbgs() << "SUBA\n");
 
     MachineBasicBlock &MBB = *MIB->getParent();
-    DebugLoc DL = MIB->getDebugLoc();
+    DbgLocStorage DL = MIB->getDebugLoc();
 
     BuildMI(MBB, MIB.getInstr(), DL, get(M68k::SUB32ar), SReg)
         .addReg(SReg, RegState::Undef)
@@ -497,7 +497,7 @@ bool M68kInstrInfo::ExpandMOVSZX_RR(MachineInstrBuilder &MIB, bool IsSigned,
   assert(SSrc && "No viable MEGA register available");
 
   MachineBasicBlock &MBB = *MIB->getParent();
-  DebugLoc DL = MIB->getDebugLoc();
+  DbgLocStorage DL = MIB->getDebugLoc();
 
   if (Dst != SSrc) {
     LLVM_DEBUG(dbgs() << "Move and " << '\n');
@@ -541,7 +541,7 @@ bool M68kInstrInfo::ExpandMOVSZX_RM(MachineInstrBuilder &MIB, bool IsSigned,
   MachineBasicBlock::iterator I = MIB.getInstr();
   I++;
   MachineBasicBlock &MBB = *MIB->getParent();
-  DebugLoc DL = MIB->getDebugLoc();
+  DbgLocStorage DL = MIB->getDebugLoc();
 
   if (IsSigned) {
     LLVM_DEBUG(dbgs() << "Sign Extend" << '\n');
@@ -560,7 +560,7 @@ bool M68kInstrInfo::ExpandPUSH_POP(MachineInstrBuilder &MIB,
   I++;
   MachineBasicBlock &MBB = *MIB->getParent();
   MachineOperand MO = MIB->getOperand(0);
-  DebugLoc DL = MIB->getDebugLoc();
+  DbgLocStorage DL = MIB->getDebugLoc();
   if (IsPush)
     BuildMI(MBB, I, DL, Desc).addReg(RI.getStackRegister()).add(MO);
   else
@@ -685,7 +685,7 @@ bool M68kInstrInfo::isPCRelRegisterOperandLegal(
 
 void M68kInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator MI,
-                                const DebugLoc &DL, Register DstReg,
+                                DbgLocStorage DL, Register DstReg,
                                 Register SrcReg, bool KillSrc,
                                 bool RenamableDest, bool RenamableSrc) const {
   const auto &Subtarget = MBB.getParent()->getSubtarget<M68kSubtarget>();
@@ -829,7 +829,7 @@ void M68kInstrInfo::storeRegToStackSlot(
   (void)MFI;
 
   unsigned Opc = getStoreRegOpcode(SrcReg, RC, &TRI, Subtarget);
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
   // (0,FrameIndex) <- $reg
   M68k::addFrameReference(BuildMI(MBB, MI, DL, get(Opc)), FrameIndex)
       .addReg(SrcReg, getKillRegState(IsKill));
@@ -847,7 +847,7 @@ void M68kInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   (void)MFI;
 
   unsigned Opc = getLoadRegOpcode(DstReg, RC, &TRI, Subtarget);
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
   M68k::addFrameReference(BuildMI(MBB, MI, DL, get(Opc), DstReg), FrameIndex);
 }
 
@@ -924,7 +924,7 @@ struct M68kGlobalBaseReg : public MachineFunctionPass {
     // Insert the set of GlobalBaseReg into the first MBB of the function
     MachineBasicBlock &FirstMBB = MF.front();
     MachineBasicBlock::iterator MBBI = FirstMBB.begin();
-    DebugLoc DL = FirstMBB.findDebugLoc(MBBI);
+    DbgLocStorage DL = FirstMBB.findDebugLoc(MBBI);
     const M68kInstrInfo *TII = STI.getInstrInfo();
 
     // Generate lea (__GLOBAL_OFFSET_TABLE_,%PC), %A5

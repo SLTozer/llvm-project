@@ -251,7 +251,7 @@ const uint32_t *RISCVRegisterInfo::getNoPreservedMask() const {
 
 void RISCVRegisterInfo::adjustReg(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator II,
-                                  const DebugLoc &DL, Register DestReg,
+                                  DebugLoc DL, Register DestReg,
                                   Register SrcReg, StackOffset Offset,
                                   MachineInstr::MIFlag Flag,
                                   MaybeAlign RequiredAlign) const {
@@ -470,7 +470,7 @@ getSpillReloadInfo(unsigned NumRemaining, uint16_t RegEncoding, bool IsSpill) {
 // separated by LMUL*VLENB bytes.
 void RISCVRegisterInfo::lowerSegmentSpillReload(MachineBasicBlock::iterator II,
                                                 bool IsSpill) const {
-  DebugLoc DL = II->getDebugLoc();
+  DebugLoc DL = II->getFullDebugLoc();
   MachineBasicBlock &MBB = *II->getParent();
   MachineFunction &MF = *MBB.getParent();
   MachineRegisterInfo &MRI = MF.getRegInfo();
@@ -570,7 +570,7 @@ bool RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MI.getParent()->getParent();
   MachineRegisterInfo &MRI = MF.getRegInfo();
   bool Is64Bit = MF.getSubtarget<RISCVSubtarget>().is64Bit();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   Register FrameReg;
@@ -777,7 +777,7 @@ Register RISCVRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
   MachineBasicBlock::iterator MBBI = MBB->begin();
   DebugLoc DL;
   if (MBBI != MBB->end())
-    DL = MBBI->getDebugLoc();
+    DL = MBBI->getFullDebugLoc();
   MachineFunction *MF = MBB->getParent();
   MachineRegisterInfo &MFI = MF->getRegInfo();
   const TargetInstrInfo *TII = MF->getSubtarget().getInstrInfo();

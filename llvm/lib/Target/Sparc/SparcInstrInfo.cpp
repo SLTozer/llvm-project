@@ -358,7 +358,7 @@ unsigned SparcInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                       MachineBasicBlock *TBB,
                                       MachineBasicBlock *FBB,
                                       ArrayRef<MachineOperand> Cond,
-                                      const DebugLoc &DL,
+                                      DbgLocStorage DL,
                                       int *BytesAdded) const {
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
   assert((Cond.size() <= 3) &&
@@ -467,7 +467,7 @@ bool SparcInstrInfo::isBranchOffsetInRange(unsigned BranchOpc,
 
 void SparcInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator I,
-                                 const DebugLoc &DL, Register DestReg,
+                                 DbgLocStorage DL, Register DestReg,
                                  Register SrcReg, bool KillSrc,
                                  bool RenamableDest, bool RenamableSrc) const {
   unsigned numSubRegs = 0;
@@ -561,8 +561,8 @@ void SparcInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                          const TargetRegisterClass *RC,
                                          Register VReg,
                                          MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
-  if (I != MBB.end()) DL = I->getDebugLoc();
+  DbgLocStorage DL;
+  if (I != MBB.end()) DL = I->getFullDebugLoc();
 
   MachineFunction *MF = MBB.getParent();
   const MachineFrameInfo &MFI = MF->getFrameInfo();
@@ -601,8 +601,8 @@ void SparcInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                           const TargetRegisterClass *RC,
                                           Register VReg, unsigned SubReg,
                                           MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
-  if (I != MBB.end()) DL = I->getDebugLoc();
+  DbgLocStorage DL;
+  if (I != MBB.end()) DL = I->getFullDebugLoc();
 
   MachineFunction *MF = MBB.getParent();
   const MachineFrameInfo &MFI = MF->getFrameInfo();
@@ -649,7 +649,7 @@ Register SparcInstrInfo::getGlobalBaseReg(MachineFunction *MF) const {
     Subtarget.is64Bit() ? &SP::I64RegsRegClass : &SP::IntRegsRegClass;
   GlobalBaseReg = RegInfo.createVirtualRegister(PtrRC);
 
-  DebugLoc dl;
+  DbgLocStorage dl;
 
   BuildMI(FirstMBB, MBBI, dl, get(SP::GETPCX), GlobalBaseReg);
   SparcFI->setGlobalBaseReg(GlobalBaseReg);
@@ -852,9 +852,9 @@ bool SparcInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     // The sequence acts as a full barrier on V8 systems.
     MachineBasicBlock &MBB = *MI.getParent();
     MachineInstr &InstSTBAR =
-        *BuildMI(MBB, MI, MI.getDebugLoc(), get(SP::STBAR));
+        *BuildMI(MBB, MI, MI.getFullDebugLoc(), get(SP::STBAR));
     MachineInstr &InstLDSTUB =
-        *BuildMI(MBB, MI, MI.getDebugLoc(), get(SP::LDSTUBri), SP::G0)
+        *BuildMI(MBB, MI, MI.getFullDebugLoc(), get(SP::LDSTUBri), SP::G0)
              .addReg(SP::O6)
              .addImm(-1);
     MIBundleBuilder(MBB, InstSTBAR, InstLDSTUB);
