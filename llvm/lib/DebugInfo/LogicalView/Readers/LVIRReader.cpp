@@ -569,7 +569,7 @@ const DIFile *LVIRReader::getMDFile(const MDNode *MD) const {
   if (auto *T = dyn_cast<DIScope>(MD))
     return T->getFile();
 
-  if (auto *T = dyn_cast<DILocation>(MD))
+  if (DILocation *T = dyn_cast<DILocation>(MD)) // NOLINT(llvm-debug-loc-*)
     return T->getFile();
 
   if (auto *T = dyn_cast<DIVariable>(MD))
@@ -1141,7 +1141,7 @@ void LVIRReader::constructLine(LVScope *Scope, const DISubprogram *SP,
     Scope->dumpCommon();
   });
 
-  auto AddDebugLine = [&](LVScope *Parent, unsigned ID) -> LVLine * {
+  auto AddDebugLine = [&](LVScope *Parent) -> LVLine * {
     assert(Parent && "Invalid logical element");
     assert(ID == Metadata::DILocationKind && "Invalid Metadata Object");
     LLVM_DEBUG({
@@ -1225,8 +1225,8 @@ void LVIRReader::constructLine(LVScope *Scope, const DISubprogram *SP,
       Parent->dumpCommon();
     });
 
-    if (options().getPrintLines() && DL->getLine()) {
-      if (LVLine *Line = AddDebugLine(Parent, DL->getMetadataID())) {
+    if (options().getPrintLines() && DL.getLine()) {
+      if (LVLine *Line = AddDebugLine(Parent)) {
         addMD(DL, Line);
         addSourceLine(Line, DL);
         GenerateLineBeforePrologue = false;
@@ -1236,7 +1236,7 @@ void LVIRReader::constructLine(LVScope *Scope, const DISubprogram *SP,
 
   // Generate a logical line before the function prologue.
   if (options().getPrintLines() && GenerateLineBeforePrologue) {
-    if (LVLine *Line = AddDebugLine(Parent, Metadata::DILocationKind)) {
+    if (LVLine *Line = AddDebugLine(Parent)) {
       addSourceLine(Line, SP);
       GenerateLineBeforePrologue = false;
     }
@@ -2058,8 +2058,7 @@ void LVIRReader::processBasicBlocks(Function &F) {
     for (Instruction &I : BB) {
       LLVM_DEBUG(dbgs() << "\nInstruction: '" << I << "'\n");
 
-      if (const auto *DL =
-              cast_or_null<DILocation>(I.getMetadata(LLVMContext::MD_dbg))) {
+      if (DebugLoc DL = I.getDebugLoc()) {
         LLVM_DEBUG({
           dbgs() << "  Location: ";
           DL->dump(TheModule);

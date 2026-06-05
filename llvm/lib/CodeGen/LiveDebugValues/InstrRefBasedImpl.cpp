@@ -1644,9 +1644,9 @@ bool InstrRefBasedLDV::transferDebugInstrRef(MachineInstr &MI,
 
   const DILocalVariable *Var = MI.getDebugVariable();
   const DIExpression *Expr = MI.getDebugExpression();
-  const DILocation *DebugLoc = MI.getDebugLoc();
-  const DILocation *InlinedAt = DebugLoc->getInlinedAt();
-  assert(Var->isValidLocationForIntrinsic(DebugLoc) &&
+  const DILocation *DbgLoc = MI.getDebugLoc();
+  const DILocation *InlinedAt = DbgLoc->getInlinedAt();
+  assert(Var->isValidLocationForIntrinsic(DbgLoc) &&
          "Expected inlined-at fields to agree");
 
   DebugVariable V(Var, Expr, InlinedAt);

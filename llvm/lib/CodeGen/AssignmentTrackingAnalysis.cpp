@@ -163,8 +163,8 @@ void FunctionVarLocs::print(raw_ostream &OS, const Function &Fn) const {
     if (auto F = V.getFragment())
       OS << " bits [" << F->OffsetInBits << ", "
          << F->OffsetInBits + F->SizeInBits << ")";
-    if (const auto *IA = V.getInlinedAt())
-      OS << " inlined-at " << *IA;
+    if (DebugLoc IA = V.getInlinedAt())
+      OS << " inlined-at " << IA;
     OS << "\n";
   }
 
@@ -317,7 +317,7 @@ getDerefOffsetInBytes(const DIExpression *DIExpr) {
 }
 
 /// A whole (unfragmented) source variable.
-using DebugAggregate = std::pair<const DILocalVariable *, const DILocation *>;
+using DebugAggregate = std::pair<const DILocalVariable *, DebugLoc>;
 static DebugAggregate getAggregate(const DebugVariable &Var) {
   return DebugAggregate(Var.getVariable(), Var.getInlinedAt());
 }

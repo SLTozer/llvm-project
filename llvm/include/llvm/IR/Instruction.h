@@ -543,11 +543,11 @@ public:
   void setDebugLoc(DebugLoc Loc) { DbgLoc = std::move(Loc).getCopied(); }
 
   /// Return the debug location for this node as a DebugLoc.
-  const DebugLoc &getDebugLoc() const { return DbgLoc; }
+  DebugLoc getDebugLoc() const { return DbgLoc; }
 
   /// Fetch the debug location for this node, unless this is a debug intrinsic,
   /// in which case fetch the debug location of the next non-debug node.
-  LLVM_ABI const DebugLoc &getStableDebugLoc() const;
+  LLVM_ABI DebugLoc getStableDebugLoc() const;
 
   /// Set or clear the nuw flag on this instruction, which must be an operator
   /// which supports this flag. See LangRef.html for the meaning of this flag.

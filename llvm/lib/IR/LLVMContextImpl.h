@@ -273,6 +273,7 @@ template <> struct MDNodeKeyImpl<MDTuple> : MDNodeOpsKey {
   }
 };
 
+// NOLINTBEGIN(llvm-debug-loc-*)
 /// DenseMapInfo for DILocation.
 template <> struct MDNodeKeyImpl<DILocation> {
   Metadata *Scope;
@@ -319,6 +320,7 @@ template <> struct MDNodeKeyImpl<DILocation> {
     return hash_combine(LineColumnAndImplicitCode, Scope, InlinedAt);
   }
 };
+// NOLINTEND(llvm-debug-loc-*)
 
 /// DenseMapInfo for GenericDINode.
 template <> struct MDNodeKeyImpl<GenericDINode> : MDNodeOpsKey {

@@ -9,8 +9,15 @@
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 
 using namespace llvm;
+
+namespace llvm {
+extern LLVM_ABI cl::opt<bool> PickMergedSourceLocations;
+} // namespace llvm
+
+// NOLINTBEGIN(llvm-debug-loc-*)
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN
 #include "llvm/Support/Signals.h"
@@ -40,6 +47,23 @@ void DbgLocOrigin::addTrace() {
 // DebugLoc Implementation
 //===----------------------------------------------------------------------===//
 
+DebugLoc DebugLoc::get(
+    LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
+    Metadata *InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
+    uint8_t AtomRank) {
+  return DILocation::get(Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+}
+DebugLoc DebugLoc::getDistinct(
+    LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
+    Metadata *InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
+    uint8_t AtomRank) {
+  return DILocation::getDistinct(Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+}
+
+DebugLoc DebugLoc::getFromMDNode(const MDNode *MD) {
+  return DebugLoc::getFromDILocation(dyn_cast_or_null<DILocation>(MD));
+}
+
 unsigned DebugLoc::getLine() const {
   assert(get() && "Expected valid DebugLoc");
   return get()->getLine();
@@ -50,7 +74,7 @@ unsigned DebugLoc::getCol() const {
   return get()->getColumn();
 }
 
-MDNode *DebugLoc::getScope() const {
+DILocalScope *DebugLoc::getScope() const {
   assert(get() && "Expected valid DebugLoc");
   return get()->getScope();
 }
@@ -60,7 +84,7 @@ DILocation *DebugLoc::getInlinedAt() const {
   return get()->getInlinedAt();
 }
 
-MDNode *DebugLoc::getInlinedAtScope() const {
+DILocalScope *DebugLoc::getInlinedAtScope() const {
   return cast<DILocation>(Loc)->getInlinedAtScope();
 }
 
@@ -68,7 +92,7 @@ DebugLoc DebugLoc::getFnDebugLoc() const {
   // FIXME: Add a method on \a DILocation that does this work.
   const MDNode *Scope = getInlinedAtScope();
   if (auto *SP = getDISubprogram(Scope))
-    return DILocation::get(SP->getContext(), SP->getScopeLine(), 0, SP);
+    return DebugLoc::get(SP->getContext(), SP->getScopeLine(), 0, SP);
 
   return DebugLoc();
 }
@@ -76,13 +100,13 @@ DebugLoc DebugLoc::getFnDebugLoc() const {
 MDNode *DebugLoc::getAsMDNode() const { return Loc; }
 
 bool DebugLoc::isImplicitCode() const {
-  if (DILocation *Loc = get())
+  if (Loc)
     return Loc->isImplicitCode();
   return true;
 }
 
 void DebugLoc::setImplicitCode(bool ImplicitCode) {
-  if (DILocation *Loc = get())
+  if (Loc)
     Loc->setImplicitCode(ImplicitCode);
 }
 
@@ -131,7 +155,7 @@ DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
                                    DenseMap<const MDNode *, MDNode *> &Cache) {
   SmallVector<DILocation *, 3> InlinedAtLocations;
   DILocation *Last = InlinedAt;
-  DILocation *CurInlinedAt = DL;
+  DILocation *CurInlinedAt = DL.Loc;
 
   // Gather all the inlined-at nodes.
   while (DILocation *IA = CurInlinedAt->getInlinedAt()) {
@@ -171,6 +195,11 @@ DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
 }
 DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {
   if (!LocA || !LocB) {
+    // If we are missing either location but have requested
+    // PickMergedSourceLocations, then just forward straight to the
+    // DILocation version.
+    if (PickMergedSourceLocations)
+      return DebugLoc::getFromDILocation(DILocation::getMergedLocation(LocA.getAsDILocation(), LocB.getAsDILocation()));
     // If coverage tracking is enabled, prioritize returning empty non-annotated
     // locations to empty annotated locations.
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
@@ -183,11 +212,12 @@ DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {
       return LocA;
     return LocB;
   }
-  return DILocation::getMergedLocation(LocA, LocB);
+  return DebugLoc::getFromDILocation(DILocation::getMergedLocation(LocA.getAsDILocation(), LocB.getAsDILocation()));
 }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 LLVM_DUMP_METHOD void DebugLoc::dump() const { print(dbgs()); }
+LLVM_DUMP_METHOD void DebugLoc::dump(const Module *M) const { print(dbgs(), M); }
 #endif
 
 void DebugLoc::print(raw_ostream &OS) const {
@@ -207,3 +237,122 @@ void DebugLoc::print(raw_ostream &OS) const {
     OS << " ]";
   }
 }
+
+void DebugLoc::print(raw_ostream &OS, const Module *M, bool IsForDebug) const {
+  return get()->print(OS, M, IsForDebug);
+}
+void DebugLoc::print(raw_ostream &OS, ModuleSlotTracker &MST, const Module *M,
+                     bool IsForDebug) const {
+  return get()->print(OS, MST, M, IsForDebug);
+}
+void DebugLoc::printAsOperand(raw_ostream &OS, const Module *M) const {
+  return get()->printAsOperand(OS, M);
+}
+void DebugLoc::printAsOperand(raw_ostream &OS, ModuleSlotTracker &MST,
+                     const Module *M) const {
+  return get()->printAsOperand(OS, MST, M);
+}
+bool DebugLoc::isDistinct() const {
+  return get()->isDistinct();
+}
+
+LLVMContext &DebugLoc::getContext() const { return Loc->getContext(); }
+
+uint64_t DebugLoc::getAtomGroup() const {
+  return get()->getAtomGroup();
+}
+uint8_t DebugLoc::getAtomRank() const {
+  return get()->getAtomRank();
+}
+
+DebugLoc DebugLoc::getWithoutAtom() const {
+  return DebugLoc::getFromDILocation(Loc->getWithoutAtom());
+}
+
+StringRef DebugLoc::getSubprogramLinkageName() const {
+  return get()->getSubprogramLinkageName();
+}
+
+DIFile *DebugLoc::getFile() const {
+  return get()->getFile();
+}
+StringRef DebugLoc::getFilename() const {
+  return get()->getFilename();
+}
+StringRef DebugLoc::getDirectory() const {
+  return get()->getDirectory();
+}
+std::optional<StringRef> DebugLoc::getSource() const {
+  return get()->getSource();
+}
+
+DebugLoc DebugLoc::getInlinedAtLocation() const {
+  return get()->getInlinedAtLocation();
+}
+
+unsigned DebugLoc::getDiscriminator() const {
+  return get()->getDiscriminator();
+}
+
+/// Returns a new DebugLoc with updated \p Discriminator.
+DebugLoc DebugLoc::cloneWithDiscriminator(unsigned Discriminator) const {
+  return DebugLoc::getFromDILocation(Loc->cloneWithDiscriminator(Discriminator));
+}
+
+/// Returns a new DebugLoc with updated base discriminator \p BD. Only the
+/// base discriminator is set in the new DebugLoc, the other encoded values
+/// are elided.
+/// If the discriminator cannot be encoded, the function returns std::nullopt.
+std::optional<DebugLoc>
+DebugLoc::cloneWithBaseDiscriminator(unsigned BD) const {
+  std::optional<const DILocation*> DL = get()->cloneWithBaseDiscriminator(BD);
+  if (DL)
+    return DebugLoc::getFromDILocation(*DL);
+  return std::nullopt;
+}
+
+/// Returns the duplication factor stored in the discriminator, or 1 if no
+/// duplication factor (or 0) is encoded.
+unsigned DebugLoc::getDuplicationFactor() const {
+  return get()->getDuplicationFactor();
+}
+
+/// Returns the copy identifier stored in the discriminator.
+unsigned DebugLoc::getCopyIdentifier() const {
+  return get()->getCopyIdentifier();
+}
+
+/// Returns the base discriminator stored in the discriminator.
+unsigned DebugLoc::getBaseDiscriminator() const {
+  return get()->getBaseDiscriminator();
+}
+
+/// Returns a new DebugLoc with duplication factor \p DF * current
+/// duplication factor encoded in the discriminator. The current duplication
+/// factor is as defined by getDuplicationFactor().
+/// Returns std::nullopt if encoding failed.
+std::optional<DebugLoc>
+DebugLoc::cloneByMultiplyingDuplicationFactor(unsigned DF) const {
+  std::optional<const DILocation*> DL = get()->cloneByMultiplyingDuplicationFactor(DF);
+  if (DL)
+    return DebugLoc::getFromDILocation(*DL);
+  return std::nullopt;
+}
+
+Metadata *DebugLoc::getRawScope() const {
+  return get()->getRawScope();
+}
+Metadata *DebugLoc::getRawInlinedAt() const {
+  return get()->getRawInlinedAt();
+}
+
+bool DebugLoc::isPseudoProbeDiscriminator(unsigned Discriminator) {
+  return DILocation::isPseudoProbeDiscriminator(Discriminator);
+}
+
+LLVM_ABI std::optional<unsigned>
+DebugLoc::encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI) {
+  return DILocation::encodeDiscriminator(BD, DF, CI);
+}
+
+// NOLINTEND(llvm-debug-loc-*)

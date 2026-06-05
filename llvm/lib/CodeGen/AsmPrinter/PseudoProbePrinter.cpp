@@ -38,13 +38,13 @@ static cl::opt<bool> VerifyGuidExistence(
 
 void PseudoProbeHandler::emitPseudoProbe(uint64_t Guid, uint64_t Index,
                                          uint64_t Type, uint64_t Attr,
-                                         const DILocation *DebugLoc) {
+                                         const DILocation *DbgLoc) {
   // Gather all the inlined-at nodes.
   // When it's done ReversedInlineStack looks like ([66, B], [88, A])
   // which means, Function A inlines function B at calliste with a probe id 88,
   // and B inlines C at probe 66 where C is represented by Guid.
   SmallVector<InlineSite, 8> ReversedInlineStack;
-  auto *InlinedAt = DebugLoc ? DebugLoc->getInlinedAt() : nullptr;
+  auto *InlinedAt = DbgLoc ? DbgLoc->getInlinedAt() : nullptr;
   while (InlinedAt) {
     auto Name = InlinedAt->getSubprogramLinkageName();
     // Strip Coroutine suffixes from CoroSplit Pass, since pseudo probes are
@@ -66,9 +66,9 @@ void PseudoProbeHandler::emitPseudoProbe(uint64_t Guid, uint64_t Index,
   uint64_t Discriminator = 0;
   // For now only block probes have FS discriminators. See
   // MIRFSDiscriminator.cpp for more details.
-  if (EnableFSDiscriminator && DebugLoc &&
+  if (EnableFSDiscriminator && DbgLoc &&
       (Type == (uint64_t)PseudoProbeType::Block))
-    Discriminator = DebugLoc->getDiscriminator();
+    Discriminator = DbgLoc->getDiscriminator();
   assert((EnableFSDiscriminator || Discriminator == 0) &&
          "Discriminator should not be set in non-FSAFDO mode");
   SmallVector<InlineSite, 8> InlineStack(llvm::reverse(ReversedInlineStack));
@@ -77,7 +77,7 @@ void PseudoProbeHandler::emitPseudoProbe(uint64_t Guid, uint64_t Index,
 #ifndef NDEBUG
   if (VerifyGuidExistence)
     verifyGuidExistenceInDesc(
-        Guid, DebugLoc ? DebugLoc->getSubprogramLinkageName() : "");
+        Guid, DbgLoc ? DbgLoc->getSubprogramLinkageName() : "");
 #endif
 }
 

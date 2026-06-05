@@ -2561,6 +2561,7 @@ bool MIParser::parseDIExpression(MDNode *&Expr) {
   return false;
 }
 
+// NOLINTBEGIN(llvm-debug-loc-*)
 bool MIParser::parseDILocation(MDNode *&Loc) {
   assert(Token.is(MIToken::md_dilocation));
   lex();
@@ -2688,6 +2689,7 @@ bool MIParser::parseDILocation(MDNode *&Loc) {
                         InlinedAt, ImplicitCode, AtomGroup, AtomRank);
   return false;
 }
+// NOLINTEND(llvm-debug-loc-*)
 
 bool MIParser::parseMetadataOperand(MachineOperand &Dest) {
   MDNode *Node = nullptr;

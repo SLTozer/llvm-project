@@ -283,7 +283,7 @@ static void addModuleLines(Instruction *I, VarState &Var,
                            DenseSet<std::pair<StringRef, uint32_t>> &Lines) {
   auto *VarScope = Var.DVR.getVariable()->getScope();
   do {
-    auto &Loc = I->getDebugLoc();
+    DebugLoc Loc = I->getDebugLoc(); // TODO: Backport this change to the reference patch.
     DIScope *Scope;
     if (Loc && isInScope(VarScope, Loc) && Loc.getLine() &&
         (Scope = dyn_cast_if_present<DIScope>(Loc.getScope()))) {

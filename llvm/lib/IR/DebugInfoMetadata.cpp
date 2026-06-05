@@ -58,6 +58,7 @@ DebugVariableAggregate::DebugVariableAggregate(const DbgVariableRecord *DVR)
     : DebugVariable(DVR->getVariable(), std::nullopt,
                     DVR->getDebugLoc()->getInlinedAt()) {}
 
+// NOLINTBEGIN(llvm-debug-loc-*)
 DILocation::DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
                        unsigned Column, uint64_t AtomGroup, uint8_t AtomRank,
                        ArrayRef<Metadata *> MDs, bool ImplicitCode)
@@ -454,6 +455,7 @@ void DILocation::decodeDiscriminator(unsigned D, unsigned &BD, unsigned &DF,
   CI = getUnsignedFromPrefixEncoding(
       getNextComponentInDiscriminator(getNextComponentInDiscriminator(D)));
 }
+// NOLINTEND(llvm-debug-loc-*)
 dwarf::Tag DINode::getTag() const { return (dwarf::Tag)SubclassData16; }
 
 DINode::DIFlags DINode::getFlag(StringRef Flag) {

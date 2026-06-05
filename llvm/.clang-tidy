@@ -1,1 +1,7 @@
 InheritParentConfig: true
+
+CheckOptions:
+  - key:             llvm-debug-loc-static-methods.QualifyDebugLocs
+    value:           false
+  - key:             llvm-debug-loc-variables.QualifyDebugLocs
+    value:           false

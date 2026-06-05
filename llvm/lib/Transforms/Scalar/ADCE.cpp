@@ -151,7 +151,7 @@ class AggressiveDeadCodeElimination {
 
   /// Record the Debug Scopes which surround live debug information.
   void collectLiveScopes(const DILocalScope &LS);
-  void collectLiveScopes(const DILocation &DL);
+  void collectLiveScopes(DebugLoc DL);
 
   /// Analyze dead branches to find those whose branches are the sources
   /// of control dependences impacting a live block. Those branches are
@@ -304,8 +304,8 @@ void AggressiveDeadCodeElimination::markLive(Instruction *I) {
   Worklist.push_back(I);
 
   // Collect the live debug info scopes attached to this instruction.
-  if (const DILocation *DL = I->getDebugLoc())
-    collectLiveScopes(*DL);
+  if (DebugLoc DL = I->getDebugLoc())
+    collectLiveScopes(DL);
 
   // Mark the containing block live
   BasicBlock *BB = I->getParent();
@@ -348,18 +348,18 @@ void AggressiveDeadCodeElimination::collectLiveScopes(const DILocalScope &LS) {
   collectLiveScopes(cast<DILocalScope>(*LS.getScope()));
 }
 
-void AggressiveDeadCodeElimination::collectLiveScopes(const DILocation &DL) {
+void AggressiveDeadCodeElimination::collectLiveScopes(DebugLoc DL) {
   // Even though DILocations are not scopes, shove them into AliveScopes so we
   // don't revisit them.
-  if (!AliveScopes.insert(&DL).second)
+  if (!AliveScopes.insert(DL.getAsMDNode()).second)
     return;
 
   // Collect live scopes from the scope chain.
   collectLiveScopes(*DL.getScope());
 
   // Tail-recurse through the inlined-at chain.
-  if (const DILocation *IA = DL.getInlinedAt())
-    collectLiveScopes(*IA);
+  if (DebugLoc IA = DL.getInlinedAt())
+    collectLiveScopes(IA);
 }
 
 void AggressiveDeadCodeElimination::markPhiLive(PHINode *PN) {
@@ -595,8 +595,8 @@ void AggressiveDeadCodeElimination::makeUnconditional(BasicBlock *BB,
                                                       BasicBlock *Target) {
   Instruction *PredTerm = BB->getTerminator();
   // Collect the live debug info scopes attached to this instruction.
-  if (const DILocation *DL = PredTerm->getDebugLoc())
-    collectLiveScopes(*DL);
+  if (DebugLoc DL = PredTerm->getDebugLoc())
+    collectLiveScopes(DL);
 
   // Just mark live an existing unconditional branch
   if (auto *BI = dyn_cast<UncondBrInst>(PredTerm)) {

@@ -51,7 +51,6 @@ public:
            DICompileUnit::NoDebug &&
            "Don't build lexical scopes for non-debug locations");
     assert(D->isResolved() && "Expected resolved node");
-    assert((!I || I->isResolved()) && "Expected resolved node");
     if (Parent)
       Parent->addChild(this);
   }

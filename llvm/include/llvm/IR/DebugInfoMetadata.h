@@ -2646,6 +2646,7 @@ public:
 /// Uses the SubclassData1, SubclassData16 and SubclassData32
 /// Metadata slots.
 
+// NOLINTBEGIN(llvm-debug-loc-*)
 class DILocation : public MDNode {
   friend class LLVMContextImpl;
   friend class MDNode;
@@ -3145,6 +3146,7 @@ DILocation::cloneByMultiplyingDuplicationFactor(unsigned DF) const {
     return cloneWithDiscriminator(*D);
   return std::nullopt;
 }
+// NOLINTEND(llvm-debug-loc-*)
 
 /// Debug lexical block.
 ///
