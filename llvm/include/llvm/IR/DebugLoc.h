@@ -15,9 +15,12 @@
 #define LLVM_IR_DEBUGLOC_H
 
 #include "llvm/Config/llvm-config.h"
+#include "llvm/IR/PseudoProbe.h"
 #include "llvm/IR/TrackingMDRef.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/DataTypes.h"
+#include "llvm/Support/Discriminator.h"
 
 namespace llvm {
 
@@ -25,6 +28,8 @@ class LLVMContext;
 class raw_ostream;
 class DILocation;
 class Function;
+
+extern cl::opt<bool> EnableFSDiscriminator;
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN
@@ -127,6 +132,9 @@ class DebugLoc {
   DebugLocRef Loc = {};
 
 public:
+  friend struct DenseMapInfo<DebugLoc>;
+  friend hash_code hash_value(const DebugLoc &Val);
+
   /// Construct from an \a DILocation.
   DebugLoc(const DILocation *L = nullptr) : Loc(const_cast<DILocation *>(L)) {}
 
@@ -289,7 +297,159 @@ public:
 
   /// prints source location /path/to/file.exe:line:col @[inlined at]
   LLVM_ABI void print(raw_ostream &OS) const;
+
+  LLVM_ABI void print(raw_ostream &OS, const Module *M,
+                      bool IsForDebug = false) const;
+  LLVM_ABI void print(raw_ostream &OS, ModuleSlotTracker &MST,
+                      const Module *M = nullptr, bool IsForDebug = false) const;
+  LLVM_ABI void printAsOperand(raw_ostream &OS,
+                               const Module *M = nullptr) const;
+  LLVM_ABI void printAsOperand(raw_ostream &OS, ModuleSlotTracker &MST,
+                               const Module *M = nullptr) const;
+  bool isDistinct() const;
+  
+  LLVMContext &getContext() const;
+
+  uint64_t getAtomGroup() const;
+  uint8_t getAtomRank() const;
+
+  DebugLoc getWithoutAtom() const;
+
+  /// Return the linkage name of Subprogram. If the linkage name is empty,
+  /// return scope name (the demangled name).
+  StringRef getSubprogramLinkageName() const;
+
+  DIFile *getFile() const;
+  StringRef getFilename() const;
+  StringRef getDirectory() const;
+  std::optional<StringRef> getSource() const;
+
+  DebugLoc getInlinedAtLocation() const;
+
+  unsigned getDiscriminator() const;
+
+  /// Returns a new DebugLoc with updated \p Discriminator.
+  DebugLoc cloneWithDiscriminator(unsigned Discriminator) const;
+
+  /// Returns a new DebugLoc with updated base discriminator \p BD. Only the
+  /// base discriminator is set in the new DebugLoc, the other encoded values
+  /// are elided.
+  /// If the discriminator cannot be encoded, the function returns std::nullopt.
+  std::optional<DebugLoc>
+  cloneWithBaseDiscriminator(unsigned BD) const;
+
+  /// Returns the duplication factor stored in the discriminator, or 1 if no
+  /// duplication factor (or 0) is encoded.
+  unsigned getDuplicationFactor() const;
+
+  /// Returns the copy identifier stored in the discriminator.
+  unsigned getCopyIdentifier() const;
+
+  /// Returns the base discriminator stored in the discriminator.
+  unsigned getBaseDiscriminator() const;
+
+  /// Returns a new DebugLoc with duplication factor \p DF * current
+  /// duplication factor encoded in the discriminator. The current duplication
+  /// factor is as defined by getDuplicationFactor().
+  /// Returns std::nullopt if encoding failed.
+  std::optional<DebugLoc>
+  cloneByMultiplyingDuplicationFactor(unsigned DF) const;
+
+  Metadata *getRawScope() const;
+  Metadata *getRawInlinedAt() const;
+
+  static bool isPseudoProbeDiscriminator(unsigned Discriminator);
+
+  /// Return the masked discriminator value for an input discrimnator value D
+  /// (i.e. zero out the (B+1)-th and above bits for D (B is 0-base).
+  // Example: an input of (0x1FF, 7) returns 0xFF.
+  static unsigned getMaskedDiscriminator(unsigned D, unsigned B) {
+    return (D & getN1Bits(B));
+  }
+
+  /// Return the bits used for base discriminators.
+  static unsigned getBaseDiscriminatorBits() { return getBaseFSBitEnd(); }
+
+  /// Returns the base discriminator for a given encoded discriminator \p D.
+  static unsigned
+  getBaseDiscriminatorFromDiscriminator(unsigned D,
+                                        bool IsFSDiscriminator = false) {
+    // Extract the dwarf base discriminator if it's encoded in the pseudo probe
+    // discriminator.
+    if (isPseudoProbeDiscriminator(D)) {
+      auto DwarfBaseDiscriminator =
+          PseudoProbeDwarfDiscriminator::extractDwarfBaseDiscriminator(D);
+      if (DwarfBaseDiscriminator)
+        return *DwarfBaseDiscriminator;
+      // Return the probe id instead of zero for a pseudo probe discriminator.
+      // This should help differenciate callsites with same line numbers to
+      // achieve a decent AutoFDO profile under -fpseudo-probe-for-profiling,
+      // where the original callsite dwarf discriminator is overwritten by
+      // callsite probe information.
+      return PseudoProbeDwarfDiscriminator::extractProbeIndex(D);
+    }
+
+    if (IsFSDiscriminator)
+      return getMaskedDiscriminator(D, getBaseDiscriminatorBits());
+    return getUnsignedFromPrefixEncoding(D);
+  }
+
+  /// Raw encoding of the discriminator. APIs such as cloneWithDuplicationFactor
+  /// have certain special case behavior (e.g. treating empty duplication factor
+  /// as the value '1').
+  /// This API, in conjunction with cloneWithDiscriminator, may be used to
+  /// encode the raw values provided.
+  ///
+  /// \p BD: base discriminator
+  /// \p DF: duplication factor
+  /// \p CI: copy index
+  ///
+  /// The return is std::nullopt if the values cannot be encoded in 32 bits -
+  /// for example, values for BD or DF larger than 12 bits. Otherwise, the
+  /// return is the encoded value.
+  LLVM_ABI static std::optional<unsigned>
+  encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI);
+
+  /// Raw decoder for values in an encoded discriminator D.
+  LLVM_ABI static void decodeDiscriminator(unsigned D, unsigned &BD,
+                                           unsigned &DF, unsigned &CI);
+
+  /// Returns the duplication factor for a given encoded discriminator \p D, or
+  /// 1 if no value or 0 is encoded.
+  static unsigned getDuplicationFactorFromDiscriminator(unsigned D) {
+    if (EnableFSDiscriminator)
+      return 1;
+    D = getNextComponentInDiscriminator(D);
+    unsigned Ret = getUnsignedFromPrefixEncoding(D);
+    if (Ret == 0)
+      return 1;
+    return Ret;
+  }
+
+  /// Returns the copy identifier for a given encoded discriminator \p D.
+  static unsigned getCopyIdentifierFromDiscriminator(unsigned D) {
+    return getUnsignedFromPrefixEncoding(
+        getNextComponentInDiscriminator(getNextComponentInDiscriminator(D)));
+  }
 };
+
+inline raw_ostream &operator<<(raw_ostream &OS, const DebugLoc &DL) {
+  DL.print(OS);
+  return OS;
+}
+
+template <>
+struct DenseMapInfo<DebugLoc> {
+  static unsigned getHashValue(DebugLoc DL) {
+    return hash_value(DL);
+  }
+
+  static bool isEqual(DebugLoc LHS, DebugLoc RHS) { return LHS.Loc == RHS.Loc; }
+};
+
+inline hash_code hash_value(const DebugLoc &Val) {
+  return hash_value(Val.Loc);
+}
 
 } // end namespace llvm
 

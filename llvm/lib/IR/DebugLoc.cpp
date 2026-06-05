@@ -207,3 +207,121 @@ void DebugLoc::print(raw_ostream &OS) const {
     OS << " ]";
   }
 }
+
+void DebugLoc::print(raw_ostream &OS, const Module *M, bool IsForDebug) const {
+  return get()->print(OS, M, IsForDebug);
+}
+void DebugLoc::print(raw_ostream &OS, ModuleSlotTracker &MST, const Module *M,
+                     bool IsForDebug) const {
+  return get()->print(OS, MST, M, IsForDebug);
+}
+void DebugLoc::printAsOperand(raw_ostream &OS, const Module *M) const {
+  return get()->printAsOperand(OS, M);
+}
+void DebugLoc::printAsOperand(raw_ostream &OS, ModuleSlotTracker &MST,
+                     const Module *M) const {
+  return get()->printAsOperand(OS, MST, M);
+}
+bool DebugLoc::isDistinct() const {
+  return get()->isDistinct();
+}
+
+LLVMContext &DebugLoc::getContext() const { return Loc->getContext(); }
+
+uint64_t DebugLoc::getAtomGroup() const {
+  return get()->getAtomGroup();
+}
+uint8_t DebugLoc::getAtomRank() const {
+  return get()->getAtomRank();
+}
+
+DebugLoc DebugLoc::getWithoutAtom() const {
+  return get()->getWithoutAtom();
+}
+
+StringRef DebugLoc::getSubprogramLinkageName() const {
+  return get()->getSubprogramLinkageName();
+}
+
+DIFile *DebugLoc::getFile() const {
+  return get()->getFile();
+}
+StringRef DebugLoc::getFilename() const {
+  return get()->getFilename();
+}
+StringRef DebugLoc::getDirectory() const {
+  return get()->getDirectory();
+}
+std::optional<StringRef> DebugLoc::getSource() const {
+  return get()->getSource();
+}
+
+DebugLoc DebugLoc::getInlinedAtLocation() const {
+  return get()->getInlinedAtLocation();
+}
+
+unsigned DebugLoc::getDiscriminator() const {
+  return get()->getDiscriminator();
+}
+
+/// Returns a new DebugLoc with updated \p Discriminator.
+DebugLoc DebugLoc::cloneWithDiscriminator(unsigned Discriminator) const {
+  return get()->cloneWithDiscriminator(Discriminator);
+}
+
+/// Returns a new DebugLoc with updated base discriminator \p BD. Only the
+/// base discriminator is set in the new DebugLoc, the other encoded values
+/// are elided.
+/// If the discriminator cannot be encoded, the function returns std::nullopt.
+std::optional<DebugLoc>
+DebugLoc::cloneWithBaseDiscriminator(unsigned BD) const {
+  std::optional<const DILocation*> DL = get()->cloneWithBaseDiscriminator(BD);
+  if (DL)
+    return *DL;
+  return std::nullopt;
+}
+
+/// Returns the duplication factor stored in the discriminator, or 1 if no
+/// duplication factor (or 0) is encoded.
+unsigned DebugLoc::getDuplicationFactor() const {
+  return get()->getDuplicationFactor();
+}
+
+/// Returns the copy identifier stored in the discriminator.
+unsigned DebugLoc::getCopyIdentifier() const {
+  return get()->getCopyIdentifier();
+}
+
+/// Returns the base discriminator stored in the discriminator.
+unsigned DebugLoc::getBaseDiscriminator() const {
+  return get()->getBaseDiscriminator();
+}
+
+/// Returns a new DebugLoc with duplication factor \p DF * current
+/// duplication factor encoded in the discriminator. The current duplication
+/// factor is as defined by getDuplicationFactor().
+/// Returns std::nullopt if encoding failed.
+std::optional<DebugLoc>
+DebugLoc::cloneByMultiplyingDuplicationFactor(unsigned DF) const {
+  std::optional<const DILocation*> DL = get()->cloneByMultiplyingDuplicationFactor(DF);
+  if (DL)
+    return *DL;
+  return std::nullopt;
+}
+
+Metadata *DebugLoc::getRawScope() const {
+  return get()->getRawScope();
+}
+Metadata *DebugLoc::getRawInlinedAt() const {
+  return get()->getRawInlinedAt();
+}
+
+bool DebugLoc::isPseudoProbeDiscriminator(unsigned Discriminator) {
+  return DILocation::isPseudoProbeDiscriminator(Discriminator);
+}
+
+LLVM_ABI std::optional<unsigned>
+DebugLoc::encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI) {
+  return DILocation::encodeDiscriminator(BD, DF, CI);
+}
+
