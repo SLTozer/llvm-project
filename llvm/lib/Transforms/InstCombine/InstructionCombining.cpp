@@ -1841,7 +1841,7 @@ Instruction *InstCombinerImpl::FoldOpIntoSelect(Instruction &Op, SelectInst *SI,
                        {LLVMContext::MD_prof, LLVMContext::MD_unpredictable});
 
   // Preserve source location information.
-  NewSel->setDebugLoc(SI->getDebugLoc());
+  NewSel->copyDebugLocFrom(SI);
 
   return NewSel;
 }
@@ -2074,7 +2074,7 @@ Instruction *InstCombinerImpl::foldOpIntoPhi(Instruction &I, PHINode *PN,
   PHINode *NewPN = PHINode::Create(I.getType(), PN->getNumIncomingValues());
   InsertNewInstBefore(NewPN, PN->getIterator());
   NewPN->takeName(PN);
-  NewPN->setDebugLoc(PN->getDebugLoc());
+  NewPN->copyDebugLocFrom(PN);
 
   for (unsigned i = 0; i != NumPHIValues; ++i)
     NewPN->addIncoming(NewPhiValues[i], PN->getIncomingBlock(i));
@@ -4022,7 +4022,7 @@ Instruction *InstCombinerImpl::visitAllocSite(Instruction &MI) {
       Function *F = Intrinsic::getOrInsertDeclaration(M, Intrinsic::donothing);
       auto *NewII = InvokeInst::Create(
           F, II->getNormalDest(), II->getUnwindDest(), {}, "", II->getParent());
-      NewII->setDebugLoc(II->getDebugLoc());
+      NewII->copyDebugLocFrom(II);
     }
 
     // Remove debug intrinsics which describe the value contained within the
@@ -5711,7 +5711,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
     for (DbgVariableRecord *DVR : DbgVariableRecordsToSink) {
       DebugVariable DbgUserVariable =
           DebugVariable(DVR->getVariable(), DVR->getExpression(),
-                        DVR->getDebugLoc()->getInlinedAt());
+                        DVR->getDebugLoc().getInlinedAt());
       CountMap[std::make_pair(DVR->getInstruction(), DbgUserVariable)] += 1;
     }
 
@@ -5732,7 +5732,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
            llvm::reverse(filterDbgVars(Inst->getDbgRecordRange()))) {
         DebugVariable DbgUserVariable =
             DebugVariable(DVR.getVariable(), DVR.getExpression(),
-                          DVR.getDebugLoc()->getInlinedAt());
+                          DVR.getDebugLoc().getInlinedAt());
         auto FilterIt =
             FilterOutMap.find(std::make_pair(Inst, DbgUserVariable));
         if (FilterIt == FilterOutMap.end())
@@ -5754,7 +5754,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
 
     DebugVariable DbgUserVariable =
         DebugVariable(DVR->getVariable(), DVR->getExpression(),
-                      DVR->getDebugLoc()->getInlinedAt());
+                      DVR->getDebugLoc().getInlinedAt());
 
     // For any variable where there were multiple assignments in the same place,
     // ignore all but the last assignment.
@@ -5939,7 +5939,7 @@ bool InstCombinerImpl::run() {
         // We copy the old instruction's DebugLoc to the new instruction, unless
         // InstCombine already assigned a DebugLoc to it, in which case we
         // should trust the more specifically selected DebugLoc.
-        Result->setDebugLoc(Result->getDebugLoc().orElse(I->getDebugLoc()));
+        Result->setDebugLoc(Result->getDebugLoc(I->getFunction()).orElse(I->getDebugLoc()));
         // We also copy annotation metadata to the new instruction.
         Result->copyMetadata(*I, LLVMContext::MD_annotation);
         // Everything uses the new instruction now.

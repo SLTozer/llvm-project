@@ -90,7 +90,7 @@ static bool reduceDbgValsForwardScan(MachineBasicBlock &MBB) {
   for (auto &MI : MBB) {
     if (MI.isDebugValue()) {
       DebugVariable Var(MI.getDebugVariable(), std::nullopt,
-                        MI.getDebugLoc()->getInlinedAt());
+                        MI.getDebugLoc().getInlinedAt());
       auto VMI = VariableMap.find(Var);
       // Just stop tracking this variable, until we cover DBG_VALUE_LIST.
       // 1  DBG_VALUE $rax, "x", DIExpression()
@@ -159,7 +159,7 @@ static bool reduceDbgValsBackwardScan(MachineBasicBlock &MBB) {
   for (MachineInstr &MI : llvm::reverse(MBB)) {
     if (MI.isDebugValue()) {
       DebugVariable Var(MI.getDebugVariable(), MI.getDebugExpression(),
-                        MI.getDebugLoc()->getInlinedAt());
+                        MI.getDebugLoc().getInlinedAt());
       auto R = VariableSet.insert(Var);
       // If it is a DBG_VALUE describing a constant as:
       //   DBG_VALUE 0, ...

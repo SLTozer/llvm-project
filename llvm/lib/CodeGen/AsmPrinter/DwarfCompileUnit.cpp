@@ -717,15 +717,15 @@ DIE *DwarfCompileUnit::constructInlinedScopeDIE(LexicalScope *Scope,
   attachRangesOrLowHighPC(*ScopeDIE, Scope->getRanges());
 
   // Add the call site information to the DIE.
-  const DILocation *IA = Scope->getInlinedAt();
+  DebugLoc IA = Scope->getInlinedAt();
   addUInt(*ScopeDIE, dwarf::DW_AT_call_file, std::nullopt,
-          getOrCreateSourceID(IA->getFile()));
-  addUInt(*ScopeDIE, dwarf::DW_AT_call_line, std::nullopt, IA->getLine());
-  if (IA->getColumn())
-    addUInt(*ScopeDIE, dwarf::DW_AT_call_column, std::nullopt, IA->getColumn());
-  if (IA->getDiscriminator() && DD->getDwarfVersion() >= 4)
+          getOrCreateSourceID(IA.getFile()));
+  addUInt(*ScopeDIE, dwarf::DW_AT_call_line, std::nullopt, IA.getLine());
+  if (IA.getColumn())
+    addUInt(*ScopeDIE, dwarf::DW_AT_call_column, std::nullopt, IA.getColumn());
+  if (IA.getDiscriminator() && DD->getDwarfVersion() >= 4)
     addUInt(*ScopeDIE, dwarf::DW_AT_GNU_discriminator, std::nullopt,
-            IA->getDiscriminator());
+            IA.getDiscriminator());
 
   // Add name to the name table, we do this here because we're guaranteed
   // to have concrete versions of our DW_TAG_inlined_subprogram nodes.

@@ -1025,7 +1025,7 @@ bool JumpThreadingPass::processBlock(BasicBlock *BB) {
                       << "' folding undef terminator: " << *BBTerm << '\n');
     Instruction *NewBI = UncondBrInst::Create(BBTerm->getSuccessor(BestSucc),
                                               BBTerm->getIterator());
-    NewBI->setDebugLoc(BBTerm->getDebugLoc());
+    NewBI->copyDebugLocFrom(BBTerm);
     ++NumFolds;
     BBTerm->eraseFromParent();
     DTU->applyUpdatesPermissive(Updates);
@@ -1189,7 +1189,7 @@ bool JumpThreadingPass::processImpliedCondition(BasicBlock *BB) {
       RemoveSucc->removePredecessor(BB);
       UncondBrInst *UncondBI =
           UncondBrInst::Create(KeepSucc, BI->getIterator());
-      UncondBI->setDebugLoc(BI->getDebugLoc());
+      UncondBI->copyDebugLocFrom(BI);
       ++NumFolds;
       BI->eraseFromParent();
       if (FICond)
@@ -1267,7 +1267,7 @@ bool JumpThreadingPass::simplifyPartiallyRedundantLoad(LoadInst *LoadI) {
     if (AvailableVal->getType() != LoadI->getType()) {
       AvailableVal = CastInst::CreateBitOrPointerCast(
           AvailableVal, LoadI->getType(), "", LoadI->getIterator());
-      cast<Instruction>(AvailableVal)->setDebugLoc(LoadI->getDebugLoc());
+      cast<Instruction>(AvailableVal)->copyDebugLocFrom(LoadI);
     }
     LoadI->replaceAllUsesWith(AvailableVal);
     LoadI->eraseFromParent();
@@ -1418,7 +1418,7 @@ bool JumpThreadingPass::simplifyPartiallyRedundantLoad(LoadInst *LoadI) {
         LoadI->getName() + ".pr", false, LoadI->getAlign(),
         LoadI->getOrdering(), LoadI->getSyncScopeID(),
         UnavailablePred->getTerminator()->getIterator());
-    NewVal->setDebugLoc(LoadI->getDebugLoc());
+    NewVal->copyDebugLocFrom(LoadI);
     if (AATags)
       NewVal->setAAMetadata(AATags);
 
@@ -1433,7 +1433,7 @@ bool JumpThreadingPass::simplifyPartiallyRedundantLoad(LoadInst *LoadI) {
   PHINode *PN = PHINode::Create(LoadI->getType(), pred_size(LoadBB), "");
   PN->insertBefore(LoadBB->begin());
   PN->takeName(LoadI);
-  PN->setDebugLoc(LoadI->getDebugLoc());
+  PN->copyDebugLocFrom(LoadI);
 
   // Insert new entries into the PHI for each predecessor.  A single block may
   // have multiple entries here.
@@ -1675,7 +1675,7 @@ bool JumpThreadingPass::processThreadableEdges(Value *Cond, BasicBlock *BB,
       // Finally update the terminator.
       Instruction *Term = BB->getTerminator();
       Instruction *NewBI = UncondBrInst::Create(OnlyDest, Term->getIterator());
-      NewBI->setDebugLoc(Term->getDebugLoc());
+      NewBI->copyDebugLocFrom(Term);
       ++NumFolds;
       Term->eraseFromParent();
       DTU->applyUpdatesPermissive(Updates);
@@ -2455,7 +2455,7 @@ void JumpThreadingPass::threadEdge(BasicBlock *BB,
   // We didn't copy the terminator from BB over to NewBB, because there is now
   // an unconditional jump to SuccBB.  Insert the unconditional jump.
   UncondBrInst *NewBI = UncondBrInst::Create(SuccBB, NewBB);
-  NewBI->setDebugLoc(BB->getTerminator()->getDebugLoc());
+  NewBI->copyDebugLocFrom(BB->getTerminator());
 
   // Check to see if SuccBB has PHI nodes. If so, we need to add entries to the
   // PHI nodes for NewBB now.
@@ -3036,7 +3036,7 @@ bool JumpThreadingPass::tryToUnfoldSelectInCurrBB(BasicBlock *BB) {
     PHINode *NewPN = PHINode::Create(SI->getType(), 2, "", SI->getIterator());
     NewPN->addIncoming(SI->getTrueValue(), Term->getParent());
     NewPN->addIncoming(SI->getFalseValue(), BB);
-    NewPN->setDebugLoc(SI->getDebugLoc());
+    NewPN->copyDebugLocFrom(SI);
     SI->replaceAllUsesWith(NewPN);
 
     auto *BPI = getBPI();
@@ -3199,7 +3199,7 @@ bool JumpThreadingPass::threadGuard(BasicBlock *BB, IntrinsicInst *Guard,
       PHINode *NewPN = PHINode::Create(Inst->getType(), 2);
       NewPN->addIncoming(UnguardedMapping[Inst], UnguardedBlock);
       NewPN->addIncoming(GuardedMapping[Inst], GuardedBlock);
-      NewPN->setDebugLoc(Inst->getDebugLoc());
+      NewPN->copyDebugLocFrom(Inst);
       NewPN->insertBefore(InsertionPoint);
       Inst->replaceAllUsesWith(NewPN);
     }

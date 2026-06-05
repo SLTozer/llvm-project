@@ -690,7 +690,7 @@ void SelectOptimizeImpl::convertProfitableSIGroups(SelectGroups &ProfSIGroups) {
       TrueBlock = BasicBlock::Create(EndBlock->getContext(), "select.true.sink",
                                      EndBlock->getParent(), EndBlock);
       TrueBranch = UncondBrInst::Create(EndBlock, TrueBlock);
-      TrueBranch->setDebugLoc(LastSI.getI()->getDebugLoc());
+      TrueBranch->copyDebugLocFrom(LastSI.getI());
       for (Instruction *TrueInst : TrueSlicesInterleaved)
         TrueInst->moveBefore(TrueBranch->getIterator());
     }
@@ -699,7 +699,7 @@ void SelectOptimizeImpl::convertProfitableSIGroups(SelectGroups &ProfSIGroups) {
           BasicBlock::Create(EndBlock->getContext(), "select.false.sink",
                              EndBlock->getParent(), EndBlock);
       FalseBranch = UncondBrInst::Create(EndBlock, FalseBlock);
-      FalseBranch->setDebugLoc(LastSI.getI()->getDebugLoc());
+      FalseBranch->copyDebugLocFrom(LastSI.getI());
       for (Instruction *FalseInst : FalseSlicesInterleaved)
         FalseInst->moveBefore(FalseBranch->getIterator());
     }
@@ -712,7 +712,7 @@ void SelectOptimizeImpl::convertProfitableSIGroups(SelectGroups &ProfSIGroups) {
       FalseBlock = BasicBlock::Create(StartBlock->getContext(), "select.false",
                                       EndBlock->getParent(), EndBlock);
       auto *FalseBranch = UncondBrInst::Create(EndBlock, FalseBlock);
-      FalseBranch->setDebugLoc(SI.getI()->getDebugLoc());
+      FalseBranch->copyDebugLocFrom(SI.getI());
     }
 
     // Insert the real conditional branch based on the original condition.
@@ -762,7 +762,7 @@ void SelectOptimizeImpl::convertProfitableSIGroups(SelectGroups &ProfSIGroups) {
       INS[PN] = {TV, FV};
       PN->addIncoming(TV, TrueBlock);
       PN->addIncoming(FV, FalseBlock);
-      PN->setDebugLoc(SI.getI()->getDebugLoc());
+      PN->copyDebugLocFrom(SI.getI());
       ++NumSelectsConverted;
     }
     Instruction *CondBr = IB.CreateCondBr(CondFr, TT, FT, SI.getI());

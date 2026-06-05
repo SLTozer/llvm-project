@@ -290,7 +290,7 @@ printStackObjectDbgInfo(const MachineFunction::VariableDbgInfo &DebugVar,
                                         &Object.DebugLoc.Value}};
   std::array<const Metadata *, 3> Metas{{DebugVar.Var,
                                         DebugVar.Expr,
-                                        DebugVar.Loc}};
+                                        DebugVar.Loc.getAsDILocation()}};
   for (unsigned i = 0; i < 3; ++i) {
     raw_string_ostream StrOS(*Outputs[i]);
     Metas[i]->printAsOperand(StrOS, MST);
@@ -944,7 +944,7 @@ static void printMI(raw_ostream &OS, MFPrintState &State,
   if (PrintLocations) {
     if (const DebugLoc &DL = MI.getDebugLoc()) {
       OS << LS << "debug-location ";
-      DL->printAsOperand(OS, State.MST);
+      DL.printAsOperand(OS, State.MST);
     }
   }
 

@@ -102,8 +102,8 @@ std::optional<PseudoProbe> extractProbe(const MachineInstr &MI) {
     Probe.Type = MI.getOperand(2).getImm();
     Probe.Attr = MI.getOperand(3).getImm();
     Probe.Factor = 1;
-    DILocation *DebugLoc = MI.getDebugLoc();
-    Probe.Discriminator = DebugLoc ? DebugLoc->getDiscriminator() : 0;
+    DebugLoc DebugLoc = MI.getDebugLoc();
+    Probe.Discriminator = DebugLoc ? DebugLoc.getDiscriminator() : 0;
     return Probe;
   }
 
@@ -270,11 +270,11 @@ void MIRProfileLoader::setBranchProbs(MachineFunction &F) {
         dbgs() << "Set branch fs prob: MBB (" << BB->getNumber() << " -> "
                << Succ->getNumber() << "): ";
         if (DIL)
-          dbgs() << DIL->getFilename() << ":" << DIL->getLine() << ":"
-                 << DIL->getColumn();
+          dbgs() << DIL.getFilename() << ":" << DIL.getLine() << ":"
+                 << DIL.getColumn();
         if (SuccDIL)
-          dbgs() << "-->" << SuccDIL->getFilename() << ":" << SuccDIL->getLine()
-                 << ":" << SuccDIL->getColumn();
+          dbgs() << "-->" << SuccDIL.getFilename() << ":" << SuccDIL.getLine()
+                 << ":" << SuccDIL.getColumn();
         dbgs() << " W=" << BBWeightOrig << "  " << OldProb << " --> " << NewProb
                << "\n";
       }

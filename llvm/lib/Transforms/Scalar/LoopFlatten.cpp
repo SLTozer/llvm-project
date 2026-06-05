@@ -785,7 +785,7 @@ static bool DoFlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   BasicBlock *InnerExitingBlock = FI.InnerLoop->getExitingBlock();
   Instruction *Term = InnerExitingBlock->getTerminator();
   Instruction *BI = UncondBrInst::Create(InnerExitBlock, InnerExitingBlock);
-  BI->setDebugLoc(Term->getDebugLoc());
+  BI->copyDebugLocFrom(Term);
   Term->eraseFromParent();
 
   // Update the DomTree and MemorySSA.

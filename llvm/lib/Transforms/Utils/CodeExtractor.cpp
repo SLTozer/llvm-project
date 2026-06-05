@@ -32,9 +32,11 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/InstrTypes.h"
@@ -62,6 +64,7 @@
 #include <cstdint>
 #include <iterator>
 #include <map>
+#include <utility>
 #include <vector>
 
 using namespace llvm;
@@ -1110,7 +1113,7 @@ static void applyFirstDebugLoc(Function *oldFunction,
       return any_of(*BB, [&BranchI](const Instruction &I) {
         if (!I.getDebugLoc())
           return false;
-        BranchI->setDebugLoc(I.getDebugLoc());
+        BranchI->copyDebugLocFrom(&I);
         return true;
       });
     });
@@ -1350,6 +1353,7 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
   SmallDenseMap<DINode *, DINode *> RemappedMetadata;
   SmallVector<DbgVariableRecord *, 4> DVRsToDelete;
   DenseMap<const MDNode *, MDNode *> Cache;
+  DebugLocMap DLMap(&OldFunc, &NewFunc);
 
   auto GetUpdatedDIVariable = [&](DILocalVariable *OldVar) {
     DINode *&NewVar = RemappedMetadata[OldVar];
@@ -1421,24 +1425,40 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
   // debug assignment metadata in the new function.
   DenseMap<DIAssignID *, DIAssignID *> AssignmentIDMap;
   for (Instruction &I : instructions(NewFunc)) {
+    // If FLMD source locs are in use, we don't need to renumber each
+    // instruction - the indices will transfer. We only need to remap scopes
+    // from the new FLMD context.
+#if LLVM_USE_FLMD_SOURCE_LOCS
     if (const DebugLoc &DL = I.getDebugLoc())
+    
       I.setDebugLoc(
-          DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, Ctx, Cache));
+          DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, &NewFunc, Cache, DLMap));
     for (DbgRecord &DR : I.getDbgRecordRange())
       DR.setDebugLoc(DebugLoc::replaceInlinedAtSubprogram(DR.getDebugLoc(),
-                                                          *NewSP, Ctx, Cache));
+                                                          *NewSP, &NewFunc, Cache, DLMap));
+#else
+    if (const DebugLoc &DL = I.getDebugLoc())
+      I.setDebugLoc(
+          DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, &NewFunc, Cache, DLMap));
+    for (DbgRecord &DR : I.getDbgRecordRange())
+      DR.setDebugLoc(DebugLoc::replaceInlinedAtSubprogram(DR.getDebugLoc(),
+                                                          *NewSP, &NewFunc, Cache, DLMap));
+#endif
 
     // Loop info metadata may contain line locations. Fix them up.
-    auto updateLoopInfoLoc = [&Ctx, &Cache, NewSP](Metadata *MD) -> Metadata * {
-      if (auto *Loc = dyn_cast_or_null<DILocation>(MD))
-        return DebugLoc::replaceInlinedAtSubprogram(Loc, *NewSP, Ctx, Cache);
+    auto updateLoopInfoLoc = [&Cache, &DLMap, &NewFunc, NewSP](Metadata *MD) -> Metadata * {
+      if (DILocation *Loc = dyn_cast_or_null<DILocation>(MD)) {
+        DebugLoc DL = Loc->getAsDebugLoc();
+        return DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, &NewFunc, Cache,
+          DLMap).convertToDILocation();
+      }
       return MD;
     };
     updateLoopMetadataDebugLocations(I, updateLoopInfoLoc);
     at::remapAssignID(AssignmentIDMap, I);
   }
   if (!TheCall.getDebugLoc())
-    TheCall.setDebugLoc(DILocation::get(Ctx, 0, 0, OldSP));
+    TheCall.setDebugLoc(DebugLoc::get(&OldFunc, 0, 0, OldSP));
 
   eraseDebugIntrinsicsWithNonLocalRefs(NewFunc);
 }

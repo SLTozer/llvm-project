@@ -2551,7 +2551,7 @@ static void updateRegisterMapForDbgValueListAfterMove(
 
 static DebugVariable createDebugVariableFromMachineInstr(MachineInstr *MI) {
   auto DbgVar = DebugVariable(MI->getDebugVariable(), MI->getDebugExpression(),
-                              MI->getDebugLoc()->getInlinedAt());
+                              MI->getDebugLoc().getInlinedAt());
   return DbgVar;
 }
 

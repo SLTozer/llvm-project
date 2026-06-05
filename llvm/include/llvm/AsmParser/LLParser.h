@@ -20,8 +20,10 @@
 #include "llvm/AsmParser/Parser.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/FMF.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/ModuleSummaryIndex.h"
+#include "llvm/IR/TrackingMDRef.h"
 #include "llvm/Support/ModRef.h"
 #include <map>
 #include <optional>
@@ -121,6 +123,38 @@ namespace llvm {
 
     SmallVector<Instruction*, 64> InstsWithTBAATag;
 
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    ///// Data structures and methods for parsing FLMD debug info.
+    // The FLMD class itself doesn't use tracking metadata references, so we
+    // do tracking manually here (as with Instruction DebugLocs in non-FLMD
+    // builds).
+
+    // Maps to handle forward references in FLMD; this includes references to
+    // DILocalScopes and DIFunctionLocalMetadata. 
+    DenseMap<DIFunctionLocalMetadata*, SmallVector<std::pair<uint32_t, uint32_t>>> FLForwardRefFLMDs;
+    DenseMap<uint32_t, std::pair<DIFunctionLocalMetadata*, uint32_t>> FLForwardRefInlinedCalls;
+
+    ///// Data structures and methods for parsing DILocation debug info.
+    // Maps TempDILocalScope->TempDILocations
+    DenseMap<TrackingMDNodeRef, SmallVector<TrackingMDNodeRef>> FLTempScopeUsers;
+    // Data for DILocations that don't have an FLContext to be stored in yet; we
+    // don't need to store the scope, as we look these up via scope when we
+    // materialize them anyway.
+    struct DILocData {
+      uint32_t Line;
+      uint16_t Column;
+      bool IsImplicitCode;
+      TrackingMDNodeRef InlinedAt;
+      uint64_t AtomGroup;
+      uint8_t AtomRank;
+    };
+    DenseMap<TrackingMDNodeRef, DILocData> FLTempDILocData;
+    // Traverse the parent chain for this scope as far as possible, until we
+    // either hit the DISubprogram, or we hit an unresolved MDNode, and return
+    // the result.
+    MDNode *getLastParent(DILocalScope *Scope);
+#endif
+
     /// DIAssignID metadata does not support temporary RAUW so we cannot use
     /// the normal metadata forward reference resolution method. Instead,
     /// non-temporary DIAssignID are attached to instructions (recorded here)
@@ -189,6 +223,7 @@ namespace llvm {
         PendingDbgRecords;
     SmallVector<std::tuple<LocTy, Instruction *, TrackingMDNodeRef>>
         PendingDbgInsts;
+    SmallVector<std::tuple<LocTy, Function *, TrackingMDNodeRef>> PendingFnSPs;
 
     /// Only the llvm-as tool may set this to false to bypass
     /// UpgradeDebuginfo so it can generate broken bitcode.
@@ -626,6 +661,10 @@ namespace llvm {
     bool parseGlobalObjectMetadataAttachment(GlobalObject &GO);
     bool parseOptionalFunctionMetadata(Function &F);
 
+    template <class FLMDTy>
+    bool parseFLMDEntry(LocTy Loc, FLMDTy &Result);
+    template <class FLMDTy>
+    bool parseFLMDStorage(LocTy Loc, SmallVectorImpl<FLMDTy> &Result);
     template <class FieldTy>
     bool parseMDField(LocTy Loc, StringRef Name, FieldTy &Result);
     template <class FieldTy> bool parseMDField(StringRef Name, FieldTy &Result);

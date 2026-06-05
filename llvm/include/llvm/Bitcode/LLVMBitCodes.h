@@ -400,6 +400,8 @@ enum MetadataCodes {
   METADATA_ASSIGN_ID = 47,        // [distinct, ...]
   METADATA_SUBRANGE_TYPE = 48,    // [distinct, ...]
   METADATA_FIXED_POINT_TYPE = 49, // [distinct, ...]
+  METADATA_FLMD = 50,             // [[scopes], [srclocs], [inlinedcalls], [loops]]
+  METADATA_FL_LOCATION = 51,       // [distinct, line, col, scope, inlined-at?]
 };
 
 // The constants block (CONSTANTS_BLOCK_ID) describes emission for each
@@ -708,6 +710,7 @@ enum FunctionCodes {
   FUNC_CODE_DEBUG_RECORD_LABEL = 65, // [DILocation, DILabel]
   FUNC_CODE_DEBUG_RECORD_DECLARE_VALUE =
       66, // [DILocation, DILocalVariable, DIExpression, ValueAsMetadata]
+  FUNC_CODE_FL_DEBUG_LOC = 67,          // DEBUG_LOC:  [srcloc, inlined+atom]
 };
 
 enum UseListCodes {

@@ -453,7 +453,7 @@ static bool removeRedundantDbgInstrsUsingBackwardScan(BasicBlock *BB) {
     for (DbgVariableRecord &DVR :
          reverse(filterDbgVars(I.getDbgRecordRange()))) {
       DebugVariable Key(DVR.getVariable(), DVR.getExpression(),
-                        DVR.getDebugLoc()->getInlinedAt());
+                        DVR.getDebugLoc().getInlinedAt());
       auto R = VariableSet.insert(Key);
       // If the same variable fragment is described more than once it is enough
       // to keep the last one (i.e. the first found since we for reverse
@@ -512,7 +512,7 @@ static bool removeRedundantDbgInstrsUsingForwardScan(BasicBlock *BB) {
       if (DVR.getType() == DbgVariableRecord::LocationType::Declare)
         continue;
       DebugVariable Key(DVR.getVariable(), std::nullopt,
-                        DVR.getDebugLoc()->getInlinedAt());
+                        DVR.getDebugLoc().getInlinedAt());
       auto [VMI, Inserted] = VariableMap.try_emplace(Key);
       // A dbg.assign with no linked instructions can be treated like a
       // dbg.value (i.e. can be deleted).
@@ -638,7 +638,7 @@ void llvm::ReplaceInstWithInst(BasicBlock *BB, BasicBlock::iterator &BI,
   // Copy debug location to newly added instruction, if it wasn't already set
   // by the caller.
   if (!I->getDebugLoc())
-    I->setDebugLoc(BI->getDebugLoc());
+    I->copyDebugLocFrom(&*BI);
 
   // Insert the new instruction into the basic block...
   BasicBlock::iterator New = I->insertInto(BB, BI);
@@ -1328,7 +1328,7 @@ SplitBlockPredecessorsImpl(BasicBlock *BB, ArrayRef<BasicBlock *> Preds,
     // to be applied to the new latch.
     OldLatch = L->getLoopLatch();
   } else
-    BI->setDebugLoc(BB->getFirstNonPHIOrDbg()->getDebugLoc());
+    BI->copyDebugLocFrom(&*BB->getFirstNonPHIOrDbg());
 
   // Move the edges from Preds to point to NewBB instead of BB.
   for (BasicBlock *Pred : Preds) {
@@ -1410,7 +1410,7 @@ static void SplitLandingPadPredecessorsImpl(
 
   // The new block unconditionally branches to the old block.
   UncondBrInst *BI1 = UncondBrInst::Create(OrigBB, NewBB1);
-  BI1->setDebugLoc(OrigBB->getFirstNonPHIIt()->getDebugLoc());
+  BI1->copyDebugLocFrom(&*OrigBB->getFirstNonPHIIt());
 
   // Move the edges from Preds to point to NewBB1 instead of OrigBB.
   for (BasicBlock *Pred : Preds) {
@@ -1451,7 +1451,7 @@ static void SplitLandingPadPredecessorsImpl(
 
     // The new block unconditionally branches to the old block.
     UncondBrInst *BI2 = UncondBrInst::Create(OrigBB, NewBB2);
-    BI2->setDebugLoc(OrigBB->getFirstNonPHIIt()->getDebugLoc());
+    BI2->copyDebugLocFrom(&*OrigBB->getFirstNonPHIIt());
 
     // Move the remaining edges from OrigBB to point to NewBB2.
     for (BasicBlock *NewBB2Pred : NewBB2Preds)
@@ -1648,7 +1648,7 @@ void llvm::SplitBlockAndInsertIfThenElse(
         (void)UncondBrInst::Create(Tail, BB);
         ToTailEdge = true;
       }
-      BB->getTerminator()->setDebugLoc(SplitBefore->getDebugLoc());
+      BB->getTerminator()->copyDebugLocFrom(&*SplitBefore);
       // Pass the new block back to the caller.
       *PBB = BB;
     }

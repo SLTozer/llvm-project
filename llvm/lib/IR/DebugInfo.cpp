@@ -13,6 +13,7 @@
 
 #include "llvm-c/DebugInfo.h"
 #include "LLVMContextImpl.h"
+#include "llvm-c/Types.h"
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
@@ -28,6 +29,7 @@
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GVMaterializer.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -158,12 +160,12 @@ DebugLoc llvm::getDebugValueLoc(DbgVariableRecord *DVR) {
   // Original dbg.declare must have a location.
   const DebugLoc &DeclareLoc = DVR->getDebugLoc();
   MDNode *Scope = DeclareLoc.getScope();
-  DILocation *InlinedAt = DeclareLoc.getInlinedAt();
+  DebugLoc InlinedAt = DeclareLoc.getInlinedAt();
   // Because no machine insts can come from debug intrinsics, only the scope
   // and inlinedAt is significant. Zero line numbers are used in case this
   // DebugLoc leaks into any adjacent instructions. Produce an unknown location
   // with the correct scope / inlinedAt fields.
-  return DILocation::get(DVR->getContext(), 0, 0, Scope, InlinedAt);
+  return DebugLoc::get(DeclareLoc, 0, 0, Scope, InlinedAt);
 }
 
 //===----------------------------------------------------------------------===//
@@ -223,23 +225,23 @@ void DebugInfoFinder::processInstruction(const Module &M,
     processVariable(DVI->getVariable());
 
   if (auto DbgLoc = I.getDebugLoc())
-    processLocation(M, DbgLoc.get());
+    processLocation(M, DbgLoc);
 
   for (const DbgRecord &DPR : I.getDbgRecordRange())
     processDbgRecord(M, DPR);
 }
 
-void DebugInfoFinder::processLocation(const Module &M, const DILocation *Loc) {
+void DebugInfoFinder::processLocation(const Module &M, DebugLoc Loc) {
   if (!Loc)
     return;
-  processScope(Loc->getScope());
-  processLocation(M, Loc->getInlinedAt());
+  processScope(Loc.getScope());
+  processLocation(M, Loc.getInlinedAt());
 }
 
 void DebugInfoFinder::processDbgRecord(const Module &M, const DbgRecord &DR) {
   if (const DbgVariableRecord *DVR = dyn_cast<const DbgVariableRecord>(&DR))
     processVariable(DVR->getVariable());
-  processLocation(M, DR.getDebugLoc().get());
+  processLocation(M, DR.getDebugLoc());
 }
 
 void DebugInfoFinder::processVariable(DIVariable *DV) {
@@ -842,15 +844,43 @@ private:
         CU->getDebugInfoForProfiling(), CU->getNameTableKind(),
         CU->getRangesBaseAddress(), CU->getSysRoot(), CU->getSDK());
   }
-
   DILocation *getReplacementMDLocation(DILocation *MLD) {
     auto *Scope = map(MLD->getScope());
     auto *InlinedAt = map(MLD->getInlinedAt());
+    /// FIXME: Instead of actually creating new DebugLocs, we should actually be
+    /// able to perform all these updates by iterating through the FLMD arrays
+    /// and not changing any indexes.
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    DebugLoc DL = MLD->getAsDebugLoc();
+    if (DL.isInlinedCall()) {
+      FLInlinedCall InlinedCall = DL.getAsInlinedCall();
+      if (InlinedCall.Uniquable) {
+        return DILocation::get(MLD->getContext(),
+          DebugLoc::getUniquedInlinedCall(
+            DebugLoc::DebugLocContext(InlinedCall.getInlinee()),
+            DebugLoc::DebugLocContext(DL.getFLContext()), DL.getLine(),
+            DL.getColumn(), Scope,
+            cast<DILocation>(InlinedAt)->getAsDebugLoc()));
+      }
+      return DILocation::get(MLD->getContext(),
+        DebugLoc::getDistinctInlinedCall(
+          DebugLoc::DebugLocContext(InlinedCall.getInlinee()),
+          DebugLoc::DebugLocContext(DL.getFLContext()), DL.getLine(),
+          DL.getColumn(), Scope, cast<DILocation>(InlinedAt)->getAsDebugLoc()));
+    }
+    return DILocation::get(MLD->getContext(),
+      DebugLoc::get(
+          DebugLoc::DebugLocContext(DL.getFLContext()), DL.getLine(),
+          DL.getColumn(), Scope,
+          cast<DILocation>(InlinedAt)->getAsDebugLoc(), false,
+          DL.getAtomGroup(), DL.getAtomRank()));
+#else
     if (MLD->isDistinct())
       return DILocation::getDistinct(MLD->getContext(), MLD->getLine(),
                                      MLD->getColumn(), Scope, InlinedAt);
     return DILocation::get(MLD->getContext(), MLD->getLine(), MLD->getColumn(),
                            Scope, InlinedAt);
+#endif
   }
 
   /// Create a new generic MDNode, to replace the one given
@@ -981,12 +1011,13 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
     for (auto &BB : F) {
       for (auto &I : BB) {
         auto remapDebugLoc = [&](const DebugLoc &DL) -> DebugLoc {
-          auto *Scope = DL.getScope();
-          MDNode *InlinedAt = DL.getInlinedAt();
+          MDNode *Scope = DL.getScope();
+          MDNode *InlinedAt = DL.getInlinedAt().getAsMDNode();
           Scope = remap(Scope);
           InlinedAt = remap(InlinedAt);
-          return DILocation::get(M.getContext(), DL.getLine(), DL.getCol(),
-                                 Scope, InlinedAt);
+          return DebugLoc::get(
+            DL, DL.getLine(), DL.getCol(), Scope,
+            DebugLoc::getFromDILocation(cast_or_null<DILocation>(InlinedAt)));
         };
 
         if (I.getDebugLoc() != DebugLoc())
@@ -995,7 +1026,7 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
         // Remap DILocations in llvm.loop attachments.
         updateLoopMetadataDebugLocations(I, [&](Metadata *MD) -> Metadata * {
           if (auto *Loc = dyn_cast_or_null<DILocation>(MD))
-            return remapDebugLoc(Loc).get();
+            return remapDebugLoc(DebugLoc::getFromDILocation(Loc)).getAsDILocation();
           return MD;
         });
 
@@ -1097,7 +1128,7 @@ void Instruction::dropLocation() {
     // If a function scope is available, set it on the line 0 location. When
     // hoisting a call to a predecessor block, using the function scope avoids
     // making it look like the callee was reached earlier than it should be.
-    setDebugLoc(DILocation::get(getContext(), 0, 0, SP));
+    setDebugLoc(DebugLoc::get(DL, 0, 0, SP));
   else
     // The parent function has no scope. Go ahead and drop the location. If
     // the parent function is inlined, and the callee has a subprogram, the
@@ -1335,12 +1366,66 @@ LLVMMetadataRef LLVMDIBuilderCreateImportedDeclaration(
       Line, {Name, NameLen}, Elts));
 }
 
+#if LLVM_USE_FLMD_SOURCE_LOCS
+static DebugLoc unwrap(LLVMDebugLoc DL) {
+  return DebugLoc(
+    FLDebugLoc::fromRawInt(DL.Loc),
+    cast<DIFunctionLocalMetadata>(unwrap(DL.Context)));
+}
+static LLVMDebugLoc wrap(DebugLoc DL) {
+  return LLVMDebugLoc {
+    DL.getUnderlyingStorage().asRawInt(),
+    wrap(DL.getFLContext()),
+  };
+}
+
+LLVMDebugLoc LLVMDIBuilderCreateDebugLocation2(
+    LLVMMetadataRef FnCtx, unsigned Line, unsigned Column, LLVMMetadataRef Scope,
+    LLVMDebugLoc InlinedAt) {
+  return wrap(DebugLoc::get(
+    DebugLoc::DebugLocContext(unwrapDI<DIFunctionLocalMetadata>(FnCtx)),
+    Line, Column, unwrap(Scope), unwrap(InlinedAt)));
+}
+LLVMDebugLoc LLVMDIBuilderCreateInlineCallDebugLocation(
+    LLVMMetadataRef CallerCtx, LLVMMetadataRef CalleeCtx, unsigned Line,
+    unsigned Column, LLVMMetadataRef Scope, LLVMDebugLoc InlinedAt) {
+  return wrap(DebugLoc::getDistinctInlinedCall(
+    DebugLoc::DebugLocContext(unwrapDI<DIFunctionLocalMetadata>(CalleeCtx)),
+    DebugLoc::DebugLocContext(unwrapDI<DIFunctionLocalMetadata>(CallerCtx)),
+    Line, Column, unwrap(Scope), unwrap(InlinedAt)));
+}
+
+unsigned LLVMDebugLocGetLine(LLVMDebugLoc Location) {
+  return unwrap(Location).getLine();
+}
+unsigned LLVMDebugLocGetColumn(LLVMDebugLoc Location) {
+  return unwrap(Location).getColumn();
+}
+LLVMMetadataRef LLVMDebugLocGetScope(LLVMDebugLoc Location) {
+  return wrap(unwrap(Location).getScope());
+}
+LLVMDebugLoc LLVMDebugLocGetInlinedAt(LLVMDebugLoc Location) {
+  return wrap(unwrap(Location).getInlinedAt());
+}
+#endif
+
 LLVMMetadataRef
 LLVMDIBuilderCreateDebugLocation(LLVMContextRef Ctx, unsigned Line,
                                  unsigned Column, LLVMMetadataRef Scope,
                                  LLVMMetadataRef InlinedAt) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  LLVMContext *UnwrappedCtx = unwrap(Ctx);
+  DIFunctionLocalMetadata *FLContext = UnwrappedCtx->getFLMD(unwrap(Scope));
+  DebugLoc DLInlinedAt = cast<DILocation>(unwrap(InlinedAt))->getAsDebugLoc();
+  return wrap(DILocation::get(
+    *unwrap(Ctx),
+    DebugLoc::get(
+      DebugLoc::DebugLocContext(FLContext), Line, Column, unwrap(Scope),
+      DLInlinedAt)));
+#else
   return wrap(DILocation::get(*unwrap(Ctx), Line, Column, unwrap(Scope),
                               unwrap(InlinedAt)));
+#endif
 }
 
 unsigned LLVMDILocationGetLine(LLVMMetadataRef Location) {
@@ -1870,7 +1955,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDeclareRecordBefore(
     LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMValueRef Instr) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDeclare(
       unwrap(Storage), unwrap<DILocalVariable>(VarInfo),
-      unwrap<DIExpression>(Expr), unwrap<DILocation>(DL),
+      unwrap<DIExpression>(Expr), DebugLoc::getFromDILocation(unwrap<DILocation>(DL)),
       Instr ? InsertPosition(unwrap<Instruction>(Instr)->getIterator())
             : nullptr);
   // This assert will fail if the module is in the old debug info format.
@@ -1888,7 +1973,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDeclareRecordAtEnd(
     LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMBasicBlockRef Block) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDeclare(
       unwrap(Storage), unwrap<DILocalVariable>(VarInfo),
-      unwrap<DIExpression>(Expr), unwrap<DILocation>(DL), unwrap(Block));
+      unwrap<DIExpression>(Expr), DebugLoc::getFromDILocation(unwrap<DILocation>(DL)), unwrap(Block));
   // This assert will fail if the module is in the old debug info format.
   // This function should only be called if the module is in the new
   // debug info format.
@@ -1904,7 +1989,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDbgValueRecordBefore(
     LLVMMetadataRef Expr, LLVMMetadataRef DebugLoc, LLVMValueRef Instr) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDbgValueIntrinsic(
       unwrap(Val), unwrap<DILocalVariable>(VarInfo), unwrap<DIExpression>(Expr),
-      unwrap<DILocation>(DebugLoc),
+      DebugLoc::getFromDILocation(unwrap<DILocation>(DebugLoc)),
       Instr ? InsertPosition(unwrap<Instruction>(Instr)->getIterator())
             : nullptr);
   // This assert will fail if the module is in the old debug info format.
@@ -1922,7 +2007,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDbgValueRecordAtEnd(
     LLVMMetadataRef Expr, LLVMMetadataRef DebugLoc, LLVMBasicBlockRef Block) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDbgValueIntrinsic(
       unwrap(Val), unwrap<DILocalVariable>(VarInfo), unwrap<DIExpression>(Expr),
-      unwrap<DILocation>(DebugLoc),
+      DebugLoc::getFromDILocation(unwrap<DILocation>(DebugLoc)),
       Block ? InsertPosition(unwrap(Block)->end()) : nullptr);
   // This assert will fail if the module is in the old debug info format.
   // This function should only be called if the module is in the new
@@ -1990,7 +2075,7 @@ LLVMMetadataRef LLVMInstructionGetDebugLoc(LLVMValueRef Inst) {
 
 void LLVMInstructionSetDebugLoc(LLVMValueRef Inst, LLVMMetadataRef Loc) {
   if (Loc)
-    unwrap<Instruction>(Inst)->setDebugLoc(DebugLoc(unwrap<DILocation>(Loc)));
+    unwrap<Instruction>(Inst)->setDebugLoc(DebugLoc::getFromDILocation(unwrap<DILocation>(Loc)));
   else
     unwrap<Instruction>(Inst)->setDebugLoc(DebugLoc());
 }
@@ -2011,7 +2096,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertLabelBefore(LLVMDIBuilderRef Builder,
                                                 LLVMMetadataRef Location,
                                                 LLVMValueRef InsertBefore) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertLabel(
-      unwrapDI<DILabel>(LabelInfo), unwrapDI<DILocation>(Location),
+      unwrapDI<DILabel>(LabelInfo), DebugLoc::getFromDILocation(unwrapDI<DILocation>(Location)),
       InsertBefore
           ? InsertPosition(unwrap<Instruction>(InsertBefore)->getIterator())
           : nullptr);
@@ -2030,7 +2115,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertLabelAtEnd(LLVMDIBuilderRef Builder,
                                                LLVMMetadataRef Location,
                                                LLVMBasicBlockRef InsertAtEnd) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertLabel(
-      unwrapDI<DILabel>(LabelInfo), unwrapDI<DILocation>(Location),
+      unwrapDI<DILabel>(LabelInfo), DebugLoc::getFromDILocation(unwrapDI<DILocation>(Location)),
       InsertAtEnd ? InsertPosition(unwrap(InsertAtEnd)->end()) : nullptr);
   // This assert will fail if the module is in the old debug info format.
   // This function should only be called if the module is in the new

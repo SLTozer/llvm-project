@@ -41,7 +41,7 @@ static void replaceDbgVariableIntr(DbgVariableIntrinsic *DVI, Function *NewF,
 
   CallInst *NewI = CallInst::Create(NewF->getFunctionType(), NewF, NewOps);
   NewI->setTailCall(DVI->isTailCall());
-  NewI->setDebugLoc(DVI->getDebugLoc());
+  NewI->copyDebugLocFrom(DVI);
   Res.InstReplace.insert({DVI, decltype(Res.InstReplace)::mapped_type(NewI)});
 }
 
@@ -181,7 +181,7 @@ DXILDebugInfoMap DXILDebugInfoPass::run(Module &M) {
                   CallInst::Create(DVDecl, {Val, Var, Expr}, {}, "",
                                    std::next(DV->getIterator())));
               NewDV->setTailCall();
-              NewDV->setDebugLoc(DV->getDebugLoc());
+              NewDV->copyDebugLocFrom(DV);
               DV->eraseFromParent();
             } else {
               NewDV = DV;

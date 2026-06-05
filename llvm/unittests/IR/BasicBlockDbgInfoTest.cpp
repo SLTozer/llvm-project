@@ -183,13 +183,13 @@ TEST(BasicBlockDbgInfoTest, DropSourceAtomOnSplit) {
         BB.splitBasicBlockBefore(std::prev(BB.end(), 1), "before");
     const DebugLoc &BrToAfterDL = Before->getTerminator()->getDebugLoc();
     ASSERT_TRUE(BrToAfterDL);
-    EXPECT_EQ(BrToAfterDL->getAtomGroup(), 0u);
+    EXPECT_EQ(BrToAfterDL.getAtomGroup(), 0u);
 
     BasicBlock *After = Before->getSingleSuccessor();
     ASSERT_TRUE(After);
     const DebugLoc &OrigTerminatorDL = After->getTerminator()->getDebugLoc();
     ASSERT_TRUE(OrigTerminatorDL);
-    EXPECT_EQ(OrigTerminatorDL->getAtomGroup(), 1u);
+    EXPECT_EQ(OrigTerminatorDL.getAtomGroup(), 1u);
   }
 
   // Test splitBasicBlock.
@@ -200,13 +200,13 @@ TEST(BasicBlockDbgInfoTest, DropSourceAtomOnSplit) {
 
     const DebugLoc &OrigTerminatorDL = After->getTerminator()->getDebugLoc();
     ASSERT_TRUE(OrigTerminatorDL);
-    EXPECT_EQ(OrigTerminatorDL->getAtomGroup(), 1u);
+    EXPECT_EQ(OrigTerminatorDL.getAtomGroup(), 1u);
 
     BasicBlock *Before = After->getSinglePredecessor();
     ASSERT_TRUE(Before);
     const DebugLoc &BrToAfterDL = Before->getTerminator()->getDebugLoc();
     ASSERT_TRUE(BrToAfterDL);
-    EXPECT_EQ(BrToAfterDL->getAtomGroup(), 0u);
+    EXPECT_EQ(BrToAfterDL.getAtomGroup(), 0u);
   }
 }
 

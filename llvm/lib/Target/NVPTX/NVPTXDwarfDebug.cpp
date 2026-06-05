@@ -108,9 +108,9 @@ void NVPTXDwarfDebug::recordTargetSourceLine(const DebugLoc &DL,
   // Maintain a work list of .loc to be emitted. If we are emitting the
   // inlined_at directive, we might need to emit additional .loc prior
   // to it for the location contained in the inlined_at.
-  SmallVector<const DILocation *, 8> WorkList;
-  SmallDenseSet<const DILocation *, 8> WorkListSet;
-  const DILocation *EmitLoc = DL.get();
+  SmallVector<DebugLoc, 8> WorkList;
+  SmallDenseSet<DebugLoc, 8> WorkListSet;
+  DebugLoc EmitLoc = DL;
 
   if (!EmitLoc)
     return;
@@ -123,7 +123,7 @@ void NVPTXDwarfDebug::recordTargetSourceLine(const DebugLoc &DL,
 
   while (EmitLoc) {
     // Get the scope for the current location.
-    const DIScope *Scope = EmitLoc->getScope();
+    const DIScope *Scope = EmitLoc.getScope();
     if (!Scope)
       break; // scope is null, we are done.
 
@@ -138,7 +138,7 @@ void NVPTXDwarfDebug::recordTargetSourceLine(const DebugLoc &DL,
     if (!EnhancedLineinfo) // No enhanced lineinfo, we are done.
       break;
 
-    const DILocation *IA = EmitLoc->getInlinedAt();
+    DebugLoc IA = EmitLoc.getInlinedAt();
     // Check if this has inlined_at information, and if the parent location
     // has not yet been emitted. If already emitted, we don't need to
     // re-emit the parent chain.
@@ -151,16 +151,16 @@ void NVPTXDwarfDebug::recordTargetSourceLine(const DebugLoc &DL,
   const unsigned CUID = Asm->OutStreamer->getContext().getDwarfCompileUnitID();
   // Traverse the work list, and emit .loc.
   while (!WorkList.empty()) {
-    const DILocation *Current = WorkList.pop_back_val();
-    const DIScope *Scope = Current->getScope();
+    DebugLoc Current = WorkList.pop_back_val();
+    const DIScope *Scope = Current.getScope();
 
     if (!Scope)
       llvm_unreachable("we shouldn't be here for null scope");
 
-    const DILocation *InlinedAt = Current->getInlinedAt();
+    DebugLoc InlinedAt = Current.getInlinedAt();
     StringRef Fn = Scope->getFilename();
-    const unsigned Line = Current->getLine();
-    const unsigned Col = Current->getColumn();
+    const unsigned Line = Current.getLine();
+    const unsigned Col = Current.getColumn();
     unsigned Discriminator = 0;
     if (Line != 0 && getDwarfVersion() >= 4)
       if (const DILexicalBlockFile *LBF = dyn_cast<DILexicalBlockFile>(Scope))
@@ -171,13 +171,13 @@ void NVPTXDwarfDebug::recordTargetSourceLine(const DebugLoc &DL,
 
     if (EnhancedLineinfo && InlinedAt) {
       const unsigned FileIA = static_cast<DwarfCompileUnit &>(*getUnits()[CUID])
-                                  .getOrCreateSourceID(InlinedAt->getFile());
-      const DISubprogram *SubProgram = getDISubprogram(Current->getScope());
+                                  .getOrCreateSourceID(InlinedAt.getFile());
+      const DISubprogram *SubProgram = getDISubprogram(Current.getScope());
       DwarfStringPoolEntryRef Entry = InfoHolder.getStringPool().getEntry(
           *Asm, SubProgram->getLinkageName());
       Asm->OutStreamer->emitDwarfLocDirectiveWithInlinedAt(
-          FileNo, Line, Col, FileIA, InlinedAt->getLine(),
-          InlinedAt->getColumn(), Entry.getSymbol(), Flags, 0, Discriminator,
+          FileNo, Line, Col, FileIA, InlinedAt.getLine(),
+          InlinedAt.getColumn(), Entry.getSymbol(), Flags, 0, Discriminator,
           Fn);
     } else {
       Asm->OutStreamer->emitDwarfLocDirective(FileNo, Line, Col, Flags, 0,

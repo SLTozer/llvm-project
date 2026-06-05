@@ -514,9 +514,9 @@ public:
       : Label(label), dl(std::move(L)), loc(Idx) {}
 
   /// Does this UserLabel match the parameters?
-  bool matches(const DILabel *L, const DILocation *IA,
+  bool matches(const DILabel *L, DebugLoc IA,
              const SlotIndex Index) const {
-    return Label == L && dl->getInlinedAt() == IA && loc == Index;
+    return Label == L && dl.getInlinedAt() == IA && loc == Index;
   }
 
   /// Recreate DBG_LABEL instruction from data structures.
@@ -704,7 +704,7 @@ static void printDebugLoc(const DebugLoc &DL, raw_ostream &CommentOS,
 }
 
 static void printExtendedName(raw_ostream &OS, const DINode *Node,
-                              const DILocation *DL) {
+                              DebugLoc DL) {
   const LLVMContext &Ctx = Node->getContext();
   StringRef Res;
   unsigned Line = 0;
@@ -718,7 +718,7 @@ static void printExtendedName(raw_ostream &OS, const DINode *Node,
 
   if (!Res.empty())
     OS << Res << "," << Line;
-  auto *InlinedAt = DL ? DL->getInlinedAt() : nullptr;
+  auto InlinedAt = DL ? DL.getInlinedAt() : nullptr;
   if (InlinedAt) {
     if (DebugLoc InlinedAtDL = InlinedAt) {
       OS << " @[";
@@ -781,7 +781,7 @@ UserValue *LiveDebugVariables::LDVImpl::getUserValue(
     std::optional<DIExpression::FragmentInfo> Fragment, const DebugLoc &DL) {
   // FIXME: Handle partially overlapping fragments. See
   // https://reviews.llvm.org/D70121#1849741.
-  DebugVariable ID(Var, Fragment, DL->getInlinedAt());
+  DebugVariable ID(Var, Fragment, DL.getInlinedAt());
   UserValue *&UV = userVarMap[ID];
   if (!UV) {
     userValues.push_back(
@@ -914,7 +914,7 @@ bool LiveDebugVariables::LDVImpl::handleDebugLabel(MachineInstr &MI,
   const DebugLoc &DL = MI.getDebugLoc();
   bool Found = false;
   for (auto const &L : userLabels) {
-    if (L->matches(Label, DL->getInlinedAt(), Idx)) {
+    if (L->matches(Label, DL.getInlinedAt(), Idx)) {
       Found = true;
       break;
     }

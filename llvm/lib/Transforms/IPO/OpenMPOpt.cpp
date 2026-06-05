@@ -1287,7 +1287,7 @@ private:
         CallInst *NewCI =
             CallInst::Create(FT, Callee, Args, "", CI->getIterator());
         if (CI->getDebugLoc())
-          NewCI->setDebugLoc(CI->getDebugLoc());
+          NewCI->copyDebugLocFrom(CI);
 
         // Forward parameter attributes from the callback to the callee.
         for (unsigned U = CallbackFirstArgOperand, E = CI->arg_size(); U < E;

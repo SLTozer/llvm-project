@@ -1181,6 +1181,7 @@ static void cloneInstructionsIntoPredecessorBlockAndUpdateSSAUses(
 
     Instruction *NewBonusInst = BonusInst.clone();
 
+    NewBonusInst->insertInto(PredBlock, PTI->getIterator());
     if (!NewBonusInst->getDebugLoc().isSameSourceLocation(PTI->getDebugLoc())) {
       // Unless the instruction has the same !dbg location as the original
       // branch, drop it. When we fold the bonus instructions we want to make
@@ -1201,7 +1202,6 @@ static void cloneInstructionsIntoPredecessorBlockAndUpdateSSAUses(
     // location the call is moved to.
     NewBonusInst->dropUBImplyingAttrsAndMetadata();
 
-    NewBonusInst->insertInto(PredBlock, PTI->getIterator());
     auto Range = NewBonusInst->cloneDebugInfoFrom(&BonusInst);
     RemapDbgRecordRange(NewBonusInst->getModule(), Range, VMap,
                         RF_NoModuleLevelChanges | RF_IgnoreMissingLocals);
@@ -1237,9 +1237,9 @@ static void cloneInstructionsIntoPredecessorBlockAndUpdateSSAUses(
   // pred's terminator already has atom info do nothing as merging would drop
   // one atom group anyway. If it doesn't, propagte the remapped atom group
   // from BB's terminator.
-  if (auto &PredDL = PTI->getDebugLoc()) {
-    auto &DL = BB->getTerminator()->getDebugLoc();
-    if (!PredDL->getAtomGroup() && DL && DL->getAtomGroup() &&
+  if (DebugLoc PredDL = PTI->getDebugLoc()) {
+    DebugLoc DL = BB->getTerminator()->getDebugLoc();
+    if (!PredDL.getAtomGroup() && DL && DL.getAtomGroup() &&
         PredDL.isSameSourceLocation(DL)) {
       PTI->setDebugLoc(DL);
       RemapSourceAtom(PTI, VMap);
@@ -1419,7 +1419,7 @@ bool SimplifyCFGOpt::performValueComparisonIntoPredecessorFolding(
 
   // Now that the successors are updated, create the new Switch instruction.
   SwitchInst *NewSI = Builder.CreateSwitch(CV, PredDefault, PredCases.size());
-  NewSI->setDebugLoc(PTI->getDebugLoc());
+  NewSI->copyDebugLocFrom(PTI);
   for (ValueEqualityComparisonCase &V : PredCases)
     NewSI->addCase(V.Value, V.Dest);
 
@@ -2912,7 +2912,7 @@ static void mergeCompatibleInvokesImpl(ArrayRef<InvokeInst *> Invokes,
   // And finally, replace the original `invoke`s with an unconditional branch
   // to the block with the merged `invoke`. Also, give that merged `invoke`
   // the merged debugloc of all the original `invoke`s.
-  DILocation *MergedDebugLoc = nullptr;
+  DebugLoc MergedDebugLoc = nullptr;
   for (InvokeInst *II : Invokes) {
     // Compute the debug location common to all the original `invoke`s.
     if (!MergedDebugLoc)
@@ -2928,7 +2928,7 @@ static void mergeCompatibleInvokesImpl(ArrayRef<InvokeInst *> Invokes,
     auto *BI = UncondBrInst::Create(MergedInvoke->getParent(), II->getParent());
     // The unconditional branch is part of the replacement for the original
     // invoke, so should use its DebugLoc.
-    BI->setDebugLoc(II->getDebugLoc());
+    BI->copyDebugLocFrom(II);
     bool Success = MergedInvoke->tryIntersectAttributes(II);
     assert(Success && "Merged invokes with incompatible attributes");
     // For NDEBUG Compile
@@ -3707,7 +3707,7 @@ foldCondBranchOnValueKnownInPredecessorImpl(CondBrInst *BI, DomTreeUpdater *DTU,
     BB->removePredecessor(EdgeBB);
     UncondBrInst *EdgeBI = cast<UncondBrInst>(EdgeBB->getTerminator());
     EdgeBI->setSuccessor(0, RealDest);
-    EdgeBI->setDebugLoc(BI->getDebugLoc());
+    EdgeBI->copyDebugLocFrom(BI);
 
     if (DTU) {
       SmallVector<DominatorTree::UpdateType, 2> Updates;
@@ -7955,7 +7955,7 @@ static bool simplifySwitchOfPowersOfTwo(SwitchInst *SI, IRBuilder<> &Builder,
       setBranchWeights(*SI, Weights, /*IsExpected=*/false);
     }
     // BI is handling the default case for SI, and so should share its DebugLoc.
-    BI->setDebugLoc(SI->getDebugLoc());
+    BI->copyDebugLocFrom(SI);
     It->eraseFromParent();
 
     addPredecessorToBlock(DefaultCaseBB, OrigBB, SplitBB);

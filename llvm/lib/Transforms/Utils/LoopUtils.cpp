@@ -653,7 +653,7 @@ void llvm::deleteDeadLoop(Loop *L, DominatorTree *DT, ScalarEvolution *SE,
         for (DbgVariableRecord &DVR :
              llvm::make_early_inc_range(filterDbgVars(I.getDbgRecordRange()))) {
           DebugVariable Key(DVR.getVariable(), DVR.getExpression(),
-                            DVR.getDebugLoc().get());
+                            DVR.getDebugLoc());
           if (!DeadDebugSet.insert(Key).second)
             continue;
           // Unlinks the DVR from it's container, for later insertion.

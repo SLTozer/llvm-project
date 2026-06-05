@@ -1194,16 +1194,16 @@ OpenMPIRBuilder::getOrCreateDefaultSrcLocStr(uint32_t &SrcLocStrSize) {
 Constant *OpenMPIRBuilder::getOrCreateSrcLocStr(DebugLoc DL,
                                                 uint32_t &SrcLocStrSize,
                                                 Function *F) {
-  DILocation *DIL = DL.get();
+  DebugLoc DIL = DL;
   if (!DIL)
     return getOrCreateDefaultSrcLocStr(SrcLocStrSize);
   StringRef FileName =
-      !DIL->getFilename().empty() ? DIL->getFilename() : M.getName();
-  StringRef Function = DIL->getScope()->getSubprogram()->getName();
+      !DIL.getFilename().empty() ? DIL.getFilename() : M.getName();
+  StringRef Function = DIL.getScope()->getSubprogram()->getName();
   if (Function.empty() && F)
     Function = F->getName();
-  return getOrCreateSrcLocStr(Function, FileName, DIL->getLine(),
-                              DIL->getColumn(), SrcLocStrSize);
+  return getOrCreateSrcLocStr(Function, FileName, DIL.getLine(),
+                              DIL.getColumn(), SrcLocStrSize);
 }
 
 Constant *OpenMPIRBuilder::getOrCreateSrcLocStr(const LocationDescription &Loc,
@@ -2908,7 +2908,7 @@ OpenMPIRBuilder::InsertPointOrErrorTy OpenMPIRBuilder::createTask(
         CI = createRuntimeFunctionCall(&OutlinedFn, {ThreadID, TaskData});
       else
         CI = createRuntimeFunctionCall(&OutlinedFn, {ThreadID});
-      CI->setDebugLoc(StaleCI->getDebugLoc());
+      CI->copyDebugLocFrom(StaleCI);
       createRuntimeFunctionCall(TaskCompleteFn, {Ident, ThreadID, TaskData});
       Builder.SetInsertPoint(ThenTI);
     }
@@ -8896,7 +8896,7 @@ static void FixupDebugInfoForOutlinedFunction(
     DILocalVariable *Var = DB.createParameterVariable(
         NewSP, "dyn_ptr", ArgNo, NewSP->getFile(), /*LineNo=*/0, VoidPtrTy,
         /*AlwaysPreserve=*/false, DINode::DIFlags::FlagArtificial);
-    auto Loc = DILocation::get(Func->getContext(), 0, 0, NewSP, 0);
+    auto Loc = DebugLoc::get(Func, 0, 0, NewSP);
     Argument *LastArg = Func->getArg(Func->arg_size() - 1);
     DB.insertDeclare(LastArg, Var, DB.createExpression(), Loc,
                      &(*Func->begin()));
@@ -9663,7 +9663,7 @@ OpenMPIRBuilder::InsertPointOrErrorTy OpenMPIRBuilder::emitTargetTask(
           getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_omp_task_complete_if0);
       createRuntimeFunctionCall(TaskBeginFn, {Ident, ThreadID, TaskData});
       CallInst *CI = createRuntimeFunctionCall(ProxyFn, {ThreadID, TaskData});
-      CI->setDebugLoc(StaleCI->getDebugLoc());
+      CI->copyDebugLocFrom(StaleCI);
       createRuntimeFunctionCall(TaskCompleteFn, {Ident, ThreadID, TaskData});
     } else if (DepArray) {
       // HasNoWait - meaning the task may be deferred. Call

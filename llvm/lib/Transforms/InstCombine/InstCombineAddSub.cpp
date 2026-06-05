@@ -676,7 +676,7 @@ Value *FAddCombine::createFMul(Value *Opnd0, Value *Opnd1) {
 }
 
 void FAddCombine::createInstPostProc(Instruction *NewInstr, bool NoNumber) {
-  NewInstr->setDebugLoc(Instr->getDebugLoc());
+  NewInstr->copyDebugLocFrom(Instr);
 
   // Keep track of the number of instruction created.
   if (!NoNumber)

@@ -1056,7 +1056,7 @@ bool DeadArgumentEliminationPass::removeDeadStuffFromFunction(Function *F) {
         // value (possibly 0 if we became void).
         auto *NewRet =
             ReturnInst::Create(F->getContext(), RetVal, RI->getIterator());
-        NewRet->setDebugLoc(RI->getDebugLoc());
+        NewRet->copyDebugLocFrom(RI);
         RI->eraseFromParent();
       }
 

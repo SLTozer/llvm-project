@@ -1662,7 +1662,7 @@ static void insertDbgValueOrDbgVariableRecord(DIBuilder &Builder, Value *DV,
                                               BasicBlock::iterator Instr) {
   ValueAsMetadata *DVAM = ValueAsMetadata::get(DV);
   DbgVariableRecord *DVRec =
-      new DbgVariableRecord(DVAM, DIVar, DIExpr, NewLoc.get());
+      new DbgVariableRecord(DVAM, DIVar, DIExpr, NewLoc);
   Instr->getParent()->insertDbgRecordBefore(DVRec, Instr);
 }
 
@@ -1714,7 +1714,7 @@ void llvm::ConvertDebugDeclareToDebugValue(DbgVariableRecord *DVR,
   DV = PoisonValue::get(DV->getType());
   ValueAsMetadata *DVAM = ValueAsMetadata::get(DV);
   DbgVariableRecord *NewDVR =
-      new DbgVariableRecord(DVAM, DIVar, DIExpr, NewLoc.get());
+      new DbgVariableRecord(DVAM, DIVar, DIExpr, NewLoc);
   SI->getParent()->insertDbgRecordBefore(NewDVR, SI->getIterator());
 }
 
@@ -1757,7 +1757,7 @@ void llvm::ConvertDebugDeclareToDebugValue(DbgVariableRecord *DVR, LoadInst *LI,
   // Create a DbgVariableRecord directly and insert.
   ValueAsMetadata *LIVAM = ValueAsMetadata::get(LI);
   DbgVariableRecord *DV =
-      new DbgVariableRecord(LIVAM, DIVar, DIExpr, NewLoc.get());
+      new DbgVariableRecord(LIVAM, DIVar, DIExpr, NewLoc);
   LI->getParent()->insertDbgRecordAfter(DV, LI);
 }
 
@@ -2567,7 +2567,7 @@ unsigned llvm::changeToUnreachable(Instruction *I, bool PreserveLCSSA,
       UniqueSuccessors.insert(Successor);
   }
   auto *UI = new UnreachableInst(I->getContext(), I->getIterator());
-  UI->setDebugLoc(I->getDebugLoc());
+  UI->copyDebugLocFrom(I);
 
   // All instructions after this are dead.
   unsigned NumInstrsRemoved = 0;
@@ -2597,7 +2597,7 @@ CallInst *llvm::createCallMatchingInvoke(InvokeInst *II) {
                                        II->getCalledOperand(), Args, OpBundles);
   NewCall->setCallingConv(II->getCallingConv());
   NewCall->setAttributes(II->getAttributes());
-  NewCall->setDebugLoc(II->getDebugLoc());
+  NewCall->copyDebugLocFrom(II);
   NewCall->copyMetadata(*II);
 
   // If the invoke had profile metadata, try converting them for CallInst.
@@ -2627,7 +2627,7 @@ CallInst *llvm::changeToCall(InvokeInst *II, DomTreeUpdater *DTU) {
   // Although it takes place after the call itself, the new branch is still
   // performing part of the control-flow functionality of the invoke, so we use
   // II's DebugLoc.
-  BI->setDebugLoc(II->getDebugLoc());
+  BI->copyDebugLocFrom(II);
 
   // Update PHI nodes in the unwind destination
   BasicBlock *BB = II->getParent();
@@ -2665,7 +2665,7 @@ BasicBlock *llvm::changeToInvokeAndSplitBasicBlock(CallInst *CI,
   InvokeInst *II =
       InvokeInst::Create(CI->getFunctionType(), CI->getCalledOperand(), Split,
                          UnwindEdge, InvokeArgs, OpBundles, CI->getName(), BB);
-  II->setDebugLoc(CI->getDebugLoc());
+  II->copyDebugLocFrom(CI);
   II->setCallingConv(CI->getCallingConv());
   II->setAttributes(CI->getAttributes());
   II->setMetadata(LLVMContext::MD_prof, CI->getMetadata(LLVMContext::MD_prof));
@@ -2899,7 +2899,7 @@ Instruction *llvm::removeUnwindEdge(BasicBlock *BB, DomTreeUpdater *DTU) {
   }
 
   NewTI->takeName(TI);
-  NewTI->setDebugLoc(TI->getDebugLoc());
+  NewTI->copyDebugLocFrom(TI);
   UnwindDest->removePredecessor(BB);
   TI->replaceAllUsesWith(NewTI);
   TI->eraseFromParent();
@@ -3127,6 +3127,8 @@ void llvm::combineAAMetadata(Instruction *K, const Instruction *J) {
 void llvm::copyMetadataForLoad(LoadInst &Dest, const LoadInst &Source) {
   SmallVector<std::pair<unsigned, MDNode *>, 8> MD;
   Source.getAllMetadata(MD);
+  // DebugLocs must be copied separately.
+  Dest.copyDebugLocFromIfPresent(&Source);
   MDBuilder MDB(Dest.getContext());
   Type *NewType = Dest.getType();
   const DataLayout &DL = Source.getDataLayout();
@@ -3438,7 +3440,7 @@ void llvm::hoistAllInstructionsInto(BasicBlock *DomBlock, Instruction *InsertPt,
       II = I->eraseFromParent();
       continue;
     }
-    I->setDebugLoc(InsertPt->getDebugLoc());
+    I->copyDebugLocFrom(InsertPt);
     ++II;
   }
   DomBlock->splice(InsertPt->getIterator(), BB, BB->begin(),

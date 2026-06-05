@@ -3442,7 +3442,7 @@ bool SPIRVInstructionSelector::selectSign(Register ResVReg,
   MachineBasicBlock &BB = *I.getParent();
   Register InputRegister = I.getOperand(2).getReg();
   SPIRVTypeInst InputType = GR.getSPIRVTypeForVReg(InputRegister);
-  auto &DL = I.getDebugLoc();
+  auto DL = I.getDebugLoc();
 
   if (!InputType)
     return diagnoseUnsupported(I, "Input Type could not be determined.");

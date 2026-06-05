@@ -694,7 +694,7 @@ static bool tryToShorten(Instruction *DeadI, int64_t &DeadStart,
     Instruction *NewDestGEP = GetElementPtrInst::CreateInBounds(
         Type::getInt8Ty(DeadIntrinsic->getContext()), OrigDest, Indices, "",
         DeadI->getIterator());
-    NewDestGEP->setDebugLoc(DeadIntrinsic->getDebugLoc());
+    NewDestGEP->copyDebugLocFrom(DeadIntrinsic);
     DeadIntrinsic->setDest(NewDestGEP);
     adjustArgAttributes(DeadIntrinsic, 0, ToRemoveSize);
   }

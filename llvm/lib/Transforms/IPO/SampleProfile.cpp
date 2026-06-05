@@ -693,7 +693,7 @@ ErrorOr<uint64_t> SampleProfileLoader::getInstWeight(const Instruction &Inst) {
 /// \returns The FunctionSamples pointer to the inlined instance.
 const FunctionSamples *
 SampleProfileLoader::findCalleeFunctionSamples(const CallBase &Inst) const {
-  const DILocation *DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getDebugLoc();
   if (!DIL) {
     return nullptr;
   }
@@ -720,7 +720,7 @@ SampleProfileLoader::findCalleeFunctionSamples(const CallBase &Inst) const {
 std::vector<const FunctionSamples *>
 SampleProfileLoader::findIndirectCallFunctionSamples(
     const Instruction &Inst, uint64_t &Sum) const {
-  const DILocation *DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getDebugLoc();
   std::vector<const FunctionSamples *> R;
 
   if (!DIL) {
@@ -780,7 +780,7 @@ SampleProfileLoader::findFunctionSamples(const Instruction &Inst) const {
       return nullptr;
   }
 
-  const DILocation *DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getDebugLoc();
   if (!DIL)
     return Samples;
 
@@ -1625,7 +1625,7 @@ void SampleProfileLoader::generateMDProfMetadata(Function &F) {
           const DebugLoc &DLoc = I.getDebugLoc();
           if (!DLoc)
             continue;
-          const DILocation *DIL = DLoc;
+          DebugLoc DIL = DLoc;
           const FunctionSamples *FS = findFunctionSamples(I);
           if (!FS)
             continue;
@@ -2143,15 +2143,15 @@ void SampleProfileLoader::removePseudoProbeInstsDiscriminator(Module &M) {
         if (isa<PseudoProbeInst>(&I))
           InstsToDel.push_back(&I);
         else if (isa<CallBase>(&I))
-          if (const DILocation *DIL = I.getDebugLoc().get()) {
+          if (DebugLoc DIL = I.getDebugLoc()) {
             // Restore dwarf discriminator for call.
-            unsigned Discriminator = DIL->getDiscriminator();
-            if (DILocation::isPseudoProbeDiscriminator(Discriminator)) {
+            unsigned Discriminator = DIL.getDiscriminator();
+            if (DebugLoc::isPseudoProbeDiscriminator(Discriminator)) {
               std::optional<uint32_t> DwarfDiscriminator =
                   PseudoProbeDwarfDiscriminator::extractDwarfBaseDiscriminator(
                       Discriminator);
               I.setDebugLoc(
-                  DIL->cloneWithDiscriminator(DwarfDiscriminator.value_or(0)));
+                  DIL.cloneWithDiscriminator(DwarfDiscriminator.value_or(0)));
             }
           }
       }

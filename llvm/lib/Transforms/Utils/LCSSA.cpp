@@ -166,7 +166,7 @@ formLCSSAForInstructionsImpl(SmallVectorImpl<Instruction *> &Worklist,
       if (InsertedPHIs)
         InsertedPHIs->push_back(PN);
       // Get the debug location from the original instruction.
-      PN->setDebugLoc(I->getDebugLoc());
+      PN->copyDebugLocFrom(I);
 
       // Add inputs from inside the loop for this PHI. This is valid
       // because `I` dominates `ExitBB` (checked above).  This implies

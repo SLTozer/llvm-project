@@ -83,6 +83,7 @@
 #include "llvm/IR/EHPersonalities.h"
 #include "llvm/IR/FPEnv.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GCStrategy.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
 #include "llvm/IR/GlobalAlias.h"
@@ -337,6 +338,7 @@ private:
                            const GlobalAlias &A, const Constant &C);
   void visitNamedMDNode(const NamedMDNode &NMD);
   void visitMDNode(const MDNode &MD, AreDebugLocsAllowed AllowLocs);
+  void visitDebugLoc(DebugLoc DL);
   void visitMetadataAsValue(const MetadataAsValue &MD, Function *F);
   void visitValueAsMetadata(const ValueAsMetadata &MD, Function *F);
   void visitDIArgList(const DIArgList &AL, Function *F);
@@ -526,9 +528,8 @@ void Verifier::visitDbgRecords(Instruction &I) {
   for (DbgRecord &DR : I.getDbgRecordRange()) {
     CheckDI(DR.getMarker() == I.DebugMarker,
             "DbgRecord had invalid DebugMarker", &I, &DR);
-    if (auto *Loc =
-            dyn_cast_or_null<DILocation>(DR.getDebugLoc().getAsMDNode()))
-      visitMDNode(*Loc, AreDebugLocsAllowed::Yes);
+    if (DR.getDebugLoc())
+      visitDebugLoc(DR.getDebugLoc());
     if (auto *DVR = dyn_cast<DbgVariableRecord>(&DR)) {
       visit(*DVR);
       // These have to appear after `visit` for consistency with existing
@@ -1002,6 +1003,29 @@ void Verifier::visitMDNode(const MDNode &BaseMD,
   }
 }
 
+void Verifier::visitDebugLoc(DebugLoc DL) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  CheckDI(DL.getInlinedAtScope()->getSubprogram() == DL.getFLContext()->Scopes[0],
+    "InlinedAtScope for DebugLoc does not point at root function scope!",
+    DL.getFLContext(), DL.getFLContext()->Scopes[0], DL.getInlinedAtScope(),
+    DL.getInlinedAtScope()->getSubprogram());
+  if (DL.getAtomGroup()) {
+    if (auto InlinedAtIdx = DL.getInlinedAtIdx()) {
+      CheckDI(DL.getAtomGroup() <= DL.getFLContext()->getInlinedCall(InlinedAtIdx).MaxAtomGroup,
+        "AtomGroup is above the InlinedAt waterline!",
+        DL, DL.getAtomGroup(),
+        DL.getFLContext()->getInlinedCall(InlinedAtIdx).MaxAtomGroup,
+        DL.getFLContext());
+    } else {
+      CheckDI(DL.getAtomGroup() <= DL.getFLContext()->MaxAtomGroup,
+        "AtomGroup is above the FLContext waterline!", 
+        DL, DL.getAtomGroup(), DL.getFLContext()->MaxAtomGroup,
+        DL.getFLContext());
+    }
+  }
+#endif
+}
+
 void Verifier::visitValueAsMetadata(const ValueAsMetadata &MD, Function *F) {
   Check(MD.getValue(), "Expected valid value", &MD);
   Check(!MD.getValue()->getType()->isMetadataTy(),
@@ -1058,11 +1082,39 @@ static bool isScope(const Metadata *MD) { return !MD || isa<DIScope>(MD); }
 static bool isDINode(const Metadata *MD) { return !MD || isa<DINode>(MD); }
 static bool isMDTuple(const Metadata *MD) { return !MD || isa<MDTuple>(MD); }
 
+void Verifier::visitDIFunctionLocalMetadata(const DIFunctionLocalMetadata &N) {
+  FLScope RootScope = N.getScope(0);
+
+  // CheckDI(DL.getInlinedAtScope()->getSubprogram() == DL.getFLContext()->Scopes[0],
+  //   "InlinedAtScope for DebugLoc does not point at root function scope!",
+  //   DL.getFLContext(), DL.getFLContext()->Scopes[0], DL.getInlinedAtScope(),
+  //   DL.getInlinedAtScope()->getSubprogram());
+  // if (DL.getAtomGroup()) {
+  //   if (auto InlinedAtIdx = DL.getInlinedAtIdx()) {
+  //     CheckDI(DL.getAtomGroup() <= DL.getFLContext()->getInlinedCall(InlinedAtIdx).MaxAtomGroup,
+  //       "AtomGroup is above the InlinedAt waterline!",
+  //       DL, DL.getAtomGroup(),
+  //       DL.getFLContext()->getInlinedCall(InlinedAtIdx).MaxAtomGroup,
+  //       DL.getFLContext());
+  //   } else {
+  //     CheckDI(DL.getAtomGroup() <= DL.getFLContext()->MaxAtomGroup,
+  //       "AtomGroup is above the FLContext waterline!", 
+  //       DL, DL.getAtomGroup(), DL.getFLContext()->MaxAtomGroup,
+  //       DL.getFLContext());
+  //   }
+  // }
+}
+
 void Verifier::visitDILocation(const DILocation &N) {
   CheckDI(N.getRawScope() && isa<DILocalScope>(N.getRawScope()),
           "location requires a valid scope", &N, N.getRawScope());
+  // FIXME: getRawInlinedAt() is now costly to call because it requires us to
+  // actually recreate the inline chain in DILocations; can we avoid that?
+  // In any case, this isn't relevant with FLMD enabled.
+#if !LLVM_USE_FLMD_SOURCE_LOCS
   if (auto *IA = N.getRawInlinedAt())
     CheckDI(isa<DILocation>(IA), "inlined-at should be a location", &N, IA);
+#endif
   if (auto *SP = dyn_cast<DISubprogram>(N.getRawScope()))
     CheckDI(SP->isDefinition(), "scope points into the type hierarchy", &N);
 }
@@ -3278,7 +3330,7 @@ void Verifier::visitFunction(const Function &F) {
   // FIXME: Check this incrementally while visiting !dbg attachments.
   // FIXME: Only check when N is the canonical subprogram for F.
   SmallPtrSet<const MDNode *, 32> Seen;
-  auto VisitDebugLoc = [&](const Instruction &I, const MDNode *Node) {
+  auto VisitDILocation = [&](const Instruction &I, const MDNode *Node) {
     // Be careful about using DILocation here since we might be dealing with
     // broken code (this is the Verifier after all).
     const DILocation *DL = dyn_cast_or_null<DILocation>(Node);
@@ -3308,13 +3360,26 @@ void Verifier::visitFunction(const Function &F) {
             "!dbg attachment points at wrong subprogram for function", N, &F,
             &I, DL, Scope, SP);
   };
+  // Now do the same check, but check FLMD instead.
+  MDNode *RawFLContext = F.getMetadata(LLVMContext::MD_flmd);
+  if (RawFLContext) {
+    CheckDI(isa<DIFunctionLocalMetadata>(RawFLContext), "Unexepected !flmd attachment to function", &F, RawFLContext);
+    auto *FLContext = cast<DIFunctionLocalMetadata>(RawFLContext);
+    visitDIFunctionLocalMetadata(*FLContext);
+    CheckDI(!FLContext->Scopes.empty(),
+      "FLMD context should contain a subprogram pointing at the function", FLContext, &F);
+    CheckDI(!FLContext->Scopes.empty() && isa<DISubprogram>(FLContext->Scopes[0].get()) && cast<DISubprogram>(FLContext->Scopes[0].get())->describes(&F),
+      "First scope in FLMD context should be subprogram pointing at the function", FLContext, &F, FLContext->Scopes[0].get());
+    DISubprogram *FnSP = cast<DISubprogram>(FLContext->Scopes[0].get());
+    for (DILocalScope *LS : drop_begin(FLContext->Scopes))
+      CheckDI(LS->getSubprogram() == FnSP, "scope in FLMD context points at wrong subprogram for function", LS, FnSP, &F, FLContext);
+  }
   for (auto &BB : F)
     for (auto &I : BB) {
-      VisitDebugLoc(I, I.getDebugLoc().getAsMDNode());
       // The llvm.loop annotations also contain two DILocations.
       if (auto MD = I.getMetadata(LLVMContext::MD_loop))
         for (unsigned i = 1; i < MD->getNumOperands(); ++i)
-          VisitDebugLoc(I, dyn_cast_or_null<MDNode>(MD->getOperand(i)));
+          VisitDILocation(I, dyn_cast_or_null<MDNode>(MD->getOperand(i)));
       if (BrokenDebugInfo)
         return;
     }
@@ -5864,19 +5929,14 @@ void Verifier::visitInstruction(Instruction &I) {
   if (MDNode *MD = I.getMetadata(LLVMContext::MD_mem_cache_hint))
     visitMemCacheHintMetadata(I, MD);
 
-  if (MDNode *N = I.getDebugLoc().getAsMDNode()) {
-    CheckDI(isa<DILocation>(N), "invalid !dbg metadata attachment", &I, N);
-    visitMDNode(*N, AreDebugLocsAllowed::Yes);
-
-    if (auto *DL = dyn_cast<DILocation>(N)) {
-      if (DL->getAtomGroup()) {
-        CheckDI(DL->getScope()->getSubprogram()->getKeyInstructionsEnabled(),
-                "DbgLoc uses atomGroup but DISubprogram doesn't have Key "
-                "Instructions enabled",
-                DL, DL->getScope()->getSubprogram());
-      }
-    }
+  #if LLVM_USE_FLMD_SOURCE_LOCS
+  if (auto DL = I.getDebugLoc()) {
+    do {
+      DL.getLine();
+      DL.getScope();
+    } while ((DL = DL.getInlinedAt()));
   }
+  #endif
 
   SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
   I.getAllMetadata(MDs);
@@ -7040,28 +7100,23 @@ void Verifier::visit(DbgLabelRecord &DLR) {
   CheckDI(isa<DILabel>(DLR.getRawLabel()),
           "invalid #dbg_label intrinsic variable", &DLR, DLR.getRawLabel());
 
-  // Ignore broken !dbg attachments; they're checked elsewhere.
-  if (MDNode *N = DLR.getDebugLoc().getAsMDNode())
-    if (!isa<DILocation>(N))
-      return;
-
   BasicBlock *BB = DLR.getParent();
   Function *F = BB ? BB->getParent() : nullptr;
 
   // The scopes for variables and !dbg attachments must agree.
   DILabel *Label = DLR.getLabel();
-  DILocation *Loc = DLR.getDebugLoc();
+  DebugLoc Loc = DLR.getDebugLoc();
   CheckDI(Loc, "#dbg_label record requires a !dbg attachment", &DLR, BB, F);
 
   DISubprogram *LabelSP = getSubprogram(Label->getRawScope());
-  DISubprogram *LocSP = getSubprogram(Loc->getRawScope());
+  DISubprogram *LocSP = getSubprogram(Loc.getRawScope());
   if (!LabelSP || !LocSP)
     return;
 
   CheckDI(LabelSP == LocSP,
           "mismatched subprogram between #dbg_label label and !dbg attachment",
           &DLR, BB, F, Label, Label->getScope()->getSubprogram(), Loc,
-          Loc->getScope()->getSubprogram());
+          Loc.getScope()->getSubprogram());
 }
 
 void Verifier::visit(DbgVariableRecord &DVR) {
@@ -7137,21 +7192,18 @@ void Verifier::visit(DbgVariableRecord &DVR) {
   CheckDI(isType(Var->getRawType()), "invalid type ref", Var, Var->getRawType(),
           BB, F);
 
-  auto *DLNode = DVR.getDebugLoc().getAsMDNode();
-  CheckDI(isa_and_nonnull<DILocation>(DLNode), "invalid #dbg record DILocation",
-          &DVR, DLNode, BB, F);
-  DILocation *Loc = DVR.getDebugLoc();
+  DebugLoc Loc = DVR.getDebugLoc();
 
   // The scopes for variables and !dbg attachments must agree.
   DISubprogram *VarSP = getSubprogram(Var->getRawScope());
-  DISubprogram *LocSP = getSubprogram(Loc->getRawScope());
+  DISubprogram *LocSP = getSubprogram(Loc.getRawScope());
   if (!VarSP || !LocSP)
     return; // Broken scope chains are checked elsewhere.
 
   CheckDI(VarSP == LocSP,
           "mismatched subprogram between #dbg record variable and DILocation",
           &DVR, BB, F, Var, Var->getScope()->getSubprogram(), Loc,
-          Loc->getScope()->getSubprogram(), BB, F);
+          Loc.getScope()->getSubprogram(), BB, F);
 
   verifyFnArgs(DVR);
 }
@@ -7402,7 +7454,7 @@ void Verifier::verifyFnArgs(const DbgVariableRecord &DVR) {
     return;
 
   // For performance reasons only check non-inlined ones.
-  if (DVR.getDebugLoc()->getInlinedAt())
+  if (DVR.getDebugLoc().getInlinedAt())
     return;
 
   DILocalVariable *Var = DVR.getVariable();

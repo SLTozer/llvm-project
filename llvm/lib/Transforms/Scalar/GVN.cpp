@@ -1191,7 +1191,7 @@ Value *AvailableValue::MaterializeAdjustedValue(LoadInst *Load,
     Res = SelectInst::Create(Cond, V1, V2, "", InsertPt->getIterator());
     // We use the DebugLoc from the original load here, as this instruction
     // materializes the value that would previously have been loaded.
-    cast<SelectInst>(Res)->setDebugLoc(Load->getDebugLoc());
+    cast<SelectInst>(Res)->copyDebugLocFrom(Load);
   } else {
     llvm_unreachable("Should not materialize value from dead block");
   }
@@ -1623,7 +1623,7 @@ void GVNPass::eliminatePartiallyRedundantLoad(
         Load->getType(), LoadPtr, Load->getName() + ".pre", Load->isVolatile(),
         Load->getAlign(), Load->getOrdering(), Load->getSyncScopeID(),
         UnavailableBlock->getTerminator()->getIterator());
-    NewLoad->setDebugLoc(Load->getDebugLoc());
+    NewLoad->copyDebugLocFrom(Load);
     if (MSSAU) {
       auto *NewAccess = MSSAU->createMemoryAccessInBB(
           NewLoad, nullptr, NewLoad->getParent(), MemorySSA::BeforeTerminator);
@@ -1690,7 +1690,7 @@ void GVNPass::eliminatePartiallyRedundantLoad(
   if (isa<PHINode>(V))
     V->takeName(Load);
   if (Instruction *I = dyn_cast<Instruction>(V))
-    I->setDebugLoc(Load->getDebugLoc());
+    I->copyDebugLocFrom(Load);
   if (MD && V->getType()->isPtrOrPtrVectorTy())
     MD->invalidateCachedPointerInfo(V);
   ORE->emit([&]() {
@@ -2140,7 +2140,7 @@ bool GVNPass::processNonLocalLoad(LoadInst *Load,
       // Also, if I has a null DebugLoc, then it is still potentially incorrect
       // to propagate Load's DebugLoc because Load may not post-dominate I.
       if (Load->getDebugLoc() && Load->getParent() == I->getParent())
-        I->setDebugLoc(Load->getDebugLoc());
+        I->copyDebugLocFrom(Load);
     if (MD && V->getType()->isPtrOrPtrVectorTy())
       MD->invalidateCachedPointerInfo(V);
     ++NumGVNLoad;
@@ -3565,7 +3565,7 @@ bool GVNPass::performScalarPREInsertion(Instruction *Instr, BasicBlock *Pred,
 
   Instr->insertBefore(Pred->getTerminator()->getIterator());
   Instr->setName(Instr->getName() + ".pre");
-  Instr->setDebugLoc(Instr->getDebugLoc());
+  Instr->copyDebugLocFrom(Instr);
 
   ICF->insertInstructionTo(Instr, Pred);
 
@@ -3725,7 +3725,7 @@ bool GVNPass::performScalarPRE(Instruction *CurInst) {
   // be changed, so erase the related stale entries in phi translate cache.
   VN.eraseTranslateCacheEntry(ValNo, *CurrentBlock);
   LeaderTable.insert(ValNo, Phi, CurrentBlock);
-  Phi->setDebugLoc(CurInst->getDebugLoc());
+  Phi->copyDebugLocFrom(CurInst);
   CurInst->replaceAllUsesWith(Phi);
   if (MD && Phi->getType()->isPtrOrPtrVectorTy())
     MD->invalidateCachedPointerInfo(Phi);

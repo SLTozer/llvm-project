@@ -714,9 +714,11 @@ static void moveFunctionData(Function &Old, Function &New,
         // several locations.
         auto updateLoopInfoLoc = [&New](Metadata *MD) -> Metadata * {
           if (DISubprogram *SP = New.getSubprogram())
-            if (auto *Loc = dyn_cast_or_null<DILocation>(MD))
-              return DILocation::get(New.getContext(), Loc->getLine(),
-                                     Loc->getColumn(), SP, nullptr);
+            if (DILocation *Loc = dyn_cast_or_null<DILocation>(MD)) {
+              DebugLoc DL = Loc->getAsDebugLoc();
+              return DebugLoc::get(&New, DL.getLine(),
+                                   DL.getColumn(), SP).convertToDILocation();
+            }
           return MD;
         };
         updateLoopMetadataDebugLocations(Val, updateLoopInfoLoc);
@@ -725,7 +727,7 @@ static void moveFunctionData(Function &Old, Function &New,
 
       // Edit the scope of called functions inside of outlined functions.
       if (DISubprogram *SP = New.getSubprogram()) {
-        DILocation *DI = DILocation::get(New.getContext(), 0, 0, SP);
+        DebugLoc DI = DebugLoc::get(&New, 0, 0, SP);
         Val.setDebugLoc(DI);
       }
     }
@@ -1478,7 +1480,7 @@ CallInst *replaceCalledFunction(Module &M, OutlinableRegion &Region) {
     Region.NewBack->Inst = Call;
 
   // Transfer any debug information.
-  Call->setDebugLoc(Region.Call->getDebugLoc());
+  Call->copyDebugLocFrom(Region.Call);
   // Since our output may determine which branch we go to, we make sure to
   // propagate this new call value through the module.
   OldCall->replaceAllUsesWith(Call);

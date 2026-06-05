@@ -803,7 +803,7 @@ static bool replaceExtractElements(InsertElementInst *InsElt,
   // DebugLoc; if it is not, then this is materializing a constant value, so set
   // a CompilerGenerated location.
   if (ExtVecOpInst)
-    WideVec->setDebugLoc(ExtVecOpInst->getDebugLoc());
+    WideVec->copyDebugLocFrom(ExtVecOpInst);
   else
     WideVec->setDebugLoc(DebugLoc::getCompilerGenerated());
 

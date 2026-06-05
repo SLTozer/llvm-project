@@ -31,6 +31,7 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalIFunc.h"
 #include "llvm/IR/GlobalObject.h"
 #include "llvm/IR/InlineAsm.h"
@@ -192,6 +193,8 @@ void LLParser::dropUnknownMetadataReferences() {
                  [](const auto &E) { return std::get<2>(E)->isTemporary(); });
   llvm::erase_if(PendingDbgInsts,
                  [](const auto &E) { return std::get<2>(E)->isTemporary(); });
+  llvm::erase_if(PendingFnSPs,
+                 [](const auto &E) { return std::get<2>(E)->isTemporary(); });
 
   for (const auto &[ID, Info] : make_early_inc_range(ForwardRefMDNodes)) {
     // Check whether there is only a single use left, which would be in our
@@ -339,17 +342,24 @@ bool LLParser::validateEndOfModule(bool UpgradeDebugInfo) {
                  "use of undefined metadata '!" +
                      Twine(ForwardRefMDNodes.begin()->first) + "'");
 
+  // Update the SP->Fn map.
+  for (auto [Loc, Fn, SP] : PendingFnSPs) {
+    if (auto *SPNode = dyn_cast<DISubprogram>(SP))
+      Fn->setSubprogram(SPNode);
+    else
+      return error(Loc, "invalid sp attachment");
+  }
   // Set debug locations.
   for (auto [Loc, DR, MD] : PendingDbgRecords) {
     if (auto *DI = dyn_cast<DILocation>(MD))
-      DR->setDebugLoc(DebugLoc(DI));
+      DR->setDebugLoc(DebugLoc::getFromDILocation(DI));
     else
       return error(Loc, "invalid debug location");
   }
   PendingDbgRecords.clear();
   for (auto [Loc, I, MD] : PendingDbgInsts) {
     if (auto *DI = dyn_cast<DILocation>(MD))
-      I->setDebugLoc(DebugLoc(DI));
+      I->setDebugLoc(DebugLoc::getFromDILocation(DI));
     else
       return error(Loc, "invalid !dbg metadata");
   }
@@ -2486,6 +2496,8 @@ bool LLParser::parseGlobalObjectMetadataAttachment(GlobalObject &GO) {
     return true;
 
   GO.addMetadata(MDK, *N);
+  if (auto *F = dyn_cast<Function>(&GO); F && MDK == LLVMContext::MD_dbg)
+    PendingFnSPs.emplace_back(Lex.getLoc(), F, N);
   return false;
 }
 
@@ -5022,6 +5034,19 @@ template <class FieldTypeA, class FieldTypeB> struct MDEitherFieldImpl {
         WhatIs(IsInvalid) {}
 };
 
+template <class FLMDTy> struct MDFLMDStorageField {
+  SmallVector<FLMDTy> Val;
+  bool Seen;
+
+  void assign(SmallVectorImpl<FLMDTy> &&Val) {
+    Seen = true;
+    this->Val = std::move(Val);
+  }
+
+  explicit MDFLMDStorageField()
+      : Val(), Seen(false) {}
+};
+
 struct MDUnsignedField : public MDFieldImpl<uint64_t> {
   uint64_t Max;
 
@@ -5126,6 +5151,12 @@ struct MDField : public MDFieldImpl<Metadata *> {
   bool AllowNull;
 
   MDField(bool AllowNull = true) : ImplTy(nullptr), AllowNull(AllowNull) {}
+};
+
+struct MDNodeField : public MDFieldImpl<MDNode *> {
+  bool AllowNull;
+
+  MDNodeField(bool AllowNull = true) : ImplTy(nullptr), AllowNull(AllowNull) {}
 };
 
 struct MDStringField : public MDFieldImpl<MDString *> {
@@ -5586,6 +5617,24 @@ bool LLParser::parseMDField(LocTy Loc, StringRef Name, MDBoolField &Result) {
 }
 
 template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name, MDNodeField &Result) {
+  if (Lex.getKind() == lltok::kw_null) {
+    if (!Result.AllowNull)
+      return tokError("'" + Name + "' cannot be null");
+    Lex.Lex();
+    Result.assign(nullptr);
+    return false;
+  }
+
+  MDNode *MD;
+  if (parseMDNode(MD))
+    return true;
+
+  Result.assign(MD);
+  return false;
+}
+
+template <>
 bool LLParser::parseMDField(LocTy Loc, StringRef Name, MDField &Result) {
   if (Lex.getKind() == lltok::kw_null) {
     if (!Result.AllowNull)
@@ -5773,9 +5822,195 @@ bool LLParser::parseSpecializedMDNode(MDNode *&N, bool IsDistinct) {
 #define GET_OR_DISTINCT(CLASS, ARGS)                                           \
   (IsDistinct ? CLASS::getDistinct ARGS : CLASS::get ARGS)
 
+template <>
+bool LLParser::parseFLMDEntry(LocTy Loc, FLSrcLoc &Result) {
+  if (Lex.getKind() != lltok::FLMDType || Lex.getStrVal() != "srcLoc")
+    return tokError("expected !!srcLoc");
+  Lex.Lex();
+  // Parse !!srcLoc arguments.
+  if (parseToken(lltok::lparen, "expected '(' at start of !!srcLoc"))
+    return true;
+  #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                  \
+    REQUIRED(line, LineField, );                                               \
+    OPTIONAL(column, ColumnField, );                                           \
+    REQUIRED(scopeIdx, MDUnsignedField, (0, UINT16_MAX - 1));
+    PARSE_MD_FIELDS();
+  #undef VISIT_MD_FIELDS
+  if (parseToken(lltok::rparen, "expected ')' at end of !!srcLoc"))
+    return true;
+  Result = FLSrcLoc(line.Val, column.Val, scopeIdx.Val);
+  return false;
+}
+
+template <>
+bool LLParser::parseFLMDEntry(LocTy Loc, FLScope &Result) {
+  if (Lex.getKind() != lltok::FLMDType || Lex.getStrVal() != "scope")
+    return tokError("expected !!scope");
+  Lex.Lex();
+  // Parse !!scope arguments.
+  if (parseToken(lltok::lparen, "expected '(' at start of !!scope"))
+    return true;
+  #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                  \
+    REQUIRED(scope, MDNodeField, (/* AllowNull */ false));
+    PARSE_MD_FIELDS();
+  #undef VISIT_MD_FIELDS
+  if (parseToken(lltok::rparen, "expected ')' at end of !!scope"))
+    return true;
+  Result = FLScope(scope.Val);
+  return false;
+}
+
+template <>
+bool LLParser::parseFLMDEntry(LocTy Loc, FLInlinedCall &Result) {
+  if (Lex.getKind() != lltok::FLMDType || Lex.getStrVal() != "inlinedCall")
+    return tokError("expected !!inlinedCall");
+  Lex.Lex();
+  // Parse !!inlinedCall arguments.
+  if (parseToken(lltok::lparen, "expected '(' at start of !!inlinedCall"))
+    return true;
+  #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                  \
+    REQUIRED(srcLoc, MDUnsignedField, (0, UINT32_MAX - 1));                    \
+    OPTIONAL(inlinedAt, MDUnsignedField, (0, UINT16_MAX - 1));                 \
+    OPTIONAL(distinct, MDBoolField, (true));                                   \
+    REQUIRED(inlineeFLMD, MDNodeField, (/* AllowNull */ false));
+    PARSE_MD_FIELDS();
+  #undef VISIT_MD_FIELDS
+  if (parseToken(lltok::rparen, "expected ')' at end of !!inlinedCall"))
+    return true;
+  FLIndex<uint16_t> ActualInlinedAt;
+  // There isn't a valid unsigned default value for inlinedAt, so manually check
+  // the 'Seen' field to check whether we want to use it.
+  if (inlinedAt.Seen)
+    ActualInlinedAt = FLIndex<uint16_t>(inlinedAt.Val);
+  Result = FLInlinedCall(srcLoc.Val, ActualInlinedAt, inlineeFLMD.Val, !distinct.Val);
+  return false;
+}
+
+template <>
+bool LLParser::parseFLMDEntry(LocTy Loc, FLLoop &Result) {
+  if (Lex.getKind() != lltok::FLMDType || Lex.getStrVal() != "loop")
+    return tokError("expected !!loop");
+  Lex.Lex();
+  // Parse !!loop arguments.
+  if (parseToken(lltok::lparen, "expected '(' at start of !!loop"))
+    return true;
+  #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                  \
+    OPTIONAL(start, MDUnsignedField, (0, UINT32_MAX - 1));                     \
+    OPTIONAL(end, MDUnsignedField, (0, UINT16_MAX - 1));                       \
+    OPTIONAL(inlinedAt, MDUnsignedField, (0, UINT16_MAX - 1));                 \
+    REQUIRED(properties, MDNodeField, (/* AllowNull */ false));
+    PARSE_MD_FIELDS();
+  #undef VISIT_MD_FIELDS
+  if (parseToken(lltok::rparen, "expected ')' at end of !!loop"))
+    return true;
+  // There isn't a valid unsigned default value for FLIndex fields, so manually
+  // check the 'Seen' field to check whether we want to use it.
+  FLIndex<uint32_t> ActualStart;
+  if (start.Seen) ActualStart = FLIndex<uint32_t>(start.Val);
+  FLIndex<uint32_t> ActualEnd;
+  if (end.Seen) ActualEnd = FLIndex<uint32_t>(end.Val);
+  FLIndex<uint16_t> ActualInlinedAt;
+  if (inlinedAt.Seen) ActualInlinedAt = FLIndex<uint16_t>(inlinedAt.Val);
+  Result = FLLoop(ActualStart, ActualEnd, ActualInlinedAt, properties.Val);
+  return false;
+}
+
+
+template <class FLMDTy>
+bool LLParser::parseFLMDStorage(LocTy Loc, SmallVectorImpl<FLMDTy> &Result) {
+  if (parseToken(lltok::lsquare, "expected '[' at FLMD storage field"))
+    return true;
+
+  // Empty storage array.
+  if (Lex.getKind() == lltok::rsquare) {
+    Lex.Lex();
+    return false;
+  }
+  FLMDTy NextEntry;
+  if (parseFLMDEntry(Loc, NextEntry))
+    return true;
+  Result.push_back(NextEntry);
+  while(Lex.getKind() != lltok::rsquare) {
+    if (parseToken(lltok::comma, "expected ',' between FLMD storage entries") ||
+        parseFLMDEntry(Loc, NextEntry))
+      return true;
+    Result.push_back(NextEntry);
+  }
+  Lex.Lex();
+  return false;
+}
+
+template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name,
+                            MDFLMDStorageField<FLSrcLoc> &Result) {
+  SmallVector<FLSrcLoc> StorageArray;
+  if (parseFLMDStorage(Loc, StorageArray))
+    return true;
+  Result.assign(std::move(StorageArray));
+  return false;
+}
+template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name,
+                            MDFLMDStorageField<FLScope> &Result) {
+  SmallVector<FLScope> StorageArray;
+  if (parseFLMDStorage(Loc, StorageArray))
+    return true;
+  Result.assign(std::move(StorageArray));
+  return false;
+}
+template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name,
+                            MDFLMDStorageField<FLInlinedCall> &Result) {
+  SmallVector<FLInlinedCall> StorageArray;
+  if (parseFLMDStorage(Loc, StorageArray))
+    return true;
+  Result.assign(std::move(StorageArray));
+  return false;
+}
+template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name,
+                            MDFLMDStorageField<FLLoop> &Result) {
+  SmallVector<FLLoop> StorageArray;
+  if (parseFLMDStorage(Loc, StorageArray))
+    return true;
+  Result.assign(std::move(StorageArray));
+  return false;
+}
+
 /// parseDILocationFields:
 ///   ::= !DILocation(line: 43, column: 8, scope: !5, inlinedAt: !6,
 ///   isImplicitCode: true, atomGroup: 1, atomRank: 1)
+bool LLParser::parseDIFunctionLocalMetadata(MDNode *&Result, bool IsDistinct) {
+#define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                    \
+  OPTIONAL(srcLocs, MDFLMDStorageField<FLSrcLoc>, );                           \
+  OPTIONAL(scopes, MDFLMDStorageField<FLScope>, );                             \
+  OPTIONAL(inlinedCalls, MDFLMDStorageField<FLInlinedCall>, );                 \
+  OPTIONAL(loops, MDFLMDStorageField<FLLoop>, );
+  PARSE_MD_FIELDS();
+#undef VISIT_MD_FIELDS
+
+  DIFunctionLocalMetadata *FLMD = DIFunctionLocalMetadata::getDistinct(Context);
+  FLMD->SrcLocs = std::move(srcLocs.Val);
+  FLMD->Scopes = std::move(scopes.Val);
+  FLMD->InlinedCalls = std::move(inlinedCalls.Val);
+  FLMD->Loops = std::move(loops.Val);
+  // Track forward refs now.
+  SmallVector<std::pair<uint32_t, uint32_t>> ScopeFwdRefs;
+  for (auto [Index, Scope] : enumerate(FLMD->Scopes)) {
+  }
+  Result = FLMD;
+  return false;
+}
+
+/// parseDILocationFields:
+///   ::= !DILocation(line: 43, column: 8, scope: !5, inlinedAt: !6,
+///   isImplicitCode: true, atomGroup: 1, atomRank: 1)
+/// As-of FLMD, there are two possible forms a DILocation can take:
+///   1. The above form, with DebugLoc fields emitted.
+///   2. !DILocation(dbgLoc: !!dbgLoc(srcLoc: 3, inlinedAt: 4, atom: [1, 1]),
+///                  flContext: !5)
+///   We therefore have 4 possible parsing logics required depending on whether
+///   the compiler is using FLMD or not, and whether the IR uses FLMD or not.
 bool LLParser::parseDILocation(MDNode *&Result, bool IsDistinct) {
 #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                    \
   OPTIONAL(line, LineField, );                                                 \
@@ -5787,9 +6022,24 @@ bool LLParser::parseDILocation(MDNode *&Result, bool IsDistinct) {
   OPTIONAL(atomRank, MDUnsignedField, (0, UINT8_MAX));
   PARSE_MD_FIELDS();
 #undef VISIT_MD_FIELDS
+  Metadata *InlinedAt = inlinedAt.Val;
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  if (InlinedAt && !isa<DILocation>(inlinedAt.Val)) {
+    // We have a forward reference: this requires special handling, because we
+    // can't actually forward-reference a temporary. We can, however, create a
+    // "temp" FLInlinedCall and then create a real DILocation referencing that.
 
+    // auto *FLContext = getContext().getFLMD(const Metadata *MD);
+
+    // First, if we have a non-temporary but incorrectly-typed argument, we
+    // create an intentionally-invalid inline call to trip the verifier later
+    // without rejecting the module during parsing.
+    if (!isa<MDNode>(InlinedAt) || !cast<MDNode>(InlinedAt)->isTemporary())
+      return tokError("invalid argument for 'inlinedAt'");
+  }
+#endif
   Result = GET_OR_DISTINCT(
-      DILocation, (Context, line.Val, column.Val, scope.Val, inlinedAt.Val,
+      DILocation, (Context, line.Val, column.Val, scope.Val, InlinedAt,
                    isImplicitCode.Val, atomGroup.Val, atomRank.Val));
   return false;
 }

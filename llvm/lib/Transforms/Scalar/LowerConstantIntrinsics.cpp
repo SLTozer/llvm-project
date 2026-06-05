@@ -84,7 +84,7 @@ static bool replaceConditionalBranchesOnConstant(Instruction *II,
       Other->removePredecessor(Source);
 
       Instruction *NewBI = UncondBrInst::Create(Target, Source);
-      NewBI->setDebugLoc(BI->getDebugLoc());
+      NewBI->copyDebugLocFrom(BI);
       BI->eraseFromParent();
 
       if (DTU)

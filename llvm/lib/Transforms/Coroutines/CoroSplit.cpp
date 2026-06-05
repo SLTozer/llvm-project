@@ -107,13 +107,13 @@ static void lowerAwaitSuspend(IRBuilder<> &Builder, CoroAwaitSuspendInst *CB,
     std::copy(Invoke->bundle_op_info_begin(), Invoke->bundle_op_info_end(),
               WrapperInvoke->bundle_op_info_begin());
     WrapperInvoke->setAttributes(NewAttributes);
-    WrapperInvoke->setDebugLoc(Invoke->getDebugLoc());
+    WrapperInvoke->copyDebugLocFrom(Invoke);
     NewCall = WrapperInvoke;
   } else if (auto Call = dyn_cast<CallInst>(CB)) {
     auto WrapperCall = Builder.CreateCall(Wrapper, {Awaiter, FramePtr});
 
     WrapperCall->setAttributes(NewAttributes);
-    WrapperCall->setDebugLoc(Call->getDebugLoc());
+    WrapperCall->copyDebugLocFrom(Call);
     NewCall = WrapperCall;
   } else {
     llvm_unreachable("Unexpected coro_await_suspend invocation method");
@@ -807,8 +807,8 @@ static void updateScopeLine(Instruction *ActiveSuspend,
   // No subsequent instruction -> fallback to the location of ActiveSuspend.
   if (!ActiveSuspend->getNextNode()) {
     if (auto DL = ActiveSuspend->getDebugLoc())
-      if (SPToUpdate.getFile() == DL->getFile())
-        SPToUpdate.setScopeLine(DL->getLine());
+      if (SPToUpdate.getFile() == DL.getFile())
+        SPToUpdate.setScopeLine(DL.getLine());
     return;
   }
 
@@ -832,7 +832,7 @@ static void updateScopeLine(Instruction *ActiveSuspend,
     if (!DL || DL.getLine() == 0)
       continue;
 
-    if (SPToUpdate.getFile() == DL->getFile()) {
+    if (SPToUpdate.getFile() == DL.getFile()) {
       SPToUpdate.setScopeLine(DL.getLine());
       return;
     }
@@ -842,8 +842,8 @@ static void updateScopeLine(Instruction *ActiveSuspend,
 
   // If the search above failed, fallback to the location of ActiveSuspend.
   if (auto DL = ActiveSuspend->getDebugLoc())
-    if (SPToUpdate.getFile() == DL->getFile())
-      SPToUpdate.setScopeLine(DL->getLine());
+    if (SPToUpdate.getFile() == DL.getFile())
+      SPToUpdate.setScopeLine(DL.getLine());
 }
 
 static void addFramePointerAttrs(AttributeList &Attrs, LLVMContext &Context,
@@ -1573,12 +1573,12 @@ private:
           // and the attached location match. This is not the case when the
           // suspend location has been inlined due to pointing to the original
           // scope.
-          DILocation *DILoc = SuspendLoc;
-          while (DILocation *InlinedAt = DILoc->getInlinedAt())
+          DebugLoc DILoc = SuspendLoc;
+          while (DebugLoc InlinedAt = DILoc.getInlinedAt())
             DILoc = InlinedAt;
 
           DILabel *ResumeLabel =
-              DBuilder.createLabel(DIS, LabelName, DILoc->getFile(),
+              DBuilder.createLabel(DIS, LabelName, DILoc.getFile(),
                                    SuspendLoc.getLine(), SuspendLoc.getCol(),
                                    /*IsArtificial=*/true,
                                    /*CoroSuspendIdx=*/SuspendIndex,

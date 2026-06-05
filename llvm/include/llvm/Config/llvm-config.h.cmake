@@ -132,6 +132,9 @@
 /* Define to 1 if you have the DIA SDK installed, and to 0 if you don't. */
 #cmakedefine01 LLVM_ENABLE_DIA_SDK
 
+/* Define to 1 if using FLMD source locs, and 0 otherwise. */
+#cmakedefine01 LLVM_USE_FLMD_SOURCE_LOCS
+
 /* Define if plugins enabled */
 #cmakedefine LLVM_ENABLE_PLUGINS
 

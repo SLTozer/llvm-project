@@ -2852,7 +2852,7 @@ static void combineFPFusedMultiply(MachineInstr &Root, MachineInstr &Prev,
   unsigned FusedOpc = getFPFusedMultiplyOpcode(Root.getOpcode(), Pattern);
   uint32_t IntersectedFlags = Root.getFlags() & Prev.getFlags();
   DebugLoc MergedLoc =
-      DILocation::getMergedLocation(Root.getDebugLoc(), Prev.getDebugLoc());
+      DebugLoc::getMergedLocation(Root.getDebugLoc(), Prev.getDebugLoc());
 
   bool Mul1IsKill = Mul1.isKill();
   bool Mul2IsKill = Mul2.isKill();

@@ -2229,14 +2229,14 @@ static bool isPTXInstruction(StringRef Line) {
 
 /// Returns the DILocation for an inline asm MachineInstr if debug line info
 /// should be emitted, or nullptr otherwise.
-static const DILocation *getInlineAsmDebugLoc(const MachineInstr *MI) {
+static DebugLoc getInlineAsmDebugLoc(const MachineInstr *MI) {
   if (!MI || !MI->getDebugLoc())
     return nullptr;
   const DISubprogram *SP = MI->getMF()->getFunction().getSubprogram();
   if (!SP || SP->getUnit()->getEmissionKind() == DICompileUnit::NoDebug)
     return nullptr;
-  const DILocation *DL = MI->getDebugLoc();
-  if (!DL->getFile() || !DL->getLine())
+  DebugLoc DL = MI->getDebugLoc();
+  if (!DL.getFile() || !DL.getLine())
     return nullptr;
   return DL;
 }
@@ -2255,23 +2255,23 @@ struct InlineAsmInliningContext {
 /// Resolves the enhanced-lineinfo inlining context for an inline asm debug
 /// location. Returns a default (empty) context if inlining info is unavailable.
 static InlineAsmInliningContext
-getInlineAsmInliningContext(const DILocation *DL, const MachineFunction &MF,
+getInlineAsmInliningContext(DebugLoc DL, const MachineFunction &MF,
                             NVPTXDwarfDebug *NVDD, MCStreamer &Streamer,
                             unsigned CUID) {
   InlineAsmInliningContext Ctx;
-  const DILocation *InlinedAt = DL->getInlinedAt();
-  if (!InlinedAt || !InlinedAt->getFile() || !NVDD ||
+  DebugLoc InlinedAt = DL.getInlinedAt();
+  if (!InlinedAt || !InlinedAt.getFile() || !NVDD ||
       !NVDD->isEnhancedLineinfo(MF))
     return Ctx;
-  const auto *SubProg = getDISubprogram(DL->getScope());
+  const auto *SubProg = getDISubprogram(DL.getScope());
   if (!SubProg)
     return Ctx;
   Ctx.FuncNameSym = NVDD->getOrCreateFuncNameSymbol(SubProg->getLinkageName());
   Ctx.FileIA = Streamer.emitDwarfFileDirective(
-      0, InlinedAt->getFile()->getDirectory(),
-      InlinedAt->getFile()->getFilename(), std::nullopt, std::nullopt, CUID);
-  Ctx.LineIA = InlinedAt->getLine();
-  Ctx.ColIA = InlinedAt->getColumn();
+      0, InlinedAt.getFile()->getDirectory(),
+      InlinedAt.getFile()->getFilename(), std::nullopt, std::nullopt, CUID);
+  Ctx.LineIA = InlinedAt.getLine();
+  Ctx.ColIA = InlinedAt.getColumn();
   return Ctx;
 }
 
@@ -2290,15 +2290,15 @@ void NVPTXAsmPrinter::emitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
     emitInlineAsmEnd(STI, nullptr, MI);
   };
 
-  const DILocation *DL = getInlineAsmDebugLoc(MI);
+  DebugLoc DL = getInlineAsmDebugLoc(MI);
   if (!DL) {
     emitAsmStr(Str);
     return;
   }
 
-  const DIFile *File = DL->getFile();
-  unsigned Line = DL->getLine();
-  const unsigned Column = DL->getColumn();
+  const DIFile *File = DL.getFile();
+  unsigned Line = DL.getLine();
+  const unsigned Column = DL.getColumn();
   const unsigned CUID = OutStreamer->getContext().getDwarfCompileUnitID();
   const unsigned FileNumber = OutStreamer->emitDwarfFileDirective(
       0, File->getDirectory(), File->getFilename(), std::nullopt, std::nullopt,

@@ -172,10 +172,10 @@ static bool addDiscriminators(Function &F) {
       // should have a valid discriminator.
       if (!shouldHaveDiscriminator(&I))
         continue;
-      const DILocation *DIL = I.getDebugLoc();
+      DebugLoc DIL = I.getDebugLoc();
       if (!DIL)
         continue;
-      Location L = std::make_pair(DIL->getFilename(), DIL->getLine());
+      Location L = std::make_pair(DIL.getFilename(), DIL.getLine());
       auto &BBMap = LBM[L];
       auto R = BBMap.insert(&B);
       if (BBMap.size() == 1)
@@ -185,16 +185,16 @@ static bool addDiscriminators(Function &F) {
       // Only the lowest 7 bits are used to represent a discriminator to fit
       // it in 1 byte ULEB128 representation.
       unsigned Discriminator = R.second ? ++LDM[L] : LDM[L];
-      auto NewDIL = DIL->cloneWithBaseDiscriminator(Discriminator);
+      auto NewDIL = DIL.cloneWithBaseDiscriminator(Discriminator);
       if (!NewDIL) {
         LLVM_DEBUG(dbgs() << "Could not encode discriminator: "
-                          << DIL->getFilename() << ":" << DIL->getLine() << ":"
-                          << DIL->getColumn() << ":" << Discriminator << " "
+                          << DIL.getFilename() << ":" << DIL.getLine() << ":"
+                          << DIL.getColumn() << ":" << Discriminator << " "
                           << I << "\n");
       } else {
         I.setDebugLoc(*NewDIL);
-        LLVM_DEBUG(dbgs() << DIL->getFilename() << ":" << DIL->getLine() << ":"
-                   << DIL->getColumn() << ":" << Discriminator << " " << I
+        LLVM_DEBUG(dbgs() << DIL.getFilename() << ":" << DIL.getLine() << ":"
+                   << DIL.getColumn() << ":" << Discriminator << " " << I
                    << "\n");
       }
       Changed = true;
@@ -215,19 +215,19 @@ static bool addDiscriminators(Function &F) {
       if (!isa<InvokeInst>(I) && (!isa<CallInst>(I) || isa<IntrinsicInst>(I)))  
         continue;
 
-      DILocation *CurrentDIL = I.getDebugLoc();
+      DebugLoc CurrentDIL = I.getDebugLoc();
       if (!CurrentDIL)
         continue;
       Location L =
-          std::make_pair(CurrentDIL->getFilename(), CurrentDIL->getLine());
+          std::make_pair(CurrentDIL.getFilename(), CurrentDIL.getLine());
       if (!CallLocations.insert(L).second) {
         unsigned Discriminator = ++LDM[L];
-        auto NewDIL = CurrentDIL->cloneWithBaseDiscriminator(Discriminator);
+        auto NewDIL = CurrentDIL.cloneWithBaseDiscriminator(Discriminator);
         if (!NewDIL) {
           LLVM_DEBUG(dbgs()
                      << "Could not encode discriminator: "
-                     << CurrentDIL->getFilename() << ":"
-                     << CurrentDIL->getLine() << ":" << CurrentDIL->getColumn()
+                     << CurrentDIL.getFilename() << ":"
+                     << CurrentDIL.getLine() << ":" << CurrentDIL.getColumn()
                      << ":" << Discriminator << " " << I << "\n");
         } else {
           I.setDebugLoc(*NewDIL);

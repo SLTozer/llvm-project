@@ -446,18 +446,18 @@ static void canonicalizeToIntegerIV(Loop *L, PHINode *PN,
       PHINode::Create(Int32Ty, 2, PN->getName() + ".int", PN->getIterator());
   NewPHI->addIncoming(ConstantInt::getSigned(Int32Ty, IIV.InitValue),
                       PN->getIncomingBlock(IncomingEdge));
-  NewPHI->setDebugLoc(PN->getDebugLoc());
+  NewPHI->copyDebugLocFrom(PN);
 
   Instruction *NewAdd = BinaryOperator::CreateAdd(
       NewPHI, ConstantInt::getSigned(Int32Ty, IIV.IncrValue),
       Incr->getName() + ".int", Incr->getIterator());
-  NewAdd->setDebugLoc(Incr->getDebugLoc());
+  NewAdd->copyDebugLocFrom(Incr);
   NewPHI->addIncoming(NewAdd, PN->getIncomingBlock(BackEdge));
 
   ICmpInst *NewCompare = new ICmpInst(
       BI->getIterator(), IIV.NewPred, NewAdd,
       ConstantInt::getSigned(Int32Ty, IIV.ExitValue), FPIV.Compare->getName());
-  NewCompare->setDebugLoc(FPIV.Compare->getDebugLoc());
+  NewCompare->copyDebugLocFrom(FPIV.Compare);
 
   // In the following deletions, PN may become dead and may be deleted.
   // Use a WeakTrackingVH to observe whether this happens.
@@ -483,7 +483,7 @@ static void canonicalizeToIntegerIV(Loop *L, PHINode *PN,
   if (WeakPH) {
     Instruction *Conv = new SIToFPInst(NewPHI, PN->getType(), "indvar.conv",
                                        PN->getParent()->getFirstInsertionPt());
-    Conv->setDebugLoc(PN->getDebugLoc());
+    Conv->copyDebugLocFrom(PN);
     PN->replaceAllUsesWith(Conv);
     RecursivelyDeleteTriviallyDeadInstructions(PN, TLI, MSSAU.get());
   }

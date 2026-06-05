@@ -144,11 +144,13 @@ public:
   enum Kind : uint8_t { ValueKind, LabelKind };
 
 protected:
-  DebugLoc DbgLoc;
+  DbgLocStorage DbgLoc;
   Kind RecordKind; ///< Subclass discriminator.
 
 public:
   DbgRecord(Kind RecordKind, DebugLoc DL)
+      : DbgLoc(DL.getStorage()), RecordKind(RecordKind) {}
+  DbgRecord(Kind RecordKind, DbgLocStorage DL)
       : DbgLoc(DL), RecordKind(RecordKind) {}
 
   /// Methods that dispatch to subclass implementations. These need to be
@@ -213,8 +215,39 @@ public:
   LLVM_ABI void moveBefore(self_iterator MoveBefore);
   LLVM_ABI void moveAfter(self_iterator MoveAfter);
 
-  DebugLoc getDebugLoc() const { return DbgLoc; }
-  void setDebugLoc(DebugLoc Loc) { DbgLoc = std::move(Loc); }
+  DbgLocStorage getDebugLocStorage() const {
+    return DbgLoc;
+  }
+  DebugLoc getDebugLoc() const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    return DebugLoc(DbgLoc, getFLMDForFunction(getFunction()));
+#else
+    return DebugLoc(DbgLoc);
+#endif
+  }
+  DebugLoc getDebugLoc(Function *FunctionContext) const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    return DebugLoc(DbgLoc, getFLMDForFunction(FunctionContext));
+#else
+    return DebugLoc(DbgLoc);
+#endif
+  }
+  void setDebugLoc(DebugLoc Loc) { DbgLoc = Loc.getStorage(); }
+  void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
+  void setDebugLocIfPresent(DebugLoc Loc) { DbgLoc = Loc.getStorage().orElse(DbgLoc); }
+  void setDebugLocIfPresent(DbgLocStorage Loc) { DbgLoc = Loc.orElse(DbgLoc); }
+  void copyDebugLocFrom(const Instruction *Other) {
+    DbgLoc = Other->getDebugLocStorage();
+  }
+  void copyDebugLocFromIfPresent(const Instruction *Other) {
+    DbgLoc = Other->getDebugLocStorage().orElse(DbgLoc);
+  }
+  void copyDebugLocFrom(const DbgRecord *Other) {
+    DbgLoc = Other->DbgLoc;
+  }
+  void copyDebugLocFromIfPresent(const DbgRecord *Other) {
+    DbgLoc = Other->DbgLoc.orElse(DbgLoc);
+  }
 
   LLVM_ABI void dump() const;
 
@@ -245,7 +278,7 @@ class DbgLabelRecord : public DbgRecord {
   DbgLabelRecord(MDNode *Label);
 
 public:
-  LLVM_ABI DbgLabelRecord(DILabel *Label, DebugLoc DL);
+  LLVM_ABI DbgLabelRecord(DILabel *Label, DbgLocStorage DL);
 
   /// For use during parsing; creates a DbgLabelRecord from as-of-yet unresolved
   /// MDNodes. Trying to access the resulting DbgLabelRecord's fields before
@@ -310,12 +343,12 @@ public:
   /// Directly construct a new DbgVariableRecord representing a dbg.value
   /// intrinsic assigning \p Location to the DV / Expr / DI variable.
   LLVM_ABI DbgVariableRecord(Metadata *Location, DILocalVariable *DV,
-                             DIExpression *Expr, const DILocation *DI,
+                             DIExpression *Expr, DbgLocStorage DI,
                              LocationType Type = LocationType::Value);
   LLVM_ABI DbgVariableRecord(Metadata *Value, DILocalVariable *Variable,
                              DIExpression *Expression, DIAssignID *AssignID,
                              Metadata *Address, DIExpression *AddressExpression,
-                             const DILocation *DI);
+                             DbgLocStorage DI);
 
 private:
   /// Private constructor for creating new instances during parsing only. Only
@@ -342,34 +375,34 @@ public:
   createDVRAssign(Value *Val, DILocalVariable *Variable,
                   DIExpression *Expression, DIAssignID *AssignID,
                   Value *Address, DIExpression *AddressExpression,
-                  const DILocation *DI);
+                  DbgLocStorage DI);
   LLVM_ABI static DbgVariableRecord *
   createLinkedDVRAssign(Instruction *LinkedInstr, Value *Val,
                         DILocalVariable *Variable, DIExpression *Expression,
                         Value *Address, DIExpression *AddressExpression,
-                        const DILocation *DI);
+                        DbgLocStorage DI);
 
   LLVM_ABI static DbgVariableRecord *
   createDbgVariableRecord(Value *Location, DILocalVariable *DV,
-                          DIExpression *Expr, const DILocation *DI);
+                          DIExpression *Expr, DbgLocStorage DI);
   LLVM_ABI static DbgVariableRecord *
   createDbgVariableRecord(Value *Location, DILocalVariable *DV,
-                          DIExpression *Expr, const DILocation *DI,
+                          DIExpression *Expr, DbgLocStorage DI,
                           DbgVariableRecord &InsertBefore);
   LLVM_ABI static DbgVariableRecord *createDVRDeclare(Value *Address,
                                                       DILocalVariable *DV,
                                                       DIExpression *Expr,
-                                                      const DILocation *DI);
+                                                      DbgLocStorage DI);
   LLVM_ABI static DbgVariableRecord *
   createDVRDeclare(Value *Address, DILocalVariable *DV, DIExpression *Expr,
-                   const DILocation *DI, DbgVariableRecord &InsertBefore);
+                   DbgLocStorage DI, DbgVariableRecord &InsertBefore);
 
   LLVM_ABI static DbgVariableRecord *
   createDVRDeclareValue(Value *Address, DILocalVariable *DV, DIExpression *Expr,
-                        const DILocation *DI);
+                        DbgLocStorage DI);
   LLVM_ABI static DbgVariableRecord *
   createDVRDeclareValue(Value *Address, DILocalVariable *DV, DIExpression *Expr,
-                        const DILocation *DI, DbgVariableRecord &InsertBefore);
+                        DbgLocStorage DI, DbgVariableRecord &InsertBefore);
 
   /// Iterator for ValueAsMetadata that internally uses direct pointer iteration
   /// over either a ValueAsMetadata* or a ValueAsMetadata**, dereferencing to the

@@ -668,9 +668,9 @@ Loop::LocRange Loop::getLocRange() const {
     for (const MDOperand &MDO : llvm::drop_begin(LoopID->operands())) {
       if (DILocation *L = dyn_cast<DILocation>(MDO)) {
         if (!Start)
-          Start = DebugLoc(L);
+          Start = L->getAsDebugLoc();
         else
-          return LocRange(Start, DebugLoc(L));
+          return LocRange(Start, L->getAsDebugLoc());
       }
     }
 

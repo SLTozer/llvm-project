@@ -2047,7 +2047,7 @@ void AddressSanitizer::instrumentAddress(Instruction *OrigIns,
   Instruction *Crash = generateCrashCode(
       CrashTerm, AddrLong, IsWrite, AccessSizeIndex, SizeArgument, Exp, RTCI);
   if (OrigIns->getDebugLoc())
-    Crash->setDebugLoc(OrigIns->getDebugLoc());
+    Crash->copyDebugLocFrom(OrigIns);
 }
 
 // Instrument unusual size or unusual alignment.
@@ -3555,7 +3555,7 @@ void FunctionStackPoisoner::processStaticAllocas() {
   DebugLoc EntryDebugLocation;
   if (auto SP = F.getSubprogram())
     EntryDebugLocation =
-        DILocation::get(SP->getContext(), SP->getScopeLine(), 0, SP);
+        DebugLoc::get(&F, SP->getScopeLine(), 0, SP);
 
   Instruction *InsBefore = AllocaVec[0];
   IRBuilder<> IRB(InsBefore);
@@ -3617,10 +3617,10 @@ void FunctionStackPoisoner::processStaticAllocas() {
 
     ASanStackVariableDescription &Desc = *AllocaToSVDMap[APC.AI];
     Desc.LifetimeSize = Desc.Size;
-    if (const DILocation *FnLoc = EntryDebugLocation.get()) {
-      if (const DILocation *LifetimeLoc = APC.InsBefore->getDebugLoc().get()) {
-        if (LifetimeLoc->getFile() == FnLoc->getFile())
-          if (unsigned Line = LifetimeLoc->getLine())
+    if (DebugLoc FnLoc = EntryDebugLocation) {
+      if (DebugLoc LifetimeLoc = APC.InsBefore->getDebugLoc()) {
+        if (LifetimeLoc.getFile() == FnLoc.getFile())
+          if (unsigned Line = LifetimeLoc.getLine())
             Desc.Line = std::min(Desc.Line ? Desc.Line : Line, Line);
       }
     }

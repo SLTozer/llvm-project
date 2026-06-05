@@ -323,7 +323,7 @@ bool SimplifyIndvar::eliminateSDiv(BinaryOperator *SDiv) {
         SDiv->getName() + ".udiv", SDiv->getIterator());
     UDiv->setIsExact(SDiv->isExact());
     SDiv->replaceAllUsesWith(UDiv);
-    UDiv->setDebugLoc(SDiv->getDebugLoc());
+    UDiv->copyDebugLocFrom(SDiv);
     LLVM_DEBUG(dbgs() << "INDVARS: Simplified sdiv: " << *SDiv << '\n');
     ++NumSimplifiedSDiv;
     Changed = true;
@@ -340,7 +340,7 @@ void SimplifyIndvar::replaceSRemWithURem(BinaryOperator *Rem) {
   auto *URem = BinaryOperator::Create(BinaryOperator::URem, N, D,
                                       Rem->getName() + ".urem", Rem->getIterator());
   Rem->replaceAllUsesWith(URem);
-  URem->setDebugLoc(Rem->getDebugLoc());
+  URem->copyDebugLocFrom(Rem);
   LLVM_DEBUG(dbgs() << "INDVARS: Simplified srem: " << *Rem << '\n');
   ++NumSimplifiedSRem;
   Changed = true;
@@ -361,11 +361,11 @@ void SimplifyIndvar::replaceRemWithNumeratorOrZero(BinaryOperator *Rem) {
   auto *T = Rem->getType();
   auto *N = Rem->getOperand(0), *D = Rem->getOperand(1);
   ICmpInst *ICmp = new ICmpInst(Rem->getIterator(), ICmpInst::ICMP_EQ, N, D);
-  ICmp->setDebugLoc(Rem->getDebugLoc());
+  ICmp->copyDebugLocFrom(Rem);
   SelectInst *Sel =
       SelectInst::Create(ICmp, ConstantInt::get(T, 0), N, "iv.rem", Rem->getIterator());
   Rem->replaceAllUsesWith(Sel);
-  Sel->setDebugLoc(Rem->getDebugLoc());
+  Sel->copyDebugLocFrom(Rem);
   LLVM_DEBUG(dbgs() << "INDVARS: Simplified rem: " << *Rem << '\n');
   ++NumElimRem;
   Changed = true;
@@ -450,7 +450,7 @@ bool SimplifyIndvar::eliminateOverflowIntrinsic(WithOverflowInst *WO) {
       else {
         assert(EVI->getIndices()[0] == 0 && "Only two possibilities!");
         EVI->replaceAllUsesWith(NewResult);
-        NewResult->setDebugLoc(EVI->getDebugLoc());
+        NewResult->copyDebugLocFrom(EVI);
       }
       ToDelete.push_back(EVI);
     }
@@ -480,7 +480,7 @@ bool SimplifyIndvar::eliminateSaturatingIntrinsic(SaturatingInst *SI) {
     BO->setHasNoUnsignedWrap();
 
   SI->replaceAllUsesWith(BO);
-  BO->setDebugLoc(SI->getDebugLoc());
+  BO->copyDebugLocFrom(SI);
   DeadInsts.emplace_back(SI);
   Changed = true;
   return true;
@@ -2122,7 +2122,7 @@ PHINode *WidenIV::createWideIV(SCEVExpander &Rewriter) {
       auto *OrigInc =
           cast<Instruction>(OrigPhi->getIncomingValueForBlock(LatchBlock));
 
-      WideInc->setDebugLoc(OrigInc->getDebugLoc());
+      WideInc->copyDebugLocFrom(OrigInc);
       // We are replacing a narrow IV increment with a wider IV increment. If
       // the original (narrow) increment did not wrap, the wider increment one
       // should not wrap either. Set the flags to be the union of both wide

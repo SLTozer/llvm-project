@@ -128,7 +128,7 @@ WebAssemblyDebugValueManager::getSinkableDebugValues(
   for (auto *DV : DbgValuesInBetween) {
     if (!llvm::is_contained(DbgValues, DV)) {
       DebugVariable Var(DV->getDebugVariable(), DV->getDebugExpression(),
-                        DV->getDebugLoc()->getInlinedAt());
+                        DV->getDebugLoc().getInlinedAt());
       SeenDbgVarToDbgValues[Var].push_back(DV);
     }
   }
@@ -146,7 +146,7 @@ WebAssemblyDebugValueManager::getSinkableDebugValues(
   MachineRegisterInfo &MRI = Def->getParent()->getParent()->getRegInfo();
   for (auto *DV : DbgValues) {
     DebugVariable Var(DV->getDebugVariable(), DV->getDebugExpression(),
-                      DV->getDebugLoc()->getInlinedAt());
+                      DV->getDebugLoc().getInlinedAt());
     auto It = SeenDbgVarToDbgValues.find(Var);
     if (It == SeenDbgVarToDbgValues.end()) {
       SinkableDbgValues.push_back(DV);

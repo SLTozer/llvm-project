@@ -1225,7 +1225,7 @@ bool HexagonPostRAHandleQFP::HandleMultiReachingDefs() {
                    ReachDefInstr->dump());
 
         auto *MBB = ReachDefInstr->getParent();
-        auto &dl = ReachDefInstr->getDebugLoc();
+        auto dl = ReachDefInstr->getDebugLoc();
         auto NextReachMI = ++ReachDefInstr->getIterator();
         auto DefOp = ReachDefInstr->getOperand(0);
         Register OpReg = DefOp.getReg();
@@ -1362,7 +1362,7 @@ bool HexagonPostRAHandleQFP::HandleReachDefOfCopies() {
   MachineInstrBuilder MIB;
   for (auto It : ReachDefOfCopies) {
     auto *MBB = It.first->getParent();
-    auto &dl = It.first->getDebugLoc();
+    auto dl = It.first->getDebugLoc();
     auto NextMI = ++(It.first)->getIterator();
     auto RegOp = It.first->getOperand(0);
     Register OpReg = RegOp.getReg();

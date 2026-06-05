@@ -346,14 +346,14 @@ llvm::UnrollAndJamLoop(Loop *L, unsigned Count, unsigned TripCount,
     for (BasicBlock *BB : L->getBlocks())
       for (Instruction &I : *BB)
         if (!I.isDebugOrPseudoInst())
-          if (const DILocation *DIL = I.getDebugLoc()) {
-            auto NewDIL = DIL->cloneByMultiplyingDuplicationFactor(Count);
+          if (DebugLoc DIL = I.getDebugLoc()) {
+            auto NewDIL = DIL.cloneByMultiplyingDuplicationFactor(Count);
             if (NewDIL)
               I.setDebugLoc(*NewDIL);
             else
               LLVM_DEBUG(dbgs()
                          << "Failed to create new discriminator: "
-                         << DIL->getFilename() << " Line: " << DIL->getLine());
+                         << DIL.getFilename() << " Line: " << DIL.getLine());
           }
 
   // Copy all blocks

@@ -220,7 +220,7 @@ protected:
     F->setSubprogram(SP);
     auto Scope = DIB.createLexicalBlockFile(SP, File, 0);
     DIB.finalize();
-    DL = DILocation::get(Ctx, 3, 7, Scope);
+    DL = DebugLoc::get(Ctx, 3, 7, Scope);
   }
 
   void TearDown() override {
@@ -7216,7 +7216,7 @@ TEST_F(OpenMPIRBuilderTest, DebugRecordLoc) {
         DISubprogram::SPFlagDefinition | DISubprogram::SPFlagOptimized);
     OutlinedFn = CodeGenIP.getBlock()->getParent();
     OutlinedFn->setSubprogram(SP);
-    DebugLoc Loc = DILocation::get(Ctx, 3, 7, SP);
+    DebugLoc Loc = DebugLoc::get(Ctx, 3, 7, SP);
     DIType *VoidPtrTy =
         DIB.createQualifiedType(dwarf::DW_TAG_pointer_type, nullptr);
     // The location of this variable is in the CapturedArgs so it will get the
@@ -7246,7 +7246,7 @@ TEST_F(OpenMPIRBuilderTest, DebugRecordLoc) {
         Ctx, {dwarf::DW_OP_LLVM_arg, 0, dwarf::DW_OP_LLVM_arg, 1,
               dwarf::DW_OP_plus, dwarf::DW_OP_stack_value});
     auto *MultiDVR =
-        new DbgVariableRecord(ArgList, VarMulti, MultiExpr, Loc.get(),
+        new DbgVariableRecord(ArgList, VarMulti, MultiExpr, Loc,
                               DbgVariableRecord::LocationType::Value);
     Builder.GetInsertBlock()->insertDbgRecordBefore(MultiDVR,
                                                     Builder.GetInsertPoint());

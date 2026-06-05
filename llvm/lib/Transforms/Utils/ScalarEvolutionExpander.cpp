@@ -1408,7 +1408,7 @@ Value *SCEVExpander::visitAddRecExpr(SCEVUseT<const SCEVAddRecExpr *> S) {
         Instruction *Add = BinaryOperator::CreateAdd(CanonicalIV, One,
                                                      "indvar.next",
                                                      HP->getTerminator()->getIterator());
-        Add->setDebugLoc(HP->getTerminator()->getDebugLoc());
+        Add->copyDebugLocFrom(HP->getTerminator());
         rememberInstruction(Add);
         CanonicalIV->addIncoming(Add, HP);
       } else {

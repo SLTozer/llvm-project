@@ -16,6 +16,7 @@
 #include "llvm/IR/AttributeMask.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -93,6 +94,23 @@ const Function *Instruction::getFunction() const {
 
 const DataLayout &Instruction::getDataLayout() const {
   return getModule()->getDataLayout();
+}
+
+DebugLoc Instruction::getDebugLoc() const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  if (!DbgLoc)
+    return DebugLoc();
+  return DebugLoc(DbgLoc, getFLMDForInstruction(this));
+#else
+  return DebugLoc(DbgLoc);
+#endif
+}
+DebugLoc Instruction::getDebugLoc(const Function *ContextFunction) const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  return DebugLoc(DbgLoc, getFLMDForFunction(ContextFunction));
+#else
+  return DebugLoc(DbgLoc);
+#endif
 }
 
 void Instruction::removeFromParent() {
@@ -1383,7 +1401,7 @@ bool Instruction::isDebugOrPseudoInst() const {
   return isa<DbgInfoIntrinsic>(this) || isa<PseudoProbeInst>(this);
 }
 
-const DebugLoc &Instruction::getStableDebugLoc() const {
+DebugLoc Instruction::getStableDebugLoc() const {
   return getDebugLoc();
 }
 
@@ -1505,7 +1523,7 @@ void Instruction::swapProfMetadata() {
 void Instruction::copyMetadata(const Instruction &SrcInst,
                                ArrayRef<unsigned> WL) {
   if (WL.empty() || is_contained(WL, LLVMContext::MD_dbg))
-    setDebugLoc(SrcInst.getDebugLoc().orElse(getDebugLoc()));
+    copyDebugLocFromIfPresent(&SrcInst);
 
   if (!SrcInst.hasMetadata())
     return;

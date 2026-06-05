@@ -42,6 +42,7 @@
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalAlias.h"
 #include "llvm/IR/GlobalIFunc.h"
 #include "llvm/IR/GlobalObject.h"
@@ -110,6 +111,34 @@ static cl::opt<bool> PreserveAssemblyUseListOrder(
 static cl::opt<bool> PrintAddrspaceName("print-addrspace-name", cl::Hidden,
                                         cl::init(false),
                                         cl::desc("Print address space names"));
+
+namespace {
+enum class PrintFLMDMode {
+  Off = 0,
+  Normal = 1,
+  Resolved = 2
+};
+} // namespace
+
+static cl::opt<PrintFLMDMode> PrintFLMD(
+    "print-flmd",
+    cl::desc("If set, debug locations will be printed as function-local "
+             "metadata attachments; otherwise they will be printed as standard "
+             "global metadata."),
+    cl::ValueOptional,
+    cl::init(PrintFLMDMode::Normal), // FIXME: Switch to "off" once we're done testing
+    cl::values(
+        clEnumValN(PrintFLMDMode::Off, "off",
+          "Print global metadata only (default)."),
+        clEnumValN(PrintFLMDMode::Normal, "normal",
+          "Print function-local metadata in its normal state, using indexes "
+          "to reference most data."),
+        clEnumValN(PrintFLMDMode::Resolved, "resolved",
+          "Print function-local metadata while resolving indexes where "
+          "possible to print data in-line."),
+        clEnumValN(PrintFLMDMode::Normal, "", "Same as '--print-flmd=normal'")
+    )
+);
 
 // Make virtual table appear in this compilation unit.
 AssemblyAnnotationWriter::~AssemblyAnnotationWriter() = default;
@@ -1263,8 +1292,6 @@ void SlotTracker::processDbgRecordMetadata(const DbgRecord &DR) {
   } else {
     llvm_unreachable("unsupported DbgRecord kind");
   }
-  if (DR.getDebugLoc())
-    CreateMetadataSlot(DR.getDebugLoc().getAsMDNode());
 }
 
 void SlotTracker::processInstructionMetadata(const Instruction &I) {
@@ -1433,6 +1460,18 @@ void SlotTracker::CreateMetadataSlot(const MDNode *N) {
   for (unsigned i = 0, e = N->getNumOperands(); i != e; ++i)
     if (const auto *Op = dyn_cast_or_null<MDNode>(N->getOperand(i)))
       CreateMetadataSlot(Op);
+
+  // If this is an FLContext, then we have metadata references stored in the
+  // context arrays that must also be added.
+  if (auto *FLContext = dyn_cast<DIFunctionLocalMetadata>(N)) {
+    assert(FLContext && FLContext->isResolved());
+    for (FLScope Scope : FLContext->Scopes) {
+      CreateMetadataSlot(Scope.get());
+    }
+    for (FLInlinedCall InlinedCall : FLContext->InlinedCalls) {
+      CreateMetadataSlot(InlinedCall.InlineeFLMD);
+    }
+  }
 }
 
 void SlotTracker::CreateAttributeSetSlot(AttributeSet AS) {
@@ -1910,6 +1949,8 @@ struct MDFieldPrinter {
                           bool ShouldSkipZero = true);
   template <class IntTy>
   void printInt(StringRef Name, IntTy Int, bool ShouldSkipZero = true);
+  template <class IntTy>
+  void printIntArray(StringRef Name, ArrayRef<IntTy> Ints, bool ShouldSkipEmpty = true);
   void printAPInt(StringRef Name, const APInt &Int, bool IsUnsigned,
                   bool ShouldSkipZero);
   void printBool(StringRef Name, bool Value,
@@ -2001,6 +2042,17 @@ void MDFieldPrinter::printInt(StringRef Name, IntTy Int, bool ShouldSkipZero) {
     return;
 
   Out << FS << Name << ": " << Int;
+}
+template <class IntTy>
+void MDFieldPrinter::printIntArray(StringRef Name, ArrayRef<IntTy> Ints, bool ShouldSkipEmpty) {
+  if (ShouldSkipEmpty && Ints.empty())
+    return;
+
+  ListSeparator AS;
+  Out << FS << Name << ": " << "[";
+  for (IntTy Int : Ints)
+    Out << AS << Int;
+  Out << "]";
 }
 
 void MDFieldPrinter::printAPInt(StringRef Name, const APInt &Int,
@@ -2111,9 +2163,112 @@ static void writeGenericDINode(raw_ostream &Out, const GenericDINode *N,
   Out << ")";
 }
 
+static void writeFLSrcLoc(raw_ostream &Out, FLSrcLoc SrcLoc, AsmWriterContext &WriterCtx) {
+  Out << "  (line: " << SrcLoc.Line;
+  if (SrcLoc.Column)
+    Out << ", column: " << SrcLoc.Column;
+  Out << ", scope: " << SrcLoc.ScopeIdx.get() << ")";
+}
+static void writeFLInlinedCall(raw_ostream &Out, FLInlinedCall InlinedCall, AsmWriterContext &WriterCtx) {
+  Out << "  (srcLoc: " << InlinedCall.SrcLocIdx.get();
+  if (InlinedCall.InlinedAtIdx)
+    Out << ", inlinedAt: " << InlinedCall.InlinedAtIdx.get();
+  if (InlinedCall.MaxAtomGroup)
+    Out << ", maxAtomGroup: " << InlinedCall.MaxAtomGroup;
+  Out << ", inlineeFLMD: ";
+  writeMetadataAsOperand(Out, InlinedCall.InlineeFLMD, WriterCtx);
+  Out << ")";
+}
+static void writeFLLoop(raw_ostream &Out, FLLoop Loop, AsmWriterContext &WriterCtx) {
+  Out << "  (properties: ";
+  writeMetadataAsOperand(Out, Loop.getProperties().get(), WriterCtx);
+  if (Loop.StartSrcLocIdx)
+    Out << ", startSrcLoc: " << Loop.StartSrcLocIdx.get();
+  if (Loop.StartInlinedAtIdx)
+    Out << ", startInlinedAt: " << Loop.StartInlinedAtIdx.get();
+  if (Loop.EndSrcLocIdx)
+    Out << ", endSrcLoc: " << Loop.EndSrcLocIdx.get();
+  if (Loop.EndInlinedAtIdx)
+    Out << ", endInlinedAt: " << Loop.EndInlinedAtIdx.get();
+  Out << ")";
+}
+
+static void writeDIFunctionLocalMetadata(raw_ostream &Out, const DIFunctionLocalMetadata *FLMD,
+                                         AsmWriterContext &WriterCtx) {
+  Out << "!DIFunctionLocalMetadata(";
+  ListSeparator LS;
+  // Print each kind of FLMD, with each entry on a separate line.
+  if (FLMD->Scopes.size()) {
+    Out << LS << "scopes: [\n";
+    for (auto [Index, Scope] : enumerate(FLMD->Scopes)) {
+      Out << "  ";
+      writeMetadataAsOperand(Out, Scope, WriterCtx);
+      Out << ", ; " << Index << "\n";
+    }
+    Out << "]";
+  }
+  if (FLMD->SrcLocs.size()) {
+    Out << LS << "srcLocs: [\n";
+    for (auto [Index, SrcLoc] : enumerate(FLMD->SrcLocs)) {
+      writeFLSrcLoc(Out, SrcLoc, WriterCtx);
+      Out << ", ; " << Index << "\n";
+    }
+    Out << "]";
+  }
+  if (FLMD->InlinedCalls.size()) {
+    Out << LS << "inlinedCalls: [\n";
+    for (auto [Index, InlinedCall] : enumerate(FLMD->InlinedCalls)) {
+      writeFLInlinedCall(Out, InlinedCall, WriterCtx);
+      Out << ", ; " << Index << "\n";
+    }
+    Out << "]";
+  }
+  if (FLMD->Loops.size()) {
+    Out << LS << "loops: [\n";
+    for (auto [Index, Loop] : enumerate(FLMD->Loops)) {
+      writeFLLoop(Out, Loop, WriterCtx);
+      Out << ", ; " << Index << "\n";
+    }
+    Out << "]";
+  }
+  Out << ")";
+}
+
+static void writeFLDebugLoc(raw_ostream &Out, FLDebugLoc DL, AsmWriterContext &WriterCtx) {
+  Out << "!!dbgLoc(";
+  MDFieldPrinter Printer(Out, WriterCtx);
+  Printer.printInt("srcLoc", DL.SrcLocIdx.get(), false);
+  if (DL.InlinedAtIdx)
+    Printer.printInt("inlinedAt", DL.InlinedAtIdx.get(), false);
+  if (DL.AtomGroup != 0)
+    Printer.printIntArray<uint16_t>("atom", {DL.AtomGroup, DL.AtomRank});
+  Out << ")";
+}
+
 static void writeDILocation(raw_ostream &Out, const DILocation *DL,
                             AsmWriterContext &WriterCtx) {
   Out << "!DILocation(";
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  if (PrintFLMD == PrintFLMDMode::Normal) {
+    DebugLoc DbgLoc = DL->getAsDebugLoc();
+    Out << "dbgLoc: ";
+    // TODO: Switch behaviour here depending on flag settings.
+    writeFLDebugLoc(Out, DbgLoc.getUnderlyingStorage(), WriterCtx);
+    Out << ", fnContext: ";
+    writeMetadataAsOperand(Out, DbgLoc.getFLContext(), WriterCtx);
+  } else {
+    MDFieldPrinter Printer(Out, WriterCtx);
+    // Always output the line, since 0 is a relevant and important value for it.
+    Printer.printInt("line", DL->getLine(), /* ShouldSkipZero */ false);
+    Printer.printInt("column", DL->getColumn());
+    Printer.printMetadata("scope", DL->getRawScope(), /* ShouldSkipNull */ false);
+    Printer.printMetadata("inlinedAt", DL->getRawInlinedAt());
+    Printer.printBool("isImplicitCode", DL->isImplicitCode(),
+                      /* Default */ false);
+    Printer.printInt("atomGroup", DL->getAtomGroup());
+    Printer.printInt<unsigned>("atomRank", DL->getAtomRank());
+  }
+#else
   MDFieldPrinter Printer(Out, WriterCtx);
   // Always output the line, since 0 is a relevant and important value for it.
   Printer.printInt("line", DL->getLine(), /* ShouldSkipZero */ false);
@@ -2124,6 +2279,7 @@ static void writeDILocation(raw_ostream &Out, const DILocation *DL,
                     /* Default */ false);
   Printer.printInt("atomGroup", DL->getAtomGroup());
   Printer.printInt<unsigned>("atomRank", DL->getAtomRank());
+#endif
   Out << ")";
 }
 
@@ -4883,7 +5039,22 @@ void AssemblyWriter::printInstruction(const Instruction &I) {
 
   // Print Metadata info.
   SmallVector<std::pair<unsigned, MDNode *>, 4> InstMD;
-  I.getAllMetadata(InstMD);
+  if (auto DL = I.getDebugLoc()) {
+    if (PrintFLMD == PrintFLMDMode::Normal) {
+      // Print !!dbgLoc
+      Out << ", ";
+#if LLVM_USE_FLMD_SOURCE_LOCS
+      auto Context = getContext();
+      writeFLDebugLoc(Out, I.getDebugLocStorage().get(), Context);
+#else
+      llvm_unreachable("TODO");
+#endif
+    } else {
+      InstMD.push_back({LLVMContext::MD_dbg, DL.getAsDILocation()});
+    }
+  }
+  I.getAllMetadataOtherThanDebugLoc(InstMD);
+
   printMetadataAttachments(InstMD, ", ");
 
   // Print a nice comment.
@@ -4955,7 +5126,11 @@ void AssemblyWriter::printDbgVariableRecord(const DbgVariableRecord &DVR) {
     PrintOrNull(DVR.getRawAddressExpression());
     Out << ", ";
   }
-  PrintOrNull(DVR.getDebugLoc().getAsMDNode());
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  writeFLDebugLoc(Out, DVR.getDebugLoc().getUnderlyingStorage(), WriterCtx);
+#else
+  PrintOrNull(DVR.getDebugLoc().getAsDILocation());
+#endif
   Out << ")";
 }
 
@@ -4973,7 +5148,11 @@ void AssemblyWriter::printDbgLabelRecord(const DbgLabelRecord &Label) {
   Out << "#dbg_label(";
   writeAsOperandInternal(Out, Label.getRawLabel(), WriterCtx, true);
   Out << ", ";
-  writeAsOperandInternal(Out, Label.getDebugLoc(), WriterCtx, true);
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  writeFLDebugLoc(Out, Label.getDebugLoc().getUnderlyingStorage(), WriterCtx);
+#else
+  writeAsOperandInternal(Out, Label.getDebugLoc().getAsDILocation(), WriterCtx, true);
+#endif
   Out << ")";
 }
 

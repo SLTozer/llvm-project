@@ -34,6 +34,8 @@ Align getAlign(const DataLayout &DL, const GlobalVariable *GV) {
 void copyMetadataForWidenedLoad(LoadInst &Dest, const LoadInst &Source) {
   SmallVector<std::pair<unsigned, MDNode *>, 8> MD;
   Source.getAllMetadata(MD);
+  // DebugLocs must be copied separately.
+  Dest.copyDebugLocFromIfPresent(&Source);
   for (const auto [ID, N] : MD) {
     switch (ID) {
     case LLVMContext::MD_dbg:

@@ -393,7 +393,7 @@ void ObjCARCContract::tryToContractReleaseIntoStoreStrong(
   CallInst *StoreStrong = objcarc::createCallInstWithColors(
       Decl, Args, "", Store->getIterator(), BlockColors);
   StoreStrong->setDoesNotThrow();
-  StoreStrong->setDebugLoc(Store->getDebugLoc());
+  StoreStrong->copyDebugLocFrom(Store);
 
   // We can't set the tail flag yet, because we haven't yet determined
   // whether there are any escaping allocas. Remember this call, so that

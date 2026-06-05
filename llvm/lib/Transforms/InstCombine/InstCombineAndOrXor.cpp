@@ -2923,7 +2923,7 @@ Instruction *InstCombinerImpl::matchBSwapOrBitReverse(Instruction &I,
   LastInst->removeFromParent();
 
   for (auto *Inst : Insts) {
-    Inst->setDebugLoc(I.getDebugLoc());
+    Inst->copyDebugLocFrom(&I);
     Worklist.push(Inst);
   }
   return LastInst;

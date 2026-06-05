@@ -100,7 +100,8 @@ void MachineInstr::addImplicitDefUseOperands(MachineFunction &MF) {
 MachineInstr::MachineInstr(MachineFunction &MF, const MCInstrDesc &TID,
                            DebugLoc DL, bool NoImp)
     : MCID(&TID), NumOperands(0), Flags(0), AsmPrinterFlags(0),
-      Opcode(TID.Opcode), DebugInstrNum(0), DbgLoc(std::move(DL)) {
+      Opcode(TID.Opcode), DebugInstrNum(0), DbgLoc(DL.getStorage()) {
+  updateFLContext(DL);
   // Reserve space for the expected number of operands.
   if (unsigned NumOps = MCID->getNumOperands() + MCID->implicit_defs().size() +
                         MCID->implicit_uses().size()) {
@@ -117,8 +118,8 @@ MachineInstr::MachineInstr(MachineFunction &MF, const MCInstrDesc &TID,
 /// uniqueness.
 MachineInstr::MachineInstr(MachineFunction &MF, const MachineInstr &MI)
     : MCID(&MI.getDesc()), NumOperands(0), Flags(0), AsmPrinterFlags(0),
-      Opcode(MI.getOpcode()), DebugInstrNum(0), Info(MI.Info),
-      DbgLoc(MI.getDebugLoc()) {
+      Opcode(MI.getOpcode()), DebugInstrNum(0), Info(MI.Info) {
+  copyDebugLocFrom(&MI);
   CapOperands = OperandCapacity::get(MI.getNumOperands());
   Operands = MF.allocateOperandArray(CapOperands);
 
@@ -758,6 +759,19 @@ bool MachineInstr::isIdenticalTo(const MachineInstr &Other,
     return false;
 
   return true;
+}
+
+
+DebugLoc MachineInstr::getDebugLoc() const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  if (!DbgLoc)
+    return DebugLoc();
+  if (!FLMDContext)
+    const_cast<MachineInstr*>(this)->FLMDContext = getFLMDForFunction(&getMF()->getFunction());
+  return DebugLoc(DbgLoc, FLMDContext);
+#else
+  return DebugLoc(DbgLoc);
+#endif
 }
 
 bool MachineInstr::isEquivalentDbgInstr(const MachineInstr &Other) const {
@@ -2076,7 +2090,7 @@ void MachineInstr::print(raw_ostream &OS, ModuleSlotTracker &MST,
       if (!FirstOp)
         OS << ',';
       OS << " debug-location ";
-      DL->printAsOperand(OS, MST);
+      DL.printAsOperand(OS, MST);
     }
   }
 

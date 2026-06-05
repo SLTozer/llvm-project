@@ -5076,7 +5076,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
   SmallMapVector<std::pair<BasicBlock *, BasicBlock *>, BasicBlock *, 4>
     ConstExprEdgeBBs;
 
-  DebugLoc LastLoc;
+  DbgLocStorage LastLoc;
   auto getLastInstruction = [&]() -> Instruction * {
     if (CurBB && !CurBB->empty())
       return &CurBB->back();
@@ -5246,8 +5246,28 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
           return error("Invalid debug loc record");
       }
 
-      LastLoc = DILocation::get(Scope->getContext(), Line, Col, Scope, IA,
-                                isImplicitCode, AtomGroup, AtomRank);
+      LastLoc = DebugLoc::get(F, Line, Col, Scope, DebugLoc::getFromMDNode(IA),
+                                isImplicitCode, AtomGroup, AtomRank).getStorage();
+      I->setDebugLoc(LastLoc);
+      I = nullptr;
+      continue;
+    }
+
+    // FIXME: Can this be merged with the existing DEBUG_LOC record type, since
+    // it is possible to distinguish them based on their number of records?
+    case bitc::FUNC_CODE_FL_DEBUG_LOC: {
+      I = getLastInstruction();
+      if (!I || Record.size() != 2)
+        return error("Invalid debug loc record");
+
+      unsigned High = Record[0];
+      unsigned Low = Record[1];
+      uint64_t Result = Make_64(High, Low);
+      FLDebugLoc DL = FLDebugLoc::fromRawInt(Result);
+#if LLVM_USE_FLMD_SOURCE_LOCS
+      // TODO: Handle this for non-FLMD builds.
+      LastLoc = DL;
+#endif
       I->setDebugLoc(LastLoc);
       I = nullptr;
       continue;
@@ -6782,10 +6802,18 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       Instruction *Inst = getLastInstruction();
       if (!Inst)
         return error("Invalid dbg record: missing instruction");
-      DILocation *DIL = cast<DILocation>(getFnMetadataByID(Record[0]));
-      DILabel *Label = cast<DILabel>(getFnMetadataByID(Record[1]));
+      
+#if LLVM_USE_FLMD_SOURCE_LOCS
+      unsigned High = Record[0];
+      unsigned Low = Record[1];
+      uint64_t Result = Make_64(High, Low);
+      DbgLocStorage DIL = FLDebugLoc::fromRawInt(Result);
+#else
+      DebugLoc DIL = DebugLoc::getFromDILocation(cast<DILocation>(getFnMetadataByID(Record[0])));
+#endif
+      DILabel *Label = cast<DILabel>(getFnMetadataByID(Record[2]));
       Inst->getParent()->insertDbgRecordBefore(
-          new DbgLabelRecord(Label, DebugLoc(DIL)), Inst->getIterator());
+          new DbgLabelRecord(Label, DIL), Inst->getIterator());
       continue; // This isn't an instruction.
     }
     case bitc::FUNC_CODE_DEBUG_RECORD_VALUE_SIMPLE:
@@ -6814,7 +6842,15 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
       unsigned Slot = 0;
       // Common fields (0-2).
-      DILocation *DIL = cast<DILocation>(getFnMetadataByID(Record[Slot++]));
+
+#if LLVM_USE_FLMD_SOURCE_LOCS
+      unsigned High = Record[Slot++];
+      unsigned Low = Record[Slot++];
+      uint64_t Result = Make_64(High, Low);
+      DbgLocStorage DIL = FLDebugLoc::fromRawInt(Result);
+#else
+      DebugLoc DIL = DebugLoc::getFromDILocation(cast<DILocation>(getFnMetadataByID(Record[Slot++])));
+#endif
       DILocalVariable *Var =
           cast<DILocalVariable>(getFnMetadataByID(Record[Slot++]));
       DIExpression *Expr =

@@ -4862,7 +4862,7 @@ static Value *upgradeAMDGCNIntrinsicCall(StringRef Name, CallBase *CI,
     NewCall->setTailCallKind(cast<CallInst>(CI)->getTailCallKind());
     NewCall->setCallingConv(CI->getCallingConv());
     NewCall->setAttributes(CI->getAttributes());
-    NewCall->setDebugLoc(CI->getDebugLoc());
+    NewCall->copyDebugLocFrom(CI);
     NewCall->copyMetadata(*CI);
     return NewCall;
   };
@@ -4919,7 +4919,7 @@ static Value *upgradeAMDGCNIntrinsicCall(StringRef Name, CallBase *CI,
     NewCall->setTailCallKind(cast<CallInst>(CI)->getTailCallKind());
     NewCall->setCallingConv(CI->getCallingConv());
     NewCall->setAttributes(CI->getAttributes());
-    NewCall->setDebugLoc(CI->getDebugLoc());
+    NewCall->copyDebugLocFrom(CI);
     NewCall->copyMetadata(*CI);
     NewCall->takeName(CI);
     return NewCall;
@@ -5084,7 +5084,7 @@ static void upgradeDbgIntrinsicToDbgRecord(StringRef Name, CallBase *CI) {
         unwrapMAVOp(CI, VarOp), unwrapMAVOp(CI, ExprOp), nullptr, nullptr,
         nullptr);
   }
-  DR->setDebugLoc(CI->getDebugLoc());
+  DR->copyDebugLocFrom(CI);
   assert(DR && "Unhandled intrinsic kind in upgrade to DbgRecord");
   CI->getParent()->insertDbgRecordBefore(DR, CI->getIterator());
 }

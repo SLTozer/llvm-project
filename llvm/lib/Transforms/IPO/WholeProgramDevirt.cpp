@@ -1248,7 +1248,7 @@ void DevirtModule::applySingleImplDevirt(VTableSlotInfo &SlotInfo,
         Function *TrapFn =
             Intrinsic::getOrInsertDeclaration(&M, Intrinsic::debugtrap);
         auto *CallTrap = Builder.CreateCall(TrapFn);
-        CallTrap->setDebugLoc(CB.getDebugLoc());
+        CallTrap->copyDebugLocFrom(&CB);
       }
 
       // If fallback checking or speculative devirtualization are enabled,

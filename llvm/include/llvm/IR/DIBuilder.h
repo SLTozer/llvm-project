@@ -22,6 +22,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/TrackingMDRef.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Compiler.h"
@@ -64,6 +65,17 @@ namespace llvm {
     SmallVector<TrackingMDNodeRef, 4> UnresolvedNodes;
     bool AllowUnresolvedNodes;
 
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    DenseMap<DIFunctionLocalMetadata *, FLMDBuilder> FunctionLocBuilders;
+    /// TODO: Figure out how to use this. Maybe we could actually just create a
+    /// separate FLMD for every inlined instance; it's unlikely that the number
+    /// of cases where a frontend creates repeated inlined instances that
+    /// *could* share a location is large enough for complicated/expensive
+    /// tracking here to be worth it.
+    DenseMap<DISubprogram *, DIFunctionLocalMetadata *> InlinedCallContexts;
+    DenseMap<DIFunctionLocalMetadata *, SmallVector<Function *>> InlinedFunctionContexts;
+#endif
+
     /// Each subprogram's preserved local variables, labels, imported entities,
     /// and types.
     ///
@@ -96,7 +108,7 @@ namespace llvm {
     /// Internal helper with common code used by insertDbg{Value,Addr}Intrinsic.
     Instruction *insertDbgIntrinsic(llvm::Function *Intrinsic, llvm::Value *Val,
                                     DILocalVariable *VarInfo,
-                                    DIExpression *Expr, const DILocation *DL,
+                                    DIExpression *Expr, DebugLoc DL,
                                     InsertPosition InsertPt);
 
   public:
@@ -117,6 +129,20 @@ namespace llvm {
     /// Finalize a specific subprogram - no new variables may be added to this
     /// subprogram afterwards.
     LLVM_ABI void finalizeSubprogram(DISubprogram *SP);
+
+    /// Call when starting to emit instructions with source locations into F;
+    /// returns the context that should be used by DebugLocs in F.
+    /// NB: This should only be used when SP is distinct/a definition, right?
+    DebugLoc::DebugLocContext startFunctionContext(Function *F, DISubprogram *SP);
+    /// Call when creating an inlined function, which may or may not have its
+    /// own function body elsewhere. 
+    /// Returns the InlinedCall DebugLoc that should be used as the InlinedAt
+    /// argument for source locations in this inlined function.
+    DebugLoc addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc CallLoc);
+    /// Call after the last source location for a function has been emitted.
+    /// TODO: Figure out if we really care about normalizing/sorting source
+    /// locations or not; if not, then a lot of this can really be skipped.
+    void finalizeFunctionContext(Function *F);
 
     /// A CompileUnit provides an anchor for all debugging
     /// information generated during this instance of compilation.
@@ -1165,7 +1191,7 @@ namespace llvm {
     /// \param InsertAtEnd Location for the new intrinsic.
     LLVM_ABI DbgInstPtr insertDeclare(llvm::Value *Storage,
                                       DILocalVariable *VarInfo,
-                                      DIExpression *Expr, const DILocation *DL,
+                                      DIExpression *Expr, DebugLoc DL,
                                       BasicBlock *InsertAtEnd);
 
     /// Insert a new llvm.dbg.assign intrinsic call.
@@ -1186,7 +1212,7 @@ namespace llvm {
                                         DILocalVariable *SrcVar,
                                         DIExpression *ValExpr, Value *Addr,
                                         DIExpression *AddrExpr,
-                                        const DILocation *DL);
+                                        DebugLoc DL);
 
     /// Insert a new llvm.dbg.declare intrinsic call.
     /// \param Storage      llvm::Value of the variable
@@ -1196,7 +1222,7 @@ namespace llvm {
     /// \param InsertPt     Location for the new intrinsic.
     LLVM_ABI DbgInstPtr insertDeclare(llvm::Value *Storage,
                                       DILocalVariable *VarInfo,
-                                      DIExpression *Expr, const DILocation *DL,
+                                      DIExpression *Expr, DebugLoc DL,
                                       InsertPosition InsertPt);
 
     /// Insert a new llvm.dbg.declare_value intrinsic call.
@@ -1208,14 +1234,14 @@ namespace llvm {
     LLVM_ABI DbgInstPtr insertDeclareValue(llvm::Value *Storage,
                                            DILocalVariable *VarInfo,
                                            DIExpression *Expr,
-                                           const DILocation *DL,
+                                           DebugLoc DL,
                                            InsertPosition InsertPt);
 
     /// Insert a new llvm.dbg.label intrinsic call.
     /// \param LabelInfo    Label's debug info descriptor.
     /// \param DL           Debug info location.
     /// \param InsertBefore Location for the new intrinsic.
-    LLVM_ABI DbgInstPtr insertLabel(DILabel *LabelInfo, const DILocation *DL,
+    LLVM_ABI DbgInstPtr insertLabel(DILabel *LabelInfo, DebugLoc DL,
                                     InsertPosition InsertPt);
 
     /// Insert a new llvm.dbg.value intrinsic call.
@@ -1227,7 +1253,7 @@ namespace llvm {
     LLVM_ABI DbgInstPtr insertDbgValueIntrinsic(llvm::Value *Val,
                                                 DILocalVariable *VarInfo,
                                                 DIExpression *Expr,
-                                                const DILocation *DL,
+                                                DebugLoc DL,
                                                 InsertPosition InsertPt);
 
     /// Replace the vtable holder in the given type.

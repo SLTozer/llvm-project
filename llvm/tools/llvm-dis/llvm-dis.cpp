@@ -93,7 +93,7 @@ static cl::opt<bool> PrintThinLTOIndexOnly(
 
 static void printDebugLoc(const DebugLoc &DL, formatted_raw_ostream &OS) {
   OS << DL.getLine() << ":" << DL.getCol();
-  if (DILocation *IDL = DL.getInlinedAt()) {
+  if (DebugLoc IDL = DL.getInlinedAt()) {
     OS << "@";
     printDebugLoc(IDL, OS);
   }

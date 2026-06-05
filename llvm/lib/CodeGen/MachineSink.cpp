@@ -579,7 +579,7 @@ bool MachineSinking::PerformSinkAndFold(MachineInstr &MI,
       TII->reMaterialize(*SinkDst->getParent(), InsertPt, DstReg, 0, MI);
       New = &*std::prev(InsertPt);
       if (!New->getDebugLoc())
-        New->setDebugLoc(SinkDst->getDebugLoc());
+        New->copyDebugLocFrom(SinkDst);
 
       // The operand registers of the "sunk" instruction have their live range
       // extended and their kill flags may no longer be correct. Conservatively
@@ -1024,7 +1024,7 @@ void MachineSinking::ProcessDbgInst(MachineInstr &MI) {
   assert(MI.isDebugValue() && "Expected DBG_VALUE for processing");
 
   DebugVariable Var(MI.getDebugVariable(), MI.getDebugExpression(),
-                    MI.getDebugLoc()->getInlinedAt());
+                    MI.getDebugLoc().getInlinedAt());
   bool SeenBefore = SeenDbgVars.contains(Var);
 
   for (MachineOperand &MO : MI.debug_operands()) {

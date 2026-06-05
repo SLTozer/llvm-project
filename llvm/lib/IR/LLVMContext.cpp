@@ -389,3 +389,7 @@ void LLVMContext::updateDILocationAtomGroupWaterline(uint64_t V) {
 uint64_t LLVMContext::incNextDILocationAtomGroup() {
   return pImpl->NextAtomGroup++;
 }
+
+DIFunctionLocalMetadata *LLVMContext::getFLMD(const Metadata *MD) {
+  return pImpl->getFLMD(*this, MD);
+}

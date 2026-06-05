@@ -19,6 +19,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/ilist_node.h"
 #include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/SymbolTableListTraits.h"
 #include "llvm/IR/User.h"
 #include "llvm/IR/Value.h"
@@ -105,7 +106,7 @@ public:
   };
 
 private:
-  DebugLoc DbgLoc;                         // 'dbg' Metadata cache.
+  DbgLocStorage DbgLoc;                         // 'dbg' Metadata cache.
 
   friend class Value;
   /// Index of first metadata attachment in context, or zero.
@@ -460,7 +461,7 @@ public:
   MDNode *getMetadata(unsigned KindID) const {
     // Handle 'dbg' as a special case since it is not stored in the hash table.
     if (KindID == LLVMContext::MD_dbg)
-      return DbgLoc.getAsMDNode();
+      return getDebugLoc().getAsMDNode();
     return hasMetadataOtherThanDebugLoc() ? Value::getMetadataImpl(KindID)
                                           : nullptr;
   }
@@ -540,14 +541,37 @@ public:
   LLVM_ABI bool extractProfTotalWeight(uint64_t &TotalVal) const;
 
   /// Set the debug location information for this instruction.
-  void setDebugLoc(DebugLoc Loc) { DbgLoc = std::move(Loc).getCopied(); }
+  void setDebugLoc(DebugLoc Loc) {
+    DbgLoc = Loc.getStorage();
+  }
+  void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
+  void setDebugLocIfPresent(DebugLoc Loc) {
+    DbgLoc = Loc.getStorage().orElse(DbgLoc);
+  }
+  void setDebugLocIfPresent(DbgLocStorage Loc) { DbgLoc = Loc.orElse(DbgLoc); }
+  void copyDebugLocFrom(const Instruction *Other) {
+    DbgLoc = Other->DbgLoc;
+    
+  }
+  void copyDebugLocFromIfPresent(const Instruction *Other) {
+    DbgLoc = Other->DbgLoc.orElse(DbgLoc);
+  }
 
   /// Return the debug location for this node as a DebugLoc.
-  const DebugLoc &getDebugLoc() const { return DbgLoc; }
+  bool hasDebugLoc() const {
+    return (bool)DbgLoc;
+  }
+  DebugLoc getDebugLoc() const;
+  DbgLocStorage getDebugLocStorage() const { return DbgLoc; }
+  /// Return the debug location for this node as a DebugLoc, using the provided
+  /// Function's FLMD context for FLMD builds. This is only needed, and should
+  /// only be used, for instructions that have not been inserted into a function
+  /// yet.
+  DebugLoc getDebugLoc(const Function *ContextFunction) const;
 
   /// Fetch the debug location for this node, unless this is a debug intrinsic,
   /// in which case fetch the debug location of the next non-debug node.
-  LLVM_ABI const DebugLoc &getStableDebugLoc() const;
+  LLVM_ABI DebugLoc getStableDebugLoc() const;
 
   /// Set or clear the nuw flag on this instruction, which must be an operator
   /// which supports this flag. See LangRef.html for the meaning of this flag.

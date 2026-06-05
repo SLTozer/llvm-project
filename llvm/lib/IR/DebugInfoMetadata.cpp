@@ -13,14 +13,19 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "LLVMContextImpl.h"
 #include "MetadataImpl.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/Dwarf.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 
@@ -56,27 +61,7 @@ DebugVariable::DebugVariable(const DbgVariableRecord *DVR)
 
 DebugVariableAggregate::DebugVariableAggregate(const DbgVariableRecord *DVR)
     : DebugVariable(DVR->getVariable(), std::nullopt,
-                    DVR->getDebugLoc()->getInlinedAt()) {}
-
-DILocation::DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
-                       unsigned Column, uint64_t AtomGroup, uint8_t AtomRank,
-                       ArrayRef<Metadata *> MDs, bool ImplicitCode)
-    : MDNode(C, DILocationKind, Storage, MDs), AtomGroup(AtomGroup),
-      AtomRank(AtomRank) {
-  assert(AtomRank <= 7 && "AtomRank number should fit in 3 bits");
-  if (AtomGroup)
-    C.updateDILocationAtomGroupWaterline(AtomGroup + 1);
-
-  assert((MDs.size() == 1 || MDs.size() == 2) &&
-         "Expected a scope and optional inlined-at");
-  // Set line and column.
-  assert(Column < (1u << 16) && "Expected 16-bit column");
-
-  SubclassData32 = Line;
-  SubclassData16 = Column;
-
-  setImplicitCode(ImplicitCode);
-}
+                    DVR->getDebugLoc().getInlinedAt()) {}
 
 static void adjustColumn(unsigned &Column) {
   // Set to unknown on overflow.  We only have 16 bits to play with here.
@@ -84,60 +69,11 @@ static void adjustColumn(unsigned &Column) {
     Column = 0;
 }
 
-DILocation *DILocation::getImpl(LLVMContext &Context, unsigned Line,
-                                unsigned Column, Metadata *Scope,
-                                Metadata *InlinedAt, bool ImplicitCode,
-                                uint64_t AtomGroup, uint8_t AtomRank,
-                                StorageType Storage, bool ShouldCreate) {
-  // Fixup column.
-  adjustColumn(Column);
 
-  if (Storage == Uniqued) {
-    if (auto *N = getUniqued(Context.pImpl->DILocations,
-                             DILocationInfo::KeyTy(Line, Column, Scope,
-                                                   InlinedAt, ImplicitCode,
-                                                   AtomGroup, AtomRank)))
-      return N;
-    if (!ShouldCreate)
-      return nullptr;
-  } else {
-    assert(ShouldCreate && "Expected non-uniqued nodes to always be created");
-  }
-
-  SmallVector<Metadata *, 2> Ops;
-  Ops.push_back(Scope);
-  if (InlinedAt)
-    Ops.push_back(InlinedAt);
-  return storeImpl(new (Ops.size(), Storage)
-                       DILocation(Context, Storage, Line, Column, AtomGroup,
-                                  AtomRank, Ops, ImplicitCode),
-                   Storage, Context.pImpl->DILocations);
-}
-
-DILocation *DILocation::getMergedLocations(ArrayRef<DILocation *> Locs) {
-  if (Locs.empty())
-    return nullptr;
-  if (Locs.size() == 1)
-    return Locs[0];
-  auto *Merged = Locs[0];
-  for (DILocation *L : llvm::drop_begin(Locs)) {
-    Merged = getMergedLocation(Merged, L);
-    if (Merged == nullptr)
-      break;
-  }
-  return Merged;
-}
-
-static DILexicalBlockBase *cloneAndReplaceParentScope(DILexicalBlockBase *LBB,
-                                                      DIScope *NewParent) {
-  TempMDNode ClonedScope = LBB->clone();
-  cast<DILexicalBlockBase>(*ClonedScope).replaceScope(NewParent);
-  return cast<DILexicalBlockBase>(
-      MDNode::replaceWithUniqued(std::move(ClonedScope)));
-}
 
 using LineColumn = std::pair<unsigned /* Line */, unsigned /* Column */>;
 
+#if !LLVM_USE_FLMD_SOURCE_LOCS
 /// Returns the location of DILocalScope, if present, or a default value.
 static LineColumn getLocalScopeLocationOr(DIScope *S, LineColumn Default) {
   assert(isa<DILocalScope>(S) && "Expected DILocalScope.");
@@ -219,6 +155,80 @@ struct ScopeLocationsMatcher {
     llvm_unreachable("Scopes must not have empty entries.");
   }
 };
+#endif
+
+static DILexicalBlockBase *cloneAndReplaceParentScope(DILexicalBlockBase *LBB,
+                                                      DIScope *NewParent) {
+  TempMDNode ClonedScope = LBB->clone();
+  cast<DILexicalBlockBase>(*ClonedScope).replaceScope(NewParent);
+  return cast<DILexicalBlockBase>(
+      MDNode::replaceWithUniqued(std::move(ClonedScope)));
+}
+
+#if !LLVM_USE_FLMD_SOURCE_LOCS
+DILocation::DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
+                       unsigned Column, uint64_t AtomGroup, uint8_t AtomRank,
+                       ArrayRef<Metadata *> MDs, bool ImplicitCode)
+    : MDNode(C, DILocationKind, Storage, MDs), AtomGroup(AtomGroup),
+      AtomRank(AtomRank) {
+  assert(AtomRank <= 7 && "AtomRank number should fit in 3 bits");
+  if (AtomGroup)
+    C.updateDILocationAtomGroupWaterline(AtomGroup + 1);
+
+  assert((MDs.size() == 1 || MDs.size() == 2) &&
+         "Expected a scope and optional inlined-at");
+  // Set line and column.
+  assert(Column < (1u << 16) && "Expected 16-bit column");
+
+  SubclassData32 = Line;
+  SubclassData16 = Column;
+
+  setImplicitCode(ImplicitCode);
+}
+
+DILocation *DILocation::getImpl(LLVMContext &Context, unsigned Line,
+                                unsigned Column, Metadata *Scope,
+                                Metadata *InlinedAt, bool ImplicitCode,
+                                uint64_t AtomGroup, uint8_t AtomRank,
+                                StorageType Storage, bool ShouldCreate) {
+  // Fixup column.
+  adjustColumn(Column);
+
+  if (Storage == Uniqued) {
+    if (auto *N = getUniqued(Context.pImpl->DILocations,
+                             DILocationInfo::KeyTy(Line, Column, Scope,
+                                                   InlinedAt, ImplicitCode,
+                                                   AtomGroup, AtomRank)))
+      return N;
+    if (!ShouldCreate)
+      return nullptr;
+  } else {
+    assert(ShouldCreate && "Expected non-uniqued nodes to always be created");
+  }
+
+  SmallVector<Metadata *, 2> Ops;
+  Ops.push_back(Scope);
+  if (InlinedAt)
+    Ops.push_back(InlinedAt);
+  return storeImpl(new (Ops.size(), Storage)
+                       DILocation(Context, Storage, Line, Column, AtomGroup,
+                                  AtomRank, Ops, ImplicitCode),
+                   Storage, Context.pImpl->DILocations);
+}
+
+DILocation *DILocation::getMergedLocations(ArrayRef<DILocation *> Locs) {
+  if (Locs.empty())
+    return nullptr;
+  if (Locs.size() == 1)
+    return Locs[0];
+  auto *Merged = Locs[0];
+  for (DILocation *L : llvm::drop_begin(Locs)) {
+    Merged = getMergedLocation(Merged, L);
+    if (Merged == nullptr)
+      break;
+  }
+  return Merged;
+}
 
 DILocation *DILocation::getMergedLocation(DILocation *LocA, DILocation *LocB) {
   if (LocA == LocB)
@@ -412,6 +422,46 @@ DILocation *DILocation::getMergedLocation(DILocation *LocA, DILocation *LocB) {
   return DILocation::get(C, 0, 0, LocA->getScope(), nullptr, false,
                          /*AtomGroup*/ 0, /*AtomRank*/ 0);
 }
+#else
+DILocation *DILocation::getImpl(LLVMContext &Context, FLDebugLoc FLDL,
+                                Metadata *FLContext, StorageType Storage,
+                                bool ShouldCreate) {
+  assert(FLDL && "Tried to 'get' an empty value");
+  if (Storage == Uniqued) {
+    if (auto *N = getUniqued(Context.pImpl->DILocations,
+                             DILocationInfo::KeyTy(FLDL, FLContext)))
+      return N;
+    if (!ShouldCreate)
+      return nullptr;
+  } else {
+    assert(ShouldCreate && "Expected non-uniqued nodes to always be created");
+  }
+
+  return storeImpl(new (1, Storage)
+                       DILocation(Context, Storage, FLDL, FLContext),
+                   Storage, Context.pImpl->DILocations);
+}
+
+DILocation *DILocation::getImpl(LLVMContext &Context, unsigned Line,
+                                unsigned Column, Metadata *Scope,
+                                Metadata *InlinedAt, bool ImplicitCode,
+                                uint64_t AtomGroup, uint8_t AtomRank,
+                                StorageType Storage, bool ShouldCreate) {
+  DILocalScope *LocalScope = dyn_cast_or_null<DILocalScope>(Scope);
+  DILocation *InlinedAtLoc = dyn_cast_or_null<DILocation>(InlinedAt);
+  // Question: how do we replace inlinedAt forward references? This shouldn't be
+  // impossible to resolve, but we need some special storage to track and later
+  // resolve forward references. Performance is not important: this is the "bad"
+  // case, we don't long-term care about the costs of parsing non-FLMD IR into
+  // FLMD storage.
+  assert(LocalScope && (!InlinedAt || InlinedAtLoc) && "TODO: Handle this failstate gracefully.");
+  DIFunctionLocalMetadata *FLContext = Context.getFLMD(LocalScope);
+  DebugLoc DL = DebugLoc::get(DebugLoc::DebugLocContext(FLContext), Line,
+    Column, Scope, InlinedAtLoc->getAsDebugLoc(), ImplicitCode, AtomGroup,
+    AtomRank);
+  return getImpl(Context, DL, Storage, ShouldCreate);
+}
+#endif
 
 std::optional<unsigned>
 DILocation::encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI) {
@@ -454,6 +504,7 @@ void DILocation::decodeDiscriminator(unsigned D, unsigned &BD, unsigned &DF,
   CI = getUnsignedFromPrefixEncoding(
       getNextComponentInDiscriminator(getNextComponentInDiscriminator(D)));
 }
+
 dwarf::Tag DINode::getTag() const { return (dwarf::Tag)SubclassData16; }
 
 DINode::DIFlags DINode::getFlag(StringRef Flag) {
@@ -1510,6 +1561,43 @@ void DISubprogram::cleanupRetainedNodes() {
 
   if (MDs.size() != RetainedNodes->getNumOperands())
     replaceRetainedNodes(MDNode::get(getContext(), MDs));
+}
+
+FLMDBuilder::FLMDBuilder(const DISubprogram *SP) {
+  Scopes.push_back(FLScope{ const_cast<DISubprogram*>(SP) });
+  SrcLocs.push_back(FLSrcLoc(0, 0, 0));
+  SrcLocs.push_back(FLSrcLoc(SP->getLine(), 0, 0));
+  SrcLocs.push_back(FLSrcLoc(SP->getScopeLine(), 0, 0));
+}
+
+FLMDBuilder::FLMDBuilder(const DISubprogram *SP, DIFunctionLocalMetadata *ToClone) {
+  Scopes.push_back(FLScope{ const_cast<DISubprogram*>(SP) });
+  Scopes.append(ToClone->Scopes.begin() + 1, ToClone->Scopes.end());
+  SrcLocs.push_back(FLSrcLoc(0, 0, 0));
+  SrcLocs.push_back(FLSrcLoc(SP->getLine(), 0, 0));
+  SrcLocs.push_back(FLSrcLoc(SP->getScopeLine(), 0, 0));
+  SrcLocs.append(ToClone->SrcLocs.begin() + 3, ToClone->SrcLocs.end());
+  InlinedCalls.append(ToClone->InlinedCalls.begin(), ToClone->InlinedCalls.end());
+  Loops.append(ToClone->Loops.begin(), ToClone->Loops.end());
+}
+
+FLScope::FLScope(DILocalScope *Scope) : Scope(Scope) {
+  assert(!Scope->isTemporary() && Scope->isResolved());
+}
+FLScope::operator DILocalScope*() { return cast<DILocalScope>(Scope); }
+DILocalScope *FLScope::get() { return cast<DILocalScope>(Scope); }
+FLScope::operator const DILocalScope*() const { return cast<DILocalScope>(Scope); }
+const DILocalScope *FLScope::get() const { return cast<DILocalScope>(Scope); }
+FLLoop::FLLoop(FLIndex<uint32_t> StartSrcLocIdx, FLIndex<uint32_t> EndSrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNodeArray Properties)
+    : StartSrcLocIdx(StartSrcLocIdx), EndSrcLocIdx(EndSrcLocIdx), StartInlinedAtIdx(InlinedAtIdx), EndInlinedAtIdx(InlinedAtIdx), Properties(Properties.get()) {}
+
+TempDIFunctionLocalMetadata DIFunctionLocalMetadata::getTemporary(LLVMContext &Context) {
+  return TempDIFunctionLocalMetadata(new (0u, Temporary) DIFunctionLocalMetadata(Context, Temporary));
+}
+DIFunctionLocalMetadata *DIFunctionLocalMetadata::getDistinct(LLVMContext &Context) {
+  DIFunctionLocalMetadata *NewMD = new (0u, Distinct) DIFunctionLocalMetadata(Context, Distinct);
+  NewMD->storeDistinctInContext();
+  return NewMD;
 }
 
 DILexicalBlockBase::DILexicalBlockBase(LLVMContext &C, unsigned ID,

@@ -42,14 +42,14 @@ STATISTIC(NumPHICSEs, "Number of PHI's that got CSE'd");
 /// locations of the original PHI node arguments.
 void InstCombinerImpl::PHIArgMergedDebugLoc(Instruction *Inst, PHINode &PN) {
   auto *FirstInst = cast<Instruction>(PN.getIncomingValue(0));
-  Inst->setDebugLoc(FirstInst->getDebugLoc());
+  Inst->copyDebugLocFrom(FirstInst);
   // We do not expect a CallInst here, otherwise, N-way merging of DebugLoc
   // will be inefficient.
   assert(!isa<CallInst>(Inst));
 
   for (Value *V : drop_begin(PN.incoming_values())) {
     auto *I = cast<Instruction>(V);
-    Inst->applyMergedLocation(Inst->getDebugLoc(), I->getDebugLoc());
+    Inst->applyMergedLocation(Inst->getDebugLoc(PN.getFunction()), I->getDebugLoc(PN.getFunction()));
   }
 }
 

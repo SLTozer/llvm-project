@@ -1692,13 +1692,13 @@ MDNode *Instruction::getMetadataImpl(StringRef Kind) const {
   const LLVMContext &Ctx = getContext();
   unsigned KindID = Ctx.getMDKindID(Kind);
   if (KindID == LLVMContext::MD_dbg)
-    return DbgLoc.getAsMDNode();
+    return getDebugLoc().getAsMDNode();
   return Value::getMetadataImpl(KindID);
 }
 
 void Instruction::eraseMetadataIf(function_ref<bool(unsigned, MDNode *)> Pred) {
-  if (DbgLoc && Pred(LLVMContext::MD_dbg, DbgLoc.getAsMDNode()))
-    DbgLoc = {};
+  if (DbgLoc && Pred(LLVMContext::MD_dbg, getDebugLoc().getAsMDNode()))
+    DbgLoc = DbgLocStorage();
 
   Value::eraseMetadataIf(Pred);
 }
@@ -1754,7 +1754,10 @@ void Instruction::setMetadata(unsigned KindID, MDNode *Node) {
 
   // Handle 'dbg' as a special case since it is not stored in the hash table.
   if (KindID == LLVMContext::MD_dbg) {
-    DbgLoc = DebugLoc(cast_or_null<DILocation>(Node));
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    llvm_unreachable("Should not be using this with FLMD enabled!");
+#endif
+    DbgLoc = DebugLoc::getFromDILocation(cast_or_null<DILocation>(Node)).getStorage();
     return;
   }
 
@@ -1867,10 +1870,8 @@ void Instruction::getAllMetadataImpl(
   Result.clear();
 
   // Handle 'dbg' as a special case since it is not stored in the hash table.
-  if (DbgLoc) {
-    Result.push_back(
-        std::make_pair((unsigned)LLVMContext::MD_dbg, DbgLoc.getAsMDNode()));
-  }
+  // FIXME: Ignore Dbg entirely. We *must* now handle it separately.
+
   Value::getAllMetadata(Result);
 }
 
@@ -1958,7 +1959,19 @@ GlobalObject::VCallVisibility GlobalObject::getVCallVisibility() const {
 }
 
 void Function::setSubprogram(DISubprogram *SP) {
+  // FIXME: We track a context-level mapping from DISubprogram to Function, in
+  // order to be able to map arbitrary DILocations to the sole Function that
+  // it is valid for them to appear in.
+  // NB: The above statement is not fully correct; there is a niche exception
+  // for instructions inlined from a function with debug info to a function
+  // without debug info, because in this case the caller function does not have
+  // a DISubprogram, and thus DILocations can only map to the callee. This
+  // should not be a problem until after we've fixed the need to use this
+  // context map anyway.
+  // getContext().pImpl->unsetFunctionSPMapping(
+  //   dyn_cast_if_present<DISubprogram>(getMetadata(LLVMContext::MD_dbg)), this);
   setMetadata(LLVMContext::MD_dbg, SP);
+  // getContext().pImpl->setFunctionSPMapping(SP, this);
 }
 
 DISubprogram *Function::getSubprogram() const {
