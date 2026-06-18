@@ -22,6 +22,7 @@
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DbgVariableFragmentInfo.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/PseudoProbe.h"
 #include "llvm/Support/Casting.h"
@@ -2636,6 +2637,67 @@ public:
 
   static bool classof(const Metadata *MD) {
     return MD->getMetadataID() == DISubprogramKind;
+  }
+};
+
+
+
+/// Storage class for function-local metadata objects.
+/// TODO: Figure out how to divide this class and the actual FLMD types up among
+/// existing headers.
+class DIFunctionLocalMetadata : public MDNode {
+  friend class LLVMContextImpl;
+  friend class MDNode;
+  SmallVector<FLScope, 0> Scopes;
+  SmallVector<FLSrcLoc, 0> SrcLocs;
+  SmallVector<FLInlinedCall, 0> InlinedCalls;
+  SmallVector<FLLoop, 0> Loops;
+  SmallDenseMap<class Instruction *, uint16_t> InstrLoops;
+
+  DIFunctionLocalMetadata(LLVMContext &C, StorageType Storage);
+  ~DIFunctionLocalMetadata() = default;
+
+public:
+  // FIXME: FLMD is a funny case where it takes no arguments and can only be
+  // created Distinct. Decide later whether this needs to change.
+  static DIFunctionLocalMetadata *getDistinct(LLVMContext &Context);
+
+  FLScope getScope(FLIndex<uint16_t> Idx) {
+    return Scopes[Idx.get()];
+  }
+  FLSrcLoc getSrcLoc(FLIndex<uint32_t> Idx) {
+    return SrcLocs[Idx.get()];
+  }
+  FLInlinedCall getInlinedCall(FLIndex<uint16_t> Idx) {
+    return InlinedCalls[Idx.get()];
+  }
+  FLLoop getLoop(FLIndex<uint32_t> Idx) {
+    return Loops[Idx.get()];
+  }
+
+  FLIndex<uint16_t> getFLScopeIdx(DILocalScope *Scope) {
+    for (uint16_t Idx = 0; Idx < Scopes.size(); ++Idx)
+      if (Scopes[Idx].Scope == Scope)
+        return Idx;
+    Scopes.push_back(FLScope(Scope));
+    return Scopes.size() - 1;
+  }
+
+  FLIndex<uint32_t> getFLSrcLocIdx(uint32_t Line, uint16_t Column, FLIndex<uint16_t> ScopeIdx) {
+    for (uint32_t Idx = 0; Idx < SrcLocs.size(); ++Idx) {
+      FLSrcLoc &SrcLoc = SrcLocs[Idx];
+      if (SrcLoc.Line == Line && SrcLoc.Column == Column && SrcLoc.ScopeIdx == ScopeIdx)
+        return Idx;
+    }
+    SrcLocs.push_back(FLSrcLoc(Line, Column, ScopeIdx));
+    return SrcLocs.size() - 1;
+  }
+  FLIndex<uint32_t> getFLSrcLocIdx(uint32_t Line, uint16_t Column, DILocalScope *Scope) {
+    return getFLSrcLocIdx(Line, Column, getFLScopeIdx(Scope));
+  }
+  FLIndex<uint16_t> addInlinedCall(FLInlinedCall InlinedCall) {
+    InlinedCalls.push_back(InlinedCall);
+    return InlinedCalls.size() - 1;
   }
 };
 

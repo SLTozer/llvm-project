@@ -27,6 +27,7 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CallingConv.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalObject.h"
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/OperandTraits.h"
@@ -62,6 +63,8 @@ class User;
 class BranchProbabilityInfo;
 class BlockFrequencyInfo;
 
+class Function *getFunctionForSP(const DISubprogram *SP);
+
 class LLVM_ABI Function : public GlobalObject, public ilist_node<Function> {
 public:
   using BasicBlockListType = SymbolTableList<BasicBlock>;
@@ -72,6 +75,10 @@ public:
 
   using arg_iterator = Argument *;
   using const_arg_iterator = const Argument *;
+
+  // FIXME: This will be a metadata attachment in time, but while scaffolding
+  // we own it directly.
+  DIFunctionLocalMetadata *FLMD;
 
 private:
   constexpr static HungOffOperandsAllocMarker AllocMarker{};

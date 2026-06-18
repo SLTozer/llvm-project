@@ -19,6 +19,7 @@
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
 #include "llvm/Support/CommandLine.h"
@@ -1509,6 +1510,12 @@ void DISubprogram::cleanupRetainedNodes() {
 
   if (MDs.size() != RetainedNodes->getNumOperands())
     replaceRetainedNodes(MDNode::get(getContext(), MDs));
+}
+
+DIFunctionLocalMetadata *DIFunctionLocalMetadata::getDistinct(LLVMContext &Context) {
+  return storeImpl(
+      new (0u, Distinct) DIFunctionLocalMetadata(Context, Distinct),
+      Distinct, Context.pImpl->DIFunctionLocalMetadatas);
 }
 
 DILexicalBlockBase::DILexicalBlockBase(LLVMContext &C, unsigned ID,

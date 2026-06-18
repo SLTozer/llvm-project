@@ -19,6 +19,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/ilist_node.h"
 #include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/SymbolTableListTraits.h"
 #include "llvm/IR/User.h"
 #include "llvm/IR/Value.h"
@@ -105,7 +106,7 @@ public:
   };
 
 private:
-  DebugLoc DbgLoc;                         // 'dbg' Metadata cache.
+  FLDebugLoc DbgLoc;                         // 'dbg' Metadata cache.
 
   friend class Value;
   /// Index of first metadata attachment in context, or zero.
@@ -459,8 +460,8 @@ public:
   /// If the metadata is not found then return null.
   MDNode *getMetadata(unsigned KindID) const {
     // Handle 'dbg' as a special case since it is not stored in the hash table.
-    if (KindID == LLVMContext::MD_dbg)
-      return DbgLoc.getAsMDNode();
+    assert (KindID != LLVMContext::MD_dbg &&
+            "!dbg metadata for Instructions is no longer accepted.");
     return hasMetadataOtherThanDebugLoc() ? Value::getMetadataImpl(KindID)
                                           : nullptr;
   }
@@ -540,7 +541,10 @@ public:
   LLVM_ABI bool extractProfTotalWeight(uint64_t &TotalVal) const;
 
   /// Set the debug location information for this instruction.
-  void setDebugLoc(DebugLoc Loc) { DbgLoc = std::move(Loc).getCopied(); }
+  void setDebugLoc(DebugLoc Loc) {
+    DbgLoc = std::move(Loc).getCopied();
+  }
+  void setDebugLoc(FLDebugLoc Loc) { DbgLoc = FLDebugLoc; }
 
   /// Return the debug location for this node as a DebugLoc.
   DebugLoc getDebugLoc() const { return DbgLoc; }

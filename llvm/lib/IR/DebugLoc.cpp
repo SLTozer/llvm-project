@@ -10,7 +10,14 @@
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+<<<<<<< HEAD
 #include "llvm/Support/Casting.h"
+=======
+#include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
+#include <cstdint>
+#include <optional>
+>>>>>>> 865c7f45e1d2 (WIP FLMD impl)
 
 using namespace llvm;
 
@@ -42,6 +49,109 @@ void DbgLocOrigin::addTrace() {
 }
 #endif // LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN
 
+<<<<<<< HEAD
+=======
+#if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
+DILocAndCoverageTracking::DILocAndCoverageTracking(const DILocation *L)
+    : TrackingMDNodeRef(const_cast<DILocation *>(L)), DbgLocOrigin(!L),
+      Kind(DebugLocKind::Normal) {}
+#endif // LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
+
+
+// FLIndex<uint16_t> getInlinedCallIdx(uint32_t Line, uint16_t Column, DILocalScope *Scope, FLIndex<uint16_t> InlinedAtIdx, DIFunctionLocalMetadata *OriginalFLMD, DIFunctionLocalMetadata *InlinedAtFLMD) {
+//   // Get srcLocIdx...
+//   FLIndex<uint32_t> SrcLocIdx = OriginalFLMD->getFLSrcLocIdx(Line, Column, Scope);
+//   return InlinedAtFLMD->addInlinedCall(FLInlinedCall {SrcLocIdx, InlinedAtIdx, 0, OriginalFLMD});
+// }
+// FLDebugLoc getDILocationToFLDebugLoc(const DILocation *DIL) {
+//   FLIndex<uint16_t> InlinedAtIdx = getInlinedDILocationToFLIndex(DIL->getInlinedAt());
+//   DILocalScope *OrigScope = DIL->getScope();
+//   DIFunctionLocalMetadata *OrigFLMD = getFunctionForSP(OrigScope->getSubprogram())->FLMD;
+//   FLIndex<uint32_t> SrcLocIdx = OrigFLMD->getFLSrcLocIdx(DIL->getLine(), DIL->getColumn(), OrigScope);
+//   return FLDebugLoc(SrcLocIdx, InlinedAtIdx, DIL->getAtomGroup(), DIL->getAtomRank());
+// }
+
+// DebugLoc DebugLoc::getFromDILocation(const DILocation *DIL) {
+//   FLDebugLoc Loc = getDILocationToFLDebugLoc(DIL);
+//   DIFunctionLocalMetadata *InlinedAtFLMD = getFunctionForSP(DIL->getInlinedAtScope()->getSubprogram())->FLMD;
+//   return DebugLoc()
+// }
+
+// Methods used for transitioning to Function-Local Metadata
+DebugLoc DebugLoc::get(LLVMContext &Context, unsigned Line, unsigned Column,
+                       Metadata *Scope, DebugLoc InlinedAt,
+                       bool ImplicitCode, uint64_t AtomGroup, uint8_t AtomRank) {
+  DIFunctionLocalMetadata *SrcContext = getFunctionForSP(cast<DILocalScope>(Scope)->getSubprogram())->FLMD;
+  DIFunctionLocalMetadata *FLContext = SrcContext;
+  // If we already have an inlinedAt DebugLoc, that will know its storage context.
+  if (InlinedAt)
+    FLContext = InlinedAt.FLContext;
+  FLIndex<uint32_t> SrcLocIdx = SrcContext->getFLSrcLocIdx(Line, Column, cast<DILocalScope>(Scope));
+  
+  
+  return DILocation::get(Context, Line, Column, Scope, InlinedAt.getAsMDNode(), ImplicitCode, AtomGroup, AtomRank);
+}
+DebugLoc DebugLoc::getDistinct(LLVMContext &Context, unsigned Line,
+                               unsigned Column, Metadata *Scope,
+                               DebugLoc InlinedAt, bool ImplicitCode,
+                               uint64_t AtomGroup, uint8_t AtomRank) {
+  
+  // Forward to DILocation::getDistinct
+  return DILocation::getDistinct(Context, Line, Column, Scope, InlinedAt.getAsMDNode(), ImplicitCode, AtomGroup, AtomRank);
+}
+
+static DenseMap<const DILocation *, FLIndex<uint16_t>> InlinedCallLocMap;
+static DenseMap<std::pair<FLIndex<uint16_t>, DIFunctionLocalMetadata*>, const DILocation *> InlinedCallIdxToDILocMap;
+static DenseMap<FLIndex<uint16_t>, uint16_t> MaxAtomMap;
+
+FLIndex<uint16_t> getInlinedDILocationToFLIndex(const DILocation *DIL) {
+  // No inlinedAt -> empty inlinedAt index.
+  if (!DIL)
+    return FLIndex<uint16_t>();
+  assert(DIL->isDistinct());
+  if (auto ExistingIdxIt = InlinedCallLocMap.find(DIL);
+      ExistingIdxIt != InlinedCallLocMap.end())
+    return ExistingIdxIt->second;
+  // Get inlinedAtIdx...
+  FLIndex<uint16_t> InlinedAtIdx = getInlinedDILocationToFLIndex(DIL);
+  // Get srcLocIdx...
+  DILocalScope *OrigScope = DIL->getScope();
+  DIFunctionLocalMetadata *OrigFLMD = getFunctionForSP(OrigScope->getSubprogram())->FLMD;
+  FLIndex<uint32_t> SrcLocIdx = OrigFLMD->getFLSrcLocIdx(DIL->getLine(), DIL->getColumn(), OrigScope);
+  DIFunctionLocalMetadata *InlinedAtFLMD = getFunctionForSP(DIL->getInlinedAtScope()->getSubprogram())->FLMD;
+  FLIndex<uint16_t> NewIdx = InlinedAtFLMD->addInlinedCall(FLInlinedCall {SrcLocIdx, InlinedAtIdx, 0, OrigFLMD});
+  InlinedCallLocMap.insert({DIL, NewIdx});
+  InlinedCallIdxToDILocMap.insert({{NewIdx, InlinedAtFLMD}, DIL});
+  return NewIdx;
+}
+FLDebugLoc getDILocationToFLDebugLoc(const DILocation *DIL) {
+  FLIndex<uint16_t> InlinedAtIdx = getInlinedDILocationToFLIndex(DIL->getInlinedAt());
+  DILocalScope *OrigScope = DIL->getScope();
+  DIFunctionLocalMetadata *OrigFLMD = getFunctionForSP(OrigScope->getSubprogram())->FLMD;
+  FLIndex<uint32_t> SrcLocIdx = OrigFLMD->getFLSrcLocIdx(DIL->getLine(), DIL->getColumn(), OrigScope);
+  return FLDebugLoc(SrcLocIdx, InlinedAtIdx, DIL->getAtomGroup(), DIL->getAtomRank());
+}
+
+DebugLoc DebugLoc::getFromDILocation(const DILocation *DIL) {
+  FLDebugLoc Loc = getDILocationToFLDebugLoc(DIL);
+  DIFunctionLocalMetadata *FLContext = getFunctionForSP(DIL->getInlinedAtScope()->getSubprogram())->FLMD;
+  return DebugLoc(Loc, FLContext);
+}
+
+
+const DILocation *DebugLoc::convertToDILocation() const {
+  if (!*this)
+    return nullptr;
+  if (SelfInlinedCallIdx) {
+    if (auto ExistingDILIt = InlinedCallIdxToDILocMap.find({SelfInlinedCallIdx, FLContext}); ExistingDILIt != InlinedCallIdxToDILocMap.end())
+      return ExistingDILIt->second;
+
+
+  }
+  DILocation *InlinedAt = getInlinedAt().convertToDILocation();
+}
+
+>>>>>>> 865c7f45e1d2 (WIP FLMD impl)
 //===----------------------------------------------------------------------===//
 // DebugLoc Implementation
 //===----------------------------------------------------------------------===//
