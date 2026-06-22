@@ -1057,6 +1057,10 @@ static bool isType(const Metadata *MD) { return !MD || isa<DIType>(MD); }
 static bool isScope(const Metadata *MD) { return !MD || isa<DIScope>(MD); }
 static bool isDINode(const Metadata *MD) { return !MD || isa<DINode>(MD); }
 static bool isMDTuple(const Metadata *MD) { return !MD || isa<MDTuple>(MD); }
+
+void Verifier::visitDIFunctionLocalMetadata(const DIFunctionLocalMetadata &N) {
+}
+
 void Verifier::visitDILocation(const DILocation &N) {
   CheckDI(N.getRawScope() && isa<DILocalScope>(N.getRawScope()),
           "location requires a valid scope", &N, N.getRawScope());

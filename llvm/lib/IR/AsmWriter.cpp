@@ -42,6 +42,7 @@
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalAlias.h"
 #include "llvm/IR/GlobalIFunc.h"
 #include "llvm/IR/GlobalObject.h"
@@ -2110,6 +2111,65 @@ static void writeGenericDINode(raw_ostream &Out, const GenericDINode *N,
   }
   Out << ")";
 }
+
+static void writeDIFunctionLocalMetadata(raw_ostream &Out, const DIFunctionLocalMetadata *FLMD,
+                                         AsmWriterContext &WriterCtx) {
+  Out << "!DIFunctionLocalMetadata(";
+  ListSeparator LS;
+  // Print each kind of FLMD, with each entry on a separate line.
+  if (FLMD->Scopes.size()) {
+    Out << LS << "scopes: [\n";
+    for (auto &Scope : FLMD->Scopes) {
+      Out << "  ";
+      writeMetadataAsOperand(Out, Scope, WriterCtx);
+      Out << ",\n";
+    }
+    Out << "]";
+  }
+  if (FLMD->SrcLocs.size()) {
+    Out << LS << "srcLocs: [\n";
+    for (auto &SrcLoc : FLMD->SrcLocs) {
+      Out << "  (line: " << SrcLoc.Line;
+      if (SrcLoc.Column)
+        Out << ", column: " << SrcLoc.Column;
+      Out << ", scope:" << SrcLoc.ScopeIdx.get() << "),\n";
+    }
+    Out << "]";
+  }
+  if (FLMD->InlinedCalls.size()) {
+    Out << LS << "inlinedCalls: [\n";
+    for (auto &InlinedCall : FLMD->InlinedCalls) {
+      Out << "  (srcLoc: " << InlinedCall.SrcLocIdx.get();
+      if (InlinedCall.InlinedAtIdx)
+        Out << ", inlinedAt: " << InlinedCall.InlinedAtIdx.get();
+      if (InlinedCall.MaxAtomGroup)
+        Out << ", maxAtomGroup: " << InlinedCall.MaxAtomGroup;
+      Out << ", inlineeFLMD: ";
+      writeMetadataAsOperand(Out, InlinedCall.InlineeFLMD, WriterCtx);
+      Out << "),\n";
+    }
+    Out << "]";
+  }
+  if (FLMD->Loops.size()) {
+    Out << LS << "loops: [\n";
+    for (auto &Loop : FLMD->Loops) {
+      Out << "  (properties: ";
+      writeMetadataAsOperand(Out, Loop.getProperties().get(), WriterCtx);
+      if (Loop.StartSrcLocIdx)
+        Out << ", startSrcLoc: " << Loop.StartSrcLocIdx.get();
+      if (Loop.StartInlinedAtIdx)
+        Out << ", startInlinedAt: " << Loop.StartInlinedAtIdx.get();
+      if (Loop.EndSrcLocIdx)
+        Out << ", endSrcLoc: " << Loop.EndSrcLocIdx.get();
+      if (Loop.EndInlinedAtIdx)
+        Out << ", endInlinedAt: " << Loop.EndInlinedAtIdx.get();
+      Out << "),\n";
+    }
+    Out << "]";
+  }
+  Out << ")";
+}
+
 static void writeDILocation(raw_ostream &Out, const DILocation *DL,
                             AsmWriterContext &WriterCtx) {
   Out << "!DILocation(";

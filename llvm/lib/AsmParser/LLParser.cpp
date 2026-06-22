@@ -31,6 +31,7 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalIFunc.h"
 #include "llvm/IR/GlobalObject.h"
 #include "llvm/IR/InlineAsm.h"
@@ -5022,6 +5023,19 @@ template <class FieldTypeA, class FieldTypeB> struct MDEitherFieldImpl {
         WhatIs(IsInvalid) {}
 };
 
+template <class FLMDTy> struct MDFLMDStorageField {
+  SmallVector<FLMDTy> Val;
+  bool Seen;
+
+  void assign(SmallVectorImpl<FLMDTy> &&Val) {
+    Seen = true;
+    this->Val = std::move(Val);
+  }
+
+  explicit MDFLMDStorageField()
+      : Val(), Seen(false) {}
+};
+
 struct MDUnsignedField : public MDFieldImpl<uint64_t> {
   uint64_t Max;
 
@@ -5126,6 +5140,12 @@ struct MDField : public MDFieldImpl<Metadata *> {
   bool AllowNull;
 
   MDField(bool AllowNull = true) : ImplTy(nullptr), AllowNull(AllowNull) {}
+};
+
+struct MDNodeField : public MDFieldImpl<MDNode *> {
+  bool AllowNull;
+
+  MDNodeField(bool AllowNull = true) : ImplTy(nullptr), AllowNull(AllowNull) {}
 };
 
 struct MDStringField : public MDFieldImpl<MDString *> {
@@ -5586,6 +5606,24 @@ bool LLParser::parseMDField(LocTy Loc, StringRef Name, MDBoolField &Result) {
 }
 
 template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name, MDNodeField &Result) {
+  if (Lex.getKind() == lltok::kw_null) {
+    if (!Result.AllowNull)
+      return tokError("'" + Name + "' cannot be null");
+    Lex.Lex();
+    Result.assign(nullptr);
+    return false;
+  }
+
+  MDNode *MD;
+  if (parseMDNode(MD))
+    return true;
+
+  Result.assign(MD);
+  return false;
+}
+
+template <>
 bool LLParser::parseMDField(LocTy Loc, StringRef Name, MDField &Result) {
   if (Lex.getKind() == lltok::kw_null) {
     if (!Result.AllowNull)
@@ -5772,6 +5810,181 @@ bool LLParser::parseSpecializedMDNode(MDNode *&N, bool IsDistinct) {
   } while (false)
 #define GET_OR_DISTINCT(CLASS, ARGS)                                           \
   (IsDistinct ? CLASS::getDistinct ARGS : CLASS::get ARGS)
+
+template <>
+bool LLParser::parseFLMDEntry(LocTy Loc, FLSrcLoc &Result) {
+  if (Lex.getKind() != lltok::FLMDType || Lex.getStrVal() != "srcLoc")
+    return tokError("expected !!srcLoc");
+  Lex.Lex();
+  // Parse !!srcLoc arguments.
+  if (parseToken(lltok::lparen, "expected '(' at start of !!srcLoc"))
+    return true;
+  #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                  \
+    REQUIRED(line, LineField, );                                               \
+    OPTIONAL(column, ColumnField, );                                           \
+    REQUIRED(scopeIdx, MDUnsignedField, (0, UINT16_MAX - 1));
+    PARSE_MD_FIELDS();
+  #undef VISIT_MD_FIELDS
+  if (parseToken(lltok::rparen, "expected ')' at end of !!srcLoc"))
+    return true;
+  Result = FLSrcLoc(line.Val, column.Val, scopeIdx.Val);
+  return false;
+}
+
+template <>
+bool LLParser::parseFLMDEntry(LocTy Loc, FLScope &Result) {
+  if (Lex.getKind() != lltok::FLMDType || Lex.getStrVal() != "scope")
+    return tokError("expected !!scope");
+  Lex.Lex();
+  // Parse !!scope arguments.
+  if (parseToken(lltok::lparen, "expected '(' at start of !!scope"))
+    return true;
+  #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                  \
+    REQUIRED(scope, MDNodeField, (/* AllowNull */ false));
+    PARSE_MD_FIELDS();
+  #undef VISIT_MD_FIELDS
+  if (parseToken(lltok::rparen, "expected ')' at end of !!scope"))
+    return true;
+  Result = FLScope(scope.Val);
+  return false;
+}
+
+template <>
+bool LLParser::parseFLMDEntry(LocTy Loc, FLInlinedCall &Result) {
+  if (Lex.getKind() != lltok::FLMDType || Lex.getStrVal() != "inlinedCall")
+    return tokError("expected !!inlinedCall");
+  Lex.Lex();
+  // Parse !!inlinedCall arguments.
+  if (parseToken(lltok::lparen, "expected '(' at start of !!inlinedCall"))
+    return true;
+  #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                  \
+    REQUIRED(srcLoc, MDUnsignedField, (0, UINT32_MAX - 1));                    \
+    OPTIONAL(inlinedAt, MDUnsignedField, (0, UINT16_MAX - 1));                 \
+    REQUIRED(inlineeFLMD, MDNodeField, (/* AllowNull */ false));
+    PARSE_MD_FIELDS();
+  #undef VISIT_MD_FIELDS
+  if (parseToken(lltok::rparen, "expected ')' at end of !!inlinedCall"))
+    return true;
+  FLIndex<uint16_t> ActualInlinedAt;
+  // There isn't a valid unsigned default value for inlinedAt, so manually check
+  // the 'Seen' field to check whether we want to use it.
+  if (inlinedAt.Seen)
+    ActualInlinedAt = FLIndex<uint16_t>(inlinedAt.Val);
+  Result = FLInlinedCall(srcLoc.Val, ActualInlinedAt, inlineeFLMD.Val);
+  return false;
+}
+
+template <>
+bool LLParser::parseFLMDEntry(LocTy Loc, FLLoop &Result) {
+  if (Lex.getKind() != lltok::FLMDType || Lex.getStrVal() != "loop")
+    return tokError("expected !!loop");
+  Lex.Lex();
+  // Parse !!loop arguments.
+  if (parseToken(lltok::lparen, "expected '(' at start of !!loop"))
+    return true;
+  #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                  \
+    OPTIONAL(start, MDUnsignedField, (0, UINT32_MAX - 1));                     \
+    OPTIONAL(end, MDUnsignedField, (0, UINT16_MAX - 1));                       \
+    OPTIONAL(inlinedAt, MDUnsignedField, (0, UINT16_MAX - 1));                 \
+    REQUIRED(properties, MDNodeField, (/* AllowNull */ false));
+    PARSE_MD_FIELDS();
+  #undef VISIT_MD_FIELDS
+  if (parseToken(lltok::rparen, "expected ')' at end of !!loop"))
+    return true;
+  // There isn't a valid unsigned default value for FLIndex fields, so manually
+  // check the 'Seen' field to check whether we want to use it.
+  FLIndex<uint32_t> ActualStart;
+  if (start.Seen) ActualStart = FLIndex<uint32_t>(start.Val);
+  FLIndex<uint32_t> ActualEnd;
+  if (end.Seen) ActualEnd = FLIndex<uint32_t>(end.Val);
+  FLIndex<uint16_t> ActualInlinedAt;
+  if (inlinedAt.Seen) ActualInlinedAt = FLIndex<uint16_t>(inlinedAt.Val);
+  Result = FLLoop(ActualStart, ActualEnd, ActualInlinedAt, properties.Val);
+  return false;
+}
+
+
+template <class FLMDTy>
+bool LLParser::parseFLMDStorage(LocTy Loc, SmallVectorImpl<FLMDTy> &Result) {
+  if (parseToken(lltok::lsquare, "expected '[' at FLMD storage field"))
+    return true;
+
+  // Empty storage array.
+  if (Lex.getKind() == lltok::rsquare) {
+    Lex.Lex();
+    return false;
+  }
+  FLMDTy NextEntry;
+  if (parseFLMDEntry(Loc, NextEntry))
+    return true;
+  Result.push_back(NextEntry);
+  while(Lex.getKind() != lltok::rsquare) {
+    if (parseToken(lltok::comma, "expected ',' between FLMD storage entries") ||
+        parseFLMDEntry(Loc, NextEntry))
+      return true;
+    Result.push_back(NextEntry);
+  }
+  Lex.Lex();
+  return false;
+}
+
+template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name,
+                            MDFLMDStorageField<FLSrcLoc> &Result) {
+  SmallVector<FLSrcLoc> StorageArray;
+  if (parseFLMDStorage(Loc, StorageArray))
+    return true;
+  Result.assign(std::move(StorageArray));
+  return false;
+}
+template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name,
+                            MDFLMDStorageField<FLScope> &Result) {
+  SmallVector<FLScope> StorageArray;
+  if (parseFLMDStorage(Loc, StorageArray))
+    return true;
+  Result.assign(std::move(StorageArray));
+  return false;
+}
+template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name,
+                            MDFLMDStorageField<FLInlinedCall> &Result) {
+  SmallVector<FLInlinedCall> StorageArray;
+  if (parseFLMDStorage(Loc, StorageArray))
+    return true;
+  Result.assign(std::move(StorageArray));
+  return false;
+}
+template <>
+bool LLParser::parseMDField(LocTy Loc, StringRef Name,
+                            MDFLMDStorageField<FLLoop> &Result) {
+  SmallVector<FLLoop> StorageArray;
+  if (parseFLMDStorage(Loc, StorageArray))
+    return true;
+  Result.assign(std::move(StorageArray));
+  return false;
+}
+
+/// parseDILocationFields:
+///   ::= !DILocation(line: 43, column: 8, scope: !5, inlinedAt: !6,
+///   isImplicitCode: true, atomGroup: 1, atomRank: 1)
+bool LLParser::parseDIFunctionLocalMetadata(MDNode *&Result, bool IsDistinct) {
+#define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                    \
+  OPTIONAL(srcLocs, MDFLMDStorageField<FLSrcLoc>, );                           \
+  OPTIONAL(scopes, MDFLMDStorageField<FLScope>, );                             \
+  OPTIONAL(inlinedCalls, MDFLMDStorageField<FLInlinedCall>, );                 \
+  OPTIONAL(loops, MDFLMDStorageField<FLLoop>, );
+  PARSE_MD_FIELDS();
+#undef VISIT_MD_FIELDS
+
+  DIFunctionLocalMetadata *FLMD = DIFunctionLocalMetadata::getDistinct(Context);
+  FLMD->SrcLocs = std::move(srcLocs.Val);
+  FLMD->Scopes = std::move(scopes.Val);
+  FLMD->InlinedCalls = std::move(inlinedCalls.Val);
+  FLMD->Loops = std::move(loops.Val);
+  Result = FLMD;
+  return false;
+}
 
 /// parseDILocationFields:
 ///   ::= !DILocation(line: 43, column: 8, scope: !5, inlinedAt: !6,

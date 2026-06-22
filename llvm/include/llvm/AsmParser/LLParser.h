@@ -626,6 +626,10 @@ namespace llvm {
     bool parseGlobalObjectMetadataAttachment(GlobalObject &GO);
     bool parseOptionalFunctionMetadata(Function &F);
 
+    template <class FLMDTy>
+    bool parseFLMDEntry(LocTy Loc, FLMDTy &Result);
+    template <class FLMDTy>
+    bool parseFLMDStorage(LocTy Loc, SmallVectorImpl<FLMDTy> &Result);
     template <class FieldTy>
     bool parseMDField(LocTy Loc, StringRef Name, FieldTy &Result);
     template <class FieldTy> bool parseMDField(StringRef Name, FieldTy &Result);

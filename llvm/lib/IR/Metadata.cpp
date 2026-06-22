@@ -1692,13 +1692,13 @@ MDNode *Instruction::getMetadataImpl(StringRef Kind) const {
   const LLVMContext &Ctx = getContext();
   unsigned KindID = Ctx.getMDKindID(Kind);
   if (KindID == LLVMContext::MD_dbg)
-    return DbgLoc.getAsMDNode();
+    return getDebugLoc().getAsMDNode();
   return Value::getMetadataImpl(KindID);
 }
 
 void Instruction::eraseMetadataIf(function_ref<bool(unsigned, MDNode *)> Pred) {
-  if (DbgLoc && Pred(LLVMContext::MD_dbg, DbgLoc.getAsMDNode()))
-    DbgLoc = {};
+  if (DbgLoc && Pred(LLVMContext::MD_dbg, getDebugLoc().getAsMDNode()))
+    DbgLoc = FLDebugLoc();
 
   Value::eraseMetadataIf(Pred);
 }
@@ -1869,7 +1869,7 @@ void Instruction::getAllMetadataImpl(
   // Handle 'dbg' as a special case since it is not stored in the hash table.
   if (DbgLoc) {
     Result.push_back(
-        std::make_pair((unsigned)LLVMContext::MD_dbg, DbgLoc.getAsMDNode()));
+        std::make_pair((unsigned)LLVMContext::MD_dbg, getDebugLoc().getAsMDNode()));
   }
   Value::getAllMetadata(Result);
 }
@@ -1960,7 +1960,7 @@ GlobalObject::VCallVisibility GlobalObject::getVCallVisibility() const {
 // FIXME: Temp SP->Fn lookup, used as scaffolding while implementing FLMD.
 DenseMap<const DISubprogram *, Function *> SPToFunc;
 
-Function *getFunctionForSP(const DISubprogram *SP) {
+Function *Function::getFunctionForSP(const DISubprogram *SP) {
   return SPToFunc.find(SP)->second;
 }
 

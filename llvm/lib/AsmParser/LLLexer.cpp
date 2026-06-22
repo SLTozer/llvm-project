@@ -15,6 +15,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/AsmParser/LLToken.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -450,10 +451,14 @@ lltok::Kind LLLexer::LexQuote() {
 }
 
 /// Lex all tokens that start with a ! character.
+///    !!foo
 ///    !foo
 ///    !
 lltok::Kind LLLexer::LexExclaim() {
   // Lex a metadata name as a MetadataVar.
+  bool IsFLMD = CurPtr[0] == '!';
+  if (IsFLMD)
+    ++CurPtr;
   if (isalpha(static_cast<unsigned char>(CurPtr[0])) ||
       CurPtr[0] == '-' || CurPtr[0] == '$' ||
       CurPtr[0] == '.' || CurPtr[0] == '_' || CurPtr[0] == '\\') {
@@ -463,10 +468,15 @@ lltok::Kind LLLexer::LexExclaim() {
            CurPtr[0] == '.' || CurPtr[0] == '_' || CurPtr[0] == '\\')
       ++CurPtr;
 
-    StrVal.assign(TokStart+1, CurPtr);   // Skip !
+    int VarStartOffset = IsFLMD ? 2 : 1;
+    StrVal.assign(TokStart+VarStartOffset, CurPtr);   // Skip leading !s
     UnEscapeLexed(StrVal);
-    return lltok::MetadataVar;
+    return IsFLMD ? lltok::FLMDType : lltok::MetadataVar;
   }
+  // If IsFLMD but we didn't see an identifier, then this isn't an FLMDType - so
+  // reverse back and just lex the exclaim token.
+  if (IsFLMD)
+    --CurPtr;
   return lltok::exclaim;
 }
 

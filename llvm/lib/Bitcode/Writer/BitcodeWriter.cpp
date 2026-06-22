@@ -41,6 +41,7 @@
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalAlias.h"
 #include "llvm/IR/GlobalIFunc.h"
 #include "llvm/IR/GlobalObject.h"
@@ -338,6 +339,7 @@ private:
   void writeMDTuple(const MDTuple *N, SmallVectorImpl<uint64_t> &Record,
                     unsigned Abbrev);
   unsigned createDILocationAbbrev();
+  void writeDIFunctionLocalMetadata(const DIFunctionLocalMetadata *N, SmallVectorImpl<uint64_t> &Record, unsigned &Abbrev);
   void writeDILocation(const DILocation *N, SmallVectorImpl<uint64_t> &Record,
                        unsigned &Abbrev);
   unsigned createGenericDINodeAbbrev();
@@ -1882,6 +1884,41 @@ void ModuleBitcodeWriter::writeMDTuple(const MDTuple *N,
   Stream.EmitRecord(N->isDistinct() ? bitc::METADATA_DISTINCT_NODE
                                     : bitc::METADATA_NODE,
                     Record, Abbrev);
+  Record.clear();
+}
+
+void ModuleBitcodeWriter::writeDIFunctionLocalMetadata(const DIFunctionLocalMetadata *N,
+                                          SmallVectorImpl<uint64_t> &Record,
+                                          unsigned &Abbrev) {
+  // No abbreviation for this type.
+  const uint64_t Version = 1 << 1;
+  Record.push_back((uint64_t)N->isDistinct() | Version);
+  // Print each array separately, leading with a length-field.
+  // Scopes
+  Record.push_back(N->Scopes.size());
+  for (const FLScope &Scope : N->Scopes)
+    Record.push_back(VE.getMetadataID(Scope.get()));
+  // SrcLocs
+  Record.push_back(N->SrcLocs.size());
+  for (const FLSrcLoc &SrcLoc : N->SrcLocs) {
+    Record.push_back(SrcLoc.asRawInt());
+  }
+  // InlinedCalls
+  Record.push_back(N->InlinedCalls.size());
+  for (const FLInlinedCall &InlinedCall : N->InlinedCalls) {
+    auto [RawInt, MDPtr] = InlinedCall.asRawParts();
+    Record.push_back(RawInt);
+    Record.push_back(VE.getMetadataID(MDPtr));
+  }
+  // Loops
+  Record.push_back(N->Loops.size());
+  for (const FLLoop &Loop : N->Loops) {
+    auto [RawInt1, RawInt2, MDPtr] = Loop.asRawParts();
+    Record.push_back(RawInt1);
+    Record.push_back(RawInt2);
+    Record.push_back(VE.getMetadataID(MDPtr));
+  }
+  Stream.EmitRecord(bitc::METADATA_FLMD, Record, Abbrev);
   Record.clear();
 }
 

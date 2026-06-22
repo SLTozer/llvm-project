@@ -18,6 +18,7 @@
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Type.h"
@@ -1512,10 +1513,28 @@ void DISubprogram::cleanupRetainedNodes() {
     replaceRetainedNodes(MDNode::get(getContext(), MDs));
 }
 
+FLMDBuilder::FLMDBuilder(const DISubprogram *SP) {
+  Scopes.push_back(FLScope{ const_cast<DISubprogram*>(SP) });
+  SrcLocs.push_back(FLSrcLoc(0, 0, 0));
+  SrcLocs.push_back(FLSrcLoc(SP->getLine(), 0, 0));
+  SrcLocs.push_back(FLSrcLoc(SP->getScopeLine(), 0, 0));
+}
+
+FLScope::FLScope(DILocalScope *Scope) : Scope(Scope) {}
+FLScope::operator DILocalScope*() { return cast<DILocalScope>(Scope.get()); }
+DILocalScope *FLScope::get() { return cast<DILocalScope>(Scope.get()); }
+FLScope::operator const DILocalScope*() const { return cast<DILocalScope>(Scope.get()); }
+const DILocalScope *FLScope::get() const { return cast<DILocalScope>(Scope.get()); }
+FLLoop::FLLoop(FLIndex<uint32_t> StartSrcLocIdx, FLIndex<uint32_t> EndSrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNodeArray Properties)
+    : StartSrcLocIdx(StartSrcLocIdx), EndSrcLocIdx(EndSrcLocIdx), StartInlinedAtIdx(InlinedAtIdx), EndInlinedAtIdx(InlinedAtIdx), Properties(Properties.get()) {}
+
+TempDIFunctionLocalMetadata DIFunctionLocalMetadata::getTemporary(LLVMContext &Context) {
+  return TempDIFunctionLocalMetadata(new (0u, Temporary) DIFunctionLocalMetadata(Context, Temporary));
+}
 DIFunctionLocalMetadata *DIFunctionLocalMetadata::getDistinct(LLVMContext &Context) {
-  return storeImpl(
-      new (0u, Distinct) DIFunctionLocalMetadata(Context, Distinct),
-      Distinct, Context.pImpl->DIFunctionLocalMetadatas);
+  DIFunctionLocalMetadata *NewMD = new (0u, Distinct) DIFunctionLocalMetadata(Context, Distinct);
+  NewMD->storeDistinctInContext();
+  return NewMD;
 }
 
 DILexicalBlockBase::DILexicalBlockBase(LLVMContext &C, unsigned ID,

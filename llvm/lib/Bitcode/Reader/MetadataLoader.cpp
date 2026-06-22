@@ -31,6 +31,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalObject.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instruction.h"
@@ -2496,6 +2497,55 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
     }
 
     MetadataList.assignValue(DIArgList::get(Context, Elts), NextMetadataNo);
+    NextMetadataNo++;
+    break;
+  }
+  case bitc::METADATA_FLMD: {
+    IsDistinct = Record[0] & 1;
+    uint64_t Version = Record[0] >> 1;
+    if (!IsDistinct)
+      return error(
+          "Invalid record: DIFunctionLocalMetadata must be distinct");
+    // FLMD comprises 4 arrays with a leading length field.
+    uint64_t CurrentRecord = 1;
+    DIFunctionLocalMetadata *NewFLMD = DIFunctionLocalMetadata::getDistinct(Context);
+    // Scopes
+    uint64_t NumScopes = Record[CurrentRecord++];
+    for (uint64_t ScopeIdx = 0; ScopeIdx < NumScopes; ++ScopeIdx) {
+      uint64_t Scope = Record[CurrentRecord++];
+      if (auto *ScopeNode = dyn_cast<MDNode>(getMD(Scope)))
+        NewFLMD->Scopes.push_back(FLScope(ScopeNode));
+      else
+        return error("Invalid record: FL Scope must be MDNode");
+    }
+    // SrcLocs
+    uint64_t NumSrcLocs = Record[CurrentRecord++];
+    for (uint64_t SrcLocIdx = 0; SrcLocIdx < NumSrcLocs; ++SrcLocIdx) {
+      uint64_t RawInt = Record[CurrentRecord++];
+      NewFLMD->SrcLocs.push_back(FLSrcLoc::fromRawInt(RawInt));
+    }
+    // InlinedCalls
+    uint64_t NumInlinedCalls = Record[CurrentRecord++];
+    for (uint64_t InlinedCallIdx = 0; InlinedCallIdx < NumInlinedCalls; ++InlinedCallIdx) {
+      uint64_t RawInt = Record[CurrentRecord++];
+      uint64_t RawInlinee = Record[CurrentRecord++];
+      DIFunctionLocalMetadata *InlineeFLMD = dyn_cast<DIFunctionLocalMetadata>(getMD(RawInlinee));
+      if (!InlineeFLMD)
+        return error("Invalid record: InlinedAt FLMD must be DIFunctionLocalMetadata");
+      NewFLMD->InlinedCalls.push_back(FLInlinedCall::fromRawParts(RawInt, InlineeFLMD));
+    }
+    // Loops
+    uint64_t NumLoops = Record[CurrentRecord++];
+    for (uint64_t LoopIdx = 0; LoopIdx < NumLoops; ++LoopIdx) {
+      uint64_t RawSrcLocs = Record[CurrentRecord++];
+      uint64_t RawInlinedAts = Record[CurrentRecord++];
+      uint64_t PropertiesID = Record[CurrentRecord++];
+      MDNode *PropertiesNode = dyn_cast<MDNode>(getMD(PropertiesID));
+      if (!PropertiesNode)
+        return error("Invalid record: Loop Properties must be an MDNode");
+      NewFLMD->Loops.push_back(FLLoop::fromRawParts(RawSrcLocs, RawInlinedAts, PropertiesNode));
+    }
+    MetadataList.assignValue(NewFLMD, NextMetadataNo);
     NextMetadataNo++;
     break;
   }
