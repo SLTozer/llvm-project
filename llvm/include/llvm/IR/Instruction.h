@@ -542,12 +542,12 @@ public:
 
   /// Set the debug location information for this instruction.
   void setDebugLoc(DebugLoc Loc) {
-    DbgLoc = std::move(Loc).getCopied();
+    DbgLoc = Loc.getLoc().getCopied();
   }
-  void setDebugLoc(FLDebugLoc Loc) { DbgLoc = FLDebugLoc; }
+  void setDebugLoc(FLDebugLoc FLLoc) { DbgLoc = FLLoc.getCopied(); }
 
   /// Return the debug location for this node as a DebugLoc.
-  DebugLoc getDebugLoc() const { return DbgLoc; }
+  DebugLoc getDebugLoc() const;
 
   /// Fetch the debug location for this node, unless this is a debug intrinsic,
   /// in which case fetch the debug location of the next non-debug node.

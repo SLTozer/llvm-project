@@ -200,6 +200,7 @@ enum {
   LLVMDIAssignIDMetadataKind,
   LLVMDISubrangeTypeMetadataKind,
   LLVMDIFixedPointTypeMetadataKind,
+  LLVMDIFunctionLocalMetadataMetadataKind,
 };
 typedef unsigned LLVMMetadataKind;
 

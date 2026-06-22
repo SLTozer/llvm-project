@@ -63,8 +63,6 @@ class User;
 class BranchProbabilityInfo;
 class BlockFrequencyInfo;
 
-class Function *getFunctionForSP(const DISubprogram *SP);
-
 class LLVM_ABI Function : public GlobalObject, public ilist_node<Function> {
 public:
   using BasicBlockListType = SymbolTableList<BasicBlock>;
@@ -127,6 +125,8 @@ public:
   bool hasLazyArguments() const {
     return getSubclassDataFromValue() & (1<<0);
   }
+  
+  static Function *getFunctionForSP(const DISubprogram *SP);
 
   /// \see BasicBlock::convertToNewDbgValues.
   void convertToNewDbgValues();

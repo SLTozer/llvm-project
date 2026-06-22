@@ -95,6 +95,10 @@ const DataLayout &Instruction::getDataLayout() const {
   return getModule()->getDataLayout();
 }
 
+DebugLoc Instruction::getDebugLoc() const {
+  return DebugLoc(DbgLoc, getFunction()->FLMD);
+}
+
 void Instruction::removeFromParent() {
   // Perform any debug-info maintenence required.
   handleMarkerRemoval();
@@ -1383,7 +1387,9 @@ bool Instruction::isDebugOrPseudoInst() const {
   return isa<DbgInfoIntrinsic>(this) || isa<PseudoProbeInst>(this);
 }
 
-DebugLoc Instruction::getStableDebugLoc() const { return getDebugLoc(); }
+DebugLoc Instruction::getStableDebugLoc() const {
+  return getDebugLoc();
+}
 
 bool Instruction::isAssociative() const {
   if (auto *II = dyn_cast<IntrinsicInst>(this))

@@ -1441,7 +1441,7 @@ static void generateReproducer(CmpInst *Cond, Module *M,
       Old2New[I]->setName(I->getName());
       Cloned->insertBefore(Builder.GetInsertPoint());
       Cloned->dropUnknownNonDebugMetadata();
-      Cloned->setDebugLoc({});
+      Cloned->setDebugLoc(FLDebugLoc());
     }
   };
 
