@@ -135,8 +135,9 @@ public:
   friend struct DenseMapInfo<DebugLoc>;
   friend hash_code hash_value(const DebugLoc &Val);
 
+  DebugLoc() : Loc() {}
   /// Construct from an \a DILocation.
-  DebugLoc(const DILocation *L = nullptr) : Loc(const_cast<DILocation *>(L)) {}
+  DebugLoc(const DILocation *L) : Loc(const_cast<DILocation *>(L)) {}
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
   DebugLoc(DebugLocKind Kind) : Loc(Kind) {}
