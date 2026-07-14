@@ -14,6 +14,7 @@
 #include "FormatvStringCheck.h"
 #include "HeaderGuardCheck.h"
 #include "IncludeOrderCheck.h"
+#include "UseDebugLocOverDILocationChecks.h"
 #include "PreferIsaOrDynCastInConditionalsCheck.h"
 #include "PreferRegisterOverUnsignedCheck.h"
 #include "PreferStaticOverAnonymousNamespaceCheck.h"
@@ -55,6 +56,10 @@ public:
         "llvm-use-new-mlir-op-builder");
     CheckFactories.registerCheck<UseRangesCheck>("llvm-use-ranges");
     CheckFactories.registerCheck<UseVectorUtilsCheck>("llvm-use-vector-utils");
+    // DebugLocFix Checks
+    CheckFactories.registerCheck<UseDebugLocStaticMethodsCheck>("llvm-debug-loc-static-methods");
+    CheckFactories.registerCheck<UseDebugLocVariablesCheck>("llvm-debug-loc-variables");
+    CheckFactories.registerCheck<UseDebugLocDirectMethodsCheck>("llvm-debug-loc-direct-methods");
   }
 
   ClangTidyOptions getModuleOptions() override {
