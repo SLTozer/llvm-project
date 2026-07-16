@@ -6808,11 +6808,12 @@ SanitizerOrdinalToCheckLabel(SanitizerKind::SanitizerOrdinal Ordinal) {
 
   return Label;
 }
-
+using namespace llvm;
 llvm::DILocation *CodeGenFunction::SanitizerAnnotateDebugInfo(
     ArrayRef<SanitizerKind::SanitizerOrdinal> Ordinals,
     SanitizerHandler Handler) {
   llvm::DILocation *CheckDebugLoc = Builder.getCurrentDebugLocation();
+  DILocation *CheckDebugLoc2 = Builder.getCurrentDebugLocation();
   auto *DI = getDebugInfo();
   if (!DI || !CheckDebugLoc)
     return CheckDebugLoc;

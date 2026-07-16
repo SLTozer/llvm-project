@@ -44,6 +44,7 @@
 #include "clang/AST/ExprObjC.h"
 #include "clang/AST/NestedNameSpecifier.h"
 #include "clang/AST/Stmt.h"
+#include "clang/AST/TemplateBase.h"
 #include "clang/AST/TemplateName.h"
 #include "clang/AST/Type.h"
 #include "clang/AST/TypeLoc.h"
@@ -1784,6 +1785,27 @@ public:
 private:
   static DynTypedNode extract(const NestedNameSpecifierLoc &Loc) {
     return DynTypedNode::create(Loc.getNestedNameSpecifier());
+  }
+  static DynTypedNode extract(const TemplateArgumentLoc &Loc) {
+    return DynTypedNode::create(Loc.getArgument());
+  }
+};
+
+class TemplateArgumentLocInnerMatcher : public MatcherInterface<TemplateArgumentLoc> {
+  DynTypedMatcher InnerMatcher;
+
+public:
+  explicit TemplateArgumentLocInnerMatcher(const Matcher<TemplateArgument> &InnerMatcher)
+      : InnerMatcher(InnerMatcher) {}
+
+  bool matches(const TemplateArgumentLoc &Node, ASTMatchFinder *Finder,
+               BoundNodesTreeBuilder *Builder) const override {
+    return this->InnerMatcher.matches(extract(Node), Finder, Builder);
+  }
+
+private:
+  static DynTypedNode extract(const TemplateArgumentLoc &Loc) {
+    return DynTypedNode::create(Loc.getArgument());
   }
 };
 

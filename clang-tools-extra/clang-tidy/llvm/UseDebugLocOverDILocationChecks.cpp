@@ -41,13 +41,22 @@ static RewriteRuleWith<std::string> useDebugLocStaticCalls(bool QualifyDebugLocs
   auto DILocationStaticCallMatch =
     declRefExpr(
       to(functionDecl(IsDILocationMethod, HasReplaceableName)));
+  auto DILocationStaticCallQualifiedMatch =
+    declRefExpr(
+      to(functionDecl(IsDILocationMethod, HasReplaceableName)),
+      hasQualifier(hasPrefix(nestedNameSpecifier(
+        specifiesNamespace(hasName("llvm"))))));
 
-  StringRef DebugLocName = QualifyDebugLocs ? "llvm::DebugLoc::" :  "DebugLoc::";
-
-  return makeRule(
-    DILocationStaticCallMatch.bind("call"),
-    changeTo(node("call"), cat(DebugLocName, name("call"))),
-    cat("use DebugLoc:: methods instead of DILocation::"));
+  return applyFirst({
+    makeRule(
+      DILocationStaticCallQualifiedMatch.bind("call"),
+      changeTo(node("call"), cat("llvm::DebugLoc::", name("call"))),
+      cat("use DebugLoc:: methods instead of DILocation::")),
+    makeRule(
+      DILocationStaticCallMatch.bind("call"),
+      changeTo(node("call"), cat("DebugLoc::", name("call"))),
+      cat("use DebugLoc:: methods instead of DILocation::")),
+    });
 }
 
 // Variables:
@@ -56,18 +65,33 @@ static RewriteRuleWith<std::string> useDebugLocStaticCalls(bool QualifyDebugLocs
 // Action: Replace with non-const DebugLoc-type variable.
 static RewriteRuleWith<std::string> useDebugLocVariables(bool SafeFixesOnly, bool QualifyDebugLocs) {
   auto DILocationVariableMatch = varDecl(
-    hasType(pointsTo(cxxRecordDecl(hasName("::llvm::DILocation"))))
+    hasType(pointsTo(cxxRecordDecl(hasName("::llvm::DILocation")))),
+    unless(isInstantiated())
+  );
+  auto DILocationVariableQualifiedMatch = varDecl(
+    hasTypeLoc(pointerTypeLoc(
+      hasPointeeLoc(typeLoc(
+        loc(qualType(
+          hasDeclaration(cxxRecordDecl(hasName("::llvm::DILocation")))
+        )),
+        hasQualifierLoc(loc(
+            specifiesNamespace(hasName("llvm"))
+        ))
+      ))
+    ))
   );
   auto DILocationFieldMatch = fieldDecl(
-    hasType(pointsTo(cxxRecordDecl(hasName("::llvm::DILocation"))))
+    hasType(pointsTo(cxxRecordDecl(hasName("::llvm::DILocation")))),
+    unless(isInstantiated())
   );
   auto DILocationParamMatch = parmVarDecl(
-    hasType(pointsTo(cxxRecordDecl(hasName("::llvm::DILocation"))))
+    hasType(pointsTo(cxxRecordDecl(hasName("::llvm::DILocation")))),
+    unless(isInstantiated())
   );
 
   StringRef DebugLocName = QualifyDebugLocs ? "llvm::DebugLoc " : "DebugLoc ";
   auto WarnOnly = noopEdit(node("decl"));
-  auto DoEdit = changeTo(node("decl"), cat(DebugLocName, range(before(name("decl")), after(node("decl")))));
+  auto DoEdit = changeTo(node("decl"), cat("DebugLoc ", range(before(name("decl")), after(node("decl")))));
   auto ParamRule = SafeFixesOnly
     ? makeRule(
         DILocationParamMatch.bind("decl"),
@@ -81,8 +105,12 @@ static RewriteRuleWith<std::string> useDebugLocVariables(bool SafeFixesOnly, boo
   return applyFirst({
     ParamRule,
     makeRule(
+      DILocationVariableQualifiedMatch.bind("decl"),
+      changeTo(node("decl"), cat("llvm::DebugLoc ", range(before(name("decl")), after(node("decl"))))),
+      cat("use DebugLoc variables instead of DILocation*")),
+    makeRule(
       DILocationVariableMatch.bind("decl"),
-      DoEdit,
+      changeTo(node("decl"), cat("DebugLoc ", range(before(name("decl")), after(node("decl"))))),
       cat("use DebugLoc variables instead of DILocation*")),
     makeRule(
       DILocationFieldMatch.bind("decl"),
@@ -97,49 +125,57 @@ static RewriteRuleWith<std::string> useDebugLocVariables(bool SafeFixesOnly, boo
 //         If SafeFixesOnly, then only non-nested uses in non-parameter
 //         variables or fields are changed; others are warnings only.
 static RewriteRuleWith<std::string> useDebugLocTemplateVariables(bool SafeFixesOnly, bool QualifyDebugLocs) {
+  auto IsTemplateSpecializationWithArgument = [](auto InnerMatcher) -> auto {
+    return hasTypeLoc(templateSpecializationTypeLoc(
+      hasAnyTemplateArgumentLoc(InnerMatcher)));
+  };
+  auto DILocTemplateArg = templateArgumentLoc(
+    hasTypeLoc(loc(qualType(
+      pointsTo(cxxRecordDecl(
+        hasName("::llvm::DILocation")))))));
   auto DILocationVariableTemplVarMatch = varDecl(
     hasTypeLoc(templateSpecializationTypeLoc(
+      hasAnyTemplateArgumentLoc(DILocTemplateArg.bind("templateArg"))
+    )),
+    unless(isInstantiated())
+  );
+  auto DILocationVariableTemplVarMatch2 = varDecl(
+    hasTypeLoc(templateSpecializationTypeLoc(
       hasAnyTemplateArgumentLoc(templateArgumentLoc(
-        hasTypeLoc(loc(qualType(              
-          pointsTo(cxxRecordDecl(
-            hasName("::llvm::DILocation"))))))).bind("templateArg")))),
-    unless(parmVarDecl())
+        hasTypeLoc(templateSpecializationTypeLoc(
+          hasAnyTemplateArgumentLoc(DILocTemplateArg.bind("templateArg"))
+        ))
+      ))
+    )),
+    unless(isInstantiated())
   );
   auto DILocationVariableTemplFieldMatch = fieldDecl(
     hasTypeLoc(templateSpecializationTypeLoc(
-      hasAnyTemplateArgumentLoc(templateArgumentLoc(
-        hasTypeLoc(loc(qualType(              
-          pointsTo(cxxRecordDecl(
-            hasName("::llvm::DILocation"))))))).bind("templateArg"))))
+      hasAnyTemplateArgumentLoc(DILocTemplateArg.bind("templateArg")))),
+    unless(isInstantiated())
   );
-  auto DILocationVariableTemplAnyMatch = templateArgumentLoc(
-    hasTypeLoc(loc(qualType(              
-      pointsTo(cxxRecordDecl(
-        hasName("::llvm::DILocation"))))))).bind("templateArg");
+  auto DILocationVariableTemplFieldMatch2 = fieldDecl(
+    hasTypeLoc(templateSpecializationTypeLoc(
+      hasAnyTemplateArgumentLoc(templateArgumentLoc(
+        hasTypeLoc(templateSpecializationTypeLoc(
+          hasAnyTemplateArgumentLoc(DILocTemplateArg.bind("templateArg"))
+        ))
+      ))
+    )),
+    unless(isInstantiated())
+  );
 
-  StringRef DebugLocName = QualifyDebugLocs ? "llvm::DebugLoc " : "DebugLoc ";
+  StringRef DebugLocName = QualifyDebugLocs ? "llvm::DebugLoc" : "DebugLoc";
   auto DoEdit = changeTo(node("templateArg"), cat(DebugLocName));
-  auto WarnOnly = noopEdit(node("templateArg"));
-  auto AnyRule = SafeFixesOnly
-    ? makeRule(
-        DILocationVariableTemplAnyMatch,
-        WarnOnly,
-        cat("use DebugLoc variables instead of DILocation*"))
-    : makeRule(
-        DILocationVariableTemplAnyMatch,
-        DoEdit,
-        cat("use DebugLoc variables instead of DILocation*"));
+  auto Message = cat(
+    "prefer DebugLoc variables instead of DILocation*; see issue #XXXXXXX"
+  );
 
   return applyFirst({
-    makeRule(
-      DILocationVariableTemplVarMatch,
-      DoEdit,
-      cat("use DebugLoc variables instead of DILocation*")),
-    makeRule(
-      DILocationVariableTemplFieldMatch,
-      DoEdit,
-      cat("use DebugLoc variables instead of DILocation*")),
-    AnyRule,
+    makeRule(DILocationVariableTemplVarMatch, DoEdit, Message),
+    makeRule(DILocationVariableTemplVarMatch2, DoEdit, Message),
+    makeRule(DILocationVariableTemplFieldMatch, DoEdit, Message),
+    makeRule(DILocationVariableTemplFieldMatch2, DoEdit, Message),
   });
 }
 

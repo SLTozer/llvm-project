@@ -59,6 +59,7 @@
 #include "clang/AST/ExprObjC.h"
 #include "clang/AST/LambdaCapture.h"
 #include "clang/AST/NestedNameSpecifier.h"
+#include "clang/AST/NestedNameSpecifierBase.h"
 #include "clang/AST/OpenMPClause.h"
 #include "clang/AST/OperationKinds.h"
 #include "clang/AST/ParentMapContext.h"
@@ -580,6 +581,15 @@ extern const internal::VariadicAllOfMatcher<TemplateArgument> templateArgument;
 ///   matches 'int' in C<int>.
 extern const internal::VariadicAllOfMatcher<TemplateArgumentLoc>
     templateArgumentLoc;
+
+/// Matches \c NestedNameSpecifierLocs for which the given inner
+/// NestedNameSpecifier-matcher matches.
+AST_MATCHER_FUNCTION_P_OVERLOAD(
+    internal::BindableMatcher<TemplateArgumentLoc>, loc,
+    internal::Matcher<TemplateArgument>, InnerMatcher, 2) {
+  return internal::BindableMatcher<TemplateArgumentLoc>(
+      new internal::TemplateArgumentLocInnerMatcher(InnerMatcher));
+}
 
 /// Matches template name.
 ///
@@ -7715,10 +7725,26 @@ extern const AstTypeMatcher<TagType> tagType;
 ///
 /// \c elaboratedType(hasQualifier(hasPrefix(specifiesNamespace(hasName("N"))))
 /// matches the type of the variable declaration of \c d.
-AST_MATCHER_P(Type, hasQualifier, internal::Matcher<NestedNameSpecifier>,
-              InnerMatcher) {
-  if (NestedNameSpecifier Qualifier = Node.getPrefix())
-    return InnerMatcher.matches(Qualifier, Finder, Builder);
+namespace internal {
+  inline NestedNameSpecifier getNestedNameSpecifier(const Type &Node) {
+    return Node.getPrefix();
+  }
+  inline NestedNameSpecifier getNestedNameSpecifier(const DeclRefExpr &Node) {
+    return Node.getQualifier();
+  }
+} // namespace internal
+AST_POLYMORPHIC_MATCHER_P(
+    hasQualifier,
+    AST_POLYMORPHIC_SUPPORTED_TYPES(Type, DeclRefExpr),
+    internal::Matcher<NestedNameSpecifier>, InnerMatcher) {
+  NestedNameSpecifier Qualifier = internal::getNestedNameSpecifier(Node);
+  return Qualifier ? InnerMatcher.matches(Qualifier, Finder, Builder) : false;
+}
+
+AST_MATCHER_P(TypeLoc, hasQualifierLoc,
+              internal::Matcher<NestedNameSpecifierLoc>, InnerMatcher) {
+  if (auto QualifierLoc = Node.getPrefix())
+    return InnerMatcher.matches(QualifierLoc, Finder, Builder);
 
   return false;
 }

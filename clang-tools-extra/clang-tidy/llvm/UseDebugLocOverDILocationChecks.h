@@ -28,6 +28,14 @@ private:
 };
 /// - Replace DILocation* local and member variable types with DebugLocs,
 ///   including template parameters.
+/// TODO: We want to replace everything outside of a few specific locations in
+///       the initial migration, but long-term we want to retain the ability to
+///       manually specify DILocation variables as long as they're being used
+///       appropriately; therefore, it may be preferable to make this check less
+///       aggressive, only converting variables that are *initialized* by
+///       DebugLocs, and relying on manual intervention (aided by the deprecated
+///       implicit conversions) to handle the remaining cases. Alternatively, we
+///       could make the aggressive-version a separate or option-enabled check.
 class UseDebugLocVariablesCheck : public utils::TransformerClangTidyCheck {
 public:
   UseDebugLocVariablesCheck(StringRef Name, ClangTidyContext *Context);
@@ -49,6 +57,12 @@ public:
     return LangOpts.CPlusPlus;
   }
 };
+
+/// TODO: add checks for fixing up:
+///       DebugLoc DL = cast<DILocation>(...) ->
+///         DebugLoc DL = DebugLoc::getFromMD(cast<DILocation>(...))
+///       DebugLoc DL = nullptr ->
+///         DebugLoc DL = DebugLoc()
 
 } // namespace clang::tidy::llvm_check
 
