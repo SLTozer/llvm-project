@@ -544,8 +544,8 @@ Value *Mapper::mapValue(const Value *V) {
 
 void Mapper::remapDbgRecord(DbgRecord &DR) {
   // Remap DILocations.
-  auto *MappedDILoc = mapMetadata(DR.getDebugLoc());
-  DR.setDebugLoc(DebugLoc(cast<DILocation>(MappedDILoc)));
+  auto *MappedDILoc = mapMetadata(DR.getDebugLoc().getAsMDNode());
+  DR.setDebugLoc(DebugLoc::getFromDILocation(cast<DILocation>(MappedDILoc)));
 
   if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
     // Remap labels.
@@ -1326,7 +1326,7 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
   if (!AtomGroup)
     return;
 
-  auto R = VM.AtomMap.find({DL->getInlinedAt(), AtomGroup});
+  auto R = VM.AtomMap.find({DL.getInlinedAt().getAsMDNode(), AtomGroup});
   if (R == VM.AtomMap.end())
     return;
   AtomGroup = R->second;

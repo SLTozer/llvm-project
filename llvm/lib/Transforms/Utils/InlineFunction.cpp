@@ -1935,8 +1935,8 @@ static bool allocaWouldBeStaticInEntry(const AllocaInst *AI ) {
 static DebugLoc inlineDebugLoc(DebugLoc OrigDL, DILocation *InlinedAt,
                                LLVMContext &Ctx,
                                DenseMap<const MDNode *, MDNode *> &IANodes) {
-  auto IA = DebugLoc::appendInlinedAt(OrigDL, InlinedAt, Ctx, IANodes);
-  return DILocation::get(Ctx, OrigDL.getLine(), OrigDL.getCol(),
+  auto IA = DebugLoc::appendInlinedAt(OrigDL, InlinedAt.getAsDILocation(), Ctx, IANodes);
+  return DebugLoc::get(Ctx, OrigDL.getLine(), OrigDL.getCol(),
                          OrigDL.getScope(), IA, OrigDL.isImplicitCode(),
                          OrigDL->getAtomGroup(), OrigDL->getAtomRank());
 }
@@ -1979,8 +1979,8 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
     // reference inlined-at locations.
     auto updateLoopInfoLoc = [&Ctx, &InlinedAtNode,
                               &IANodes](Metadata *MD) -> Metadata * {
-      if (auto *Loc = dyn_cast_or_null<DILocation>(MD))
-        return inlineDebugLoc(Loc, InlinedAtNode, Ctx, IANodes).get();
+      if (DebugLoc Loc = DebugLoc::getFromDILocation(dyn_cast_or_null<DILocation>(MD)))
+        return inlineDebugLoc(Loc, InlinedAtNode, Ctx, IANodes).getAsMDNode();
       return MD;
     };
     updateLoopMetadataDebugLocations(I, updateLoopInfoLoc);

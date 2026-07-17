@@ -1001,7 +1001,7 @@ TEST(CloneFunction, CloneFunctionWithInlinedSubprograms) {
       ClonedFunc->begin()->begin()->getDbgRecordRange().begin();
   const DebugLoc &DbgLoc = DbgDeclareI->getDebugLoc();
   const DebugLoc &ClonedDbgLoc = ClonedDbgDeclareI->getDebugLoc();
-  EXPECT_NE(DbgLoc.get(), ClonedDbgLoc.get());
+  EXPECT_NE(DbgLoc, ClonedDbgLoc);
   EXPECT_EQ(cast<DILexicalBlock>(DbgLoc.getScope()),
             cast<DILexicalBlock>(ClonedDbgLoc.getScope()));
 }
@@ -1356,7 +1356,7 @@ TEST_F(CloneInstruction, cloneKeyInstructions) {
 
 #define EXPECT_ATOM(Inst, G)                                                   \
   EXPECT_TRUE(Inst->getDebugLoc());                                            \
-  EXPECT_EQ(Inst->getDebugLoc()->getAtomGroup(), uint64_t(G));
+  EXPECT_EQ(Inst->getDebugLoc().getAtomGroup(), uint64_t(G));
 
   Function *F = M->getFunction("test");
   BasicBlock *BB = &*F->begin();

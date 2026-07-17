@@ -65,23 +65,23 @@ DebugLoc DebugLoc::getFromMDNode(const MDNode *MD) {
 }
 
 unsigned DebugLoc::getLine() const {
-  assert(get() && "Expected valid DebugLoc");
-  return get()->getLine();
+  assert(Loc && "Expected valid DebugLoc");
+  return Loc->getLine();
 }
 
 unsigned DebugLoc::getCol() const {
-  assert(get() && "Expected valid DebugLoc");
-  return get()->getColumn();
+  assert(Loc && "Expected valid DebugLoc");
+  return Loc->getColumn();
 }
 
 DILocalScope *DebugLoc::getScope() const {
-  assert(get() && "Expected valid DebugLoc");
-  return get()->getScope();
+  assert(Loc && "Expected valid DebugLoc");
+  return Loc->getScope();
 }
 
-DILocation *DebugLoc::getInlinedAt() const {
-  assert(get() && "Expected valid DebugLoc");
-  return get()->getInlinedAt();
+DebugLoc DebugLoc::getInlinedAt() const {
+  assert(Loc && "Expected valid DebugLoc");
+  return DebugLoc::getFromDILocation(Loc->getInlinedAt());
 }
 
 DILocalScope *DebugLoc::getInlinedAtScope() const {
@@ -111,8 +111,9 @@ void DebugLoc::setImplicitCode(bool ImplicitCode) {
 }
 
 DebugLoc DebugLoc::replaceInlinedAtSubprogram(
-    const DebugLoc &RootLoc, DISubprogram &NewSP, LLVMContext &Ctx,
+    const DebugLoc &RootLocDL, DISubprogram &NewSP, LLVMContext &Ctx,
     DenseMap<const MDNode *, MDNode *> &Cache) {
+  DILocation *RootLoc = RootLocDL.getAsDILocation();
   SmallVector<DILocation *> LocChain;
   DILocation *CachedResult = nullptr;
 
@@ -147,7 +148,7 @@ DebugLoc DebugLoc::replaceInlinedAtSubprogram(
     Cache[LocToUpdate] = UpdatedLoc;
   }
 
-  return UpdatedLoc;
+  return DebugLoc::getFromDILocation(UpdatedLoc);
 }
 
 DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
@@ -177,7 +178,7 @@ DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
     Cache[MD] = Last = DILocation::getDistinct(
         Ctx, MD->getLine(), MD->getColumn(), MD->getScope(), Last);
 
-  return Last;
+  return DebugLoc::getFromDILocation(Last);
 }
 
 DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
@@ -239,30 +240,30 @@ void DebugLoc::print(raw_ostream &OS) const {
 }
 
 void DebugLoc::print(raw_ostream &OS, const Module *M, bool IsForDebug) const {
-  return get()->print(OS, M, IsForDebug);
+  return Loc->print(OS, M, IsForDebug);
 }
 void DebugLoc::print(raw_ostream &OS, ModuleSlotTracker &MST, const Module *M,
                      bool IsForDebug) const {
-  return get()->print(OS, MST, M, IsForDebug);
+  return Loc->print(OS, MST, M, IsForDebug);
 }
 void DebugLoc::printAsOperand(raw_ostream &OS, const Module *M) const {
-  return get()->printAsOperand(OS, M);
+  return Loc->printAsOperand(OS, M);
 }
 void DebugLoc::printAsOperand(raw_ostream &OS, ModuleSlotTracker &MST,
                      const Module *M) const {
-  return get()->printAsOperand(OS, MST, M);
+  return Loc->printAsOperand(OS, MST, M);
 }
 bool DebugLoc::isDistinct() const {
-  return get()->isDistinct();
+  return Loc->isDistinct();
 }
 
 LLVMContext &DebugLoc::getContext() const { return Loc->getContext(); }
 
 uint64_t DebugLoc::getAtomGroup() const {
-  return get()->getAtomGroup();
+  return Loc->getAtomGroup();
 }
 uint8_t DebugLoc::getAtomRank() const {
-  return get()->getAtomRank();
+  return Loc->getAtomRank();
 }
 
 DebugLoc DebugLoc::getWithoutAtom() const {
@@ -270,28 +271,28 @@ DebugLoc DebugLoc::getWithoutAtom() const {
 }
 
 StringRef DebugLoc::getSubprogramLinkageName() const {
-  return get()->getSubprogramLinkageName();
+  return Loc->getSubprogramLinkageName();
 }
 
 DIFile *DebugLoc::getFile() const {
-  return get()->getFile();
+  return Loc->getFile();
 }
 StringRef DebugLoc::getFilename() const {
-  return get()->getFilename();
+  return Loc->getFilename();
 }
 StringRef DebugLoc::getDirectory() const {
-  return get()->getDirectory();
+  return Loc->getDirectory();
 }
 std::optional<StringRef> DebugLoc::getSource() const {
-  return get()->getSource();
+  return Loc->getSource();
 }
 
 DebugLoc DebugLoc::getInlinedAtLocation() const {
-  return get()->getInlinedAtLocation();
+  return DebugLoc::getFromDILocation(Loc->getInlinedAtLocation());
 }
 
 unsigned DebugLoc::getDiscriminator() const {
-  return get()->getDiscriminator();
+  return Loc->getDiscriminator();
 }
 
 /// Returns a new DebugLoc with updated \p Discriminator.
@@ -305,7 +306,7 @@ DebugLoc DebugLoc::cloneWithDiscriminator(unsigned Discriminator) const {
 /// If the discriminator cannot be encoded, the function returns std::nullopt.
 std::optional<DebugLoc>
 DebugLoc::cloneWithBaseDiscriminator(unsigned BD) const {
-  std::optional<const DILocation*> DL = get()->cloneWithBaseDiscriminator(BD);
+  std::optional<const DILocation*> DL = Loc->cloneWithBaseDiscriminator(BD);
   if (DL)
     return DebugLoc::getFromDILocation(*DL);
   return std::nullopt;
@@ -314,17 +315,17 @@ DebugLoc::cloneWithBaseDiscriminator(unsigned BD) const {
 /// Returns the duplication factor stored in the discriminator, or 1 if no
 /// duplication factor (or 0) is encoded.
 unsigned DebugLoc::getDuplicationFactor() const {
-  return get()->getDuplicationFactor();
+  return Loc->getDuplicationFactor();
 }
 
 /// Returns the copy identifier stored in the discriminator.
 unsigned DebugLoc::getCopyIdentifier() const {
-  return get()->getCopyIdentifier();
+  return Loc->getCopyIdentifier();
 }
 
 /// Returns the base discriminator stored in the discriminator.
 unsigned DebugLoc::getBaseDiscriminator() const {
-  return get()->getBaseDiscriminator();
+  return Loc->getBaseDiscriminator();
 }
 
 /// Returns a new DebugLoc with duplication factor \p DF * current
@@ -333,17 +334,17 @@ unsigned DebugLoc::getBaseDiscriminator() const {
 /// Returns std::nullopt if encoding failed.
 std::optional<DebugLoc>
 DebugLoc::cloneByMultiplyingDuplicationFactor(unsigned DF) const {
-  std::optional<const DILocation*> DL = get()->cloneByMultiplyingDuplicationFactor(DF);
+  std::optional<const DILocation*> DL = Loc->cloneByMultiplyingDuplicationFactor(DF);
   if (DL)
     return DebugLoc::getFromDILocation(*DL);
   return std::nullopt;
 }
 
 Metadata *DebugLoc::getRawScope() const {
-  return get()->getRawScope();
+  return Loc->getRawScope();
 }
 Metadata *DebugLoc::getRawInlinedAt() const {
-  return get()->getRawInlinedAt();
+  return Loc->getRawInlinedAt();
 }
 
 bool DebugLoc::isPseudoProbeDiscriminator(unsigned Discriminator) {

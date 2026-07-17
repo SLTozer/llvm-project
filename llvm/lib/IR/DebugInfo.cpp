@@ -987,8 +987,9 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
           MDNode *InlinedAt = DL.getInlinedAt();
           Scope = remap(Scope);
           InlinedAt = remap(InlinedAt);
-          return DILocation::get(M.getContext(), DL.getLine(), DL.getCol(),
-                                 Scope, InlinedAt);
+          return DebugLoc::get(
+            M.getContext(), DL.getLine(), DL.getCol(), Scope,
+            DebugLoc::getFromDILocation(cast_or_null<DILocation>(InlinedAt)));
         };
 
         if (I.getDebugLoc() != DebugLoc())
@@ -998,7 +999,7 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
         updateLoopMetadataDebugLocations(I, [&](Metadata *MD) -> Metadata * {
           // NOLINTNEXTLINE(llvm-debug-loc-*)
           if (auto *Loc = dyn_cast_or_null<DILocation>(MD))
-            return remapDebugLoc(Loc).get();
+            return remapDebugLoc(DebugLoc::getFromDILocation(Loc)).getAsDILocation();
           return MD;
         });
 
@@ -1875,7 +1876,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDeclareRecordBefore(
     LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMValueRef Instr) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDeclare(
       unwrap(Storage), unwrap<DILocalVariable>(VarInfo),
-      unwrap<DIExpression>(Expr), unwrap<DILocation>(DL),
+      unwrap<DIExpression>(Expr), DebugLoc::getFromDILocation(unwrap<DILocation>(DL)),
       Instr ? InsertPosition(unwrap<Instruction>(Instr)->getIterator())
             : nullptr);
   // This assert will fail if the module is in the old debug info format.
@@ -1893,7 +1894,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDeclareRecordAtEnd(
     LLVMMetadataRef Expr, LLVMMetadataRef DL, LLVMBasicBlockRef Block) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDeclare(
       unwrap(Storage), unwrap<DILocalVariable>(VarInfo),
-      unwrap<DIExpression>(Expr), unwrap<DILocation>(DL), unwrap(Block));
+      unwrap<DIExpression>(Expr), DebugLoc::getFromDILocation(unwrap<DILocation>(DL)), unwrap(Block));
   // This assert will fail if the module is in the old debug info format.
   // This function should only be called if the module is in the new
   // debug info format.
@@ -1909,7 +1910,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDbgValueRecordBefore(
     LLVMMetadataRef Expr, LLVMMetadataRef DebugLoc, LLVMValueRef Instr) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDbgValueIntrinsic(
       unwrap(Val), unwrap<DILocalVariable>(VarInfo), unwrap<DIExpression>(Expr),
-      unwrap<DILocation>(DebugLoc),
+      DebugLoc::getFromDILocation(unwrap<DILocation>(DebugLoc)),
       Instr ? InsertPosition(unwrap<Instruction>(Instr)->getIterator())
             : nullptr);
   // This assert will fail if the module is in the old debug info format.
@@ -1927,7 +1928,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertDbgValueRecordAtEnd(
     LLVMMetadataRef Expr, LLVMMetadataRef DebugLoc, LLVMBasicBlockRef Block) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertDbgValueIntrinsic(
       unwrap(Val), unwrap<DILocalVariable>(VarInfo), unwrap<DIExpression>(Expr),
-      unwrap<DILocation>(DebugLoc),
+      DebugLoc::getFromDILocation(unwrap<DILocation>(DebugLoc)),
       Block ? InsertPosition(unwrap(Block)->end()) : nullptr);
   // This assert will fail if the module is in the old debug info format.
   // This function should only be called if the module is in the new
@@ -1995,7 +1996,7 @@ LLVMMetadataRef LLVMInstructionGetDebugLoc(LLVMValueRef Inst) {
 
 void LLVMInstructionSetDebugLoc(LLVMValueRef Inst, LLVMMetadataRef Loc) {
   if (Loc)
-    unwrap<Instruction>(Inst)->setDebugLoc(DebugLoc(unwrap<DILocation>(Loc)));
+    unwrap<Instruction>(Inst)->setDebugLoc(DebugLoc::getFromDILocation(unwrap<DILocation>(Loc)));
   else
     unwrap<Instruction>(Inst)->setDebugLoc(DebugLoc());
 }
@@ -2016,7 +2017,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertLabelBefore(LLVMDIBuilderRef Builder,
                                                 LLVMMetadataRef Location,
                                                 LLVMValueRef InsertBefore) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertLabel(
-      unwrapDI<DILabel>(LabelInfo), unwrapDI<DILocation>(Location),
+      unwrapDI<DILabel>(LabelInfo), DebugLoc::getFromDILocation(unwrapDI<DILocation>(Location)),
       InsertBefore
           ? InsertPosition(unwrap<Instruction>(InsertBefore)->getIterator())
           : nullptr);
@@ -2035,7 +2036,7 @@ LLVMDbgRecordRef LLVMDIBuilderInsertLabelAtEnd(LLVMDIBuilderRef Builder,
                                                LLVMMetadataRef Location,
                                                LLVMBasicBlockRef InsertAtEnd) {
   DbgInstPtr DbgInst = unwrap(Builder)->insertLabel(
-      unwrapDI<DILabel>(LabelInfo), unwrapDI<DILocation>(Location),
+      unwrapDI<DILabel>(LabelInfo), DebugLoc::getFromDILocation(unwrapDI<DILocation>(Location)),
       InsertAtEnd ? InsertPosition(unwrap(InsertAtEnd)->end()) : nullptr);
   // This assert will fail if the module is in the old debug info format.
   // This function should only be called if the module is in the new

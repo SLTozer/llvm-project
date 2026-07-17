@@ -52,7 +52,7 @@ void llvm::mapAtomInstance(const DebugLoc &DL, ValueToValueMapTy &VMap) {
 
   // Try inserting a new entry. If there's already a mapping for this atom
   // then there's nothing to do.
-  auto [It, Inserted] = VMap.AtomMap.insert({{DL.getInlinedAt(), CurGroup}, 0});
+  auto [It, Inserted] = VMap.AtomMap.insert({{DL.getInlinedAt().getAsMDNode(), CurGroup}, 0});
   if (!Inserted)
     return;
 

@@ -1196,7 +1196,7 @@ bool MIParser::parse(MachineInstr *&MI) {
     } else {
       return error("expected a metadata node after 'debug-location'");
     }
-    DebugLocation = DebugLoc(dyn_cast<DILocation>(Node));
+    DebugLocation = DebugLoc::getFromDILocation(dyn_cast<DILocation>(Node));
     if (!DebugLocation)
       return error("referenced metadata is not a DILocation");
   }

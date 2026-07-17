@@ -1754,7 +1754,7 @@ void Instruction::setMetadata(unsigned KindID, MDNode *Node) {
 
   // Handle 'dbg' as a special case since it is not stored in the hash table.
   if (KindID == LLVMContext::MD_dbg) {
-    DbgLoc = DebugLoc(cast_or_null<DILocation>(Node));
+    DbgLoc = DebugLoc::getFromDILocation(cast_or_null<DILocation>(Node));
     return;
   }
 

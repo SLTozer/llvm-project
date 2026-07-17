@@ -1471,8 +1471,8 @@ TEST_F(DILocationTest, Merge) {
   }
 
 #define EXPECT_ATOM(Loc, Group, Rank)                                          \
-  EXPECT_EQ(Group, M->getAtomGroup());                                         \
-  EXPECT_EQ(Rank, M->getAtomRank());
+  EXPECT_EQ(Group, M.getAtomGroup());                                          \
+  EXPECT_EQ(Rank, M.getAtomRank());
 
   // Identical, including source atom numbers.
   {

@@ -3860,18 +3860,18 @@ void ModuleBitcodeWriter::writeFunction(
       NeedsMetadataAttachment |= I.hasMetadataOtherThanDebugLoc();
 
       // If the instruction has a debug location, emit it.
-      if (DILocation *DL = I.getDebugLoc()) {
+      if (DebugLoc DL = I.getDebugLoc()) {
         if (DL == LastDL) {
           // Just repeat the same debug loc as last time.
           Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_LOC_AGAIN, Vals);
         } else {
-          Vals.push_back(DL->getLine());
-          Vals.push_back(DL->getColumn());
-          Vals.push_back(VE.getMetadataOrNullID(DL->getScope()));
-          Vals.push_back(VE.getMetadataOrNullID(DL->getInlinedAt()));
-          Vals.push_back(DL->isImplicitCode());
-          Vals.push_back(DL->getAtomGroup());
-          Vals.push_back(DL->getAtomRank());
+          Vals.push_back(DL.getLine());
+          Vals.push_back(DL.getColumn());
+          Vals.push_back(VE.getMetadataOrNullID(DL.getScope()));
+          Vals.push_back(VE.getMetadataOrNullID(DL.getInlinedAt().getAsMDNode()));
+          Vals.push_back(DL.isImplicitCode());
+          Vals.push_back(DL.getAtomGroup());
+          Vals.push_back(DL.getAtomRank());
           Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_LOC, Vals,
                             FUNCTION_DEBUG_LOC_ABBREV);
           Vals.clear();
@@ -3912,7 +3912,7 @@ void ModuleBitcodeWriter::writeFunction(
         // re-attach to the instruction reading the records in.
         for (DbgRecord &DR : I.DebugMarker->getDbgRecordRange()) {
           if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
-            Vals.push_back(VE.getMetadataID(&*DLR->getDebugLoc()));
+            Vals.push_back(VE.getMetadataID(DLR->getDebugLoc().getAsMDNode()));
             Vals.push_back(VE.getMetadataID(DLR->getLabel()));
             Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_RECORD_LABEL, Vals);
             Vals.clear();
@@ -3930,7 +3930,7 @@ void ModuleBitcodeWriter::writeFunction(
           // dbg_assign (FUNC_CODE_DEBUG_RECORD_ASSIGN)
           //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
           DbgVariableRecord &DVR = cast<DbgVariableRecord>(DR);
-          Vals.push_back(VE.getMetadataID(&*DVR.getDebugLoc()));
+          Vals.push_back(VE.getMetadataID(DVR.getDebugLoc().getAsMDNode()));
           Vals.push_back(VE.getMetadataID(DVR.getVariable()));
           Vals.push_back(VE.getMetadataID(DVR.getExpression()));
           if (DVR.isDbgValue()) {

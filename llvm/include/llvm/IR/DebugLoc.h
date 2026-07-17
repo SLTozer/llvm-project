@@ -142,9 +142,18 @@ public:
   DebugLoc() : Loc() {}
   DebugLoc(std::nullptr_t) : Loc() {}
   /// Construct from an \a DILocation.
+  LLVM_DEPRECATED("Implicit conversion disabled", "getFromDILocation")
   DebugLoc(const DILocation *L) : Loc(const_cast<DILocation *>(L)) {}
 
   static DebugLoc getFromMDNode(const MDNode *L);
+  static DebugLoc getFromDILocation(const DILocation *L) {
+    DebugLoc Loc;
+    Loc.Loc = const_cast<DILocation *>(L);
+    return Loc;
+  }
+  DILocation *getAsDILocation() const {
+    return Loc;
+  }
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
   DebugLoc(DebugLocKind Kind) : Loc(Kind) {}
@@ -173,16 +182,18 @@ public:
 
   bool operator==(std::nullptr_t) const { return !Loc; }
   bool operator!=(std::nullptr_t) const { return (bool)Loc; }
-  bool operator==(DILocation *RHS) const { return this->get() == RHS; }
-  bool operator!=(DILocation *RHS) const { return this->get() != RHS; }
-  bool operator==(const DILocation *RHS) const { return this->get() == RHS; }
-  bool operator!=(const DILocation *RHS) const { return this->get() != RHS; }
+  bool operator==(DILocation *RHS) const { return this->Loc == RHS; }
+  bool operator!=(DILocation *RHS) const { return this->Loc != RHS; }
+  bool operator==(const DILocation *RHS) const { return this->Loc == RHS; }
+  bool operator!=(const DILocation *RHS) const { return this->Loc != RHS; }
   friend bool operator==(std::nullptr_t, const DebugLoc &RHS) { return !RHS; }
   friend bool operator!=(std::nullptr_t, const DebugLoc &RHS) { return (bool)RHS; }
-  friend bool operator==(DILocation *LHS, const DebugLoc &RHS) { return RHS.get() == LHS; }
-  friend bool operator!=(DILocation *LHS, const DebugLoc &RHS) { return RHS.get() != LHS; }
-  friend bool operator==(const DILocation *LHS, const DebugLoc &RHS) { return RHS.get() == LHS; }
-  friend bool operator!=(const DILocation *LHS, const DebugLoc &RHS) { return RHS.get() != LHS; }
+  friend bool operator==(DILocation *LHS, const DebugLoc &RHS) { return RHS.Loc == LHS; }
+  friend bool operator!=(DILocation *LHS, const DebugLoc &RHS) { return RHS.Loc != LHS; }
+  friend bool operator==(const DILocation *LHS, const DebugLoc &RHS) { return RHS.Loc == LHS; }
+  friend bool operator!=(const DILocation *LHS, const DebugLoc &RHS) { return RHS.Loc != LHS; }
+
+  bool operator<(const DebugLoc &Other) const { return Loc < Other.Loc; }
 
   static DebugLoc get(
     LLVMContext &Context, unsigned Line, unsigned Column,Metadata *Scope,
@@ -255,10 +266,14 @@ public:
   ///
   /// \pre !*this or \c isa<DILocation>(getAsMDNode()).
   /// @{
+  LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
   DILocation *get() const { return Loc; }
-  operator DILocation *() const { return get(); }
-  DILocation *operator->() const { return get(); }
-  DILocation &operator*() const { return *get(); }
+  LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
+  operator DILocation *() const { return Loc; }
+  LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
+  DILocation *operator->() const { return Loc; }
+  LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
+  DILocation &operator*() const { return *Loc; }
   /// @}
 
   /// Check for null.
@@ -280,7 +295,7 @@ public:
   /// Return true if the source locations match, ignoring isImplicitCode and
   /// source atom info.
   bool isSameSourceLocation(const DebugLoc &Other) const {
-    if (get() == Other.get())
+    if (Loc == Other.Loc)
       return true;
     return ((bool)*this == (bool)Other) && getLine() == Other.getLine() &&
            getCol() == Other.getCol() && getScope() == Other.getScope() &&
@@ -291,7 +306,7 @@ public:
   LLVM_ABI unsigned getCol() const;
   LLVM_ABI unsigned getColumn() const { return getCol(); }
   LLVM_ABI DILocalScope *getScope() const;
-  LLVM_ABI DILocation *getInlinedAt() const;
+  LLVM_ABI DebugLoc getInlinedAt() const;
 
   /// Get the fully inlined-at scope for a DebugLoc.
   ///

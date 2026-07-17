@@ -1118,7 +1118,7 @@ std::optional<MIRParserImpl::VarExprLoc> MIRParserImpl::parseVarExprLoc(
       typecheckMDNode(DIExpr, Expr, ExprStr, "DIExpression", *this) ||
       typecheckMDNode(DILoc, Loc, LocStr, "DILocation", *this))
     return std::nullopt;
-  return VarExprLoc{DIVar, DIExpr, DILoc};
+  return VarExprLoc{DIVar, DIExpr, DebugLoc::getFromDILocation(DILoc)};
   // NOLINTEND(llvm-debug-loc-*)
 }
 

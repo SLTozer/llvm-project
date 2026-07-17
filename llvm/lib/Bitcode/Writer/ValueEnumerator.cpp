@@ -450,7 +450,7 @@ ValueEnumerator::ValueEnumerator(const Module &M,
         for (DbgRecord &DR : I.getDbgRecordRange()) {
           if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
             EnumerateMetadata(&F, DLR->getLabel());
-            EnumerateMetadata(&F, &*DLR->getDebugLoc());
+            EnumerateMetadata(&F, DLR->getDebugLoc().getAsMDNode());
             continue;
           }
           // Enumerate non-local location metadata.
@@ -458,7 +458,7 @@ ValueEnumerator::ValueEnumerator(const Module &M,
           EnumerateNonLocalValuesFromMetadata(DVR.getRawLocation());
           EnumerateMetadata(&F, DVR.getExpression());
           EnumerateMetadata(&F, DVR.getVariable());
-          EnumerateMetadata(&F, &*DVR.getDebugLoc());
+          EnumerateMetadata(&F, DVR.getDebugLoc().getAsMDNode());
           if (DVR.isDbgAssign()) {
             EnumerateNonLocalValuesFromMetadata(DVR.getRawAddress());
             EnumerateMetadata(&F, DVR.getAssignID());

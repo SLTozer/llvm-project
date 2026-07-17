@@ -343,7 +343,7 @@ bool LLParser::validateEndOfModule(bool UpgradeDebugInfo) {
   for (auto [Loc, DR, MD] : PendingDbgRecords) {
     // NOLINTNEXTLINE(llvm-debug-loc-*)
     if (auto *DI = dyn_cast<DILocation>(MD))
-      DR->setDebugLoc(DebugLoc(DI));
+      DR->setDebugLoc(DebugLoc::getFromDILocation(DI));
     else
       return error(Loc, "invalid debug location");
   }
@@ -351,7 +351,7 @@ bool LLParser::validateEndOfModule(bool UpgradeDebugInfo) {
   for (auto [Loc, I, MD] : PendingDbgInsts) {
     // NOLINTNEXTLINE(llvm-debug-loc-*)
     if (auto *DI = dyn_cast<DILocation>(MD))
-      I->setDebugLoc(DebugLoc(DI));
+      I->setDebugLoc(DebugLoc::getFromDILocation(DI));
     else
       return error(Loc, "invalid !dbg metadata");
   }
