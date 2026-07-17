@@ -73,7 +73,7 @@ protected:
   /// A stack of DenseMaps, which map the name of an llvm::Function to a
   /// DenseMap of VarIDs and their inlinedAt locations before an optimization
   /// pass has run.
-  SmallVector<DenseMap<StringRef, DenseMap<VarID, DILocation *>>> InlinedAts;
+  SmallVector<DenseMap<StringRef, DenseMap<VarID, DebugLoc>>> InlinedAts;
   /// Calculate the number of dropped variables in an llvm::Function or
   /// llvm::MachineFunction and print the relevant information to stdout.
   LLVM_ABI void calculateDroppedStatsAndPrint(
@@ -82,9 +82,9 @@ protected:
 
   /// Check if a \p Var has been dropped or is a false positive. Also update the
   /// \p DroppedCount if a debug variable is dropped.
-  LLVM_ABI bool updateDroppedCount(DILocation *DbgLoc, const DIScope *Scope,
+  LLVM_ABI bool updateDroppedCount(DebugLoc DbgLoc, const DIScope *Scope,
                                    const DIScope *DbgValScope,
-                                   DenseMap<VarID, DILocation *> &InlinedAtsMap,
+                                   DenseMap<VarID, DebugLoc> &InlinedAtsMap,
                                    VarID Var, unsigned &DroppedCount);
 
   /// Run code to populate relevant data structures over an llvm::Function or
@@ -97,7 +97,7 @@ protected:
   /// status.
   LLVM_ABI void populateVarIDSetAndInlinedMap(
       const DILocalVariable *DbgVar, DebugLoc DbgLoc, DenseSet<VarID> &VarIDSet,
-      DenseMap<StringRef, DenseMap<VarID, DILocation *>> &InlinedAtsMap,
+      DenseMap<StringRef, DenseMap<VarID, DebugLoc>> &InlinedAtsMap,
       StringRef FuncName, bool Before);
 
   /// Visit every llvm::Instruction or llvm::MachineInstruction and check if the
@@ -105,13 +105,13 @@ protected:
   /// optimization pass.
   virtual void
   visitEveryInstruction(unsigned &DroppedCount,
-                        DenseMap<VarID, DILocation *> &InlinedAtsMap,
+                        DenseMap<VarID, DebugLoc> &InlinedAtsMap,
                         VarID Var) = 0;
   /// Visit every debug record in an llvm::Function or llvm::MachineFunction
   /// and call populateVarIDSetAndInlinedMap on it.
   virtual void visitEveryDebugRecord(
       DenseSet<VarID> &VarIDSet,
-      DenseMap<StringRef, DenseMap<VarID, DILocation *>> &InlinedAtsMap,
+      DenseMap<StringRef, DenseMap<VarID, DebugLoc>> &InlinedAtsMap,
       StringRef FuncName, bool Before) = 0;
 
 private:
@@ -126,8 +126,8 @@ private:
 
   /// Return true if \p InlinedAt is the same as \p DbgValInlinedAt or part of
   /// the InlinedAt chain, return false otherwise.
-  bool isInlinedAtChildOfOrEqualTo(const DILocation *InlinedAt,
-                                   const DILocation *DbgValInlinedAt);
+  bool isInlinedAtChildOfOrEqualTo(DebugLoc InlinedAt,
+                                   DebugLoc DbgValInlinedAt);
 
   bool PassDroppedVariables = false;
 };

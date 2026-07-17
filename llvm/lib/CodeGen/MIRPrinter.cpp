@@ -290,7 +290,7 @@ printStackObjectDbgInfo(const MachineFunction::VariableDbgInfo &DebugVar,
                                         &Object.DebugLoc.Value}};
   std::array<const Metadata *, 3> Metas{{DebugVar.Var,
                                         DebugVar.Expr,
-                                        DebugVar.Loc.getAsMDNode()}};
+                                        DebugVar.Loc}};
   for (unsigned i = 0; i < 3; ++i) {
     raw_string_ostream StrOS(*Outputs[i]);
     Metas[i]->printAsOperand(StrOS, MST);

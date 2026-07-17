@@ -45,12 +45,12 @@ private:
   /// Override base class method to run on an llvm::MachineFunction
   /// specifically.
   void visitEveryInstruction(unsigned &DroppedCount,
-                             DenseMap<VarID, DILocation *> &InlinedAtsMap,
+                             DenseMap<VarID, DebugLoc> &InlinedAtsMap,
                              VarID Var) override;
   /// Override base class method to run on DBG_VALUEs specifically.
   void visitEveryDebugRecord(
       DenseSet<VarID> &VarIDSet,
-      DenseMap<StringRef, DenseMap<VarID, DILocation *>> &InlinedAtsMap,
+      DenseMap<StringRef, DenseMap<VarID, DebugLoc>> &InlinedAtsMap,
       StringRef FuncName, bool Before) override;
 };
 

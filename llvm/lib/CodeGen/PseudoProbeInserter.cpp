@@ -67,7 +67,7 @@ public:
         if (isCallOrRealInstruction(MI))
           FirstInstr = &MI;
         if (MI.isCall()) {
-          if (DILocation *DL = MI.getDebugLoc()) {
+          if (DebugLoc DL = MI.getDebugLoc()) {
             auto Value = DL->getDiscriminator();
             if (DILocation::isPseudoProbeDiscriminator(Value)) {
               BuildMI(MBB, MI, DL, TII->get(TargetOpcode::PSEUDO_PROBE))

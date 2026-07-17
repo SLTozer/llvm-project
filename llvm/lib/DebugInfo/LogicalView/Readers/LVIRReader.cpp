@@ -1211,23 +1211,22 @@ void LVIRReader::constructLine(LVScope *Scope, const DISubprogram *SP,
 
   LVScope *Parent = Scope;
   if (const DebugLoc DbgLoc = I.getDebugLoc()) {
-    const DILocation *DL = DbgLoc.get();
     LLVM_DEBUG({
       dbgs() << "DL: ";
-      DL->dump(TheModule);
+      DbgLoc.dump(TheModule);
     });
 
-    Parent = getOrCreateAbstractScope(DL);
+    Parent = getOrCreateAbstractScope(DbgLoc.getAsDILocation());
     assert(Parent && "Invalid logical element");
     LLVM_DEBUG({
       dbgs() << "Parent: ";
       Parent->dumpCommon();
     });
 
-    if (options().getPrintLines() && DL.getLine()) {
+    if (options().getPrintLines() && DbgLoc.getLine()) {
       if (LVLine *Line = AddDebugLine(Parent)) {
-        addMD(DL.getAsMDNode(), Line);
-        addSourceLine(Line, DL);
+        addMD(DbgLoc.getAsMDNode(), Line);
+        addSourceLine(Line, DbgLoc.getAsDILocation());
         GenerateLineBeforePrologue = false;
       }
     }
