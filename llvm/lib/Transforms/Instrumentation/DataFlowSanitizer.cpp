@@ -1094,7 +1094,7 @@ void DFSanFunction::addReachesFunctionCallbacksIfEnabled(IRBuilder<> &IRB,
   } else {
     CILine = llvm::ConstantInt::get(I.getContext(),
                                     llvm::APInt(32, dbgloc.getLine()));
-    FilePathPtr = IRB.CreateGlobalString(dbgloc->getFilename());
+    FilePathPtr = IRB.CreateGlobalString(dbgloc.getFilename());
   }
 
   llvm::Value *FunctionNamePtr =

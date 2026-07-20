@@ -149,7 +149,7 @@ class LLVM_ABI LVIRReader final : public LVReader {
   // Get the parent scope for the given metadata object.
   LVScope *getParentScopeImpl(const DIScope *Context);
   LVScope *getParentScope(const DINode *DN);
-  LVScope *getParentScope(const DILocation *DL);
+  LVScope *getParentScope(DebugLoc DL);
 
   // Traverse the scope hierarchy and create each node in the hierarchy.
   LVScope *traverseParentScope(const DIScope *Context);
@@ -185,7 +185,7 @@ class LLVM_ABI LVIRReader final : public LVReader {
   void addSourceLine(LVElement *Element, const DIImportedEntity *IE);
   void addSourceLine(LVElement *Element, const DILabel *L);
   void addSourceLine(LVElement *Element, const DILocalVariable *LV);
-  void addSourceLine(LVElement *Element, const DILocation *DL);
+  void addSourceLine(LVElement *Element, DebugLoc DL);
   void addSourceLine(LVElement *Element, const DIObjCProperty *OP);
   void addSourceLine(LVElement *Element, const DISubprogram *SP);
   void addSourceLine(LVElement *Element, const DIType *Ty);
@@ -222,8 +222,8 @@ class LLVM_ABI LVIRReader final : public LVReader {
                                  bool Minimal = false);
   void constructSubprogramArguments(LVScope *Function, const DITypeArray Args);
 
-  LVScope *getOrCreateAbstractScope(const DILocation *DL);
-  LVScope *getOrCreateInlinedScope(const DILocation *DL);
+  LVScope *getOrCreateAbstractScope(DebugLoc DL);
+  LVScope *getOrCreateInlinedScope(DebugLoc DL);
 
   void constructSubrange(LVScopeArray *Array, const DISubrange *SR,
                          LVType *IndexType);
@@ -243,9 +243,9 @@ class LLVM_ABI LVIRReader final : public LVReader {
 
   LVSymbol *getOrCreateVariable(const DIGlobalVariableExpression *GVE);
   LVSymbol *getOrCreateVariable(const DIVariable *Var,
-                                const DILocation *DL = nullptr);
+                                DebugLoc DL = nullptr);
   LVSymbol *getOrCreateInlinedVariable(LVSymbol *OriginSymbol,
-                                       const DILocation *DL);
+                                       DebugLoc DL);
 
   LVElement *constructElement(const DINode *DN);
 

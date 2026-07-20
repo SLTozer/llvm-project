@@ -228,7 +228,7 @@ bool isContained(DIScope *Inner, DIScope *Outer) {
 
 void DbgValueRangeTable::addVariable(Function *F, DebugVariableAggregate DVA) {
   const DILocalVariable *Var = DVA.getVariable();
-  const DILocation *InlinedAt = DVA.getInlinedAt();
+  DebugLoc InlinedAt = DVA.getInlinedAt();
 
   DenseMap<BasicBlock *, SmallVector<DbgVariableRecord *>> BlockDbgRecordValues;
   DenseSet<BasicBlock *> HasAnyInstructionsInScope;

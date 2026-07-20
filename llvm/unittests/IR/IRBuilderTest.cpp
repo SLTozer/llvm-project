@@ -1000,7 +1000,7 @@ TEST_F(IRBuilderTest, DIBuilder) {
         CU, "bar", "", File, 1, Type, 1, DINode::FlagZero,
         DISubprogram::SPFlagDefinition | DISubprogram::SPFlagOptimized);
     auto BarScope = DIB.createLexicalBlockFile(BarSP, File, 0);
-    I->setDebugLoc(DILocation::get(Ctx, 2, 0, BarScope));
+    I->setDebugLoc(DebugLoc::get(Ctx, 2, 0, BarScope));
 
     // Create another instruction so that there's one before the alloca we're
     // inserting debug intrinsics before, to make end-checking easier.
@@ -1008,7 +1008,7 @@ TEST_F(IRBuilderTest, DIBuilder) {
 
     // Label metadata and records
     // --------------------------
-    DILocation *LabelLoc = DILocation::get(Ctx, 1, 0, BarScope);
+    DebugLoc LabelLoc = DebugLoc::get(Ctx, 1, 0, BarScope);
     DILabel *AlwaysPreserveLabel = DIB.createLabel(
         BarScope, "meles_meles", File, 1, /*Column*/ 0, /*IsArtificial*/ false,
         /*CoroSuspendIdx*/ std::nullopt, /*AlwaysPreserve*/ true);
@@ -1033,7 +1033,7 @@ TEST_F(IRBuilderTest, DIBuilder) {
 
     // Variable metadata and records
     // -----------------------------
-    DILocation *VarLoc = DILocation::get(Ctx, 2, 0, BarScope);
+    DebugLoc VarLoc = DebugLoc::get(Ctx, 2, 0, BarScope);
     auto *IntType = DIB.createBasicType("int", 32, dwarf::DW_ATE_signed);
     DILocalVariable *VarX =
         DIB.createAutoVariable(BarSP, "X", File, 2, IntType, true);
@@ -1112,8 +1112,8 @@ TEST_F(IRBuilderTest, createArtificialSubprogram) {
   F->setSubprogram(SP);
   AllocaInst *I = Builder.CreateAlloca(Builder.getInt8Ty());
   ReturnInst *R = Builder.CreateRetVoid();
-  I->setDebugLoc(DILocation::get(Ctx, 3, 2, SP));
-  R->setDebugLoc(DILocation::get(Ctx, 4, 2, SP));
+  I->setDebugLoc(DebugLoc::get(Ctx, 3, 2, SP));
+  R->setDebugLoc(DebugLoc::get(Ctx, 4, 2, SP));
   DIB.finalize();
   EXPECT_FALSE(verifyModule(*M));
 
@@ -1136,13 +1136,13 @@ TEST_F(IRBuilderTest, createArtificialSubprogram) {
   G->setSubprogram(GSP);
   EXPECT_TRUE(verifyModule(*M));
 
-  auto *InlinedAtNode =
-      DILocation::getDistinct(Ctx, GSP->getScopeLine(), 0, GSP);
+  DebugLoc InlinedAtNode =
+      DebugLoc::getDistinct(Ctx, GSP->getScopeLine(), 0, GSP);
   DebugLoc DL = I->getDebugLoc();
   DenseMap<const MDNode *, MDNode *> IANodes;
   auto IA = DebugLoc::appendInlinedAt(DL, InlinedAtNode, Ctx, IANodes);
   auto NewDL =
-      DILocation::get(Ctx, DL.getLine(), DL.getCol(), DL.getScope(), IA);
+      DebugLoc::get(Ctx, DL.getLine(), DL.getCol(), DL.getScope(), IA);
   I->setDebugLoc(NewDL);
   EXPECT_FALSE(verifyModule(*M));
 
@@ -1261,8 +1261,8 @@ TEST_F(IRBuilderTest, DebugLoc) {
   auto SP =
       DIB.createFunction(CU, "foo", "foo", File, 1, SPType, 1, DINode::FlagZero,
                          DISubprogram::SPFlagDefinition);
-  DebugLoc DL1 = DILocation::get(Ctx, 2, 0, SP);
-  DebugLoc DL2 = DILocation::get(Ctx, 3, 0, SP);
+  DebugLoc DL1 = DebugLoc::get(Ctx, 2, 0, SP);
+  DebugLoc DL2 = DebugLoc::get(Ctx, 3, 0, SP);
 
   auto BB2 = BasicBlock::Create(Ctx, "bb2", F);
   auto Br = UncondBrInst::Create(BB2, BB);
@@ -1422,8 +1422,8 @@ TEST_F(IRBuilderTest, finalizeSubprogram) {
   F->setSubprogram(FooSP);
   AllocaInst *I = Builder.CreateAlloca(Builder.getInt8Ty());
   ReturnInst *R = Builder.CreateRetVoid();
-  I->setDebugLoc(DILocation::get(Ctx, 3, 2, FooSP));
-  R->setDebugLoc(DILocation::get(Ctx, 4, 2, FooSP));
+  I->setDebugLoc(DebugLoc::get(Ctx, 3, 2, FooSP));
+  R->setDebugLoc(DebugLoc::get(Ctx, 4, 2, FooSP));
 
   auto BarSP = DIB.createFunction(
       CU, "bar", /*LinkageName=*/"", File,

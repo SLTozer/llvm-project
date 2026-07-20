@@ -1297,13 +1297,13 @@ public:
 
   /// Returns the line offset to the start line of the subprogram.
   /// We assume that a single function will not exceed 65535 LOC.
-  LLVM_ABI static unsigned getOffset(const DILocation *DIL);
+  LLVM_ABI static unsigned getOffset(DebugLoc DIL);
 
   /// Returns a unique call site identifier for a given debug location of a call
   /// instruction. This is wrapper of two scenarios, the probe-based profile and
   /// regular profile, to hide implementation details from the sample loader and
   /// the context tracker.
-  LLVM_ABI static LineLocation getCallSiteIdentifier(const DILocation *DIL,
+  LLVM_ABI static LineLocation getCallSiteIdentifier(DebugLoc DIL,
                                                      bool ProfileIsFS = false);
 
   /// Returns a unique hash code for a combination of a callsite location and
@@ -1328,7 +1328,7 @@ public:
   /// to find matching FunctionSamples with not exactly the same but equivalent
   /// name.
   LLVM_ABI const FunctionSamples *
-  findFunctionSamples(const DILocation *DIL,
+  findFunctionSamples(DebugLoc DIL,
                       SampleProfileReaderItaniumRemapper *Remapper = nullptr,
                       const HashKeyMap<DenseMap, FunctionId, FunctionId>
                           *FuncNameToProfNameMap = nullptr) const;

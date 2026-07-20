@@ -1644,7 +1644,7 @@ void DwarfDebug::collectVariableInfoFromMFTable(
     assert(VI.Var->isValidLocationForIntrinsic(VI.Loc) &&
            "Expected inlined-at fields to agree");
 
-    InlinedEntity Var(VI.Var, VI.Loc->getInlinedAt());
+    InlinedEntity Var(VI.Var, VI.Loc.getInlinedAt());
     Processed.insert(Var);
     LexicalScope *Scope = LScopes.findLexicalScope(VI.Loc);
 
@@ -1732,7 +1732,7 @@ static bool validThroughout(LexicalScopes &LScopes,
         continue;
       // Check whether the instruction preceding the DBG_VALUE is in the same
       // (sub)scope as the DBG_VALUE.
-      if (DL->getScope() == PredDL->getScope())
+      if (DL.getScope() == PredDL.getScope())
         return false;
       auto *PredScope = LScopes.findLexicalScope(PredDL);
       if (!PredScope || LScope->dominates(PredScope))
@@ -1960,7 +1960,7 @@ bool DwarfDebug::buildLocationList(SmallVectorImpl<DebugLocEntry> &DebugLoc,
 DbgEntity *DwarfDebug::createConcreteEntity(DwarfCompileUnit &TheCU,
                                             LexicalScope &Scope,
                                             const DINode *Node,
-                                            const DILocation *Location,
+                                            DebugLoc Location,
                                             const MCSymbol *Sym) {
   ensureAbstractEntityIsCreatedIfScoped(TheCU, Node, Scope.getScopeNode());
   if (isa<const DILocalVariable>(Node)) {
@@ -2001,7 +2001,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
 
     LexicalScope *Scope = nullptr;
     const DILocalVariable *LocalVar = cast<DILocalVariable>(IV.first);
-    if (const DILocation *IA = IV.second)
+    if (DebugLoc IA = IV.second)
       Scope = LScopes.findInlinedScope(LocalVar->getScope(), IA);
     else
       Scope = LScopes.findLexicalScope(LocalVar->getScope());
@@ -2071,7 +2071,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
     const DILocalScope *LocalScope =
         Label->getScope()->getNonLexicalBlockFileScope();
     // Get inlined DILocation if it is inlined label.
-    if (const DILocation *IA = IL.second)
+    if (DebugLoc IA = IL.second)
       Scope = LScopes.findInlinedScope(LocalScope, IA);
     else
       Scope = LScopes.findLexicalScope(LocalScope);
@@ -2205,7 +2205,7 @@ void DwarfDebug::beginInstruction(const MachineInstr *MI) {
   // handling.
   bool ScopeUsesKeyInstructions =
       KeyInstructionsAreStmts && DL &&
-      DL->getScope()->getSubprogram()->getKeyInstructionsEnabled();
+      DL.getScope()->getSubprogram()->getKeyInstructionsEnabled();
 
   bool IsKey = false;
   if (ScopeUsesKeyInstructions && DL && DL.getLine())
@@ -2415,12 +2415,12 @@ findPrologueEndLoc(const MachineFunction *MF) {
     // is where execution in the function starts, and is less catastrophic than
     // stepping over the call.
     if (CurInst->isCall()) {
-      if (const DILocation *Loc = CurInst->getDebugLoc().get();
-          Loc && Loc->getLine() == 0) {
+      if (DebugLoc Loc = CurInst->getDebugLoc();
+          Loc && Loc.getLine() == 0) {
         // Create and assign the scope-line position.
         unsigned ScopeLine = SP->getScopeLine();
-        DILocation *ScopeLineDILoc =
-            DILocation::get(SP->getContext(), ScopeLine, 0, SP);
+        DebugLoc ScopeLineDILoc =
+            DebugLoc::get(SP->getContext(), ScopeLine, 0, SP);
         const_cast<MachineInstr *>(&*CurInst)->setDebugLoc(ScopeLineDILoc);
 
         // Consider this position to be where prologue_end is placed.
@@ -2499,7 +2499,7 @@ DwarfDebug::emitInitialLocDirective(const MachineFunction &MF, unsigned CUID) {
       // Instructions with no DebugLoc at all are fine, they'll be given the
       // scope line nuumber.
       const DebugLoc &DL = PrologEndLoc->getDebugLoc();
-      if (!DL || DL->getLine() != 0)
+      if (!DL || DL.getLine() != 0)
         return PrologEndLoc;
 
       // Later, don't place the prologue_end flag on this line-zero location.
@@ -2526,7 +2526,7 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
   // Map {(InlinedAt, Group): (Rank, Instructions)}.
   // NOTE: Anecdotally, for a large C++ blob, 99% of the instruction
   // SmallVectors contain 2 or fewer elements; use 2 inline elements.
-  DenseMap<std::pair<DILocation *, uint64_t>,
+  DenseMap<std::pair<DebugLoc, uint64_t>,
            std::pair<uint8_t, SmallVector<const MachineInstr *, 2>>>
       GroupCandidates;
 
@@ -2560,12 +2560,12 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
       if (MI.isMetaInstruction())
         continue;
 
-      const DILocation *Loc = MI.getDebugLoc().get();
-      if (!Loc || !Loc->getLine())
+      DebugLoc Loc = MI.getDebugLoc();
+      if (!Loc || !Loc.getLine())
         continue;
 
       // Reset the Buoy to this instruction if it has a different line number.
-      if (!Buoy || Buoy->getDebugLoc().getLine() != Loc->getLine()) {
+      if (!Buoy || Buoy->getDebugLoc().getLine() != Loc.getLine()) {
         Buoy = &MI;
         BuoyAtom = 0; // Set later when we know which atom the buoy is used by.
       }
@@ -2583,13 +2583,13 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
         Buoy = nullptr;
         BuoyAtom = 0;
 
-        if (!Loc->getAtomGroup() || !Loc->getAtomRank())
+        if (!Loc.getAtomGroup() || !Loc.getAtomRank())
           continue;
       }
 
-      auto *InlinedAt = Loc->getInlinedAt();
-      uint64_t Group = Loc->getAtomGroup();
-      uint8_t Rank = Loc->getAtomRank();
+      auto InlinedAt = Loc.getInlinedAt();
+      uint64_t Group = Loc.getAtomGroup();
+      uint8_t Rank = Loc.getAtomRank();
       if (!Group || !Rank)
         continue;
 
@@ -2631,8 +2631,8 @@ void DwarfDebug::computeKeyInstructions(const MachineFunction *MF) {
         CandidateInsts.push_back(Buoy);
         CandidateRank = Rank;
 
-        assert(!BuoyAtom || BuoyAtom == Loc->getAtomGroup());
-        BuoyAtom = Loc->getAtomGroup();
+        assert(!BuoyAtom || BuoyAtom == Loc.getAtomGroup());
+        BuoyAtom = Loc.getAtomGroup();
       } else {
         // Don't add calls, because they've been dealt with already. This means
         // CandidateInsts might now be empty - handle that.
@@ -2693,7 +2693,7 @@ void DwarfDebug::findForceIsStmtInstrs(const MachineFunction *MF) {
     if (MBB.empty() || MBB.pred_empty())
       continue;
     for (auto &MI : MBB) {
-      if (MI.getDebugLoc() && MI.getDebugLoc()->getLine()) {
+      if (MI.getDebugLoc() && MI.getDebugLoc().getLine()) {
         PredMBBsToExamine.insert_range(MBB.predecessors());
         PotentialIsStmtMBBInstrs.insert({&MBB, &MI});
         break;
@@ -2712,7 +2712,7 @@ void DwarfDebug::findForceIsStmtInstrs(const MachineFunction *MF) {
       if (MBBInstrIt == PotentialIsStmtMBBInstrs.end())
         return;
       MachineInstr *MI = MBBInstrIt->second;
-      if (MI->getDebugLoc()->getLine() == OutgoingLine)
+      if (MI->getDebugLoc().getLine() == OutgoingLine)
         return;
       PotentialIsStmtMBBInstrs.erase(MBBInstrIt);
       ForceIsStmtInstrs.insert(MI);
@@ -2744,8 +2744,8 @@ void DwarfDebug::findForceIsStmtInstrs(const MachineFunction *MF) {
       // the the false destination only; otherwise, both destinations share an
       // outgoing loc.
       if (!AnalyzeFailed && !Cond.empty() && FBB != nullptr &&
-          MBB->back().getDebugLoc() && MBB->back().getDebugLoc()->getLine()) {
-        unsigned FBBLine = MBB->back().getDebugLoc()->getLine();
+          MBB->back().getDebugLoc() && MBB->back().getDebugLoc().getLine()) {
+        unsigned FBBLine = MBB->back().getDebugLoc().getLine();
         assert(MIIt->isBranch() && "Bad result from analyzeBranch?");
         CheckMBBEdge(FBB, FBBLine);
         ++MIIt;
@@ -2773,8 +2773,8 @@ void DwarfDebug::findForceIsStmtInstrs(const MachineFunction *MF) {
     // enough for this to be worthwhile.
     unsigned LastLine = 0;
     while (MIIt != MBB->rend()) {
-      if (auto DL = MIIt->getDebugLoc(); DL && DL->getLine()) {
-        LastLine = DL->getLine();
+      if (auto DL = MIIt->getDebugLoc(); DL && DL.getLine()) {
+        LastLine = DL.getLine();
         break;
       }
       ++MIIt;

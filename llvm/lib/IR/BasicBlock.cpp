@@ -527,7 +527,7 @@ BasicBlock *BasicBlock::splitBasicBlock(iterator I, const Twine &BBName) {
   // Save DebugLoc of split point before invalidating iterator.
   DebugLoc Loc = I->getStableDebugLoc();
   if (Loc)
-    Loc = Loc->getWithoutAtom();
+    Loc = Loc.getWithoutAtom();
 
   // Move all of the specified instructions from the original basic block into
   // the new basic block.
@@ -559,7 +559,7 @@ BasicBlock *BasicBlock::splitBasicBlockBefore(iterator I, const Twine &BBName) {
   // Save DebugLoc of split point before invalidating iterator.
   DebugLoc Loc = I->getDebugLoc();
   if (Loc)
-    Loc = Loc->getWithoutAtom();
+    Loc = Loc.getWithoutAtom();
 
   // Move all of the specified instructions from the original basic block into
   // the new basic block.

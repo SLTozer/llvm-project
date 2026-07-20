@@ -112,7 +112,7 @@ public:
   /// Process a DILocalVariable.
   LLVM_ABI void processVariable(const DILocalVariable *DVI);
   /// Process debug info location.
-  LLVM_ABI void processLocation(const Module &M, const DILocation *Loc);
+  LLVM_ABI void processLocation(const Module &M, DebugLoc Loc);
   /// Process a DbgRecord.
   LLVM_ABI void processDbgRecord(const Module &M, const DbgRecord &DR);
 
@@ -244,11 +244,11 @@ LLVM_ABI void remapAssignID(DenseMap<DIAssignID *, DIAssignID *> &Map,
 /// capture.
 struct VarRecord {
   DILocalVariable *Var;
-  DILocation *DL;
+  DebugLoc DL;
 
   VarRecord(DbgVariableRecord *DVR)
       : Var(DVR->getVariable()), DL(getDebugValueLoc(DVR)) {}
-  VarRecord(DILocalVariable *Var, DILocation *DL) : Var(Var), DL(DL) {}
+  VarRecord(DILocalVariable *Var, DebugLoc DL) : Var(Var), DL(DL) {}
   friend bool operator<(const VarRecord &LHS, const VarRecord &RHS) {
     return std::tie(LHS.Var, LHS.DL) < std::tie(RHS.Var, RHS.DL);
   }

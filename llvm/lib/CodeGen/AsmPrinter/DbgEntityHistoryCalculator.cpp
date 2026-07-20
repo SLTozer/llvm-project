@@ -148,7 +148,7 @@ void DbgValueHistoryMap::trimLocationRanges(
     const DILocalVariable *LocalVar = cast<DILocalVariable>(Entity.first);
 
     LexicalScope *Scope = nullptr;
-    if (const DILocation *InlinedAt = Entity.second) {
+    if (DebugLoc InlinedAt = Entity.second) {
       Scope = LScopes.findInlinedScope(LocalVar->getScope(), InlinedAt);
     } else {
       Scope = LScopes.findLexicalScope(LocalVar->getScope());
@@ -480,7 +480,7 @@ void llvm::calculateDbgEntityHistory(const MachineFunction *MF,
         const DILocalVariable *RawVar = MI.getDebugVariable();
         assert(RawVar->isValidLocationForIntrinsic(MI.getDebugLoc()) &&
                "Expected inlined-at fields to agree");
-        InlinedEntity Var(RawVar, MI.getDebugLoc()->getInlinedAt());
+        InlinedEntity Var(RawVar, MI.getDebugLoc().getInlinedAt());
 
         handleNewDebugValue(Var, MI, RegVars, LiveEntries, DbgValues);
       } else if (MI.isDebugLabel()) {
@@ -491,7 +491,7 @@ void llvm::calculateDbgEntityHistory(const MachineFunction *MF,
         // When collecting debug information for labels, there is no MCSymbol
         // generated for it. So, we keep MachineInstr in DbgLabels in order
         // to query MCSymbol afterward.
-        InlinedEntity L(RawLabel, MI.getDebugLoc()->getInlinedAt());
+        InlinedEntity L(RawLabel, MI.getDebugLoc().getInlinedAt());
         DbgLabels.addInstr(L, MI);
       }
 
@@ -576,13 +576,13 @@ LLVM_DUMP_METHOD void DbgValueHistoryMap::dump(StringRef FuncName) const {
     const Entries &Entries = VarRangePair.second;
 
     const DILocalVariable *LocalVar = cast<DILocalVariable>(Var.first);
-    const DILocation *Location = Var.second;
+    DebugLoc Location = Var.second;
 
     dbgs() << " - " << LocalVar->getName() << " at ";
 
     if (Location)
-      dbgs() << Location->getFilename() << ":" << Location->getLine() << ":"
-             << Location->getColumn();
+      dbgs() << Location.getFilename() << ":" << Location.getLine() << ":"
+             << Location.getColumn();
     else
       dbgs() << "<unknown location>";
 

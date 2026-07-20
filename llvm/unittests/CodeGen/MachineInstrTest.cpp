@@ -220,7 +220,7 @@ TEST(MachineInstrPrintingTest, DebugLocPrinting) {
   DISubprogram *DIS = DISubprogram::getDistinct(
       Ctx, nullptr, "", "", DIF, 0, nullptr, 0, nullptr, 0, 0, DINode::FlagZero,
       DISubprogram::SPFlagZero, nullptr);
-  DILocation *DIL = DILocation::get(Ctx, 1, 5, DIS);
+  DebugLoc DIL = DebugLoc::get(Ctx, 1, 5, DIS);
   DebugLoc DL(DIL);
   MachineInstr *MI = MF->CreateMachineInstr(Table.MCID, DL);
   MI->addOperand(*MF, MachineOperand::CreateReg(0, /*isDef*/ true));
@@ -517,7 +517,7 @@ TEST(MachineInstrBuilder, BuildMI) {
   DISubprogram *DIS = DISubprogram::getDistinct(
       Ctx, nullptr, "", "", DIF, 0, nullptr, 0, nullptr, 0, 0, DINode::FlagZero,
       DISubprogram::SPFlagZero, nullptr);
-  DILocation *DIL = DILocation::get(Ctx, 1, 5, DIS);
+  DebugLoc DIL = DebugLoc::get(Ctx, 1, 5, DIS);
   DebugLoc DL(DIL);
   MIMetadata MIMD(DL, PCS);
   EXPECT_EQ(MIMD.getDL(), DL);

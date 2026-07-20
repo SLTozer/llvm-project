@@ -2076,7 +2076,7 @@ void MachineInstr::print(raw_ostream &OS, ModuleSlotTracker &MST,
       if (!FirstOp)
         OS << ',';
       OS << " debug-location ";
-      DL->printAsOperand(OS, MST);
+      DL.printAsOperand(OS, MST);
     }
   }
 

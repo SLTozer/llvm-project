@@ -197,11 +197,11 @@ public:
 
   static DebugLoc get(
     LLVMContext &Context, unsigned Line, unsigned Column,Metadata *Scope,
-    Metadata *InlinedAt = nullptr, bool ImplicitCode = false, uint64_t AtomGroup = 0,
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
     uint8_t AtomRank = 0);
   static DebugLoc getDistinct(
     LLVMContext &Context, unsigned Line, unsigned Column,Metadata *Scope,
-    Metadata *InlinedAt = nullptr, bool ImplicitCode = false, uint64_t AtomGroup = 0,
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
     uint8_t AtomRank = 0);
 
   /// When two instructions are combined into a single instruction we also

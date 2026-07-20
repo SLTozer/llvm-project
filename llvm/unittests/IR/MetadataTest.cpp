@@ -931,46 +931,46 @@ TEST_F(DILocationTest, Merge) {
 
   {
     // Identical.
-    auto *A = DILocation::get(Context, 2, 7, N);
-    auto *B = DILocation::get(Context, 2, 7, N);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(2u, M->getLine());
-    EXPECT_EQ(7u, M->getColumn());
-    EXPECT_EQ(N, M->getScope());
+    auto A = DebugLoc::get(Context, 2, 7, N);
+    auto B = DebugLoc::get(Context, 2, 7, N);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(2u, M.getLine());
+    EXPECT_EQ(7u, M.getColumn());
+    EXPECT_EQ(N, M.getScope());
   }
 
   {
     // Identical, inside DILexicalBlockFile.
     auto *OtherF = DIFile::getDistinct(Context, "file1.c", "/path/to/dir");
     auto *LBF = DILexicalBlockFile::get(Context, S, OtherF, 0);
-    auto *A = DILocation::get(Context, 2, 7, LBF);
-    auto *B = DILocation::get(Context, 2, 7, LBF);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(2u, M->getLine());
-    EXPECT_EQ(7u, M->getColumn());
-    EXPECT_EQ(LBF, M->getScope());
+    auto A = DebugLoc::get(Context, 2, 7, LBF);
+    auto B = DebugLoc::get(Context, 2, 7, LBF);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(2u, M.getLine());
+    EXPECT_EQ(7u, M.getColumn());
+    EXPECT_EQ(LBF, M.getScope());
   }
 
   {
     // Identical, different scopes.
-    auto *A = DILocation::get(Context, 2, 7, N);
-    auto *B = DILocation::get(Context, 2, 7, S);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(2u, M->getLine());
-    EXPECT_EQ(7u, M->getColumn());
-    EXPECT_EQ(N, M->getScope());
+    auto A = DebugLoc::get(Context, 2, 7, N);
+    auto B = DebugLoc::get(Context, 2, 7, S);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(2u, M.getLine());
+    EXPECT_EQ(7u, M.getColumn());
+    EXPECT_EQ(N, M.getScope());
   }
 
   {
     // Same line, different column.
-    auto *A = DILocation::get(Context, 2, 7, N);
-    auto *B = DILocation::get(Context, 2, 10, S);
-    auto *M0 = DILocation::getMergedLocation(A, B);
-    auto *M1 = DILocation::getMergedLocation(B, A);
-    for (auto *M : {M0, M1}) {
-      EXPECT_EQ(2u, M->getLine());
-      EXPECT_EQ(0u, M->getColumn());
-      EXPECT_EQ(N, M->getScope());
+    auto A = DebugLoc::get(Context, 2, 7, N);
+    auto B = DebugLoc::get(Context, 2, 10, S);
+    auto M0 = DebugLoc::getMergedLocation(A, B);
+    auto M1 = DebugLoc::getMergedLocation(B, A);
+    for (auto M : {M0, M1}) {
+      EXPECT_EQ(2u, M.getLine());
+      EXPECT_EQ(0u, M.getColumn());
+      EXPECT_EQ(N, M.getScope());
     }
   }
 
@@ -978,57 +978,57 @@ TEST_F(DILocationTest, Merge) {
     // Same line, different column, same DILexicalBlockFile scope.
     auto *OtherF = DIFile::getDistinct(Context, "file1.c", "/path/to/dir");
     auto *LBF = DILexicalBlockFile::get(Context, S, OtherF, 0);
-    auto *A = DILocation::get(Context, 2, 7, LBF);
-    auto *B = DILocation::get(Context, 2, 10, LBF);
-    auto *M0 = DILocation::getMergedLocation(A, B);
-    auto *M1 = DILocation::getMergedLocation(B, A);
-    for (auto *M : {M0, M1}) {
-      EXPECT_EQ(2u, M->getLine());
-      EXPECT_EQ(0u, M->getColumn());
-      EXPECT_EQ(LBF, M->getScope());
+    auto A = DebugLoc::get(Context, 2, 7, LBF);
+    auto B = DebugLoc::get(Context, 2, 10, LBF);
+    auto M0 = DebugLoc::getMergedLocation(A, B);
+    auto M1 = DebugLoc::getMergedLocation(B, A);
+    for (auto M : {M0, M1}) {
+      EXPECT_EQ(2u, M.getLine());
+      EXPECT_EQ(0u, M.getColumn());
+      EXPECT_EQ(LBF, M.getScope());
     }
   }
 
   {
     // Different lines, same DISubprogram scopes.
-    auto *A = DILocation::get(Context, 1, 6, N);
-    auto *B = DILocation::get(Context, 2, 7, N);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(0u, M->getLine());
-    EXPECT_EQ(0u, M->getColumn());
-    EXPECT_EQ(N, M->getScope());
+    auto A = DebugLoc::get(Context, 1, 6, N);
+    auto B = DebugLoc::get(Context, 2, 7, N);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(0u, M.getLine());
+    EXPECT_EQ(0u, M.getColumn());
+    EXPECT_EQ(N, M.getScope());
   }
 
   {
     // Different lines, same DILexicalBlockFile scopes.
     auto *OtherF = DIFile::getDistinct(Context, "file1.c", "/path/to/dir");
     auto *LBF = DILexicalBlockFile::get(Context, S, OtherF, 0);
-    auto *A = DILocation::get(Context, 1, 6, LBF);
-    auto *B = DILocation::get(Context, 2, 7, LBF);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(0u, M->getLine());
-    EXPECT_EQ(0u, M->getColumn());
-    EXPECT_EQ(LBF, M->getScope());
+    auto A = DebugLoc::get(Context, 1, 6, LBF);
+    auto B = DebugLoc::get(Context, 2, 7, LBF);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(0u, M.getLine());
+    EXPECT_EQ(0u, M.getColumn());
+    EXPECT_EQ(LBF, M.getScope());
   }
 
   {
     // Different lines, same DILexicalBlock scopes.
-    auto *A = DILocation::get(Context, 1, 6, S);
-    auto *B = DILocation::get(Context, 2, 7, S);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(0u, M->getLine());
-    EXPECT_EQ(0u, M->getColumn());
-    EXPECT_EQ(S, M->getScope());
+    auto A = DebugLoc::get(Context, 1, 6, S);
+    auto B = DebugLoc::get(Context, 2, 7, S);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(0u, M.getLine());
+    EXPECT_EQ(0u, M.getColumn());
+    EXPECT_EQ(S, M.getScope());
   }
 
   {
     // Twisty locations, all different, same function.
-    auto *A = DILocation::get(Context, 1, 6, N);
-    auto *B = DILocation::get(Context, 2, 7, S);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(0u, M->getLine());
-    EXPECT_EQ(0u, M->getColumn());
-    EXPECT_EQ(N, M->getScope());
+    auto A = DebugLoc::get(Context, 1, 6, N);
+    auto B = DebugLoc::get(Context, 2, 7, S);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(0u, M.getLine());
+    EXPECT_EQ(0u, M.getColumn());
+    EXPECT_EQ(N, M.getScope());
   }
 
   {
@@ -1037,12 +1037,12 @@ TEST_F(DILocationTest, Merge) {
     auto *F2 = DIFile::getDistinct(Context, "file2.c", "/path/to/dir");
     DISubprogram *N = getSubprogram(F1);
     auto *LBF = DILexicalBlockFile::get(Context, N, F2, 0);
-    auto *A = DILocation::get(Context, 1, 6, N);
-    auto *B = DILocation::get(Context, 1, 6, LBF);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(0u, M->getLine());
-    EXPECT_EQ(0u, M->getColumn());
-    EXPECT_EQ(N, M->getScope());
+    auto A = DebugLoc::get(Context, 1, 6, N);
+    auto B = DebugLoc::get(Context, 1, 6, LBF);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(0u, M.getLine());
+    EXPECT_EQ(0u, M.getColumn());
+    EXPECT_EQ(N, M.getScope());
   }
 
   {
@@ -1052,12 +1052,12 @@ TEST_F(DILocationTest, Merge) {
     DISubprogram *N = getSubprogram(F1);
     auto *LB = DILexicalBlock::getDistinct(Context, N, F1, 4, 9);
     auto *LBF = DILexicalBlockFile::get(Context, LB, F2, 0);
-    auto *A = DILocation::get(Context, 1, 6, LB);
-    auto *B = DILocation::get(Context, 1, 6, LBF);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(4u, M->getLine());
-    EXPECT_EQ(9u, M->getColumn());
-    EXPECT_EQ(LB, M->getScope());
+    auto A = DebugLoc::get(Context, 1, 6, LB);
+    auto B = DebugLoc::get(Context, 1, 6, LBF);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(4u, M.getLine());
+    EXPECT_EQ(9u, M.getColumn());
+    EXPECT_EQ(LB, M.getScope());
   }
 
   {
@@ -1070,12 +1070,12 @@ TEST_F(DILocationTest, Merge) {
     auto *LB = DILexicalBlock::getDistinct(Context, N, F1, 4, 9);
     auto *LBF1 = DILexicalBlockFile::get(Context, LB, F2, 0);
     auto *LBF2 = DILexicalBlockFile::get(Context, LB, F3, 0);
-    auto *A = DILocation::get(Context, 1, 6, LBF1);
-    auto *B = DILocation::get(Context, 1, 6, LBF2);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(4u, M->getLine());
-    EXPECT_EQ(9u, M->getColumn());
-    EXPECT_EQ(LB, M->getScope());
+    auto A = DebugLoc::get(Context, 1, 6, LBF1);
+    auto B = DebugLoc::get(Context, 1, 6, LBF2);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(4u, M.getLine());
+    EXPECT_EQ(9u, M.getColumn());
+    EXPECT_EQ(LB, M.getScope());
   }
 
   {
@@ -1088,13 +1088,13 @@ TEST_F(DILocationTest, Merge) {
     auto *F2 = DIFile::getDistinct(Context, "file2.c", "/path/to/dir");
     auto *LBF1 = DILexicalBlockFile::get(Context, LB1, F2, 0);
     auto *LBF2 = DILexicalBlockFile::get(Context, LB2, F2, 0);
-    auto *A = DILocation::get(Context, 1, 6, LBF1);
-    auto *B = DILocation::get(Context, 1, 6, LBF2);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(1u, M->getLine());
-    EXPECT_EQ(6u, M->getColumn());
-    EXPECT_EQ(LBF1->getFile(), M->getScope()->getFile());
-    EXPECT_EQ(N, M->getScope()->getScope());
+    auto A = DebugLoc::get(Context, 1, 6, LBF1);
+    auto B = DebugLoc::get(Context, 1, 6, LBF2);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(1u, M.getLine());
+    EXPECT_EQ(6u, M.getColumn());
+    EXPECT_EQ(LBF1->getFile(), M.getScope()->getFile());
+    EXPECT_EQ(N, M.getScope()->getScope());
   }
 
   {
@@ -1105,12 +1105,12 @@ TEST_F(DILocationTest, Merge) {
     auto *LB = DILexicalBlock::getDistinct(Context, N, F1, 4, 9);
     auto *F2 = DIFile::getDistinct(Context, "file2.c", "/path/to/dir");
     auto *LBF = DILexicalBlockFile::get(Context, LB, F2, 0);
-    auto *A = DILocation::get(Context, 4, 9, LB);
-    auto *B = DILocation::get(Context, 1, 6, LBF);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(4u, M->getLine());
-    EXPECT_EQ(9u, M->getColumn());
-    EXPECT_EQ(LB, M->getScope());
+    auto A = DebugLoc::get(Context, 4, 9, LB);
+    auto B = DebugLoc::get(Context, 1, 6, LBF);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(4u, M.getLine());
+    EXPECT_EQ(9u, M.getColumn());
+    EXPECT_EQ(LB, M.getScope());
   }
 
   {
@@ -1132,12 +1132,12 @@ TEST_F(DILocationTest, Merge) {
     auto *F5 = DIFile::getDistinct(Context, "file5.c", "/path/to/dir");
     auto *LBF1 = DILexicalBlockFile::get(Context, LB1, F5, 0);
 
-    auto *A = DILocation::get(Context, 8, 9, LB2);
-    auto *B = DILocation::get(Context, 9, 6, LBF1);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(5u, M->getLine());
-    EXPECT_EQ(9u, M->getColumn());
-    EXPECT_EQ(LBCommon, M->getScope());
+    auto A = DebugLoc::get(Context, 8, 9, LB2);
+    auto B = DebugLoc::get(Context, 9, 6, LBF1);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(5u, M.getLine());
+    EXPECT_EQ(9u, M.getColumn());
+    EXPECT_EQ(LBCommon, M.getScope());
   }
 
   {
@@ -1171,12 +1171,12 @@ TEST_F(DILocationTest, Merge) {
         Context, DILexicalBlockFile::get(Context, Block1[1], F2[1], 0), F2[1],
         50, 6);
 
-    auto *A = DILocation::get(Context, 41, 7, Block2[0]);
-    auto *B = DILocation::get(Context, 51, 8, Block2[1]);
-    auto *M = DILocation::getMergedLocation(A, B);
-    auto *MScope = dyn_cast<DILexicalBlock>(M->getScope());
-    EXPECT_EQ(30u, M->getLine());
-    EXPECT_EQ(4u, M->getColumn());
+    auto A = DebugLoc::get(Context, 41, 7, Block2[0]);
+    auto B = DebugLoc::get(Context, 51, 8, Block2[1]);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    auto *MScope = dyn_cast<DILexicalBlock>(M.getScope());
+    EXPECT_EQ(30u, M.getLine());
+    EXPECT_EQ(4u, M.getColumn());
     EXPECT_EQ(Block1[0]->getFile(), MScope->getFile());
     EXPECT_EQ(Block1[0]->getLine(), MScope->getLine());
     EXPECT_EQ(Block1[0]->getColumn(), MScope->getColumn());
@@ -1193,14 +1193,14 @@ TEST_F(DILocationTest, Merge) {
                                           0, nullptr, 0, 0, DINode::FlagZero,
                                           DISubprogram::SPFlagZero, nullptr);
 
-    auto *I = DILocation::get(Context, 2, 7, N);
-    auto *A = DILocation::get(Context, 1, 6, SP1, I);
-    auto *B = DILocation::get(Context, 3, 8, SP2, I);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(2u, M->getLine());
-    EXPECT_EQ(7u, M->getColumn());
-    EXPECT_EQ(N, M->getScope());
-    EXPECT_EQ(nullptr, M->getInlinedAt());
+    auto I = DebugLoc::get(Context, 2, 7, N);
+    auto A = DebugLoc::get(Context, 1, 6, SP1, I);
+    auto B = DebugLoc::get(Context, 3, 8, SP2, I);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(2u, M.getLine());
+    EXPECT_EQ(7u, M.getColumn());
+    EXPECT_EQ(N, M.getScope());
+    EXPECT_EQ(nullptr, M.getInlinedAt());
   }
 
   {
@@ -1213,28 +1213,28 @@ TEST_F(DILocationTest, Merge) {
                                           0, nullptr, 0, 0, DINode::FlagZero,
                                           DISubprogram::SPFlagZero, nullptr);
 
-    auto *IA = DILocation::get(Context, 2, 7, N);
-    auto *IB = DILocation::get(Context, 2, 8, N);
-    auto *A = DILocation::get(Context, 1, 6, SP1, IA);
-    auto *B = DILocation::get(Context, 3, 8, SP2, IB);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(2u, M->getLine());
-    EXPECT_EQ(0u, M->getColumn());
-    EXPECT_EQ(N, M->getScope());
-    EXPECT_EQ(nullptr, M->getInlinedAt());
+    auto IA = DebugLoc::get(Context, 2, 7, N);
+    auto IB = DebugLoc::get(Context, 2, 8, N);
+    auto A = DebugLoc::get(Context, 1, 6, SP1, IA);
+    auto B = DebugLoc::get(Context, 3, 8, SP2, IB);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(2u, M.getLine());
+    EXPECT_EQ(0u, M.getColumn());
+    EXPECT_EQ(N, M.getScope());
+    EXPECT_EQ(nullptr, M.getInlinedAt());
   }
 
   {
     // Completely different.
-    auto *I = DILocation::get(Context, 2, 7, N);
-    auto *A = DILocation::get(Context, 1, 6, S, I);
-    auto *B = DILocation::get(Context, 2, 7, getSubprogram());
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(0u, M->getLine());
-    EXPECT_EQ(0u, M->getColumn());
-    EXPECT_TRUE(isa<DILocalScope>(M->getScope()));
-    EXPECT_EQ(S, M->getScope());
-    EXPECT_EQ(nullptr, M->getInlinedAt());
+    auto I = DebugLoc::get(Context, 2, 7, N);
+    auto A = DebugLoc::get(Context, 1, 6, S, I);
+    auto B = DebugLoc::get(Context, 2, 7, getSubprogram());
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(0u, M.getLine());
+    EXPECT_EQ(0u, M.getColumn());
+    EXPECT_TRUE(isa<DILocalScope>(M.getScope()));
+    EXPECT_EQ(S, M.getScope());
+    EXPECT_EQ(nullptr, M.getInlinedAt());
   }
 
   // Two locations, same line/column different file, inlined at the same place.
@@ -1255,15 +1255,15 @@ TEST_F(DILocationTest, Merge) {
                                           0, nullptr, 0, 0, DINode::FlagZero,
                                           DISubprogram::SPFlagZero, nullptr);
 
-    auto *I = DILocation::get(Context, 3, 8, SPI);
-    auto *A = DILocation::get(Context, 2, 7, SPA, I);
-    auto *B = DILocation::get(Context, 2, 7, SPB, I);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(3u, M->getLine());
-    EXPECT_EQ(8u, M->getColumn());
-    EXPECT_TRUE(isa<DILocalScope>(M->getScope()));
-    EXPECT_EQ(SPI, M->getScope());
-    EXPECT_EQ(nullptr, M->getInlinedAt());
+    auto I = DebugLoc::get(Context, 3, 8, SPI);
+    auto A = DebugLoc::get(Context, 2, 7, SPA, I);
+    auto B = DebugLoc::get(Context, 2, 7, SPB, I);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(3u, M.getLine());
+    EXPECT_EQ(8u, M.getColumn());
+    EXPECT_TRUE(isa<DILocalScope>(M.getScope()));
+    EXPECT_EQ(SPI, M.getScope());
+    EXPECT_EQ(nullptr, M.getInlinedAt());
   }
 
   // Two locations, same line/column different file, one location with 2 scopes,
@@ -1287,15 +1287,15 @@ TEST_F(DILocationTest, Merge) {
 
     auto *SPAScope = DILexicalBlock::getDistinct(Context, SPA, FA, 4, 9);
 
-    auto *I = DILocation::get(Context, 3, 8, SPI);
-    auto *A = DILocation::get(Context, 2, 7, SPAScope, I);
-    auto *B = DILocation::get(Context, 2, 7, SPB, I);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(3u, M->getLine());
-    EXPECT_EQ(8u, M->getColumn());
-    EXPECT_TRUE(isa<DILocalScope>(M->getScope()));
-    EXPECT_EQ(SPI, M->getScope());
-    EXPECT_EQ(nullptr, M->getInlinedAt());
+    auto I = DebugLoc::get(Context, 3, 8, SPI);
+    auto A = DebugLoc::get(Context, 2, 7, SPAScope, I);
+    auto B = DebugLoc::get(Context, 2, 7, SPB, I);
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(3u, M.getLine());
+    EXPECT_EQ(8u, M.getColumn());
+    EXPECT_TRUE(isa<DILocalScope>(M.getScope()));
+    EXPECT_EQ(SPI, M.getScope());
+    EXPECT_EQ(nullptr, M.getInlinedAt());
   }
 
   // Merge a location in C, which is inlined-at in B that is inlined in A,
@@ -1318,15 +1318,15 @@ TEST_F(DILocationTest, Merge) {
                                           0, nullptr, 0, 0, DINode::FlagZero,
                                           DISubprogram::SPFlagZero, nullptr);
 
-    auto *A = DILocation::get(Context, 3, 2, SPA);
-    auto *B = DILocation::get(Context, 2, 4, SPB, A);
-    auto *C = DILocation::get(Context, 13, 2, SPC, B);
-    auto *M = DILocation::getMergedLocation(A, C);
-    EXPECT_EQ(3u, M->getLine());
-    EXPECT_EQ(2u, M->getColumn());
-    EXPECT_TRUE(isa<DILocalScope>(M->getScope()));
-    EXPECT_EQ(SPA, M->getScope());
-    EXPECT_EQ(nullptr, M->getInlinedAt());
+    auto A = DebugLoc::get(Context, 3, 2, SPA);
+    auto B = DebugLoc::get(Context, 2, 4, SPB, A);
+    auto C = DebugLoc::get(Context, 13, 2, SPC, B);
+    auto M = DebugLoc::getMergedLocation(A, C);
+    EXPECT_EQ(3u, M.getLine());
+    EXPECT_EQ(2u, M.getColumn());
+    EXPECT_TRUE(isa<DILocalScope>(M.getScope()));
+    EXPECT_EQ(SPA, M.getScope());
+    EXPECT_EQ(nullptr, M.getInlinedAt());
   }
 
   // Two inlined locations with the same scope, line and column
@@ -1348,23 +1348,23 @@ TEST_F(DILocationTest, Merge) {
                                           0, nullptr, 0, 0, DINode::FlagZero,
                                           DISubprogram::SPFlagZero, nullptr);
 
-    auto *A = DILocation::get(Context, 10, 20, SPA);
-    auto *B1 = DILocation::get(Context, 3, 2, SPB, A);
-    auto *B2 = DILocation::get(Context, 4, 5, SPB, A);
-    auto *C1 = DILocation::get(Context, 2, 4, SPC, B1);
-    auto *C2 = DILocation::get(Context, 2, 4, SPC, B2);
+    auto A = DebugLoc::get(Context, 10, 20, SPA);
+    auto B1 = DebugLoc::get(Context, 3, 2, SPB, A);
+    auto B2 = DebugLoc::get(Context, 4, 5, SPB, A);
+    auto C1 = DebugLoc::get(Context, 2, 4, SPC, B1);
+    auto C2 = DebugLoc::get(Context, 2, 4, SPC, B2);
 
-    auto *M = DILocation::getMergedLocation(C1, C2);
-    EXPECT_EQ(2u, M->getLine());
-    EXPECT_EQ(4u, M->getColumn());
-    EXPECT_EQ(SPC, M->getScope());
-    ASSERT_NE(nullptr, M->getInlinedAt());
+    auto M = DebugLoc::getMergedLocation(C1, C2);
+    EXPECT_EQ(2u, M.getLine());
+    EXPECT_EQ(4u, M.getColumn());
+    EXPECT_EQ(SPC, M.getScope());
+    ASSERT_NE(nullptr, M.getInlinedAt());
 
-    auto *I1 = M->getInlinedAt();
-    EXPECT_EQ(0u, I1->getLine());
-    EXPECT_EQ(0u, I1->getColumn());
-    EXPECT_EQ(SPB, I1->getScope());
-    EXPECT_EQ(A, I1->getInlinedAt());
+    auto I1 = M.getInlinedAt();
+    EXPECT_EQ(0u, I1.getLine());
+    EXPECT_EQ(0u, I1.getColumn());
+    EXPECT_EQ(SPB, I1.getScope());
+    EXPECT_EQ(A, I1.getInlinedAt());
   }
 
   // Two locations, different line/column and scope in the same subprogram,
@@ -1395,15 +1395,15 @@ TEST_F(DILocationTest, Merge) {
     auto *SPAScope4 =
         DILexicalBlock::getDistinct(Context, SPAScope3, FA, 21, 12);
 
-    auto *I = DILocation::get(Context, 3, 8, SPI);
-    auto *A1 = DILocation::get(Context, 12, 7, SPAScope2, I);
-    auto *A2 = DILocation::get(Context, 21, 15, SPAScope4, I);
-    auto *M = DILocation::getMergedLocation(A1, A2);
-    EXPECT_EQ(0u, M->getLine());
-    EXPECT_EQ(0u, M->getColumn());
-    EXPECT_TRUE(isa<DILocalScope>(M->getScope()));
-    EXPECT_EQ(SPAScope1, M->getScope());
-    EXPECT_EQ(I, M->getInlinedAt());
+    auto I = DebugLoc::get(Context, 3, 8, SPI);
+    auto A1 = DebugLoc::get(Context, 12, 7, SPAScope2, I);
+    auto A2 = DebugLoc::get(Context, 21, 15, SPAScope4, I);
+    auto M = DebugLoc::getMergedLocation(A1, A2);
+    EXPECT_EQ(0u, M.getLine());
+    EXPECT_EQ(0u, M.getColumn());
+    EXPECT_TRUE(isa<DILocalScope>(M.getScope()));
+    EXPECT_EQ(SPAScope1, M.getScope());
+    EXPECT_EQ(I, M.getInlinedAt());
   }
 
   // Regression test to catch a case where an iterator was invalidated due to
@@ -1429,25 +1429,25 @@ TEST_F(DILocationTest, Merge) {
     auto *SPAScope1 = DILexicalBlock::getDistinct(Context, SPA, FA, 4, 9);
     auto *SPAScope2 = DILexicalBlock::getDistinct(Context, SPA, FA, 8, 3);
 
-    DILocation *InlinedAt = nullptr;
+    DebugLoc InlinedAt = nullptr;
 
     // Create a chain of inlined-at locations.
     for (int i = 0; i < 256; i++) {
-      InlinedAt = DILocation::get(Context, 3 + i, 8 + i, SPI, InlinedAt);
+      InlinedAt = DebugLoc::get(Context, 3 + i, 8 + i, SPI, InlinedAt);
     }
 
-    auto *A1 = DILocation::get(Context, 5, 9, SPAScope1, InlinedAt);
-    auto *A2 = DILocation::get(Context, 9, 8, SPAScope2, InlinedAt);
-    auto *B = DILocation::get(Context, 10, 3, SPB, A1);
-    auto *M1 = DILocation::getMergedLocation(B, A2);
-    EXPECT_EQ(0u, M1->getLine());
-    EXPECT_EQ(0u, M1->getColumn());
-    EXPECT_TRUE(isa<DILocalScope>(M1->getScope()));
-    EXPECT_EQ(SPA, M1->getScope());
-    EXPECT_EQ(InlinedAt, M1->getInlinedAt());
+    auto A1 = DebugLoc::get(Context, 5, 9, SPAScope1, InlinedAt);
+    auto A2 = DebugLoc::get(Context, 9, 8, SPAScope2, InlinedAt);
+    auto B = DebugLoc::get(Context, 10, 3, SPB, A1);
+    auto M1 = DebugLoc::getMergedLocation(B, A2);
+    EXPECT_EQ(0u, M1.getLine());
+    EXPECT_EQ(0u, M1.getColumn());
+    EXPECT_TRUE(isa<DILocalScope>(M1.getScope()));
+    EXPECT_EQ(SPA, M1.getScope());
+    EXPECT_EQ(InlinedAt, M1.getInlinedAt());
 
     // Test the other argument order for good measure.
-    auto *M2 = DILocation::getMergedLocation(A2, B);
+    auto M2 = DebugLoc::getMergedLocation(A2, B);
     EXPECT_EQ(M1, M2);
   }
 
@@ -1455,132 +1455,132 @@ TEST_F(DILocationTest, Merge) {
     // If PickMergedSourceLocation is enabled, when one source location is null
     // we should return the valid location.
     PickMergedSourceLocations = true;
-    auto *A = DILocation::get(Context, 2, 7, N);
-    auto *M1 = DILocation::getMergedLocation(A, nullptr);
+    auto A = DebugLoc::get(Context, 2, 7, N);
+    auto M1 = DebugLoc::getMergedLocation(A, nullptr);
     ASSERT_NE(nullptr, M1);
-    EXPECT_EQ(2u, M1->getLine());
-    EXPECT_EQ(7u, M1->getColumn());
-    EXPECT_EQ(N, M1->getScope());
+    EXPECT_EQ(2u, M1.getLine());
+    EXPECT_EQ(7u, M1.getColumn());
+    EXPECT_EQ(N, M1.getScope());
 
-    auto *M2 = DILocation::getMergedLocation(nullptr, A);
+    auto M2 = DebugLoc::getMergedLocation(nullptr, A);
     ASSERT_NE(nullptr, M2);
-    EXPECT_EQ(2u, M2->getLine());
-    EXPECT_EQ(7u, M2->getColumn());
-    EXPECT_EQ(N, M2->getScope());
+    EXPECT_EQ(2u, M2.getLine());
+    EXPECT_EQ(7u, M2.getColumn());
+    EXPECT_EQ(N, M2.getScope());
     PickMergedSourceLocations = false;
   }
 
 #define EXPECT_ATOM(Loc, Group, Rank)                                          \
-  EXPECT_EQ(Group, M->getAtomGroup());                                         \
-  EXPECT_EQ(Rank, M->getAtomRank());
+  EXPECT_EQ(Group, M.getAtomGroup());                                          \
+  EXPECT_EQ(Rank, M.getAtomRank());
 
   // Identical, including source atom numbers.
   {
-    auto *A = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
+    auto A = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
                               /*AtomRank*/ 1);
-    auto *B = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
+    auto B = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
                               /*AtomRank*/ 1);
-    auto *M = DILocation::getMergedLocation(A, B);
+    auto M = DebugLoc::getMergedLocation(A, B);
     EXPECT_ATOM(M, /*AtomGroup*/ 1u, 1u);
     // DILocations are uniqued, so we can check equality by ptr.
-    EXPECT_EQ(M, DILocation::getMergedLocation(A, B));
+    EXPECT_EQ(M, DebugLoc::getMergedLocation(A, B));
   }
 
   // Identical but different atom ranks (same atom) - choose the lowest nonzero
   // rank.
   {
-    auto *A = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
+    auto A = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
                               /*AtomRank*/ 1);
-    auto *B = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
+    auto B = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
                               /*AtomRank*/ 2);
-    auto *M = DILocation::getMergedLocation(A, B);
+    auto M = DebugLoc::getMergedLocation(A, B);
     EXPECT_ATOM(M, /*AtomGroup*/ 1u, /*AtomRank*/ 1u);
-    EXPECT_EQ(M, DILocation::getMergedLocation(B, A));
+    EXPECT_EQ(M, DebugLoc::getMergedLocation(B, A));
 
-    A = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
+    A = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
                         /*AtomRank*/ 0);
-    B = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
+    B = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
                         /*AtomRank*/ 2);
-    M = DILocation::getMergedLocation(A, B);
+    M = DebugLoc::getMergedLocation(A, B);
     EXPECT_ATOM(M, /*AtomGroup*/ 1u, /*AtomRank*/ 2u);
-    EXPECT_EQ(M, DILocation::getMergedLocation(B, A));
+    EXPECT_EQ(M, DebugLoc::getMergedLocation(B, A));
   }
 
   // Identical but different atom ranks (different atom) - choose the lowest
   // nonzero rank.
   {
-    auto *A = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
+    auto A = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
                               /*AtomRank*/ 1);
-    auto *B = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 2,
+    auto B = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 2,
                               /*AtomRank*/ 2);
-    auto *M = DILocation::getMergedLocation(A, B);
+    auto M = DebugLoc::getMergedLocation(A, B);
     EXPECT_ATOM(M, 1u, 1u);
-    EXPECT_EQ(M, DILocation::getMergedLocation(B, A));
+    EXPECT_EQ(M, DebugLoc::getMergedLocation(B, A));
 
-    A = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
+    A = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
                         /*AtomRank*/ 0);
-    B = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 2,
+    B = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 2,
                         /*AtomRank*/ 2);
-    M = DILocation::getMergedLocation(A, B);
+    M = DebugLoc::getMergedLocation(A, B);
     EXPECT_ATOM(M, /*AtomGroup*/ 2u, /*AtomRank*/ 2u);
-    EXPECT_EQ(M, DILocation::getMergedLocation(B, A));
+    EXPECT_EQ(M, DebugLoc::getMergedLocation(B, A));
   }
 
   // Identical but equal atom rank (different atom) - choose the lowest non-zero
   // group (arbitrary choice for deterministic behaviour).
   {
-    auto *A = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
+    auto A = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 1,
                               /*AtomRank*/ 1);
-    auto *B = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 2,
+    auto B = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 2,
                               /*AtomRank*/ 1);
-    auto *M = DILocation::getMergedLocation(A, B);
+    auto M = DebugLoc::getMergedLocation(A, B);
     EXPECT_ATOM(M, 1u, 1u);
-    EXPECT_EQ(M, DILocation::getMergedLocation(B, A));
+    EXPECT_EQ(M, DebugLoc::getMergedLocation(B, A));
 
-    A = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 0,
+    A = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 0,
                         /*AtomRank*/ 1);
-    B = DILocation::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 2,
+    B = DebugLoc::get(Context, 2, 7, N, nullptr, false, /*AtomGroup*/ 2,
                         /*AtomRank*/ 1);
-    M = DILocation::getMergedLocation(A, B);
+    M = DebugLoc::getMergedLocation(A, B);
     EXPECT_ATOM(M, /*AtomGroup*/ 2u, /*AtomRank*/ 1u);
-    EXPECT_EQ(M, DILocation::getMergedLocation(B, A));
+    EXPECT_EQ(M, DebugLoc::getMergedLocation(B, A));
   }
 
   // Completely different except same atom numbers. Zero out the atoms.
   {
-    auto *I = DILocation::get(Context, 2, 7, N);
-    auto *A = DILocation::get(Context, 1, 6, S, I, false, /*AtomGroup*/ 1,
+    auto I = DebugLoc::get(Context, 2, 7, N);
+    auto A = DebugLoc::get(Context, 1, 6, S, I, false, /*AtomGroup*/ 1,
                               /*AtomRank*/ 1);
-    auto *B = DILocation::get(Context, 2, 7, getSubprogram(), nullptr, false,
+    auto B = DebugLoc::get(Context, 2, 7, getSubprogram(), nullptr, false,
                               /*AtomGroup*/ 1, /*AtomRank*/ 1);
-    auto *M = DILocation::getMergedLocation(A, B);
-    EXPECT_EQ(0u, M->getLine());
-    EXPECT_EQ(0u, M->getColumn());
-    EXPECT_TRUE(isa<DILocalScope>(M->getScope()));
-    EXPECT_EQ(S, M->getScope());
-    EXPECT_EQ(nullptr, M->getInlinedAt());
+    auto M = DebugLoc::getMergedLocation(A, B);
+    EXPECT_EQ(0u, M.getLine());
+    EXPECT_EQ(0u, M.getColumn());
+    EXPECT_TRUE(isa<DILocalScope>(M.getScope()));
+    EXPECT_EQ(S, M.getScope());
+    EXPECT_EQ(nullptr, M.getInlinedAt());
   }
 
   // Same inlined-at chain but different atoms. Choose the lowest
   // non-zero group (arbitrary choice for deterministic behaviour).
   {
-    auto *I = DILocation::get(Context, 1, 7, N);
+    auto I = DebugLoc::get(Context, 1, 7, N);
     auto *F = getSubprogram();
-    auto *A = DILocation::get(Context, 1, 1, F, I, false, /*AtomGroup*/ 1,
+    auto A = DebugLoc::get(Context, 1, 1, F, I, false, /*AtomGroup*/ 1,
                               /*AtomRank*/ 2);
-    auto *B = DILocation::get(Context, 1, 1, F, I, false, /*AtomGroup*/ 2,
+    auto B = DebugLoc::get(Context, 1, 1, F, I, false, /*AtomGroup*/ 2,
                               /*AtomRank*/ 2);
-    auto *M = DILocation::getMergedLocation(A, B);
+    auto M = DebugLoc::getMergedLocation(A, B);
     EXPECT_ATOM(M, /*AtomGroup*/ 1u, /*AtomRank*/ 2u);
-    EXPECT_EQ(M, DILocation::getMergedLocation(B, A));
+    EXPECT_EQ(M, DebugLoc::getMergedLocation(B, A));
 
-    A = DILocation::get(Context, 1, 1, F, I, false, /*AtomGroup*/ 1,
+    A = DebugLoc::get(Context, 1, 1, F, I, false, /*AtomGroup*/ 1,
                         /*AtomRank*/ 2);
-    B = DILocation::get(Context, 1, 1, F, I, false, /*AtomGroup*/ 2,
+    B = DebugLoc::get(Context, 1, 1, F, I, false, /*AtomGroup*/ 2,
                         /*AtomRank*/ 0);
-    M = DILocation::getMergedLocation(A, B);
+    M = DebugLoc::getMergedLocation(A, B);
     EXPECT_ATOM(M, /*AtomGroup*/ 1u, /*AtomRank*/ 2u);
-    EXPECT_EQ(M, DILocation::getMergedLocation(B, A));
+    EXPECT_EQ(M, DebugLoc::getMergedLocation(B, A));
   }
 
   // Partially equal inlined-at chain but different atoms. Generate a new atom
@@ -1594,25 +1594,25 @@ TEST_F(DILocationTest, Merge) {
     auto *FX = getSubprogram();
     auto *FY = getSubprogram();
     auto *FZ = getSubprogram();
-    auto *Z4 = DILocation::get(Context, 1, 4, FZ);
-    auto *Y3IntoZ4 = DILocation::get(Context, 1, 3, FY, Z4, false,
+    auto Z4 = DebugLoc::get(Context, 1, 4, FZ);
+    auto Y3IntoZ4 = DebugLoc::get(Context, 1, 3, FY, Z4, false,
                                      /*AtomGroup*/ 1, /*AtomRank*/ 1);
-    auto *Y2IntoZ4 = DILocation::get(Context, 1, 2, FY, Z4);
-    auto *X1IntoY2 = DILocation::get(Context, 1, 1, FX, Y2IntoZ4);
-    auto *M = DILocation::getMergedLocation(X1IntoY2, Y3IntoZ4);
-    EXPECT_EQ(M->getScope(), FY);
-    EXPECT_EQ(M->getInlinedAt()->getScope(), FZ);
+    auto Y2IntoZ4 = DebugLoc::get(Context, 1, 2, FY, Z4);
+    auto X1IntoY2 = DebugLoc::get(Context, 1, 1, FX, Y2IntoZ4);
+    auto M = DebugLoc::getMergedLocation(X1IntoY2, Y3IntoZ4);
+    EXPECT_EQ(M.getScope(), FY);
+    EXPECT_EQ(M.getInlinedAt().getScope(), FZ);
     EXPECT_ATOM(M, /*AtomGroup*/ 2u, /*AtomRank*/ 1u);
 
     // This swapped merge will produce a new atom group too.
-    M = DILocation::getMergedLocation(Y3IntoZ4, X1IntoY2);
+    M = DebugLoc::getMergedLocation(Y3IntoZ4, X1IntoY2);
 
     // Same again, even if the atom numbers match.
-    auto *X1IntoY2SameAtom = DILocation::get(Context, 1, 1, FX, Y2IntoZ4, false,
+    auto X1IntoY2SameAtom = DebugLoc::get(Context, 1, 1, FX, Y2IntoZ4, false,
                                              /*AtomGroup*/ 1, /*AtomRank*/ 1);
-    M = DILocation::getMergedLocation(X1IntoY2SameAtom, Y3IntoZ4);
+    M = DebugLoc::getMergedLocation(X1IntoY2SameAtom, Y3IntoZ4);
     EXPECT_ATOM(M, /*AtomGroup*/ 4u, /*AtomRank*/ 1u);
-    M = DILocation::getMergedLocation(Y3IntoZ4, X1IntoY2SameAtom);
+    M = DebugLoc::getMergedLocation(Y3IntoZ4, X1IntoY2SameAtom);
     EXPECT_ATOM(M, /*AtomGroup*/ 5u, /*AtomRank*/ 1u);
   }
 #undef EXPECT_ATOM
@@ -1645,55 +1645,55 @@ TEST_F(DILocationTest, cloneTemporary) {
 // NOLINTEND(llvm-debug-loc-*)
 
 TEST_F(DILocationTest, discriminatorEncoding) {
-  EXPECT_EQ(0U, *DILocation::encodeDiscriminator(0, 0, 0));
+  EXPECT_EQ(0U, *DebugLoc::encodeDiscriminator(0, 0, 0));
 
   // Encode base discriminator as a component: lsb is 0, then the value.
   // The other components are all absent, so we leave all the other bits 0.
-  EXPECT_EQ(2U, *DILocation::encodeDiscriminator(1, 0, 0));
+  EXPECT_EQ(2U, *DebugLoc::encodeDiscriminator(1, 0, 0));
 
   // Base discriminator component is empty, so lsb is 1. Next component is not
   // empty, so its lsb is 0, then its value (1). Next component is empty.
   // So the bit pattern is 101.
-  EXPECT_EQ(5U, *DILocation::encodeDiscriminator(0, 1, 0));
+  EXPECT_EQ(5U, *DebugLoc::encodeDiscriminator(0, 1, 0));
 
   // First 2 components are empty, so the bit pattern is 11. Then the
   // next component - ending up with 1011.
-  EXPECT_EQ(0xbU, *DILocation::encodeDiscriminator(0, 0, 1));
+  EXPECT_EQ(0xbU, *DebugLoc::encodeDiscriminator(0, 0, 1));
 
   // The bit pattern for the first 2 components is 11. The next bit is 0,
   // because the last component is not empty. We have 29 bits usable for
   // encoding, but we cap it at 12 bits uniformously for all components. We
   // encode the last component over 14 bits.
-  EXPECT_EQ(0xfffbU, *DILocation::encodeDiscriminator(0, 0, 0xfff));
+  EXPECT_EQ(0xfffbU, *DebugLoc::encodeDiscriminator(0, 0, 0xfff));
 
-  EXPECT_EQ(0x102U, *DILocation::encodeDiscriminator(1, 1, 0));
+  EXPECT_EQ(0x102U, *DebugLoc::encodeDiscriminator(1, 1, 0));
 
-  EXPECT_EQ(0x13eU, *DILocation::encodeDiscriminator(0x1f, 1, 0));
+  EXPECT_EQ(0x13eU, *DebugLoc::encodeDiscriminator(0x1f, 1, 0));
 
-  EXPECT_EQ(0x87feU, *DILocation::encodeDiscriminator(0x1ff, 1, 0));
+  EXPECT_EQ(0x87feU, *DebugLoc::encodeDiscriminator(0x1ff, 1, 0));
 
-  EXPECT_EQ(0x1f3eU, *DILocation::encodeDiscriminator(0x1f, 0x1f, 0));
+  EXPECT_EQ(0x1f3eU, *DebugLoc::encodeDiscriminator(0x1f, 0x1f, 0));
 
-  EXPECT_EQ(0x3ff3eU, *DILocation::encodeDiscriminator(0x1f, 0x1ff, 0));
+  EXPECT_EQ(0x3ff3eU, *DebugLoc::encodeDiscriminator(0x1f, 0x1ff, 0));
 
-  EXPECT_EQ(0x1ff87feU, *DILocation::encodeDiscriminator(0x1ff, 0x1ff, 0));
+  EXPECT_EQ(0x1ff87feU, *DebugLoc::encodeDiscriminator(0x1ff, 0x1ff, 0));
 
-  EXPECT_EQ(0xfff9f3eU, *DILocation::encodeDiscriminator(0x1f, 0x1f, 0xfff));
+  EXPECT_EQ(0xfff9f3eU, *DebugLoc::encodeDiscriminator(0x1f, 0x1f, 0xfff));
 
-  EXPECT_EQ(0xffc3ff3eU, *DILocation::encodeDiscriminator(0x1f, 0x1ff, 0x1ff));
+  EXPECT_EQ(0xffc3ff3eU, *DebugLoc::encodeDiscriminator(0x1f, 0x1ff, 0x1ff));
 
-  EXPECT_EQ(0xffcf87feU, *DILocation::encodeDiscriminator(0x1ff, 0x1f, 0x1ff));
+  EXPECT_EQ(0xffcf87feU, *DebugLoc::encodeDiscriminator(0x1ff, 0x1f, 0x1ff));
 
-  EXPECT_EQ(0xe1ff87feU, *DILocation::encodeDiscriminator(0x1ff, 0x1ff, 7));
+  EXPECT_EQ(0xe1ff87feU, *DebugLoc::encodeDiscriminator(0x1ff, 0x1ff, 7));
 }
 
 TEST_F(DILocationTest, discriminatorEncodingNegativeTests) {
-  EXPECT_EQ(std::nullopt, DILocation::encodeDiscriminator(0, 0, 0x1000));
-  EXPECT_EQ(std::nullopt, DILocation::encodeDiscriminator(0x1000, 0, 0));
-  EXPECT_EQ(std::nullopt, DILocation::encodeDiscriminator(0, 0x1000, 0));
-  EXPECT_EQ(std::nullopt, DILocation::encodeDiscriminator(0, 0, 0x1000));
-  EXPECT_EQ(std::nullopt, DILocation::encodeDiscriminator(0x1ff, 0x1ff, 8));
-  EXPECT_EQ(std::nullopt, DILocation::encodeDiscriminator(
+  EXPECT_EQ(std::nullopt, DebugLoc::encodeDiscriminator(0, 0, 0x1000));
+  EXPECT_EQ(std::nullopt, DebugLoc::encodeDiscriminator(0x1000, 0, 0));
+  EXPECT_EQ(std::nullopt, DebugLoc::encodeDiscriminator(0, 0x1000, 0));
+  EXPECT_EQ(std::nullopt, DebugLoc::encodeDiscriminator(0, 0, 0x1000));
+  EXPECT_EQ(std::nullopt, DebugLoc::encodeDiscriminator(0x1ff, 0x1ff, 8));
+  EXPECT_EQ(std::nullopt, DebugLoc::encodeDiscriminator(
                               std::numeric_limits<uint32_t>::max(),
                               std::numeric_limits<uint32_t>::max(), 0));
 }
@@ -1702,66 +1702,65 @@ TEST_F(DILocationTest, discriminatorSpecialCases) {
   // We don't test getCopyIdentifier here because the only way
   // to set it is by constructing an encoded discriminator using
   // encodeDiscriminator, which is already tested.
-  auto L1 = DILocation::get(Context, 1, 2, getSubprogram());
-  EXPECT_EQ(0U, L1->getBaseDiscriminator());
-  EXPECT_EQ(1U, L1->getDuplicationFactor());
+  auto L1 = DebugLoc::get(Context, 1, 2, getSubprogram());
+  EXPECT_EQ(0U, L1.getBaseDiscriminator());
+  EXPECT_EQ(1U, L1.getDuplicationFactor());
 
-  EXPECT_EQ(L1, *L1->cloneWithBaseDiscriminator(0));
-  EXPECT_EQ(L1, *L1->cloneByMultiplyingDuplicationFactor(0));
-  EXPECT_EQ(L1, *L1->cloneByMultiplyingDuplicationFactor(1));
+  EXPECT_EQ(L1, *L1.cloneWithBaseDiscriminator(0));
+  EXPECT_EQ(L1, *L1.cloneByMultiplyingDuplicationFactor(0));
+  EXPECT_EQ(L1, *L1.cloneByMultiplyingDuplicationFactor(1));
 
-  auto L2 = *L1->cloneWithBaseDiscriminator(1);
-  EXPECT_EQ(0U, L1->getBaseDiscriminator());
-  EXPECT_EQ(1U, L1->getDuplicationFactor());
+  auto L2 = *L1.cloneWithBaseDiscriminator(1);
+  EXPECT_EQ(0U, L1.getBaseDiscriminator());
+  EXPECT_EQ(1U, L1.getDuplicationFactor());
 
-  EXPECT_EQ(1U, L2->getBaseDiscriminator());
-  EXPECT_EQ(1U, L2->getDuplicationFactor());
+  EXPECT_EQ(1U, L2.getBaseDiscriminator());
+  EXPECT_EQ(1U, L2.getDuplicationFactor());
 
-  auto L3 = *L2->cloneByMultiplyingDuplicationFactor(2);
-  EXPECT_EQ(1U, L3->getBaseDiscriminator());
-  EXPECT_EQ(2U, L3->getDuplicationFactor());
+  auto L3 = *L2.cloneByMultiplyingDuplicationFactor(2);
+  EXPECT_EQ(1U, L3.getBaseDiscriminator());
+  EXPECT_EQ(2U, L3.getDuplicationFactor());
 
-  EXPECT_EQ(L2, *L2->cloneByMultiplyingDuplicationFactor(1));
+  EXPECT_EQ(L2, *L2.cloneByMultiplyingDuplicationFactor(1));
 
-  auto L4 = *L3->cloneByMultiplyingDuplicationFactor(4);
-  EXPECT_EQ(1U, L4->getBaseDiscriminator());
-  EXPECT_EQ(8U, L4->getDuplicationFactor());
+  auto L4 = *L3.cloneByMultiplyingDuplicationFactor(4);
+  EXPECT_EQ(1U, L4.getBaseDiscriminator());
+  EXPECT_EQ(8U, L4.getDuplicationFactor());
 
-  auto L5 = *L4->cloneWithBaseDiscriminator(2);
-  EXPECT_EQ(2U, L5->getBaseDiscriminator());
-  EXPECT_EQ(8U, L5->getDuplicationFactor());
+  auto L5 = *L4.cloneWithBaseDiscriminator(2);
+  EXPECT_EQ(2U, L5.getBaseDiscriminator());
+  EXPECT_EQ(8U, L5.getDuplicationFactor());
 
   // Check extreme cases
-  auto L6 = *L1->cloneWithBaseDiscriminator(0xfff);
-  EXPECT_EQ(0xfffU, L6->getBaseDiscriminator());
-  EXPECT_EQ(0xfffU, (*L6->cloneByMultiplyingDuplicationFactor(0xfff))
-                        ->getDuplicationFactor());
+  auto L6 = *L1.cloneWithBaseDiscriminator(0xfff);
+  EXPECT_EQ(0xfffU, L6.getBaseDiscriminator());
+  EXPECT_EQ(0xfffU, (*L6.cloneByMultiplyingDuplicationFactor(0xfff)).getDuplicationFactor());
 
   // Check we return std::nullopt for unencodable cases.
-  EXPECT_EQ(std::nullopt, L4->cloneWithBaseDiscriminator(0x1000));
-  EXPECT_EQ(std::nullopt, L4->cloneByMultiplyingDuplicationFactor(0x1000));
+  EXPECT_EQ(std::nullopt, L4.cloneWithBaseDiscriminator(0x1000));
+  EXPECT_EQ(std::nullopt, L4.cloneByMultiplyingDuplicationFactor(0x1000));
 }
 
 TEST_F(DILocationTest, KeyInstructions) {
   Context.pImpl->NextAtomGroup = 1;
 
   EXPECT_EQ(Context.pImpl->NextAtomGroup, 1u);
-  DILocation *A1 =
-      DILocation::get(Context, 1, 0, getSubprogram(), nullptr, false, 1, 2);
-  EXPECT_EQ(A1->getAtomGroup(), 1u);
-  EXPECT_EQ(A1->getAtomRank(), 2u);
+  DebugLoc A1 =
+      DebugLoc::get(Context, 1, 0, getSubprogram(), nullptr, false, 1, 2);
+  EXPECT_EQ(A1.getAtomGroup(), 1u);
+  EXPECT_EQ(A1.getAtomRank(), 2u);
 
   // Group number 1 has been "used" so next available is 2.
   EXPECT_EQ(Context.pImpl->NextAtomGroup, 2u);
 
   // Set a group number higher than current + 1, then check the waterline.
-  DILocation::get(Context, 2, 0, getSubprogram(), nullptr, false, 5, 1);
+  DebugLoc::get(Context, 2, 0, getSubprogram(), nullptr, false, 5, 1);
   EXPECT_EQ(Context.pImpl->NextAtomGroup, 6u);
 
   // The waterline should be unchanged (group <= next).
-  DILocation::get(Context, 3, 0, getSubprogram(), nullptr, false, 4, 1);
+  DebugLoc::get(Context, 3, 0, getSubprogram(), nullptr, false, 4, 1);
   EXPECT_EQ(Context.pImpl->NextAtomGroup, 6u);
-  DILocation::get(Context, 3, 0, getSubprogram(), nullptr, false, 5, 1);
+  DebugLoc::get(Context, 3, 0, getSubprogram(), nullptr, false, 5, 1);
   EXPECT_EQ(Context.pImpl->NextAtomGroup, 6u);
 
   // Check the waterline gets incremented by 1.
@@ -5327,7 +5326,7 @@ TEST_F(DebugVariableTest, DenseMap) {
   DIType *Type = getDerivedType();
   DINode::DIFlags Flags = static_cast<DINode::DIFlags>(7);
 
-  DILocation *InlinedLoc = DILocation::get(Context, 2, 7, Scope);
+  DebugLoc InlinedLoc = DebugLoc::get(Context, 2, 7, Scope);
 
   DILocalVariable *VarA =
       DILocalVariable::get(Context, Scope, "A", File, 5, Type, 2, Flags, 8, nullptr);

@@ -1194,16 +1194,16 @@ OpenMPIRBuilder::getOrCreateDefaultSrcLocStr(uint32_t &SrcLocStrSize) {
 Constant *OpenMPIRBuilder::getOrCreateSrcLocStr(DebugLoc DL,
                                                 uint32_t &SrcLocStrSize,
                                                 Function *F) {
-  DILocation *DIL = DL.get();
+  DebugLoc DIL = DL;
   if (!DIL)
     return getOrCreateDefaultSrcLocStr(SrcLocStrSize);
   StringRef FileName =
-      !DIL->getFilename().empty() ? DIL->getFilename() : M.getName();
-  StringRef Function = DIL->getScope()->getSubprogram()->getName();
+      !DIL.getFilename().empty() ? DIL.getFilename() : M.getName();
+  StringRef Function = DIL.getScope()->getSubprogram()->getName();
   if (Function.empty() && F)
     Function = F->getName();
-  return getOrCreateSrcLocStr(Function, FileName, DIL->getLine(),
-                              DIL->getColumn(), SrcLocStrSize);
+  return getOrCreateSrcLocStr(Function, FileName, DIL.getLine(),
+                              DIL.getColumn(), SrcLocStrSize);
 }
 
 Constant *OpenMPIRBuilder::getOrCreateSrcLocStr(const LocationDescription &Loc,
@@ -8896,7 +8896,7 @@ static void FixupDebugInfoForOutlinedFunction(
     DILocalVariable *Var = DB.createParameterVariable(
         NewSP, "dyn_ptr", ArgNo, NewSP->getFile(), /*LineNo=*/0, VoidPtrTy,
         /*AlwaysPreserve=*/false, DINode::DIFlags::FlagArtificial);
-    auto Loc = DILocation::get(Func->getContext(), 0, 0, NewSP, 0);
+    auto Loc = DebugLoc::get(Func->getContext(), 0, 0, NewSP);
     Argument *LastArg = Func->getArg(Func->arg_size() - 1);
     DB.insertDeclare(LastArg, Var, DB.createExpression(), Loc,
                      &(*Func->begin()));

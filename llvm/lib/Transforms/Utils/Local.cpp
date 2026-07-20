@@ -1662,7 +1662,7 @@ static void insertDbgValueOrDbgVariableRecord(DIBuilder &Builder, Value *DV,
                                               BasicBlock::iterator Instr) {
   ValueAsMetadata *DVAM = ValueAsMetadata::get(DV);
   DbgVariableRecord *DVRec =
-      new DbgVariableRecord(DVAM, DIVar, DIExpr, NewLoc.get());
+      new DbgVariableRecord(DVAM, DIVar, DIExpr, NewLoc);
   Instr->getParent()->insertDbgRecordBefore(DVRec, Instr);
 }
 
@@ -1714,7 +1714,7 @@ void llvm::ConvertDebugDeclareToDebugValue(DbgVariableRecord *DVR,
   DV = PoisonValue::get(DV->getType());
   ValueAsMetadata *DVAM = ValueAsMetadata::get(DV);
   DbgVariableRecord *NewDVR =
-      new DbgVariableRecord(DVAM, DIVar, DIExpr, NewLoc.get());
+      new DbgVariableRecord(DVAM, DIVar, DIExpr, NewLoc);
   SI->getParent()->insertDbgRecordBefore(NewDVR, SI->getIterator());
 }
 
@@ -1757,7 +1757,7 @@ void llvm::ConvertDebugDeclareToDebugValue(DbgVariableRecord *DVR, LoadInst *LI,
   // Create a DbgVariableRecord directly and insert.
   ValueAsMetadata *LIVAM = ValueAsMetadata::get(LI);
   DbgVariableRecord *DV =
-      new DbgVariableRecord(LIVAM, DIVar, DIExpr, NewLoc.get());
+      new DbgVariableRecord(LIVAM, DIVar, DIExpr, NewLoc);
   LI->getParent()->insertDbgRecordAfter(DV, LI);
 }
 

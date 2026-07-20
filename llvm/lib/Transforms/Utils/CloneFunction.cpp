@@ -46,7 +46,7 @@ using namespace llvm;
 STATISTIC(RemappedAtomMax, "Highest global NextAtomGroup (after mapping)");
 
 void llvm::mapAtomInstance(const DebugLoc &DL, ValueToValueMapTy &VMap) {
-  uint64_t CurGroup = DL->getAtomGroup();
+  uint64_t CurGroup = DL.getAtomGroup();
   if (!CurGroup)
     return;
 
@@ -57,7 +57,7 @@ void llvm::mapAtomInstance(const DebugLoc &DL, ValueToValueMapTy &VMap) {
     return;
 
   // Map entry to a new atom group.
-  uint64_t NewGroup = DL->getContext().incNextDILocationAtomGroup();
+  uint64_t NewGroup = DL.getContext().incNextDILocationAtomGroup();
   assert(NewGroup > CurGroup && "Next should always be greater than current");
   It->second = NewGroup;
 
@@ -155,7 +155,7 @@ BasicBlock *llvm::CloneBasicBlock(const BasicBlock *BB, ValueToValueMapTy &VMap,
 
     if (MapAtoms) {
       if (const DebugLoc &DL = NewInst->getDebugLoc())
-        mapAtomInstance(DL.get(), VMap);
+        mapAtomInstance(DL, VMap);
     }
 
     if (isa<CallInst>(I) && !I.isDebugOrPseudoInst()) {

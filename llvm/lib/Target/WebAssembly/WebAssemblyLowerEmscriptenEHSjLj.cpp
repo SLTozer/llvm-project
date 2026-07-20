@@ -1300,7 +1300,7 @@ static DebugLoc getOrCreateDebugLoc(const Instruction *InsertBefore,
   if (Prev && Prev->getDebugLoc())
     return Prev->getDebugLoc();
   if (SP)
-    return DILocation::get(SP->getContext(), SP->getLine(), 1, SP);
+    return DebugLoc::get(SP->getContext(), SP->getLine(), 1, SP);
   return DebugLoc();
 }
 

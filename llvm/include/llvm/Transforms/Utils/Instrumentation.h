@@ -182,7 +182,7 @@ struct InstrumentationIRBuilder : IRBuilder<> {
     if (IRB.getCurrentDebugLocation())
       return;
     if (DISubprogram *SP = F.getSubprogram())
-      IRB.SetCurrentDebugLocation(DILocation::get(SP->getContext(), 0, 0, SP));
+      IRB.SetCurrentDebugLocation(DebugLoc::get(SP->getContext(), 0, 0, SP));
   }
 
   explicit InstrumentationIRBuilder(Instruction *IP) : IRBuilder<>(IP) {

@@ -1813,7 +1813,7 @@ void BTFDebug::beginInstruction(const MachineInstr *MI) {
   OS.emitLabel(LineSym);
 
   // Construct the lineinfo.
-  constructLineInfo(LineSym, DL->getFile(), DL.getLine(), DL.getCol());
+  constructLineInfo(LineSym, DL.getFile(), DL.getLine(), DL.getCol());
 
   LineInfoGenerated = true;
   PrevInstLoc = DL;

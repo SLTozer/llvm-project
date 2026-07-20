@@ -792,7 +792,7 @@ bool SafeStack::run() {
   // we explicitly set a artificial debug location here.
   if (DISubprogram *SP = F.getSubprogram())
     IRB.SetCurrentDebugLocation(
-        DILocation::get(SP->getContext(), SP->getScopeLine(), 0, SP));
+        DebugLoc::get(SP->getContext(), SP->getScopeLine(), 0, SP));
   if (SafeStackUsePointerAddress) {
     // FIXME: A more correct implementation of SafeStackUsePointerAddress would
     // change the libcall availability in RuntimeLibcallsInfo

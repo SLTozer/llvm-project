@@ -256,7 +256,7 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls() {
     Function *RewindFn = dyn_cast<Function>(RewindFunction.getCallee());
     if (RewindFn && RewindFn->getSubprogram())
       if (DISubprogram *SP = F.getSubprogram())
-        CI->setDebugLoc(DILocation::get(SP->getContext(), 0, 0, SP));
+        CI->setDebugLoc(DebugLoc::get(SP->getContext(), 0, 0, SP));
     CI->setCallingConv(RewindFunctionCallingConv);
 
     // We never expect _Unwind_Resume to return.
@@ -299,7 +299,7 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls() {
   Function *RewindFn = dyn_cast<Function>(RewindFunction.getCallee());
   if (RewindFn && RewindFn->getSubprogram())
     if (DISubprogram *SP = F.getSubprogram())
-      CI->setDebugLoc(DILocation::get(SP->getContext(), 0, 0, SP));
+      CI->setDebugLoc(DebugLoc::get(SP->getContext(), 0, 0, SP));
   CI->setCallingConv(RewindFunctionCallingConv);
 
   // We never expect _Unwind_Resume to return.

@@ -1239,7 +1239,7 @@ static void cloneInstructionsIntoPredecessorBlockAndUpdateSSAUses(
   // from BB's terminator.
   if (DebugLoc PredDL = PTI->getDebugLoc()) {
     DebugLoc DL = BB->getTerminator()->getDebugLoc();
-    if (!PredDL->getAtomGroup() && DL && DL->getAtomGroup() &&
+    if (!PredDL.getAtomGroup() && DL && DL.getAtomGroup() &&
         PredDL.isSameSourceLocation(DL)) {
       PTI->setDebugLoc(DL);
       RemapSourceAtom(PTI, VMap);
@@ -2912,7 +2912,7 @@ static void mergeCompatibleInvokesImpl(ArrayRef<InvokeInst *> Invokes,
   // And finally, replace the original `invoke`s with an unconditional branch
   // to the block with the merged `invoke`. Also, give that merged `invoke`
   // the merged debugloc of all the original `invoke`s.
-  DILocation *MergedDebugLoc = nullptr;
+  DebugLoc MergedDebugLoc = nullptr;
   for (InvokeInst *II : Invokes) {
     // Compute the debug location common to all the original `invoke`s.
     if (!MergedDebugLoc)

@@ -424,7 +424,7 @@ private:
 
     VarLoc(const MachineInstr &MI)
         : Var(MI.getDebugVariable(), MI.getDebugExpression(),
-              MI.getDebugLoc()->getInlinedAt()),
+              MI.getDebugLoc().getInlinedAt()),
           Expr(MI.getDebugExpression()), MI(MI) {
       assert(MI.isDebugValue() && "not a DBG_VALUE");
       assert((MI.isDebugValueList() || MI.getNumOperands() == 4) &&
@@ -708,7 +708,7 @@ private:
     /// Determine whether the lexical scope of this value's debug location
     /// dominates MBB.
     bool dominates(LexicalScopes &LS, MachineBasicBlock &MBB) const {
-      return LS.dominates(MI.getDebugLoc().get(), &MBB);
+      return LS.dominates(MI.getDebugLoc(), &MBB);
     }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
@@ -1414,8 +1414,8 @@ void VarLocBasedLDV::transferDebugValue(const MachineInstr &MI,
     return;
   const DILocalVariable *Var = MI.getDebugVariable();
   const DIExpression *Expr = MI.getDebugExpression();
-  const DILocation *DbgLoc = MI.getDebugLoc();
-  const DILocation *InlinedAt = DbgLoc->getInlinedAt();
+  DebugLoc DbgLoc = MI.getDebugLoc();
+  DebugLoc InlinedAt = DbgLoc.getInlinedAt();
   assert(Var->isValidLocationForIntrinsic(DbgLoc) &&
          "Expected inlined-at fields to agree");
 
@@ -1955,7 +1955,7 @@ void VarLocBasedLDV::accumulateFragmentMap(MachineInstr &MI,
                                             VarToFragments &SeenFragments,
                                             OverlapMap &OverlappingFragments) {
   DebugVariable MIVar(MI.getDebugVariable(), MI.getDebugExpression(),
-                      MI.getDebugLoc()->getInlinedAt());
+                      MI.getDebugLoc().getInlinedAt());
   FragmentInfo ThisFragment = MIVar.getFragmentOrDefault();
 
   // If this is the first sighting of this variable, then we are guaranteed
@@ -2140,7 +2140,7 @@ bool VarLocBasedLDV::isEntryValueCandidate(
     return false;
 
   // Do not consider parameters that belong to an inlined function.
-  if (MI.getDebugLoc()->getInlinedAt())
+  if (MI.getDebugLoc().getInlinedAt())
     return false;
 
   // Only consider parameters that are described using registers. Parameters
@@ -2189,7 +2189,7 @@ void VarLocBasedLDV::recordEntryValue(const MachineInstr &MI,
     return;
 
   DebugVariable V(MI.getDebugVariable(), MI.getDebugExpression(),
-                  MI.getDebugLoc()->getInlinedAt());
+                  MI.getDebugLoc().getInlinedAt());
 
   if (!isEntryValueCandidate(MI, DefinedRegs) ||
       OpenRanges.getEntryValueBackup(V))

@@ -496,22 +496,22 @@ protected:
     // Function body
     BasicBlock* Entry = BasicBlock::Create(C, "", OldFunc);
     IBuilder.SetInsertPoint(Entry);
-    DebugLoc Loc = DILocation::get(Subprogram->getContext(), 3, 2, Subprogram);
+    DebugLoc Loc = DebugLoc::get(Subprogram->getContext(), 3, 2, Subprogram);
     IBuilder.SetCurrentDebugLocation(Loc);
     AllocaInst* Alloca = IBuilder.CreateAlloca(IntegerType::getInt32Ty(C));
     IBuilder.SetCurrentDebugLocation(
-        DILocation::get(Subprogram->getContext(), 4, 2, Subprogram));
+        DebugLoc::get(Subprogram->getContext(), 4, 2, Subprogram));
     Value* AllocaContent = IBuilder.getInt32(1);
     Instruction* Store = IBuilder.CreateStore(AllocaContent, Alloca);
     IBuilder.SetCurrentDebugLocation(
-        DILocation::get(Subprogram->getContext(), 5, 2, Subprogram));
+        DebugLoc::get(Subprogram->getContext(), 5, 2, Subprogram));
 
     // Create a local variable around the alloca
     auto *IntType = DBuilder.createBasicType("int", 32, dwarf::DW_ATE_signed);
     auto *E = DBuilder.createExpression();
     auto *Variable =
         DBuilder.createAutoVariable(Subprogram, "x", File, 5, IntType, true);
-    auto *DL = DILocation::get(Subprogram->getContext(), 5, 0, Subprogram);
+    auto DL = DebugLoc::get(Subprogram->getContext(), 5, 0, Subprogram);
     DBuilder.insertDeclare(Alloca, Variable, E, DL, Store->getIterator());
     DBuilder.insertDbgValueIntrinsic(AllocaContent, Variable, E, DL, Entry);
     // Also create an inlined variable.
@@ -528,9 +528,9 @@ protected:
         DBuilder.createAutoVariable(InlinedSP, "inlined", File, 5, StructType, true);
     auto *Scope = DBuilder.createLexicalBlock(
         DBuilder.createLexicalBlockFile(InlinedSP, File), File, 1, 1);
-    auto InlinedDL = DILocation::get(
+    auto InlinedDL = DebugLoc::get(
         Subprogram->getContext(), 9, 4, Scope,
-        DILocation::get(Subprogram->getContext(), 5, 2, Subprogram));
+        DebugLoc::get(Subprogram->getContext(), 5, 2, Subprogram));
     IBuilder.SetCurrentDebugLocation(InlinedDL);
     DBuilder.insertDeclare(Alloca, InlinedVar, E, InlinedDL,
                            Store->getIterator());
@@ -637,7 +637,7 @@ TEST_F(CloneFunc, DebugIntrinsics) {
       EXPECT_EQ(NewFunc, cast<AllocaInst>(NewIntrin->getAddress())->
                          getParent()->getParent());
 
-      if (OldIntrin->getDebugLoc()->getInlinedAt()) {
+      if (OldIntrin->getDebugLoc().getInlinedAt()) {
         // Inlined variable should refer to the same DILocalVariable as in the
         // Old Function
         EXPECT_EQ(OldIntrin->getVariable(), NewIntrin->getVariable());
@@ -653,7 +653,7 @@ TEST_F(CloneFunc, DebugIntrinsics) {
       DbgValueInst* NewIntrin = dyn_cast<DbgValueInst>(&NewI);
       EXPECT_TRUE(NewIntrin);
 
-      if (!OldIntrin->getDebugLoc()->getInlinedAt()) {
+      if (!OldIntrin->getDebugLoc().getInlinedAt()) {
         // Old variable must belong to the old function.
         EXPECT_EQ(OldFunc->getSubprogram(),
                   cast<DISubprogram>(OldIntrin->getVariable()->getScope()));

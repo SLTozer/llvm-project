@@ -434,7 +434,7 @@ ADCEChanged AggressiveDeadCodeElimination::removeDeadInstructions() {
 
       if (auto *DII = dyn_cast<DbgVariableIntrinsic>(&I)) {
         // Check if the scope of this variable location is alive.
-        if (AliveScopes.count(DII->getDebugLoc()->getScope()))
+        if (AliveScopes.count(DII->getDebugLoc().getScope()))
           continue;
 
         // If intrinsic is pointing at a live SSA value, there may be an
@@ -468,7 +468,7 @@ ADCEChanged AggressiveDeadCodeElimination::removeDeadInstructions() {
           DVR && DVR->isDbgAssign())
         if (!at::getAssignmentInsts(DVR).empty())
           continue;
-      if (AliveScopes.count(DR.getDebugLoc()->getScope()))
+      if (AliveScopes.count(DR.getDebugLoc().getScope()))
         continue;
       I.dropOneDbgRecord(&DR);
     }
@@ -609,7 +609,7 @@ void AggressiveDeadCodeElimination::makeUnconditional(BasicBlock *BB,
   IRBuilder<> Builder(PredTerm);
   auto *NewTerm = Builder.CreateBr(Target);
   LiveInst.insert(NewTerm);
-  if (const DILocation *DL = PredTerm->getDebugLoc())
+  if (DebugLoc DL = PredTerm->getDebugLoc())
     NewTerm->setDebugLoc(DL);
   PredTerm->eraseFromParent();
 }

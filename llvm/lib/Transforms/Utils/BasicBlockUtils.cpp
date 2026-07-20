@@ -453,7 +453,7 @@ static bool removeRedundantDbgInstrsUsingBackwardScan(BasicBlock *BB) {
     for (DbgVariableRecord &DVR :
          reverse(filterDbgVars(I.getDbgRecordRange()))) {
       DebugVariable Key(DVR.getVariable(), DVR.getExpression(),
-                        DVR.getDebugLoc()->getInlinedAt());
+                        DVR.getDebugLoc().getInlinedAt());
       auto R = VariableSet.insert(Key);
       // If the same variable fragment is described more than once it is enough
       // to keep the last one (i.e. the first found since we for reverse
@@ -512,7 +512,7 @@ static bool removeRedundantDbgInstrsUsingForwardScan(BasicBlock *BB) {
       if (DVR.getType() == DbgVariableRecord::LocationType::Declare)
         continue;
       DebugVariable Key(DVR.getVariable(), std::nullopt,
-                        DVR.getDebugLoc()->getInlinedAt());
+                        DVR.getDebugLoc().getInlinedAt());
       auto [VMI, Inserted] = VariableMap.try_emplace(Key);
       // A dbg.assign with no linked instructions can be treated like a
       // dbg.value (i.e. can be deleted).

@@ -887,7 +887,7 @@ bool GCOVProfiler::emitProfileNotes(
           if (SP != getDISubprogram(Scope))
             continue;
 
-          GCOVLines &Lines = Block.getFile(getFilename(Loc->getScope(), VFS));
+          GCOVLines &Lines = Block.getFile(getFilename(Loc.getScope(), VFS));
           Lines.addLine(Loc.getLine());
         }
         Line = 0;

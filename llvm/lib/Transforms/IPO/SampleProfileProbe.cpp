@@ -51,15 +51,15 @@ static cl::opt<bool>
     UpdatePseudoProbe("update-pseudo-probe", cl::init(true), cl::Hidden,
                       cl::desc("Update pseudo probe distribution factor"));
 
-static uint64_t getCallStackHash(const DILocation *DIL) {
+static uint64_t getCallStackHash(DebugLoc DIL) {
   uint64_t Hash = 0;
-  const DILocation *InlinedAt = DIL ? DIL->getInlinedAt() : nullptr;
+  DebugLoc InlinedAt = DIL ? DIL.getInlinedAt() : nullptr;
   while (InlinedAt) {
-    Hash ^= MD5Hash(std::to_string(InlinedAt->getLine()));
-    Hash ^= MD5Hash(std::to_string(InlinedAt->getColumn()));
-    auto Name = InlinedAt->getSubprogramLinkageName();
+    Hash ^= MD5Hash(std::to_string(InlinedAt.getLine()));
+    Hash ^= MD5Hash(std::to_string(InlinedAt.getColumn()));
+    auto Name = InlinedAt.getSubprogramLinkageName();
     Hash ^= MD5Hash(Name);
-    InlinedAt = InlinedAt->getInlinedAt();
+    InlinedAt = InlinedAt.getInlinedAt();
   }
   return Hash;
 }
@@ -362,7 +362,7 @@ void SampleProfileProber::instrumentOneFunc(Function &F, TargetMachine *TM) {
            "Expecting pseudo probe or call instructions");
     if (!I->getDebugLoc()) {
       if (auto *SP = F.getSubprogram()) {
-        auto DIL = DILocation::get(SP->getContext(), 0, 0, SP);
+        auto DIL = DebugLoc::get(SP->getContext(), 0, 0, SP);
         I->setDebugLoc(DIL);
         ArtificialDbgLine++;
         LLVM_DEBUG({
@@ -406,8 +406,8 @@ void SampleProfileProber::instrumentOneFunc(Function &F, TargetMachine *TM) {
     // Reset the dwarf discriminator if the debug location comes with any. The
     // discriminator field may be used by FS-AFDO later in the pipeline.
     if (auto DIL = Probe->getDebugLoc()) {
-      if (DIL->getDiscriminator()) {
-        DIL = DIL->cloneWithDiscriminator(0);
+      if (DIL.getDiscriminator()) {
+        DIL = DIL.cloneWithDiscriminator(0);
         Probe->setDebugLoc(DIL);
       }
     }
@@ -429,8 +429,8 @@ void SampleProfileProber::instrumentOneFunc(Function &F, TargetMachine *TM) {
       // plumbing a customized metadata through the codegen pipeline.
       uint32_t V = PseudoProbeDwarfDiscriminator::packProbeData(
           Index, Type, 0, PseudoProbeDwarfDiscriminator::FullDistributionFactor,
-          DIL->getBaseDiscriminator());
-      DIL = DIL->cloneWithDiscriminator(V);
+          DIL.getBaseDiscriminator());
+      DIL = DIL.cloneWithDiscriminator(V);
       Call->setDebugLoc(DIL);
     }
   }

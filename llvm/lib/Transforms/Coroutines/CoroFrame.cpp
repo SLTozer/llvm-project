@@ -751,8 +751,8 @@ static void buildFrameDebugInfo(Function &F, coro::Shape &Shape,
 
   // Construct the location for the frame debug variable. The column number
   // is fake but it should be fine.
-  DILocation *DILoc =
-      DILocation::get(DIS->getContext(), LineNum, /*Column=*/1, DIS);
+  DebugLoc DILoc =
+      DebugLoc::get(DIS->getContext(), LineNum, /*Column=*/1, DIS);
   assert(FrameDIVar->isValidLocationForIntrinsic(DILoc));
 
   DbgVariableRecord *NewDVR =
@@ -1926,8 +1926,8 @@ void coro::salvageDebugInfo(
       DebugLoc ILoc = I->getDebugLoc();
       DebugLoc DVRLoc = DVR.getDebugLoc();
       if (ILoc && DVRLoc &&
-          DVRLoc->getScope()->getSubprogram() ==
-              ILoc->getScope()->getSubprogram())
+          DVRLoc.getScope()->getSubprogram() ==
+              ILoc.getScope()->getSubprogram())
         DVR.setDebugLoc(ILoc);
     } else if (isa<Argument>(Storage))
       InsertPt = F->getEntryBlock().begin();

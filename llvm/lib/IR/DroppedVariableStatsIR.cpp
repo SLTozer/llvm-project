@@ -106,10 +106,10 @@ void DroppedVariableStatsIR::visitEveryInstruction(
     VarID Var) {
   const DIScope *DbgValScope = std::get<0>(Var);
   for (const auto &I : instructions(Func)) {
-    auto *DbgLoc = I.getDebugLoc().get();
+    auto DbgLoc = I.getDebugLoc();
     if (!DbgLoc)
       continue;
-    if (updateDroppedCount(DbgLoc, DbgLoc->getScope(), DbgValScope,
+    if (updateDroppedCount(DbgLoc, DbgLoc.getScope(), DbgValScope,
                            InlinedAtsMap, Var, DroppedCount))
       break;
   }

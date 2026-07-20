@@ -6004,8 +6004,8 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
       auto RemoveOne = [DbgVariable](auto *OldDII) {
         auto SameVariableFragment = [](const auto *LHS, const auto *RHS) {
           return LHS->getVariable() == RHS->getVariable() &&
-                 LHS->getDebugLoc()->getInlinedAt() ==
-                     RHS->getDebugLoc()->getInlinedAt();
+                 LHS->getDebugLoc().getInlinedAt() ==
+                     RHS->getDebugLoc().getInlinedAt();
         };
         if (SameVariableFragment(OldDII, DbgVariable))
           OldDII->eraseFromParent();

@@ -96,7 +96,7 @@ namespace llvm {
     /// Internal helper with common code used by insertDbg{Value,Addr}Intrinsic.
     Instruction *insertDbgIntrinsic(llvm::Function *Intrinsic, llvm::Value *Val,
                                     DILocalVariable *VarInfo,
-                                    DIExpression *Expr, const DILocation *DL,
+                                    DIExpression *Expr, DebugLoc DL,
                                     InsertPosition InsertPt);
 
   public:
@@ -1165,7 +1165,7 @@ namespace llvm {
     /// \param InsertAtEnd Location for the new intrinsic.
     LLVM_ABI DbgInstPtr insertDeclare(llvm::Value *Storage,
                                       DILocalVariable *VarInfo,
-                                      DIExpression *Expr, const DILocation *DL,
+                                      DIExpression *Expr, DebugLoc DL,
                                       BasicBlock *InsertAtEnd);
 
     /// Insert a new llvm.dbg.assign intrinsic call.
@@ -1186,7 +1186,7 @@ namespace llvm {
                                         DILocalVariable *SrcVar,
                                         DIExpression *ValExpr, Value *Addr,
                                         DIExpression *AddrExpr,
-                                        const DILocation *DL);
+                                        DebugLoc DL);
 
     /// Insert a new llvm.dbg.declare intrinsic call.
     /// \param Storage      llvm::Value of the variable
@@ -1196,7 +1196,7 @@ namespace llvm {
     /// \param InsertPt     Location for the new intrinsic.
     LLVM_ABI DbgInstPtr insertDeclare(llvm::Value *Storage,
                                       DILocalVariable *VarInfo,
-                                      DIExpression *Expr, const DILocation *DL,
+                                      DIExpression *Expr, DebugLoc DL,
                                       InsertPosition InsertPt);
 
     /// Insert a new llvm.dbg.declare_value intrinsic call.
@@ -1208,14 +1208,14 @@ namespace llvm {
     LLVM_ABI DbgInstPtr insertDeclareValue(llvm::Value *Storage,
                                            DILocalVariable *VarInfo,
                                            DIExpression *Expr,
-                                           const DILocation *DL,
+                                           DebugLoc DL,
                                            InsertPosition InsertPt);
 
     /// Insert a new llvm.dbg.label intrinsic call.
     /// \param LabelInfo    Label's debug info descriptor.
     /// \param DL           Debug info location.
     /// \param InsertBefore Location for the new intrinsic.
-    LLVM_ABI DbgInstPtr insertLabel(DILabel *LabelInfo, const DILocation *DL,
+    LLVM_ABI DbgInstPtr insertLabel(DILabel *LabelInfo, DebugLoc DL,
                                     InsertPosition InsertPt);
 
     /// Insert a new llvm.dbg.value intrinsic call.
@@ -1227,7 +1227,7 @@ namespace llvm {
     LLVM_ABI DbgInstPtr insertDbgValueIntrinsic(llvm::Value *Val,
                                                 DILocalVariable *VarInfo,
                                                 DIExpression *Expr,
-                                                const DILocation *DL,
+                                                DebugLoc DL,
                                                 InsertPosition InsertPt);
 
     /// Replace the vtable holder in the given type.

@@ -57,31 +57,31 @@ FunctionPass *llvm::createMIRAddFSDiscriminatorsPass(FSDiscriminatorPass P) {
 // inline stack.
 static uint64_t getCallStackHashV0(const MachineBasicBlock &BB,
                                    const MachineInstr &MI,
-                                   const DILocation *DIL) {
+                                   DebugLoc DIL) {
   auto updateHash = [](const StringRef &Str) -> uint64_t {
     if (Str.empty())
       return 0;
     return MD5Hash(Str);
   };
-  uint64_t Ret = updateHash(std::to_string(DIL->getLine()));
+  uint64_t Ret = updateHash(std::to_string(DIL.getLine()));
   Ret ^= updateHash(BB.getName());
-  Ret ^= updateHash(DIL->getScope()->getSubprogram()->getLinkageName());
-  for (DIL = DIL->getInlinedAt(); DIL; DIL = DIL->getInlinedAt()) {
-    Ret ^= updateHash(std::to_string(DIL->getLine()));
-    Ret ^= updateHash(DIL->getScope()->getSubprogram()->getLinkageName());
+  Ret ^= updateHash(DIL.getScope()->getSubprogram()->getLinkageName());
+  for (DIL = DIL.getInlinedAt(); DIL; DIL = DIL.getInlinedAt()) {
+    Ret ^= updateHash(std::to_string(DIL.getLine()));
+    Ret ^= updateHash(DIL.getScope()->getSubprogram()->getLinkageName());
   }
   return Ret;
 }
 
-static uint64_t getCallStackHash(const DILocation *DIL) {
+static uint64_t getCallStackHash(DebugLoc DIL) {
   auto hashCombine = [](const uint64_t Seed, const uint64_t Val) {
     std::hash<uint64_t> Hasher;
     return Seed ^ (Hasher(Val) + 0x9e3779b9 + (Seed << 6) + (Seed >> 2));
   };
   uint64_t Ret = 0;
-  for (DIL = DIL->getInlinedAt(); DIL; DIL = DIL->getInlinedAt()) {
-    Ret = hashCombine(Ret, xxh3_64bits(ArrayRef<uint8_t>(DIL->getLine())));
-    Ret = hashCombine(Ret, xxh3_64bits(DIL->getSubprogramLinkageName()));
+  for (DIL = DIL.getInlinedAt(); DIL; DIL = DIL.getInlinedAt()) {
+    Ret = hashCombine(Ret, xxh3_64bits(ArrayRef<uint8_t>(DIL.getLine())));
+    Ret = hashCombine(Ret, xxh3_64bits(DIL.getSubprogramLinkageName()));
   }
   return Ret;
 }
@@ -140,27 +140,27 @@ bool MIRAddFSDiscriminators::runOnMachineFunction(MachineFunction &MF) {
       } else if (ImprovedFSDiscriminator && I.isMetaInstruction()) {
         continue;
       }
-      const DILocation *DIL = I.getDebugLoc().get();
+      DebugLoc DIL = I.getDebugLoc();
       if (!DIL)
         continue;
 
       // Use the id of pseudo probe to compute the discriminator.
       unsigned LineNo =
-          I.isPseudoProbe() ? I.getOperand(1).getImm() : DIL->getLine();
+          I.isPseudoProbe() ? I.getOperand(1).getImm() : DIL.getLine();
       if (LineNo == 0)
         continue;
-      unsigned Discriminator = DIL->getDiscriminator();
+      unsigned Discriminator = DIL.getDiscriminator();
       // Clean up discriminators for pseudo probes at the first FS discriminator
       // pass as their discriminators should not ever be used.
       if ((Pass == FSDiscriminatorPass::Pass1) && I.isPseudoProbe()) {
         Discriminator = 0;
-        I.setDebugLoc(DIL->cloneWithDiscriminator(0));
+        I.setDebugLoc(DIL.cloneWithDiscriminator(0));
       }
       uint64_t CallStackHashVal = 0;
       if (ImprovedFSDiscriminator)
         CallStackHashVal = getCallStackHash(DIL);
 
-      LocationDiscriminator LD{DIL->getFilename(), LineNo, Discriminator,
+      LocationDiscriminator LD{DIL.getFilename(), LineNo, Discriminator,
                                CallStackHashVal};
       auto &BBMap = LDBM[LD];
       auto R = BBMap.insert(&BB);
@@ -174,19 +174,19 @@ bool MIRAddFSDiscriminators::runOnMachineFunction(MachineFunction &MF) {
         DiscriminatorCurrPass += getCallStackHashV0(BB, I, DIL);
       DiscriminatorCurrPass &= BitMaskThisPass;
       unsigned NewD = Discriminator | DiscriminatorCurrPass;
-      const auto *const NewDIL = DIL->cloneWithDiscriminator(NewD);
+      DebugLoc NewDIL = DIL.cloneWithDiscriminator(NewD);
       if (!NewDIL) {
         LLVM_DEBUG(dbgs() << "Could not encode discriminator: "
-                          << DIL->getFilename() << ":" << DIL->getLine() << ":"
-                          << DIL->getColumn() << ":" << Discriminator << " "
+                          << DIL.getFilename() << ":" << DIL.getLine() << ":"
+                          << DIL.getColumn() << ":" << Discriminator << " "
                           << I << "\n");
         continue;
       }
 
       I.setDebugLoc(NewDIL);
       NumNewD++;
-      LLVM_DEBUG(dbgs() << DIL->getFilename() << ":" << DIL->getLine() << ":"
-                        << DIL->getColumn() << ": add FS discriminator, from "
+      LLVM_DEBUG(dbgs() << DIL.getFilename() << ":" << DIL.getLine() << ":"
+                        << DIL.getColumn() << ": add FS discriminator, from "
                         << Discriminator << " -> " << NewD << "\n");
       Changed = true;
     }

@@ -5711,7 +5711,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
     for (DbgVariableRecord *DVR : DbgVariableRecordsToSink) {
       DebugVariable DbgUserVariable =
           DebugVariable(DVR->getVariable(), DVR->getExpression(),
-                        DVR->getDebugLoc()->getInlinedAt());
+                        DVR->getDebugLoc().getInlinedAt());
       CountMap[std::make_pair(DVR->getInstruction(), DbgUserVariable)] += 1;
     }
 
@@ -5732,7 +5732,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
            llvm::reverse(filterDbgVars(Inst->getDbgRecordRange()))) {
         DebugVariable DbgUserVariable =
             DebugVariable(DVR.getVariable(), DVR.getExpression(),
-                          DVR.getDebugLoc()->getInlinedAt());
+                          DVR.getDebugLoc().getInlinedAt());
         auto FilterIt =
             FilterOutMap.find(std::make_pair(Inst, DbgUserVariable));
         if (FilterIt == FilterOutMap.end())
@@ -5754,7 +5754,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
 
     DebugVariable DbgUserVariable =
         DebugVariable(DVR->getVariable(), DVR->getExpression(),
-                      DVR->getDebugLoc()->getInlinedAt());
+                      DVR->getDebugLoc().getInlinedAt());
 
     // For any variable where there were multiple assignments in the same place,
     // ignore all but the last assignment.

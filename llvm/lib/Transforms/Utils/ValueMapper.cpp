@@ -1322,7 +1322,7 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
   if (!DL)
     return;
 
-  auto AtomGroup = DL->getAtomGroup();
+  auto AtomGroup = DL.getAtomGroup();
   if (!AtomGroup)
     return;
 
@@ -1332,8 +1332,8 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
   AtomGroup = R->second;
 
   // Remap the atom group and copy all other fields.
-  DILocation *New = DILocation::get(
+  DebugLoc New = DebugLoc::get(
       I->getContext(), DL.getLine(), DL.getCol(), DL.getScope(),
-      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL->getAtomRank());
+      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL.getAtomRank());
   I->setDebugLoc(New);
 }

@@ -474,20 +474,20 @@ std::string llvm::formatCallSiteLocation(DebugLoc DLoc,
   std::string Buffer;
   raw_string_ostream CallSiteLoc(Buffer);
   ListSeparator LS(" @ ");
-  for (DILocation *DIL = DLoc.get(); DIL; DIL = DIL->getInlinedAt()) {
+  for (DebugLoc DIL = DLoc; DIL; DIL = DIL.getInlinedAt()) {
     CallSiteLoc << LS;
     // Note that negative line offset is actually possible, but we use
     // unsigned int to match line offset representation in remarks so
     // it's directly consumable by relay advisor.
     uint32_t Offset =
-        DIL->getLine() - DIL->getScope()->getSubprogram()->getLine();
-    uint32_t Discriminator = DIL->getBaseDiscriminator();
-    StringRef Name = DIL->getScope()->getSubprogram()->getLinkageName();
+        DIL.getLine() - DIL.getScope()->getSubprogram()->getLine();
+    uint32_t Discriminator = DIL.getBaseDiscriminator();
+    StringRef Name = DIL.getScope()->getSubprogram()->getLinkageName();
     if (Name.empty())
-      Name = DIL->getScope()->getSubprogram()->getName();
+      Name = DIL.getScope()->getSubprogram()->getName();
     CallSiteLoc << Name.str() << ":" << llvm::utostr(Offset);
     if (Format.outputColumn())
-      CallSiteLoc << ":" << llvm::utostr(DIL->getColumn());
+      CallSiteLoc << ":" << llvm::utostr(DIL.getColumn());
     if (Format.outputDiscriminator() && Discriminator)
       CallSiteLoc << "." << llvm::utostr(Discriminator);
   }
@@ -501,17 +501,17 @@ void llvm::addLocationToRemarks(OptimizationRemark &Remark, DebugLoc DLoc) {
 
   bool First = true;
   Remark << " at callsite ";
-  for (DILocation *DIL = DLoc.get(); DIL; DIL = DIL->getInlinedAt()) {
+  for (DebugLoc DIL = DLoc; DIL; DIL = DIL.getInlinedAt()) {
     if (!First)
       Remark << " @ ";
-    unsigned int Offset = DIL->getLine();
-    Offset -= DIL->getScope()->getSubprogram()->getLine();
-    unsigned int Discriminator = DIL->getBaseDiscriminator();
-    StringRef Name = DIL->getScope()->getSubprogram()->getLinkageName();
+    unsigned int Offset = DIL.getLine();
+    Offset -= DIL.getScope()->getSubprogram()->getLine();
+    unsigned int Discriminator = DIL.getBaseDiscriminator();
+    StringRef Name = DIL.getScope()->getSubprogram()->getLinkageName();
     if (Name.empty())
-      Name = DIL->getScope()->getSubprogram()->getName();
+      Name = DIL.getScope()->getSubprogram()->getName();
     Remark << Name << ":" << ore::NV("Line", Offset) << ":"
-           << ore::NV("Column", DIL->getColumn());
+           << ore::NV("Column", DIL.getColumn());
     if (Discriminator)
       Remark << "." << ore::NV("Disc", Discriminator);
     First = false;

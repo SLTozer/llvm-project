@@ -1482,7 +1482,7 @@ void AssignmentTrackingLowering::emitDbgValue(
     AssignmentTrackingLowering::LocKind Kind, DbgVariableRecord *Source,
     VarLocInsertPt After) {
 
-  DILocation *DL = Source->getDebugLoc();
+  DebugLoc DL = Source->getDebugLoc();
   auto Emit = [this, Source, After, DL](Metadata *Val, DIExpression *Expr) {
     assert(Expr);
     if (!Val)
@@ -1582,8 +1582,8 @@ void AssignmentTrackingLowering::processUnknownStoreToVariable(
 
   // Get DILocation for this assignment.
   DebugVariable V = FnVarLocs->getVariable(Var);
-  DILocation *InlinedAt = const_cast<DILocation *>(V.getInlinedAt());
-  const DILocation *DILoc = DILocation::get(
+  DebugLoc InlinedAt = V.getInlinedAt();
+  DebugLoc DILoc = DebugLoc::get(
       Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
   VarLocInfo VarLoc;
@@ -1662,8 +1662,8 @@ void AssignmentTrackingLowering::processUntaggedInstruction(
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
     // Get DILocation for this unrecorded assignment.
-    DILocation *InlinedAt = const_cast<DILocation *>(V.getInlinedAt());
-    const DILocation *DILoc = DILocation::get(
+    DebugLoc InlinedAt = V.getInlinedAt();
+    DebugLoc DILoc = DebugLoc::get(
         Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;
@@ -1719,8 +1719,8 @@ void AssignmentTrackingLowering::processEscapingCall(
     auto InsertBefore = getNextNode(&I);
     assert(InsertBefore && "Shouldn't be inserting after a terminator");
 
-    DILocation *InlinedAt = const_cast<DILocation *>(V.getInlinedAt());
-    const DILocation *DILoc = DILocation::get(
+    DebugLoc InlinedAt = V.getInlinedAt();
+    DebugLoc DILoc = DebugLoc::get(
         Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;

@@ -40,19 +40,19 @@ namespace {
 // Abstract scopes mapped to the associated inlined scopes.
 // When creating inlined scopes, there is no direct information to find
 // the correct lexical scope.
-using LVScopeEntry = std::pair<const DILocalScope *, const DILocation *>;
+using LVScopeEntry = std::pair<const DILocalScope *, DebugLoc>;
 using LVInlinedScopes =
     std::unordered_map<LVScopeEntry, LVScope *,
-                       pair_hash<const DILocalScope *, const DILocation *>>;
+                       pair_hash<const DILocalScope *, DebugLoc>>;
 LVInlinedScopes InlinedScopes;
 
 void addInlinedScope(const DILocalScope *OriginContext,
-                     const DILocation *InlinedAt, LVScope *InlinedScope) {
+                     DebugLoc InlinedAt, LVScope *InlinedScope) {
   auto Entry = LVScopeEntry(OriginContext, InlinedAt);
   InlinedScopes.try_emplace(Entry, InlinedScope);
 }
 LVScope *getInlinedScope(const DILocalScope *OriginContext,
-                         const DILocation *InlinedAt) {
+                         DebugLoc InlinedAt) {
   auto Entry = LVScopeEntry(OriginContext, InlinedAt);
   LVInlinedScopes::const_iterator Iter = InlinedScopes.find(Entry);
   return Iter != InlinedScopes.end() ? Iter->second : nullptr;
@@ -275,9 +275,9 @@ void LVIRReader::addSourceLine(LVElement *Element, const DILocalVariable *V) {
   addSourceLine(Element, V->getLine(), V->getFile());
 }
 
-void LVIRReader::addSourceLine(LVElement *Element, const DILocation *DL) {
+void LVIRReader::addSourceLine(LVElement *Element, DebugLoc DL) {
   assert(DL);
-  addSourceLine(Element, DL->getLine(), DL->getFile());
+  addSourceLine(Element, DL.getLine(), DL.getFile());
 }
 
 void LVIRReader::addSourceLine(LVElement *Element, const DIObjCProperty *OP) {
@@ -439,15 +439,15 @@ LVScope *LVIRReader::getParentScopeImpl(const DIScope *Context) {
 }
 
 // Get the logical parent for the given metadata node.
-LVScope *LVIRReader::getParentScope(const DILocation *DL) {
+LVScope *LVIRReader::getParentScope(DebugLoc DL) {
   assert(DL && "Invalid metadata node.");
   LLVM_DEBUG({
     dbgs() << "\n[getParentScope]\n";
     dbgs() << "DL: ";
-    DL->dump(TheModule);
+    DL.dump(TheModule);
   });
 
-  return getParentScopeImpl(cast<DIScope>(DL->getScope()));
+  return getParentScopeImpl(cast<DIScope>(DL.getScope()));
 }
 
 // Get the logical parent for the given metadata node.
@@ -1015,15 +1015,15 @@ void LVIRReader::constructImportedEntity(LVElement *Element,
 }
 
 // Traverse the 'inlinedAt' chain and create their associated inlined scopes.
-LVScope *LVIRReader::getOrCreateInlinedScope(const DILocation *DL) {
+LVScope *LVIRReader::getOrCreateInlinedScope(DebugLoc DL) {
   assert(DL && "Invalid metadata node.");
   LLVM_DEBUG({
     dbgs() << "\n[getOrCreateInlinedScope]\n";
     dbgs() << "DL: ";
-    DL->dump(TheModule);
+    DL.dump(TheModule);
   });
 
-  const DILocalScope *OriginContext = DL->getScope();
+  const DILocalScope *OriginContext = DL.getScope();
   LLVM_DEBUG({
     dbgs() << "OriginContext: ";
     OriginContext->dump(TheModule);
@@ -1043,13 +1043,13 @@ LVScope *LVIRReader::getOrCreateInlinedScope(const DILocation *DL) {
     return Scope;
   };
 
-  const DILocation *InlinedAt = DL->getInlinedAt();
+  DebugLoc InlinedAt = DL.getInlinedAt();
   if (!InlinedAt)
     return CreateScope(OriginContext);
 
   LLVM_DEBUG({
     dbgs() << "InlinedAt: ";
-    InlinedAt->dump(TheModule);
+    InlinedAt.dump(TheModule);
   });
 
   // Check if the inlined scope is already created.
@@ -1073,9 +1073,9 @@ LVScope *LVIRReader::getOrCreateInlinedScope(const DILocation *DL) {
     InlinedScope->setName(OriginScope->getName());
     InlinedScope->setType(OriginScope->getType());
 
-    InlinedScope->setCallLineNumber(InlinedAt->getLine());
+    InlinedScope->setCallLineNumber(InlinedAt.getLine());
     InlinedScope->setCallFilenameIndex(
-        getOrCreateSourceID(InlinedAt->getFile()));
+        getOrCreateSourceID(InlinedAt.getFile()));
 
     InlinedScope->setReference(OriginScope);
     InlinedScope->setHasReferenceAbstract();
@@ -1090,7 +1090,7 @@ LVScope *LVIRReader::getOrCreateInlinedScope(const DILocation *DL) {
     addInlinedInfo(OriginScope, InlinedScope);
 
     LLVM_DEBUG({
-      DILocalScope *AbstractContext = InlinedAt->getScope();
+      DILocalScope *AbstractContext = InlinedAt.getScope();
       dbgs() << "AbstractContext: ";
       AbstractContext->dump(TheModule);
     });
@@ -1114,12 +1114,12 @@ LVScope *LVIRReader::getOrCreateInlinedScope(const DILocation *DL) {
   return InlinedScope;
 }
 
-LVScope *LVIRReader::getOrCreateAbstractScope(const DILocation *DL) {
+LVScope *LVIRReader::getOrCreateAbstractScope(DebugLoc DL) {
   assert(DL && "Invalid metadata node.");
   LLVM_DEBUG({
     dbgs() << "\n[getOrCreateAbstractScope]\n";
     dbgs() << "DL: ";
-    DL->dump(TheModule);
+    DL.dump(TheModule);
   });
 
   // Create the 'inlined' scope.
@@ -1216,7 +1216,7 @@ void LVIRReader::constructLine(LVScope *Scope, const DISubprogram *SP,
       DbgLoc.dump(TheModule);
     });
 
-    Parent = getOrCreateAbstractScope(DbgLoc.getAsDILocation());
+    Parent = getOrCreateAbstractScope(DbgLoc);
     assert(Parent && "Invalid logical element");
     LLVM_DEBUG({
       dbgs() << "Parent: ";
@@ -1226,7 +1226,7 @@ void LVIRReader::constructLine(LVScope *Scope, const DISubprogram *SP,
     if (options().getPrintLines() && DbgLoc.getLine()) {
       if (LVLine *Line = AddDebugLine(Parent)) {
         addMD(DbgLoc.getAsMDNode(), Line);
-        addSourceLine(Line, DbgLoc.getAsDILocation());
+        addSourceLine(Line, DbgLoc);
         GenerateLineBeforePrologue = false;
       }
     }
@@ -1848,16 +1848,16 @@ LVIRReader::getOrCreateVariable(const DIGlobalVariableExpression *GVE) {
 }
 
 LVSymbol *LVIRReader::getOrCreateInlinedVariable(LVSymbol *OriginSymbol,
-                                                 const DILocation *DL) {
+                                                 DebugLoc DL) {
   assert(OriginSymbol && "Invalid logical element");
   assert(DL && "Invalid metadata node.");
   LLVM_DEBUG({
     dbgs() << "\n[getOrCreateInlinedVariable]\n";
     dbgs() << "DL: ";
-    DL->dump(TheModule);
+    DL.dump(TheModule);
   });
 
-  const DILocation *InlinedAt = DL->getInlinedAt();
+  DebugLoc InlinedAt = DL.getInlinedAt();
   if (!InlinedAt) {
     return nullptr;
   }
@@ -1870,9 +1870,9 @@ LVSymbol *LVIRReader::getOrCreateInlinedVariable(LVSymbol *OriginSymbol,
     InlinedSymbol->setName(OriginSymbol->getName());
     InlinedSymbol->setType(OriginSymbol->getType());
 
-    InlinedSymbol->setCallLineNumber(InlinedAt->getLine());
+    InlinedSymbol->setCallLineNumber(InlinedAt.getLine());
     InlinedSymbol->setCallFilenameIndex(
-        getOrCreateSourceID(InlinedAt->getFile()));
+        getOrCreateSourceID(InlinedAt.getFile()));
 
     OriginSymbol->setInlineCode(dwarf::DW_INL_inlined);
     InlinedSymbol->setReference(OriginSymbol);
@@ -1895,7 +1895,7 @@ LVSymbol *LVIRReader::getOrCreateInlinedVariable(LVSymbol *OriginSymbol,
 // DIGlobalVariable
 // DILocalVariable
 LVSymbol *LVIRReader::getOrCreateVariable(const DIVariable *Var,
-                                          const DILocation *DL) {
+                                          DebugLoc DL) {
   assert(Var && "Invalid metadata node.");
   LLVM_DEBUG({
     dbgs() << "\n[getOrCreateVariable]\n";
@@ -1903,13 +1903,13 @@ LVSymbol *LVIRReader::getOrCreateVariable(const DIVariable *Var,
     Var->dump(TheModule);
     if (DL) {
       dbgs() << "DL: ";
-      DL->dump(TheModule);
+      DL.dump(TheModule);
     }
   });
 
   // Use the 'InlinedAt' information to identify a symbol that is being
   // inlined. Its abstract representation is created just once.
-  const DILocation *InlinedAt = DL ? DL->getInlinedAt() : nullptr;
+  DebugLoc InlinedAt = DL ? DL.getInlinedAt() : nullptr;
 
   LVSymbol *Symbol = getSymbolForSeenMD(Var);
   if (Symbol && Symbol->getIsFinalized() && !InlinedAt)
@@ -1993,7 +1993,7 @@ void LVIRReader::printAllInstructions(BasicBlock *BB) {
       }
       if (DebugLoc DL = I.getDebugLoc()) {
         dbgs() << "  DL: ";
-        DL->dump(TheModule);
+        DL.dump(TheModule);
       }
     }
     dbgs() << "End all instructions: '" << SP->getName() << "'\n\n";
@@ -2044,7 +2044,7 @@ void LVIRReader::processBasicBlocks(Function &F) {
 
     // Skip undefined values.
     if (!DbgVar->isKillLocation())
-      getOrCreateVariable(DbgVar->getVariable(), DbgVar->getDebugLoc().get());
+      getOrCreateVariable(DbgVar->getVariable(), DbgVar->getDebugLoc());
   };
 
   // Generate logical debug line before prologue.
@@ -2058,7 +2058,7 @@ void LVIRReader::processBasicBlocks(Function &F) {
       if (DebugLoc DL = I.getDebugLoc()) {
         LLVM_DEBUG({
           dbgs() << "  Location: ";
-          DL->dump(TheModule);
+          DL.dump(TheModule);
         });
         getOrCreateAbstractScope(DL);
       }

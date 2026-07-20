@@ -138,7 +138,7 @@ private:
 
   struct InlineSite {
     SmallVector<LocalVariable, 1> InlinedLocals;
-    SmallVector<const DILocation *, 1> ChildSites;
+    SmallVector<DebugLoc, 1> ChildSites;
     const DISubprogram *Inlinee = nullptr;
 
     /// The ID of the inline site or function used with .cv_loc. Not a type
@@ -176,10 +176,10 @@ private:
 
     /// Map from inlined call site to inlined instructions and child inlined
     /// call sites. Listed in program order.
-    std::unordered_map<const DILocation *, InlineSite> InlineSites;
+    std::unordered_map<DebugLoc, InlineSite> InlineSites;
 
     /// Ordered list of top-level inlined call sites.
-    SmallVector<const DILocation *, 1> ChildSites;
+    SmallVector<DebugLoc, 1> ChildSites;
 
     /// Set of all functions directly inlined into this one.
     SmallSet<codeview::TypeIndex, 1> Inlinees;
@@ -278,7 +278,7 @@ private:
   /// to be confused with type indices for LF_FUNC_ID records.
   unsigned NextFuncId = 0;
 
-  InlineSite &getInlineSite(const DILocation *InlinedAt,
+  InlineSite &getInlineSite(DebugLoc InlinedAt,
                             const DISubprogram *Inlinee);
 
   codeview::TypeIndex getFuncIdForSubprogram(const DISubprogram *SP);
@@ -396,7 +396,7 @@ private:
   /// involve labels.
   void emitEndSymbolRecord(codeview::SymbolKind EndKind);
 
-  void emitInlinedCallSite(const FunctionInfo &FI, const DILocation *InlinedAt,
+  void emitInlinedCallSite(const FunctionInfo &FI, DebugLoc InlinedAt,
                            const InlineSite &Site);
 
   void emitInlinees(const SmallSet<codeview::TypeIndex, 1> &Inlinees);

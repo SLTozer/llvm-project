@@ -95,7 +95,7 @@ template <typename IRBuilderTy> void ensureDbgLoc(IRBuilderTy &IRB) {
     return;
   auto *BB = IRB.GetInsertBlock();
   if (auto *SP = BB->getParent()->getSubprogram())
-    IRB.SetCurrentDebugLocation(DILocation::get(BB->getContext(), 0, 0, SP));
+    IRB.SetCurrentDebugLocation(DebugLoc::get(BB->getContext(), 0, 0, SP));
 }
 
 /// Attempt to cast \p V to type \p Ty using only bit-preserving casts.

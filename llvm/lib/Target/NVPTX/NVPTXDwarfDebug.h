@@ -31,7 +31,7 @@ class NVPTXDwarfDebug : public DwarfDebug {
 private:
   /// Set of inlined_at locations that have already been emitted.
   /// Used to avoid redundant emission of parent chain .loc directives.
-  DenseSet<const DILocation *> EmittedInlinedAtLocs;
+  DenseSet<DebugLoc> EmittedInlinedAtLocs;
 
 public:
   NVPTXDwarfDebug(AsmPrinter *A);

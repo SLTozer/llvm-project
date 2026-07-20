@@ -51,7 +51,7 @@ bool llvm::applyDebugifyMetadataToMachineFunction(
       // source function and into subsequent ones. We don't do anything about
       // that as it doesn't really matter to the compiler where the line is in
       // the imaginary source code.
-      MI.setDebugLoc(DILocation::get(Ctx, NextLine++, 1, SP));
+      MI.setDebugLoc(DebugLoc::get(Ctx, NextLine++, 1, SP));
     }
   }
 

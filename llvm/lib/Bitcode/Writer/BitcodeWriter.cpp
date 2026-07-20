@@ -3845,7 +3845,7 @@ void ModuleBitcodeWriter::writeFunction(
 
   bool NeedsMetadataAttachment = F.hasMetadata();
 
-  DILocation *LastDL = nullptr;
+  DebugLoc LastDL = nullptr;
   SmallSetVector<Function *, 4> BlockAddressUsers;
 
   // Finally, emit all the instructions, in order.

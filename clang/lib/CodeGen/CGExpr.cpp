@@ -4559,7 +4559,7 @@ void CodeGenFunction::EmitTrapCheck(llvm::Value *Checked,
 
   llvm::BasicBlock *&TrapBB = TrapBBs[CheckHandlerID];
 
-  llvm::DILocation *TrapLocation = Builder.getCurrentDebugLocation();
+  llvm::DebugLoc TrapLocation = Builder.getCurrentDebugLocation();
   llvm::StringRef TrapMessage;
   llvm::StringRef TrapCategory;
   auto DebugTrapReasonKind = CGM.getCodeGenOpts().getSanitizeDebugTrapReasons();

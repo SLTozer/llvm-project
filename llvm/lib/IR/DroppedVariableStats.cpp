@@ -75,7 +75,7 @@ bool DroppedVariableStats::updateDroppedCount(
   // the Var's InlinedAt location, return true to signify that the Var has
   // been dropped.
   if (isScopeChildOfOrEqualTo(Scope, DbgValScope))
-    if (isInlinedAtChildOfOrEqualTo(DbgLoc->getInlinedAt(),
+    if (isInlinedAtChildOfOrEqualTo(DbgLoc.getInlinedAt(),
                                     InlinedAtsMap[Var])) {
       // Found another instruction in the variable's scope, so there exists a
       // break point at which the variable could be observed. Count it as
@@ -101,7 +101,7 @@ void DroppedVariableStats::populateVarIDSetAndInlinedMap(
     const DILocalVariable *DbgVar, DebugLoc DbgLoc, DenseSet<VarID> &VarIDSet,
     DenseMap<StringRef, DenseMap<VarID, DebugLoc>> &InlinedAtsMap,
     StringRef FuncName, bool Before) {
-  VarID Key{DbgVar->getScope(), DbgLoc->getInlinedAtScope(), DbgVar};
+  VarID Key{DbgVar->getScope(), DbgLoc.getInlinedAtScope(), DbgVar};
   VarIDSet.insert(Key);
   if (Before)
     InlinedAtsMap[FuncName].try_emplace(Key, DbgLoc.getInlinedAt());
@@ -141,7 +141,7 @@ bool DroppedVariableStats::isInlinedAtChildOfOrEqualTo(
   while (IA) {
     if (IA == DbgValInlinedAt)
       return true;
-    IA = IA->getInlinedAt();
+    IA = IA.getInlinedAt();
   }
   return false;
 }

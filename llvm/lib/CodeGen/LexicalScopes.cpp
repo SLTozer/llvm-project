@@ -89,7 +89,7 @@ void LexicalScopes::extractLexicalScopes(
   for (const auto &MBB : *MF) {
     const MachineInstr *RangeBeginMI = nullptr;
     const MachineInstr *PrevMI = nullptr;
-    const DILocation *PrevDL = nullptr;
+    DebugLoc PrevDL = nullptr;
     for (const auto &MInsn : MBB) {
       // Ignore DBG_VALUE and similar instruction that do not contribute to any
       // instruction in the output.
@@ -97,7 +97,7 @@ void LexicalScopes::extractLexicalScopes(
         continue;
 
       // Check if instruction has valid location information.
-      const DILocation *MIDL = MInsn.getDebugLoc();
+      DebugLoc MIDL = MInsn.getDebugLoc();
       if (!MIDL) {
         PrevMI = &MInsn;
         continue;
@@ -137,8 +137,8 @@ void LexicalScopes::extractLexicalScopes(
 
 /// findLexicalScope - Find lexical scope, either regular or inlined, for the
 /// given DebugLoc. Return NULL if not found.
-LexicalScope *LexicalScopes::findLexicalScope(const DILocation *DL) {
-  DILocalScope *Scope = DL->getScope();
+LexicalScope *LexicalScopes::findLexicalScope(DebugLoc DL) {
+  DILocalScope *Scope = DL.getScope();
   if (!Scope)
     return nullptr;
 
@@ -146,7 +146,7 @@ LexicalScope *LexicalScopes::findLexicalScope(const DILocation *DL) {
   // isn't what we care about in this case.
   Scope = Scope->getNonLexicalBlockFileScope();
 
-  if (auto *IA = DL->getInlinedAt()) {
+  if (auto IA = DL.getInlinedAt()) {
     auto I = InlinedLexicalScopeMap.find(std::make_pair(Scope, IA));
     return I != InlinedLexicalScopeMap.end() ? &I->second : nullptr;
   }
@@ -156,7 +156,7 @@ LexicalScope *LexicalScopes::findLexicalScope(const DILocation *DL) {
 /// getOrCreateLexicalScope - Find lexical scope for the given DebugLoc. If
 /// not available then create new lexical scope.
 LexicalScope *LexicalScopes::getOrCreateLexicalScope(const DILocalScope *Scope,
-                                                     const DILocation *IA) {
+                                                     DebugLoc IA) {
   if (IA) {
     // Skip scopes inlined from a NoDebug compile unit.
     if (skipUnit(Scope->getSubprogram()->getUnit()))
@@ -201,10 +201,10 @@ LexicalScopes::getOrCreateRegularScope(const DILocalScope *Scope) {
 /// getOrCreateInlinedScope - Find or create an inlined lexical scope.
 LexicalScope *
 LexicalScopes::getOrCreateInlinedScope(const DILocalScope *Scope,
-                                       const DILocation *InlinedAt) {
+                                       DebugLoc InlinedAt) {
   assert(Scope && "Invalid Scope encoding!");
   Scope = Scope->getNonLexicalBlockFileScope();
-  std::pair<const DILocalScope *, const DILocation *> P(Scope, InlinedAt);
+  std::pair<const DILocalScope *, DebugLoc> P(Scope, InlinedAt);
   auto I = InlinedLexicalScopeMap.find(P);
   if (I != InlinedLexicalScopeMap.end())
     return &I->second;
@@ -293,7 +293,7 @@ void LexicalScopes::assignInstructionRanges(
 /// have machine instructions that belong to lexical scope identified by
 /// DebugLoc.
 void LexicalScopes::getMachineBasicBlocks(
-    const DILocation *DL, SmallPtrSetImpl<const MachineBasicBlock *> &MBBs) {
+    DebugLoc DL, SmallPtrSetImpl<const MachineBasicBlock *> &MBBs) {
   assert(MF && "Method called on a uninitialized LexicalScopes object!");
   MBBs.clear();
 
@@ -317,7 +317,7 @@ void LexicalScopes::getMachineBasicBlocks(
       MBBs.insert(&*CurMBBIt);
 }
 
-bool LexicalScopes::dominates(const DILocation *DL, MachineBasicBlock *MBB) {
+bool LexicalScopes::dominates(DebugLoc DL, MachineBasicBlock *MBB) {
   assert(MF && "Unexpected uninitialized LexicalScopes object!");
   LexicalScope *Scope = getOrCreateLexicalScope(DL);
   if (!Scope)

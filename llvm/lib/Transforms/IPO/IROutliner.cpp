@@ -725,7 +725,7 @@ static void moveFunctionData(Function &Old, Function &New,
 
       // Edit the scope of called functions inside of outlined functions.
       if (DISubprogram *SP = New.getSubprogram()) {
-        DILocation *DI = DILocation::get(New.getContext(), 0, 0, SP);
+        DebugLoc DI = DebugLoc::get(New.getContext(), 0, 0, SP);
         Val.setDebugLoc(DI);
       }
     }

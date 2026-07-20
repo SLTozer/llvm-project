@@ -7057,18 +7057,18 @@ void Verifier::visit(DbgLabelRecord &DLR) {
 
   // The scopes for variables and !dbg attachments must agree.
   DILabel *Label = DLR.getLabel();
-  DILocation *Loc = DLR.getDebugLoc();
+  DebugLoc Loc = DLR.getDebugLoc();
   CheckDI(Loc, "#dbg_label record requires a !dbg attachment", &DLR, BB, F);
 
   DISubprogram *LabelSP = getSubprogram(Label->getRawScope());
-  DISubprogram *LocSP = getSubprogram(Loc->getRawScope());
+  DISubprogram *LocSP = getSubprogram(Loc.getRawScope());
   if (!LabelSP || !LocSP)
     return;
 
   CheckDI(LabelSP == LocSP,
           "mismatched subprogram between #dbg_label label and !dbg attachment",
           &DLR, BB, F, Label, Label->getScope()->getSubprogram(), Loc,
-          Loc->getScope()->getSubprogram());
+          Loc.getScope()->getSubprogram());
 }
 
 void Verifier::visit(DbgVariableRecord &DVR) {
@@ -7147,18 +7147,18 @@ void Verifier::visit(DbgVariableRecord &DVR) {
   auto *DLNode = DVR.getDebugLoc().getAsMDNode();
   CheckDI(isa_and_nonnull<DILocation>(DLNode), "invalid #dbg record DILocation",
           &DVR, DLNode, BB, F);
-  DILocation *Loc = DVR.getDebugLoc();
+  DebugLoc Loc = DVR.getDebugLoc();
 
   // The scopes for variables and !dbg attachments must agree.
   DISubprogram *VarSP = getSubprogram(Var->getRawScope());
-  DISubprogram *LocSP = getSubprogram(Loc->getRawScope());
+  DISubprogram *LocSP = getSubprogram(Loc.getRawScope());
   if (!VarSP || !LocSP)
     return; // Broken scope chains are checked elsewhere.
 
   CheckDI(VarSP == LocSP,
           "mismatched subprogram between #dbg record variable and DILocation",
           &DVR, BB, F, Var, Var->getScope()->getSubprogram(), Loc,
-          Loc->getScope()->getSubprogram(), BB, F);
+          Loc.getScope()->getSubprogram(), BB, F);
 
   verifyFnArgs(DVR);
 }
@@ -7409,7 +7409,7 @@ void Verifier::verifyFnArgs(const DbgVariableRecord &DVR) {
     return;
 
   // For performance reasons only check non-inlined ones.
-  if (DVR.getDebugLoc()->getInlinedAt())
+  if (DVR.getDebugLoc().getInlinedAt())
     return;
 
   DILocalVariable *Var = DVR.getVariable();

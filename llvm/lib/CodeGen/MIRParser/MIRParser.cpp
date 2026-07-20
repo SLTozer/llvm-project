@@ -144,7 +144,7 @@ public:
   struct VarExprLoc {
     DILocalVariable *DIVar = nullptr;
     DIExpression *DIExpr = nullptr;
-    DILocation *DILoc = nullptr;
+    DebugLoc DILoc = nullptr;
   };
 
   std::optional<VarExprLoc> parseVarExprLoc(PerFunctionMIParsingState &PFS,

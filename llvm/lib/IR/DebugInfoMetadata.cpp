@@ -56,7 +56,7 @@ DebugVariable::DebugVariable(const DbgVariableRecord *DVR)
 
 DebugVariableAggregate::DebugVariableAggregate(const DbgVariableRecord *DVR)
     : DebugVariable(DVR->getVariable(), std::nullopt,
-                    DVR->getDebugLoc()->getInlinedAt()) {}
+                    DVR->getDebugLoc().getInlinedAt()) {}
 
 // NOLINTBEGIN(llvm-debug-loc-*)
 DILocation::DILocation(LLVMContext &C, StorageType Storage, unsigned Line,

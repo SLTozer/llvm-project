@@ -151,9 +151,9 @@ void DiagnosticInfoIROptimization::anchor() {}
 DiagnosticLocation::DiagnosticLocation(const DebugLoc &DL) {
   if (!DL)
     return;
-  File = DL->getFile();
-  Line = DL->getLine();
-  Column = DL->getColumn();
+  File = DL.getFile();
+  Line = DL.getLine();
+  Column = DL.getColumn();
 }
 
 DiagnosticLocation::DiagnosticLocation(const DISubprogram *SP) {
@@ -282,7 +282,7 @@ DiagnosticInfoOptimizationBase::Argument::Argument(StringRef Key,
 DiagnosticInfoOptimizationBase::Argument::Argument(StringRef Key, DebugLoc Loc)
     : Key(std::string(Key)), Loc(Loc) {
   if (Loc) {
-    Val = (Loc->getFilename() + ":" + Twine(Loc.getLine()) + ":" +
+    Val = (Loc.getFilename() + ":" + Twine(Loc.getLine()) + ":" +
            Twine(Loc.getCol())).str();
   } else {
     Val = "<UNKNOWN LOCATION>";
@@ -521,16 +521,16 @@ void llvm::diagnoseDontCall(const CallInst &CI) {
 
       if (const DebugLoc &DL = CI.getDebugLoc()) {
         SmallVector<DebugInlineInfo, 4> DebugChain;
-        auto AddLocation = [&](const DILocation *Loc) {
-          if (auto *Scope = Loc->getScope())
+        auto AddLocation = [&](DebugLoc Loc) {
+          if (auto *Scope = Loc.getScope())
             if (auto *SP = Scope->getSubprogram())
-              DebugChain.push_back({SP->getName(), Loc->getFilename(),
-                                    Loc->getLine(), Loc->getColumn()});
+              DebugChain.push_back({SP->getName(), Loc.getFilename(),
+                                    Loc.getLine(), Loc.getColumn()});
         };
-        if (const DILocation *Loc = DL.get()) {
+        if (DebugLoc Loc = DL) {
           AddLocation(Loc);
-          for (const DILocation *InlinedAt = Loc->getInlinedAt(); InlinedAt;
-               InlinedAt = InlinedAt->getInlinedAt())
+          for (DebugLoc InlinedAt = Loc.getInlinedAt(); InlinedAt;
+               InlinedAt = InlinedAt.getInlinedAt())
             AddLocation(InlinedAt);
         }
         D.setDebugInlineChain(std::move(DebugChain));

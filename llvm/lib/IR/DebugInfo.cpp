@@ -158,12 +158,12 @@ DebugLoc llvm::getDebugValueLoc(DbgVariableRecord *DVR) {
   // Original dbg.declare must have a location.
   const DebugLoc &DeclareLoc = DVR->getDebugLoc();
   MDNode *Scope = DeclareLoc.getScope();
-  DILocation *InlinedAt = DeclareLoc.getInlinedAt();
+  DebugLoc InlinedAt = DeclareLoc.getInlinedAt();
   // Because no machine insts can come from debug intrinsics, only the scope
   // and inlinedAt is significant. Zero line numbers are used in case this
   // DebugLoc leaks into any adjacent instructions. Produce an unknown location
   // with the correct scope / inlinedAt fields.
-  return DILocation::get(DVR->getContext(), 0, 0, Scope, InlinedAt);
+  return DebugLoc::get(DVR->getContext(), 0, 0, Scope, InlinedAt);
 }
 
 //===----------------------------------------------------------------------===//
@@ -223,23 +223,23 @@ void DebugInfoFinder::processInstruction(const Module &M,
     processVariable(DVI->getVariable());
 
   if (auto DbgLoc = I.getDebugLoc())
-    processLocation(M, DbgLoc.get());
+    processLocation(M, DbgLoc);
 
   for (const DbgRecord &DPR : I.getDbgRecordRange())
     processDbgRecord(M, DPR);
 }
 
-void DebugInfoFinder::processLocation(const Module &M, const DILocation *Loc) {
+void DebugInfoFinder::processLocation(const Module &M, DebugLoc Loc) {
   if (!Loc)
     return;
-  processScope(Loc->getScope());
-  processLocation(M, Loc->getInlinedAt());
+  processScope(Loc.getScope());
+  processLocation(M, Loc.getInlinedAt());
 }
 
 void DebugInfoFinder::processDbgRecord(const Module &M, const DbgRecord &DR) {
   if (const DbgVariableRecord *DVR = dyn_cast<const DbgVariableRecord>(&DR))
     processVariable(DVR->getVariable());
-  processLocation(M, DR.getDebugLoc().get());
+  processLocation(M, DR.getDebugLoc());
 }
 
 void DebugInfoFinder::processVariable(DIVariable *DV) {
@@ -984,7 +984,7 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
       for (auto &I : BB) {
         auto remapDebugLoc = [&](const DebugLoc &DL) -> DebugLoc {
           MDNode *Scope = DL.getScope();
-          MDNode *InlinedAt = DL.getInlinedAt();
+          MDNode *InlinedAt = DL.getInlinedAt().getAsMDNode();
           Scope = remap(Scope);
           InlinedAt = remap(InlinedAt);
           return DebugLoc::get(
@@ -1101,7 +1101,7 @@ void Instruction::dropLocation() {
     // If a function scope is available, set it on the line 0 location. When
     // hoisting a call to a predecessor block, using the function scope avoids
     // making it look like the callee was reached earlier than it should be.
-    setDebugLoc(DILocation::get(getContext(), 0, 0, SP));
+    setDebugLoc(DebugLoc::get(getContext(), 0, 0, SP));
   else
     // The parent function has no scope. Go ahead and drop the location. If
     // the parent function is inlined, and the callee has a subprogram, the

@@ -1120,14 +1120,14 @@ llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
     for (BasicBlock *BB : L->getBlocks())
       for (Instruction &I : *BB)
         if (!I.isDebugOrPseudoInst())
-          if (const DILocation *DIL = I.getDebugLoc()) {
-            auto NewDIL = DIL->cloneByMultiplyingDuplicationFactor(ULO.Count);
+          if (DebugLoc DIL = I.getDebugLoc()) {
+            auto NewDIL = DIL.cloneByMultiplyingDuplicationFactor(ULO.Count);
             if (NewDIL)
               I.setDebugLoc(*NewDIL);
             else
               LLVM_DEBUG(dbgs()
                          << "Failed to create new discriminator: "
-                         << DIL->getFilename() << " Line: " << DIL->getLine());
+                         << DIL.getFilename() << " Line: " << DIL.getLine());
           }
 
   // Identify what noalias metadata is inside the loop: if it is inside the

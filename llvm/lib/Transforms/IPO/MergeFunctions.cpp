@@ -787,9 +787,9 @@ void MergeFunctions::writeThunk(Function *F, Function *G) {
     DISubprogram *DIS = G->getSubprogram();
     if (DIS) {
       DebugLoc CIDbgLoc =
-          DILocation::get(DIS->getContext(), DIS->getScopeLine(), 0, DIS);
+          DebugLoc::get(DIS->getContext(), DIS->getScopeLine(), 0, DIS);
       DebugLoc RIDbgLoc =
-          DILocation::get(DIS->getContext(), DIS->getScopeLine(), 0, DIS);
+          DebugLoc::get(DIS->getContext(), DIS->getScopeLine(), 0, DIS);
       CI->setDebugLoc(CIDbgLoc);
       RI->setDebugLoc(RIDbgLoc);
     } else {

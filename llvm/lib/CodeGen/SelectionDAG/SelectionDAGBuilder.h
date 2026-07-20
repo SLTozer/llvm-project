@@ -717,7 +717,7 @@ private:
   /// instruction for it now. At the end of instruction selection, they will be
   /// inserted to the entry BB.
   bool EmitFuncArgumentDbgValue(const Value *V, DILocalVariable *Variable,
-                                DIExpression *Expr, DILocation *DL,
+                                DIExpression *Expr, DebugLoc DL,
                                 FuncArgumentDbgValueKind Kind,
                                 const SDValue &N);
 

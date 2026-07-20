@@ -1839,7 +1839,7 @@ static void HandleByValArgumentInit(Type *ByValType, Value *Dst, Value *Src,
   // purposes). Assign a dummy location to satisfy the constraint.
   if (!CI->getDebugLoc() && InsertBlock->getParent()->getSubprogram())
     if (DISubprogram *SP = CalledFunc->getSubprogram())
-      CI->setDebugLoc(DILocation::get(SP->getContext(), 0, 0, SP));
+      CI->setDebugLoc(DebugLoc::get(SP->getContext(), 0, 0, SP));
 }
 
 /// When inlining a call site that has a byval argument,
@@ -1932,13 +1932,13 @@ static bool allocaWouldBeStaticInEntry(const AllocaInst *AI ) {
 
 /// Returns a DebugLoc for a new DILocation which is a clone of \p OrigDL
 /// inlined at \p InlinedAt. \p IANodes is an inlined-at cache.
-static DebugLoc inlineDebugLoc(DebugLoc OrigDL, DILocation *InlinedAt,
+static DebugLoc inlineDebugLoc(DebugLoc OrigDL, DebugLoc InlinedAt,
                                LLVMContext &Ctx,
                                DenseMap<const MDNode *, MDNode *> &IANodes) {
-  auto IA = DebugLoc::appendInlinedAt(OrigDL, InlinedAt, Ctx, IANodes);
+  auto IA = DebugLoc::appendInlinedAt(OrigDL, InlinedAt.getAsDILocation(), Ctx, IANodes);
   return DebugLoc::get(Ctx, OrigDL.getLine(), OrigDL.getCol(),
                          OrigDL.getScope(), IA, OrigDL.isImplicitCode(),
-                         OrigDL->getAtomGroup(), OrigDL->getAtomRank());
+                         OrigDL.getAtomGroup(), OrigDL.getAtomRank());
 }
 
 /// Update inlined instructions' line numbers to
@@ -1953,16 +1953,16 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
   // not-nodebug instructions. FIXME: Possibly worth transferring/generating
   // an atom for the returned value, otherwise we miss stepping on inlined
   // nodebug functions (which is different to existing behaviour).
-  DebugLoc TheCallDL = TheCall->getDebugLoc()->getWithoutAtom();
+  DebugLoc TheCallDL = TheCall->getDebugLoc().getWithoutAtom();
 
   auto &Ctx = Fn->getContext();
-  DILocation *InlinedAtNode = TheCallDL;
+  DebugLoc InlinedAtNode = TheCallDL;
 
   // Create a unique call site, not to be confused with any other call from the
   // same location.
-  InlinedAtNode = DILocation::getDistinct(
-      Ctx, InlinedAtNode->getLine(), InlinedAtNode->getColumn(),
-      InlinedAtNode->getScope(), InlinedAtNode->getInlinedAt());
+  InlinedAtNode = DebugLoc::getDistinct(
+      Ctx, InlinedAtNode.getLine(), InlinedAtNode.getColumn(),
+      InlinedAtNode.getScope(), InlinedAtNode.getInlinedAt());
 
   // Cache the inlined-at nodes as they're built so they are reused, without
   // this every instruction's inlined-at chain would become distinct from each

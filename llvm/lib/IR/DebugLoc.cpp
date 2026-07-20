@@ -10,6 +10,7 @@
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/Support/Casting.h"
 
 using namespace llvm;
 
@@ -49,15 +50,15 @@ void DbgLocOrigin::addTrace() {
 
 DebugLoc DebugLoc::get(
     LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
-    Metadata *InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
+    DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
     uint8_t AtomRank) {
-  return DILocation::get(Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+  return DebugLoc::getFromDILocation(DILocation::get(Context, Line, Column, Scope, InlinedAt.getAsDILocation(), ImplicitCode, AtomGroup, AtomRank));
 }
 DebugLoc DebugLoc::getDistinct(
     LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
-    Metadata *InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
+    DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
     uint8_t AtomRank) {
-  return DILocation::getDistinct(Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+  return DebugLoc::getFromDILocation(DILocation::getDistinct(Context, Line, Column, Scope, InlinedAt.getAsDILocation(), ImplicitCode, AtomGroup, AtomRank));
 }
 
 DebugLoc DebugLoc::getFromMDNode(const MDNode *MD) {

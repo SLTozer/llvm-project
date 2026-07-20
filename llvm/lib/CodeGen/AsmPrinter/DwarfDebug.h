@@ -72,19 +72,19 @@ public:
 
 private:
   const DINode *Entity;
-  const DILocation *InlinedAt;
+  DebugLoc InlinedAt;
   DIE *TheDIE = nullptr;
   const DbgEntityKind SubclassID;
 
 public:
-  DbgEntity(const DINode *N, const DILocation *IA, DbgEntityKind ID)
+  DbgEntity(const DINode *N, DebugLoc IA, DbgEntityKind ID)
       : Entity(N), InlinedAt(IA), SubclassID(ID) {}
   virtual ~DbgEntity() = default;
 
   /// Accessors.
   /// @{
   const DINode *getEntity() const { return Entity; }
-  const DILocation *getInlinedAt() const { return InlinedAt; }
+  DebugLoc getInlinedAt() const { return InlinedAt; }
   DIE *getDIE() const { return TheDIE; }
   DbgEntityKind getDbgEntityID() const { return SubclassID; }
   /// @}
@@ -240,7 +240,7 @@ public:
   /// Construct a DbgVariable.
   ///
   /// Creates a variable without any DW_AT_location.
-  DbgVariable(const DILocalVariable *V, const DILocation *IA)
+  DbgVariable(const DILocalVariable *V, DebugLoc IA)
       : DbgEntity(V, IA, DbgVariableKind) {}
 
   // Accessors.
@@ -292,7 +292,7 @@ class DbgLabel : public DbgEntity {
 
 public:
   /// We need MCSymbol information to generate DW_AT_low_pc.
-  DbgLabel(const DILabel *L, const DILocation *IA, const MCSymbol *Sym = nullptr)
+  DbgLabel(const DILabel *L, DebugLoc IA, const MCSymbol *Sym = nullptr)
       : DbgEntity(L, IA, DbgLabelKind), Sym(Sym) {}
 
   /// Accessors.
@@ -539,7 +539,7 @@ private:
   DbgEntity *createConcreteEntity(DwarfCompileUnit &TheCU,
                                   LexicalScope &Scope,
                                   const DINode *Node,
-                                  const DILocation *Location,
+                                  DebugLoc Location,
                                   const MCSymbol *Sym = nullptr);
 
   /// Construct a DIE for this abstract scope.

@@ -279,8 +279,8 @@ memprof::extractCallsFromIR(Module &M, const TargetLibraryInfo &TLI,
                             function_ref<bool(uint64_t)> IsPresentInProfile) {
   DenseMap<uint64_t, SmallVector<CallEdgeTy, 0>> Calls;
 
-  auto GetOffset = [](const DILocation *DIL) {
-    return (DIL->getLine() - DIL->getScope()->getSubprogram()->getLine()) &
+  auto GetOffset = [](DebugLoc DIL) {
+    return (DIL.getLine() - DIL.getScope()->getSubprogram()->getLine()) &
            0xffff;
   };
 
@@ -306,9 +306,9 @@ memprof::extractCallsFromIR(Module &M, const TargetLibraryInfo &TLI,
         // True for the first iteration below, indicating that we are looking at
         // a leaf node.
         bool IsLeaf = true;
-        for (const DILocation *DIL = I.getDebugLoc(); DIL;
-             DIL = DIL->getInlinedAt()) {
-          StringRef CallerName = DIL->getSubprogramLinkageName();
+        for (DebugLoc DIL = I.getDebugLoc(); DIL;
+             DIL = DIL.getInlinedAt()) {
+          StringRef CallerName = DIL.getSubprogramLinkageName();
           assert(!CallerName.empty() &&
                  "Be sure to enable -fdebug-info-for-profiling");
           uint64_t CallerGUID = memprof::getGUID(CallerName);
@@ -331,7 +331,7 @@ memprof::extractCallsFromIR(Module &M, const TargetLibraryInfo &TLI,
             }
           }
 
-          LineLocation Loc = {GetOffset(DIL), DIL->getColumn()};
+          LineLocation Loc = {GetOffset(DIL), DIL.getColumn()};
           Calls[CallerGUID].emplace_back(Loc, CalleeGUID);
           CalleeName = CallerName;
           IsLeaf = false;
@@ -639,8 +639,8 @@ static void dumpInlineCallStack(Instruction &I, CallBase *CI,
                                 DenseSet<uint64_t> &SeenFrames,
                                 DenseSet<uint64_t> &SeenStacks,
                                 bool ProfileHasColumns) {
-  auto GetOffset = [](const DILocation *DIL) {
-    return (DIL->getLine() - DIL->getScope()->getSubprogram()->getLine()) &
+  auto GetOffset = [](DebugLoc DIL) {
+    return (DIL.getLine() - DIL.getScope()->getSubprogram()->getLine()) &
            0xffff;
   };
 
@@ -648,19 +648,19 @@ static void dumpInlineCallStack(Instruction &I, CallBase *CI,
   std::string CallStack;
   raw_string_ostream CallStackOS(CallStack);
   bool First = true;
-  for (const DILocation *DIL = I.getDebugLoc(); DIL;
-       DIL = DIL->getInlinedAt()) {
-    StringRef Name = DIL->getScope()->getSubprogram()->getLinkageName();
+  for (DebugLoc DIL = I.getDebugLoc(); DIL;
+       DIL = DIL.getInlinedAt()) {
+    StringRef Name = DIL.getScope()->getSubprogram()->getLinkageName();
     if (Name.empty())
-      Name = DIL->getScope()->getSubprogram()->getName();
+      Name = DIL.getScope()->getSubprogram()->getName();
     auto CalleeGUID = Function::getGUIDAssumingExternalLinkage(Name);
     uint64_t FrameID = computeStackId(CalleeGUID, GetOffset(DIL),
-                                      ProfileHasColumns ? DIL->getColumn() : 0);
+                                      ProfileHasColumns ? DIL.getColumn() : 0);
     if (SeenFrames.insert(FrameID).second) {
       std::string DictMsg;
       raw_string_ostream DictOS(DictMsg);
       DictOS << "frame: " << FrameID << " " << Name << ":" << GetOffset(DIL)
-             << ":" << (ProfileHasColumns ? DIL->getColumn() : 0);
+             << ":" << (ProfileHasColumns ? DIL.getColumn() : 0);
       ORE.emit(OptimizationRemarkAnalysis(DEBUG_TYPE, "MemProfUse", CI)
                << DictOS.str());
     }
@@ -793,8 +793,8 @@ readMemprof(Module &M, Function &F, IndexedInstrProfReader *MemProfReader,
     assert(Idx <= CS.Frames.size() && CS.Frames[Idx - 1].Function == FuncGUID);
   }
 
-  auto GetOffset = [](const DILocation *DIL) {
-    return (DIL->getLine() - DIL->getScope()->getSubprogram()->getLine()) &
+  auto GetOffset = [](DebugLoc DIL) {
+    return (DIL.getLine() - DIL.getScope()->getSubprogram()->getLine()) &
            0xffff;
   };
 
@@ -829,16 +829,16 @@ readMemprof(Module &M, Function &F, IndexedInstrProfReader *MemProfReader,
       // and another callsite).
       auto AllocInfoIter = LocHashToAllocInfo.end();
       auto CallSitesIter = LocHashToCallSites.end();
-      for (const DILocation *DIL = I.getDebugLoc(); DIL != nullptr;
-           DIL = DIL->getInlinedAt()) {
+      for (DebugLoc DIL = I.getDebugLoc(); DIL != nullptr;
+           DIL = DIL.getInlinedAt()) {
         // Use C++ linkage name if possible. Need to compile with
         // -fdebug-info-for-profiling to get linkage name.
-        StringRef Name = DIL->getScope()->getSubprogram()->getLinkageName();
+        StringRef Name = DIL.getScope()->getSubprogram()->getLinkageName();
         if (Name.empty())
-          Name = DIL->getScope()->getSubprogram()->getName();
+          Name = DIL.getScope()->getSubprogram()->getName();
         auto CalleeGUID = Function::getGUIDAssumingExternalLinkage(Name);
         auto StackId = computeStackId(CalleeGUID, GetOffset(DIL),
-                                      ProfileHasColumns ? DIL->getColumn() : 0);
+                                      ProfileHasColumns ? DIL.getColumn() : 0);
         // Check if we have found the profile's leaf frame. If yes, collect
         // the rest of the call's inlined context starting here. If not, see if
         // we find a match further up the inlined context (in case the profile

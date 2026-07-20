@@ -72,7 +72,7 @@ class CGDebugInfo {
   llvm::DIFile *CurLocFile = nullptr;
   unsigned CurLocLine = 0;
   unsigned CurLocColumn = 0;
-  llvm::DILocation *CurInlinedAt = nullptr;
+  llvm::DebugLoc CurInlinedAt = nullptr;
   llvm::DIType *VTablePtrType = nullptr;
   llvm::DIType *ClassTy = nullptr;
   llvm::DICompositeType *ObjTy = nullptr;
@@ -489,10 +489,10 @@ public:
 
   /// Update the current inline scope. All subsequent calls to \p EmitLocation
   /// will create a location with this inlinedAt field.
-  void setInlinedAt(llvm::DILocation *InlinedAt) { CurInlinedAt = InlinedAt; }
+  void setInlinedAt(llvm::DebugLoc InlinedAt) { CurInlinedAt = InlinedAt; }
 
   /// \return the current inline scope.
-  llvm::DILocation *getInlinedAt() const { return CurInlinedAt; }
+  llvm::DebugLoc getInlinedAt() const { return CurInlinedAt; }
 
   // Converts a SourceLocation to a DebugLoc
   llvm::DebugLoc SourceLocToDebugLoc(SourceLocation Loc);
@@ -667,7 +667,7 @@ public:
   /// `<Prefix>` is "__clang_trap_msg".
   ///
   /// This is used to store failure reasons for traps.
-  llvm::DILocation *CreateTrapFailureMessageFor(llvm::DebugLoc TrapLocation,
+  llvm::DebugLoc CreateTrapFailureMessageFor(llvm::DebugLoc TrapLocation,
                                                 StringRef Category,
                                                 StringRef FailureMsg);
   /// Create a debug location from `Location` that adds an artificial inline
@@ -675,10 +675,10 @@ public:
   ///
   /// This is used to indiciate instructions that come from compiler
   /// instrumentation.
-  llvm::DILocation *
+  llvm::DebugLoc 
   CreateSyntheticInlineAt(llvm::DebugLoc ParentLocation,
                           llvm::DISubprogram *SynthSubprogram);
-  llvm::DILocation *CreateSyntheticInlineAt(llvm::DebugLoc ParentLocation,
+  llvm::DebugLoc CreateSyntheticInlineAt(llvm::DebugLoc ParentLocation,
                                             StringRef SynthFuncName,
                                             llvm::DIFile *SynthFile);
 

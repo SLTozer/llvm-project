@@ -1438,7 +1438,7 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
     at::remapAssignID(AssignmentIDMap, I);
   }
   if (!TheCall.getDebugLoc())
-    TheCall.setDebugLoc(DILocation::get(Ctx, 0, 0, OldSP));
+    TheCall.setDebugLoc(DebugLoc::get(Ctx, 0, 0, OldSP));
 
   eraseDebugIntrinsicsWithNonLocalRefs(NewFunc);
 }

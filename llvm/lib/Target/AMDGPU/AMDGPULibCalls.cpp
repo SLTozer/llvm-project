@@ -1749,7 +1749,7 @@ bool AMDGPULibCalls::fold_sincos(FPMathOperator *FPOp, IRBuilder<> &B,
   FastMathFlags FMF = FPOp->getFastMathFlags();
   MDNode *FPMath = CI->getMetadata(LLVMContext::MD_fpmath);
 
-  SmallVector<DILocation *> MergeDbgLocs = {CI->getDebugLoc()};
+  SmallVector<DebugLoc> MergeDbgLocs = {CI->getDebugLoc()};
 
   for (User* U : CArgVal->users()) {
     CallInst *XI = dyn_cast<CallInst>(U);
@@ -1786,7 +1786,7 @@ bool AMDGPULibCalls::fold_sincos(FPMathOperator *FPOp, IRBuilder<> &B,
 
   B.setFastMathFlags(FMF);
   B.setDefaultFPMathTag(FPMath);
-  DILocation *DbgLoc = DILocation::getMergedLocations(MergeDbgLocs);
+  DebugLoc DbgLoc = DebugLoc::getMergedLocations(MergeDbgLocs);
   B.SetCurrentDebugLocation(DbgLoc);
 
   auto [Sin, Cos, SinCos] = insertSinCos(CArgVal, FMF, B, FSinCos);

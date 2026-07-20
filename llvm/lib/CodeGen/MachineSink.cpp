@@ -1024,7 +1024,7 @@ void MachineSinking::ProcessDbgInst(MachineInstr &MI) {
   assert(MI.isDebugValue() && "Expected DBG_VALUE for processing");
 
   DebugVariable Var(MI.getDebugVariable(), MI.getDebugExpression(),
-                    MI.getDebugLoc()->getInlinedAt());
+                    MI.getDebugLoc().getInlinedAt());
   bool SeenBefore = SeenDbgVars.contains(Var);
 
   for (MachineOperand &MO : MI.debug_operands()) {

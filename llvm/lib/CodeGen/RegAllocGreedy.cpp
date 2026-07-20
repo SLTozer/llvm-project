@@ -2909,7 +2909,7 @@ void RAGreedy::reportStats() {
     ORE->emit([&]() {
       DebugLoc Loc;
       if (auto *SP = MF->getFunction().getSubprogram())
-        Loc = DILocation::get(SP->getContext(), SP->getLine(), 1, SP);
+        Loc = DebugLoc::get(SP->getContext(), SP->getLine(), 1, SP);
       MachineOptimizationRemarkMissed R(DEBUG_TYPE, "SpillReloadCopies", Loc,
                                         &MF->front());
       Stats.report(R);
