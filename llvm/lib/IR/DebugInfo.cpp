@@ -884,7 +884,7 @@ private:
       if (auto *MDLB = dyn_cast<DILexicalBlockBase>(N))
         // Remap to our referenced scope (recursively).
         return mapNode(MDLB->getScope());
-      if (auto *MLD = dyn_cast<DILocation>(N))-*)
+      if (auto *MLD = dyn_cast<DILocation>(N))
         return getReplacementMDLocation(MLD);
 
       // Otherwise, if we see these, just drop them now. Not strictly necessary,
