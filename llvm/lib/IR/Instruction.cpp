@@ -96,7 +96,11 @@ const DataLayout &Instruction::getDataLayout() const {
 }
 
 DebugLoc Instruction::getDebugLoc() const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
   return DebugLoc(DbgLoc, getFunction()->FLMD);
+#else
+  return DebugLoc(DbgLoc);
+#endif
 }
 
 void Instruction::removeFromParent() {

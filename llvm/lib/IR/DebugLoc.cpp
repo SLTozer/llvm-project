@@ -106,6 +106,21 @@ DILocation *DebugLoc::convertToDILocation() const {
   }
   return Result;
 }
+#else
+DebugLoc DebugLoc::getFromDILocation(const DILocation *DIL) {
+  DebugLoc DL;
+  DL.Storage = DbgLocStorage(const_cast<DILocation*>(DIL));
+  return DL;
+}
+DILocation *DebugLoc::getAsDILocation() const {
+  return Storage.get();
+}
+DILocation *DebugLoc::get() const {
+  return Storage.get();
+}
+DebugLoc::operator DILocation *() const {
+  return Storage.get();
+}
 #endif
 
 //===----------------------------------------------------------------------===//

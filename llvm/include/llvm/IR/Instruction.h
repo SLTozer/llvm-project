@@ -106,7 +106,7 @@ public:
   };
 
 private:
-  FLDebugLoc DbgLoc;                         // 'dbg' Metadata cache.
+  DbgLocStorage DbgLoc;                         // 'dbg' Metadata cache.
 
   friend class Value;
   /// Index of first metadata attachment in context, or zero.
@@ -542,9 +542,9 @@ public:
 
   /// Set the debug location information for this instruction.
   void setDebugLoc(DebugLoc Loc) {
-    DbgLoc = Loc.getLoc().getCopied();
+    DbgLoc = Loc.getStorage();
   }
-  void setDebugLoc(FLDebugLoc FLLoc) { DbgLoc = FLLoc.getCopied(); }
+  void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
 
   /// Return the debug location for this node as a DebugLoc.
   DebugLoc getDebugLoc() const;

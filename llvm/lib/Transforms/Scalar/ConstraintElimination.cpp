@@ -27,6 +27,7 @@
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -1441,7 +1442,7 @@ static void generateReproducer(CmpInst *Cond, Module *M,
       Old2New[I]->setName(I->getName());
       Cloned->insertBefore(Builder.GetInsertPoint());
       Cloned->dropUnknownNonDebugMetadata();
-      Cloned->setDebugLoc(FLDebugLoc());
+      Cloned->setDebugLoc(DbgLocStorage());
     }
   };
 

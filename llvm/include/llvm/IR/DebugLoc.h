@@ -35,10 +35,13 @@ namespace llvm {
 class LLVMContext;
 class raw_ostream;
 class DILocation;
-class Function;
+class DILocalScope;
 
-#if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
-#if LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN
+extern cl::opt<bool> EnableFSDiscriminator;
+
+ #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
+ #if LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN
+ extern bool DebugLocOriginCollectionEnabled;
 struct DbgLocOrigin {
   static constexpr unsigned long MaxDepth = 16;
   using StackTracesTy =
@@ -304,6 +307,8 @@ public:
   LLVM_DEPRECATED("Implicit conversion disabled", "getFromDILocation")
   DebugLoc(const DILocation *L) : Storage(const_cast<DILocation *>(L)) {}
 
+  DbgLocStorage getStorage() { return Storage; };
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Metadata/DILocation compatibility interface
 
@@ -320,7 +325,7 @@ public:
   friend bool operator==(const DILocation *LHS, const DebugLoc &RHS) { return RHS.Storage == LHS; }
   friend bool operator!=(const DILocation *LHS, const DebugLoc &RHS) { return RHS.Storage != LHS; }
 
-  bool operator<(const DebugLoc &Other) const { return Loc < Other.Loc; }
+  bool operator<(const DebugLoc &Other) const { return Storage < Other.Storage; }
 
   static DebugLoc get(
     LLVMContext &Context, unsigned Line, unsigned Column,Metadata *Scope,
@@ -655,6 +660,10 @@ struct DenseMapInfo<DebugLoc> {
 
   static bool isEqual(DebugLoc LHS, DebugLoc RHS) { return LHS.Storage == RHS.Storage; }
 };
+
+inline hash_code hash_value(const DbgLocStorage &Val) {
+  return hash_value(Val.Loc);
+}
 
 inline hash_code hash_value(const DebugLoc &Val) {
   return hash_value(Val.Storage);
