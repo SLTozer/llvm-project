@@ -18,8 +18,6 @@ namespace llvm {
 extern LLVM_ABI cl::opt<bool> PickMergedSourceLocations;
 } // namespace llvm
 
-// NOLINTBEGIN(llvm-debug-loc-*)
-
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN
 #include "llvm/Support/Signals.h"
 namespace llvm {
@@ -356,5 +354,3 @@ LLVM_ABI std::optional<unsigned>
 DebugLoc::encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI) {
   return DILocation::encodeDiscriminator(BD, DF, CI);
 }
-
-// NOLINTEND(llvm-debug-loc-*)

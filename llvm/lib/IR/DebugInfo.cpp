@@ -842,8 +842,6 @@ private:
         CU->getDebugInfoForProfiling(), CU->getNameTableKind(),
         CU->getRangesBaseAddress(), CU->getSysRoot(), CU->getSDK());
   }
-
-  // NOLINTBEGIN(llvm-debug-loc-*)
   DILocation *getReplacementMDLocation(DILocation *MLD) {
     auto *Scope = map(MLD->getScope());
     auto *InlinedAt = map(MLD->getInlinedAt());
@@ -853,7 +851,6 @@ private:
     return DILocation::get(MLD->getContext(), MLD->getLine(), MLD->getColumn(),
                            Scope, InlinedAt);
   }
-  // NOLINTEND(llvm-debug-loc-*)
 
   /// Create a new generic MDNode, to replace the one given
   MDNode *getReplacementMDNode(MDNode *N) {
@@ -887,7 +884,7 @@ private:
       if (auto *MDLB = dyn_cast<DILexicalBlockBase>(N))
         // Remap to our referenced scope (recursively).
         return mapNode(MDLB->getScope());
-      if (auto *MLD = dyn_cast<DILocation>(N)) // NOLINT(llvm-debug-loc-*)
+      if (auto *MLD = dyn_cast<DILocation>(N))-*)
         return getReplacementMDLocation(MLD);
 
       // Otherwise, if we see these, just drop them now. Not strictly necessary,
@@ -997,7 +994,6 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
 
         // Remap DILocations in llvm.loop attachments.
         updateLoopMetadataDebugLocations(I, [&](Metadata *MD) -> Metadata * {
-          // NOLINTNEXTLINE(llvm-debug-loc-*)
           if (auto *Loc = dyn_cast_or_null<DILocation>(MD))
             return remapDebugLoc(DebugLoc::getFromDILocation(Loc)).getAsDILocation();
           return MD;
@@ -1338,8 +1334,6 @@ LLVMMetadataRef LLVMDIBuilderCreateImportedDeclaration(
       unwrapDI<DIScope>(Scope), unwrapDI<DINode>(Decl), unwrapDI<DIFile>(File),
       Line, {Name, NameLen}, Elts));
 }
-
-// NOLINTBEGIN(llvm-debug-loc-*)
 LLVMMetadataRef
 LLVMDIBuilderCreateDebugLocation(LLVMContextRef Ctx, unsigned Line,
                                  unsigned Column, LLVMMetadataRef Scope,
@@ -1363,7 +1357,6 @@ LLVMMetadataRef LLVMDILocationGetScope(LLVMMetadataRef Location) {
 LLVMMetadataRef LLVMDILocationGetInlinedAt(LLVMMetadataRef Location) {
   return wrap(unwrapDI<DILocation>(Location)->getInlinedAt());
 }
-// NOLINTEND(llvm-debug-loc-*)
 
 LLVMMetadataRef LLVMDIScopeGetFile(LLVMMetadataRef Scope) {
   return wrap(unwrapDI<DIScope>(Scope)->getFile());

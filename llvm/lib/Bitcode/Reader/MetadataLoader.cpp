@@ -1496,7 +1496,6 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
     uint64_t AtomGroup = Record.size() == 8 ? Record[6] : 0;
     uint8_t AtomRank = Record.size() == 8 ? Record[7] : 0;
     MetadataList.assignValue(
-        // NOLINTNEXTLINE(llvm-debug-loc-*)
         GET_OR_DISTINCT(DILocation, (Context, Line, Column, Scope, InlinedAt,
                                      ImplicitCode, AtomGroup, AtomRank)),
         NextMetadataNo);

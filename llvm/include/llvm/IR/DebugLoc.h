@@ -30,8 +30,6 @@ class DILocation;
 class Function;
 class DILocalScope;
 
-// NOLINTBEGIN(llvm-debug-loc-*)
-
 extern cl::opt<bool> EnableFSDiscriminator;
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
@@ -507,7 +505,5 @@ template<> struct hash<llvm::DebugLoc> {
   }
 };
 } // namespace std
-
-// NOLINTEND(llvm-debug-loc-*)
 
 #endif // LLVM_IR_DEBUGLOC_H

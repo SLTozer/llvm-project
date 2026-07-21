@@ -526,11 +526,9 @@ void Verifier::visitDbgRecords(Instruction &I) {
   for (DbgRecord &DR : I.getDbgRecordRange()) {
     CheckDI(DR.getMarker() == I.DebugMarker,
             "DbgRecord had invalid DebugMarker", &I, &DR);
-    // NOLINTBEGIN(llvm-debug-loc-*)
     if (auto *Loc =
             dyn_cast_or_null<DILocation>(DR.getDebugLoc().getAsMDNode()))
       visitMDNode(*Loc, AreDebugLocsAllowed::Yes);
-    // NOLINTEND(llvm-debug-loc-*)
     if (auto *DVR = dyn_cast<DbgVariableRecord>(&DR)) {
       visit(*DVR);
       // These have to appear after `visit` for consistency with existing
@@ -1059,8 +1057,6 @@ static bool isType(const Metadata *MD) { return !MD || isa<DIType>(MD); }
 static bool isScope(const Metadata *MD) { return !MD || isa<DIScope>(MD); }
 static bool isDINode(const Metadata *MD) { return !MD || isa<DINode>(MD); }
 static bool isMDTuple(const Metadata *MD) { return !MD || isa<MDTuple>(MD); }
-
-// NOLINTBEGIN(llvm-debug-loc-*)
 void Verifier::visitDILocation(const DILocation &N) {
   CheckDI(N.getRawScope() && isa<DILocalScope>(N.getRawScope()),
           "location requires a valid scope", &N, N.getRawScope());
@@ -1069,7 +1065,6 @@ void Verifier::visitDILocation(const DILocation &N) {
   if (auto *SP = dyn_cast<DISubprogram>(N.getRawScope()))
     CheckDI(SP->isDefinition(), "scope points into the type hierarchy", &N);
 }
-// NOLINTEND(llvm-debug-loc-*)
 
 void Verifier::visitGenericDINode(const GenericDINode &N) {
   CheckDI(N.getTag(), "invalid tag", &N);
@@ -3282,7 +3277,6 @@ void Verifier::visitFunction(const Function &F) {
   // FIXME: Check this incrementally while visiting !dbg attachments.
   // FIXME: Only check when N is the canonical subprogram for F.
   SmallPtrSet<const MDNode *, 32> Seen;
-  // NOLINTBEGIN(llvm-debug-loc-*)
   auto VisitDebugLoc = [&](const Instruction &I, const MDNode *Node) {
     // Be careful about using DILocation here since we might be dealing with
     // broken code (this is the Verifier after all).
@@ -3313,7 +3307,6 @@ void Verifier::visitFunction(const Function &F) {
             "!dbg attachment points at wrong subprogram for function", N, &F,
             &I, DL, Scope, SP);
   };
-  // NOLINTEND(llvm-debug-loc-*)
   for (auto &BB : F)
     for (auto &I : BB) {
       VisitDebugLoc(I, I.getDebugLoc().getAsMDNode());
@@ -5873,8 +5866,6 @@ void Verifier::visitInstruction(Instruction &I) {
   if (MDNode *N = I.getDebugLoc().getAsMDNode()) {
     CheckDI(isa<DILocation>(N), "invalid !dbg metadata attachment", &I, N);
     visitMDNode(*N, AreDebugLocsAllowed::Yes);
-
-    // NOLINTNEXTLINE(llvm-debug-loc-*)
     if (auto *DL = dyn_cast<DILocation>(N)) {
       if (DL->getAtomGroup()) {
         CheckDI(DL->getScope()->getSubprogram()->getKeyInstructionsEnabled(),

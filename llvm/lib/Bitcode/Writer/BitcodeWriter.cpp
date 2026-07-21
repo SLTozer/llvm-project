@@ -338,10 +338,8 @@ private:
   void writeMDTuple(const MDTuple *N, SmallVectorImpl<uint64_t> &Record,
                     unsigned Abbrev);
   unsigned createDILocationAbbrev();
-// NOLINTBEGIN(llvm-debug-loc-*)
   void writeDILocation(const DILocation *N, SmallVectorImpl<uint64_t> &Record,
                        unsigned &Abbrev);
-// NOLINTEND(llvm-debug-loc-*)
   unsigned createGenericDINodeAbbrev();
   void writeGenericDINode(const GenericDINode *N,
                           SmallVectorImpl<uint64_t> &Record, unsigned &Abbrev);
@@ -1902,8 +1900,6 @@ unsigned ModuleBitcodeWriter::createDILocationAbbrev() {
   Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 3)); // atomRank
   return Stream.EmitAbbrev(std::move(Abbv));
 }
-
-// NOLINTBEGIN(llvm-debug-loc-*)
 void ModuleBitcodeWriter::writeDILocation(const DILocation *N,
                                           SmallVectorImpl<uint64_t> &Record,
                                           unsigned &Abbrev) {
@@ -1921,7 +1917,6 @@ void ModuleBitcodeWriter::writeDILocation(const DILocation *N,
   Stream.EmitRecord(bitc::METADATA_LOCATION, Record, Abbrev);
   Record.clear();
 }
-// NOLINTEND(llvm-debug-loc-*)
 
 unsigned ModuleBitcodeWriter::createGenericDINodeAbbrev() {
   // Assume the column is usually under 128, and always output the inlined-at

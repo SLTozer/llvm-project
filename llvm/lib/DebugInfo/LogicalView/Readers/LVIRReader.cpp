@@ -569,7 +569,7 @@ const DIFile *LVIRReader::getMDFile(const MDNode *MD) const {
   if (auto *T = dyn_cast<DIScope>(MD))
     return T->getFile();
 
-  if (auto *T = dyn_cast<DILocation>(MD)) // NOLINT(llvm-debug-loc-*)
+  if (auto *T = dyn_cast<DILocation>(MD))
     return T->getFile();
 
   if (auto *T = dyn_cast<DIVariable>(MD))

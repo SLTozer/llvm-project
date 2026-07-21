@@ -341,7 +341,6 @@ bool LLParser::validateEndOfModule(bool UpgradeDebugInfo) {
 
   // Set debug locations.
   for (auto [Loc, DR, MD] : PendingDbgRecords) {
-    // NOLINTNEXTLINE(llvm-debug-loc-*)
     if (auto *DI = dyn_cast<DILocation>(MD))
       DR->setDebugLoc(DebugLoc::getFromDILocation(DI));
     else
@@ -349,7 +348,6 @@ bool LLParser::validateEndOfModule(bool UpgradeDebugInfo) {
   }
   PendingDbgRecords.clear();
   for (auto [Loc, I, MD] : PendingDbgInsts) {
-    // NOLINTNEXTLINE(llvm-debug-loc-*)
     if (auto *DI = dyn_cast<DILocation>(MD))
       I->setDebugLoc(DebugLoc::getFromDILocation(DI));
     else
@@ -5789,12 +5787,9 @@ bool LLParser::parseDILocation(MDNode *&Result, bool IsDistinct) {
   OPTIONAL(atomRank, MDUnsignedField, (0, UINT8_MAX));
   PARSE_MD_FIELDS();
 #undef VISIT_MD_FIELDS
-
-  // NOLINTBEGIN(llvm-debug-loc-*)
   Result = GET_OR_DISTINCT(
       DILocation, (Context, line.Val, column.Val, scope.Val, inlinedAt.Val,
                    isImplicitCode.Val, atomGroup.Val, atomRank.Val));
-  // NOLINTEND(llvm-debug-loc-*)
   return false;
 }
 

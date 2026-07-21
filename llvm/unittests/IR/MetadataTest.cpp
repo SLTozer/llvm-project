@@ -1617,8 +1617,6 @@ TEST_F(DILocationTest, Merge) {
   }
 #undef EXPECT_ATOM
 }
-
-// NOLINTBEGIN(llvm-debug-loc-*)
 TEST_F(DILocationTest, getDistinct) {
   MDNode *N = getSubprogram();
   DILocation *L0 = DILocation::getDistinct(Context, 2, 7, N);
@@ -1642,7 +1640,6 @@ TEST_F(DILocationTest, cloneTemporary) {
   auto L2 = L->clone();
   EXPECT_TRUE(L2->isTemporary());
 }
-// NOLINTEND(llvm-debug-loc-*)
 
 TEST_F(DILocationTest, discriminatorEncoding) {
   EXPECT_EQ(0U, *DebugLoc::encodeDiscriminator(0, 0, 0));

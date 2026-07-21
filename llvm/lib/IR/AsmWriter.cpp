@@ -2110,8 +2110,6 @@ static void writeGenericDINode(raw_ostream &Out, const GenericDINode *N,
   }
   Out << ")";
 }
-
-// NOLINTBEGIN(llvm-debug-loc-*)
 static void writeDILocation(raw_ostream &Out, const DILocation *DL,
                             AsmWriterContext &WriterCtx) {
   Out << "!DILocation(";
@@ -2127,7 +2125,6 @@ static void writeDILocation(raw_ostream &Out, const DILocation *DL,
   Printer.printInt<unsigned>("atomRank", DL->getAtomRank());
   Out << ")";
 }
-  // NOLINTEND(llvm-debug-loc-*)
 
 static void writeDIAssignID(raw_ostream &Out, const DIAssignID *DL,
                             AsmWriterContext &WriterCtx) {
@@ -2844,7 +2841,6 @@ static void writeAsOperandInternal(raw_ostream &Out, const Metadata *MD,
     }
     int Slot = WriterCtx.Machine->getMetadataSlot(N);
     if (Slot == -1) {
-      // NOLINTNEXTLINE(llvm-debug-loc-*)
       if (const auto *Loc = dyn_cast<DILocation>(N)) {
         writeDILocation(Out, Loc, WriterCtx);
         return;

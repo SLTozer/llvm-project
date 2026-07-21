@@ -3494,8 +3494,6 @@ void LLVMDisposeBuilder(LLVMBuilderRef Builder) {
 LLVMMetadataRef LLVMGetCurrentDebugLocation2(LLVMBuilderRef Builder) {
   return wrap(unwrap(Builder)->getCurrentDebugLocation().getAsMDNode());
 }
-
-// NOLINTBEGIN(llvm-debug-loc-*)
 void LLVMSetCurrentDebugLocation2(LLVMBuilderRef Builder, LLVMMetadataRef Loc) {
   if (Loc)
     unwrap(Builder)->SetCurrentDebugLocation(DebugLoc::getFromDILocation(unwrap<DILocation>(Loc)));
@@ -3508,7 +3506,6 @@ void LLVMSetCurrentDebugLocation(LLVMBuilderRef Builder, LLVMValueRef L) {
       L ? cast<DILocation>(unwrap<MetadataAsValue>(L)->getMetadata()) : nullptr;
   unwrap(Builder)->SetCurrentDebugLocation(DebugLoc::getFromDILocation(Loc));
 }
-// NOLINTEND(llvm-debug-loc-*)
 
 LLVMValueRef LLVMGetCurrentDebugLocation(LLVMBuilderRef Builder) {
   LLVMContext &Context = unwrap(Builder)->getContext();
