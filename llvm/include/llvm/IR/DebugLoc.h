@@ -84,43 +84,53 @@ enum class DebugLocKind : uint8_t {
 // Currently we only need to track the Origin of this DILoc when using a
 // DebugLoc that is not annotated (i.e. has DebugLocKind::Normal) and has a
 // null DILocation, so only collect the origin stacktrace in those cases.
-class DILocAndCoverageTracking : public DbgLocOrigin {
+class DbgLocCoverageTracking : public DbgLocOrigin {
   DILocation *Loc;
 
 public:
   DebugLocKind Kind;
   // Default constructor for empty DebugLocs.
-  DILocAndCoverageTracking()
+  DbgLocCoverageTracking()
       : DbgLocOrigin(true), Loc(nullptr), Kind(DebugLocKind::Normal) {}
   // Valid or nullptr DILocation*, no annotative DebugLocKind.
-  DILocAndCoverageTracking(const DILocation *Loc)
+  DbgLocCoverageTracking(const DILocation *Loc)
       : DbgLocOrigin(!Loc), Loc(const_cast<DILocation *>(Loc)),
         Kind(DebugLocKind::Normal) {}
   // Explicit DebugLocKind, which always means a nullptr DILocation*.
-  DILocAndCoverageTracking(DebugLocKind Kind)
+  DbgLocCoverageTracking(DebugLocKind Kind)
       : DbgLocOrigin(Kind == DebugLocKind::Normal), Loc(nullptr), Kind(Kind) {}
 
   operator DILocation *() const { return Loc; }
 };
-template <> struct simplify_type<DILocAndCoverageTracking> {
+template <> struct simplify_type<DbgLocCoverageTracking> {
   using SimpleType = DILocation *;
 
-  static DILocation *getSimplifiedValue(DILocAndCoverageTracking &MD) {
+  static DILocation *getSimplifiedValue(DbgLocCoverageTracking &MD) {
     return MD;
   }
 };
-template <> struct simplify_type<const DILocAndCoverageTracking> {
+template <> struct simplify_type<const DbgLocCoverageTracking> {
   using SimpleType = DILocation *;
 
-  static DILocation *getSimplifiedValue(const DILocAndCoverageTracking &MD) {
+  static DILocation *getSimplifiedValue(const DbgLocCoverageTracking &MD) {
     return MD;
   }
 };
 
-using DebugLocRef = DILocAndCoverageTracking;
 #else
-using DebugLocRef = DILocation *;
+struct DbgLocCoverageTracking {
+  DbgLocCoverageTracking() {}
+  DbgLocCoverageTracking(const DILocation *Loc) {}
+};
 #endif // LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
+
+#if LLVM_ENABLE_FLMD_SOURCE_LOCS
+struct LocStorage {
+  // FLMD Storage Impl...
+};
+#else
+using LocStorage = DILocation *;
+#endif // LLVM_ENABLE_FLMD_SOURCE_LOCS
 
 /// A debug info location.
 ///
@@ -129,19 +139,19 @@ using DebugLocRef = DILocation *;
 ///
 /// To avoid extra includes, \a DebugLoc doubles the \a DILocation API with a
 /// one based on relatively opaque \a MDNode pointers.
-class DebugLoc {
-  DebugLocRef Loc = {};
+class DebugLoc : DbgLocCoverageTracking {
+  LocStorage Loc = {};
 
 public:
   friend struct DenseMapInfo<DebugLoc>;
   friend struct DenseMapInfo<const DebugLoc>;
   friend hash_code hash_value(const DebugLoc &Val);
 
-  DebugLoc() : Loc() {}
-  DebugLoc(std::nullptr_t) : Loc() {}
+  DebugLoc() : DbgLocCoverageTracking(), Loc() {}
+  DebugLoc(std::nullptr_t) : DbgLocCoverageTracking(), Loc() {}
   /// Construct from an \a DILocation.
   LLVM_DEPRECATED("Implicit conversion disabled", "getFromDILocation")
-  DebugLoc(const DILocation *L) : Loc(const_cast<DILocation *>(L)) {}
+  DebugLoc(const DILocation *L) : DbgLocCoverageTracking(L), Loc(const_cast<DILocation *>(L)) {}
 
   static DebugLoc getFromMDNode(const MDNode *L);
   static DebugLoc getFromDILocation(const DILocation *L) {
@@ -154,8 +164,8 @@ public:
   }
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
-  DebugLoc(DebugLocKind Kind) : Loc(Kind) {}
-  DebugLocKind getKind() const { return Loc.Kind; }
+  DebugLoc(DebugLocKind Kind) : DbgLocCoverageTracking(Kind), Loc() {}
+  DebugLocKind getKind() const { return Kind; }
 #endif
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
@@ -248,12 +258,9 @@ public:
   }
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN
-  const DbgLocOrigin::StackTracesTy &getOriginStackTraces() const {
-    return Loc.getOriginStackTraces();
-  }
   DebugLoc getCopied() const {
     DebugLoc NewDL = *this;
-    NewDL.Loc.addTrace();
+    NewDL.addTrace();
     return NewDL;
   }
 #else
