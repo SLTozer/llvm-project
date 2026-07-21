@@ -15,25 +15,12 @@
 #define LLVM_IR_DEBUGLOC_H
 
 #include "llvm/Config/llvm-config.h"
-<<<<<<< HEAD
-=======
-#include "llvm/IR/FunctionLocalMetadata.h"
-#include "llvm/IR/ModuleSlotTracker.h"
->>>>>>> 865c7f45e1d2 (WIP FLMD impl)
 #include "llvm/IR/PseudoProbe.h"
 #include "llvm/IR/TrackingMDRef.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/DataTypes.h"
 #include "llvm/Support/Discriminator.h"
-<<<<<<< HEAD
-=======
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <functional>
-#include <optional>
->>>>>>> 865c7f45e1d2 (WIP FLMD impl)
 
 namespace llvm {
 
@@ -98,7 +85,6 @@ enum class DebugLocKind : uint8_t {
 // DebugLoc that is not annotated (i.e. has DebugLocKind::Normal) and has a
 // null DILocation, so only collect the origin stacktrace in those cases.
 class DbgLocCoverageTracking : public DbgLocOrigin {
-<<<<<<< HEAD
   DILocation *Loc;
 
 public:
@@ -145,129 +131,6 @@ struct LocStorage {
 #else
 using LocStorage = DILocation *;
 #endif // LLVM_ENABLE_FLMD_SOURCE_LOCS
-=======
-public:
-  DebugLocKind Kind;
-  // Default constructor for empty DebugLocs.
-  DILocAndCoverageTracking()
-      : DbgLocOrigin(true), Kind(DebugLocKind::Normal) {}
-  // Valid or nullptr DILocation*, no annotative DebugLocKind.
-  DILocAndCoverageTracking(bool HasValidValue)
-      : DbgLocOrigin(!HasValidValue), Kind(DebugLocKind::Normal) {}
-  // Explicit DebugLocKind, which always means a nullptr DILocation*.
-  DILocAndCoverageTracking(DebugLocKind Kind)
-      : DbgLocOrigin(Kind == DebugLocKind::Normal), Kind(Kind) {}
-};
-
-#else
-class DbgLocCoverageTracking {
-public:
-  DbgLocCoverageTracking() {}
-  DbgLocCoverageTracking(bool) {}
-};
-#endif // LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
-
-/// DebugLoc out-of-context, to be stored in an Instruction. Requires a
-/// FunctionLocalMetadata reference to be mapped to a concrete object.
-struct FLDebugLoc : private DbgLocCoverageTracking {
-  FLIndex<uint32_t> SrcLocIdx;
-  FLIndex<uint16_t> InlinedAtIdx;
-  uint16_t AtomGroup : 13;
-  uint16_t AtomRank : 3;
-
-  FLDebugLoc() : DbgLocCoverageTracking(), SrcLocIdx(), InlinedAtIdx(), AtomGroup(0), AtomRank(0) {}
-  FLDebugLoc(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, uint16_t AtomGroup = 0, uint8_t AtomRank = 0)
-      : DbgLocCoverageTracking(true), SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx), AtomGroup(AtomGroup), AtomRank(AtomRank) {
-    assert(SrcLocIdx && "Non-empty FLDebugLoc must have a non-empty SrcLoc.");
-  }
-  static FLDebugLoc getInlinedCallLoc(FLInlinedCall InlinedCall) {
-    return FLDebugLoc(InlinedCall.SrcLocIdx, InlinedCall.InlinedAtIdx);
-  }
-
-  /// An FLDebugLoc is empty iff it has no SrcLoc.
-  operator bool() const { return SrcLocIdx; }
-
-  uint64_t asRawInt() const {
-    static_assert(sizeof(*this) == sizeof(uint64_t));
-    uint64_t Result;
-    std::memcpy(&Result, this, sizeof(Result));
-    return Result;
-  }
-
-  static FLDebugLoc getFromDILocation(const DILocation *DIL);
-////////////////////////////////////////////////////////////////////////////////
-/// Coverage + Origin Tracking Features
-
-#if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
-  FLDebugLoc(DebugLocKind Kind) : DbgLocCoverageTracking(Kind), SrcLocIdx(), InlinedAtIdx(), AtomGroup(0), AtomRank(0) {}
-  DebugLocKind getKind() const { return Kind; }
-
-  static inline FLDebugLoc getTemporary() {
-    return FLDebugLoc(DebugLocKind::Temporary);
-  }
-  static inline FLDebugLoc getUnknown() {
-    return FLDebugLoc(DebugLocKind::Unknown);
-  }
-  static inline FLDebugLoc getCompilerGenerated() {
-    return FLDebugLoc(DebugLocKind::CompilerGenerated);
-  }
-  static inline FLDebugLoc getDropped() {
-    return FLDebugLoc(DebugLocKind::Dropped);
-  }
-#else
-  static inline FLDebugLoc getTemporary() { return FLDebugLoc(); }
-  static inline FLDebugLoc getUnknown() { return FLDebugLoc(); }
-  static inline FLDebugLoc getCompilerGenerated() { return FLDebugLoc(); }
-  static inline FLDebugLoc getDropped() { return FLDebugLoc(); }
-#endif // LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
-
-  /// If this FLDebugLoc is non-empty, returns this DebugLoc; otherwise, selects
-  /// \p Other.
-  /// In coverage-tracking builds, this also accounts for whether this or
-  /// \p Other have an annotative DebugLocKind applied, such that if both are
-  /// empty but exactly one has an annotation, we prefer that annotated
-  /// location.
-  FLDebugLoc orElse(FLDebugLoc &Other) const {
-    if (*this)
-      return *this;
-#if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
-    if (Other)
-      return Other;
-    if (getKind() != DebugLocKind::Normal)
-      return *this;
-    if (Other.getKind() != DebugLocKind::Normal)
-      return Other;
-    return *this;
-#else
-    return Other;
-#endif // LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
-  }
-
-#if LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN
-  const DbgLocOrigin::StackTracesTy &getOriginStackTraces() const {
-    return static_cast<DbgLocOrigin*>(this)->getOriginStackTraces();
-  }
-  FLDebugLoc getCopied() const {
-    FLDebugLoc NewDL = *this;
-    NewDL.addTrace();
-    return NewDL;
-  }
-#else
-  FLDebugLoc getCopied() const { return *this; }
-#endif
-};
-
-<<<<<<< HEAD
-FLDebugLoc getDILocationToFLDebugLoc(const DILocation *DIL);
->>>>>>> 865c7f45e1d2 (WIP FLMD impl)
-=======
-/// Unwrapped data from FLSrcLoc storage.
-struct SrcLocData {
-  uint32_t Line;
-  uint16_t Column;
-  DILocalScope *Scope;
-};
->>>>>>> f7481482274b (Do some more impl stuff)
 
 /// A debug info location.
 ///
@@ -276,63 +139,19 @@ struct SrcLocData {
 ///
 /// To avoid extra includes, \a DebugLoc doubles the \a DILocation API with a
 /// one based on relatively opaque \a MDNode pointers.
-<<<<<<< HEAD
 class DebugLoc : DbgLocCoverageTracking {
   LocStorage Loc = {};
-=======
-class DebugLoc {
-  friend struct DenseMapInfo<DebugLoc>;
-
-  FLDebugLoc Loc;
-  DIFunctionLocalMetadata *FLContext;
-  /// TODO: Figure out if there's a better way to make this work - the *only*
-  /// reason we need to keep the InlinedCallIdx intact (instead of just
-  /// dereferencing it) is for DebugLoc::get() to create a DebugLoc that is
-  /// inlined at another DebugLoc.
-  FLIndex<uint16_t> SelfInlinedCallIdx;
->>>>>>> 865c7f45e1d2 (WIP FLMD impl)
 
 public:
   friend struct DenseMapInfo<DebugLoc>;
   friend struct DenseMapInfo<const DebugLoc>;
   friend hash_code hash_value(const DebugLoc &Val);
-<<<<<<< HEAD
 
   DebugLoc() : DbgLocCoverageTracking(), Loc() {}
   DebugLoc(std::nullptr_t) : DbgLocCoverageTracking(), Loc() {}
   /// Construct from an \a DILocation.
   LLVM_DEPRECATED("Implicit conversion disabled", "getFromDILocation")
   DebugLoc(const DILocation *L) : DbgLocCoverageTracking(L), Loc(const_cast<DILocation *>(L)) {}
-=======
-  
-  static DebugLoc getFromDILocation(const DILocation *DIL);
-  
-  bool operator==(std::nullptr_t) const { return !Loc; }
-  bool operator!=(std::nullptr_t) const { return Loc; }
-  bool operator==(DILocation *RHS) const { return *this == getFromDILocation(RHS); }
-  bool operator!=(DILocation *RHS) const { return *this != getFromDILocation(RHS); }
-  bool operator==(const DILocation *RHS) const { return *this == getFromDILocation(RHS); }
-  bool operator!=(const DILocation *RHS) const { return *this != getFromDILocation(RHS); }
-  friend bool operator==(std::nullptr_t, const DebugLoc &RHS) { return !RHS; }
-  friend bool operator!=(std::nullptr_t, const DebugLoc &RHS) { return RHS; }
-  friend bool operator==(DILocation *LHS, const DebugLoc &RHS) { return getFromDILocation(RHS) == LHS; }
-  friend bool operator!=(DILocation *LHS, const DebugLoc &RHS) { return getFromDILocation(RHS) != LHS; }
-  friend bool operator==(const DILocation *LHS, const DebugLoc &RHS) { return getFromDILocation(RHS) == LHS; }
-  friend bool operator!=(const DILocation *LHS, const DebugLoc &RHS) { return getFromDILocation(RHS) != LHS; }
-
-  /// Construct from an \a DILocation.
-  /// NB: We probably don't need to null-initialize FLContext - we use `Loc` to
-  /// check for a valid location before every operation.
-  DebugLoc() : Loc() {}
-  DebugLoc(FLDebugLoc Loc, DIFunctionLocalMetadata *FLMD) : Loc(Loc), FLContext(FLMD) {}
-<<<<<<< HEAD
-  LLVM_DEPRECATED("", "") DebugLoc(const std::nullptr_t) : Loc() {}
-  LLVM_DEPRECATED("", "") DebugLoc(const DILocation *L) : DebugLoc(getFromDILocation(L)) {}
->>>>>>> 865c7f45e1d2 (WIP FLMD impl)
-=======
-  DebugLoc(const std::nullptr_t) : Loc() {}
-  DebugLoc(const DILocation *L) : DebugLoc(getFromDILocation(L)) {}
->>>>>>> f7481482274b (Do some more impl stuff)
 
   static DebugLoc getFromMDNode(const MDNode *L);
   static DebugLoc getFromDILocation(const DILocation *L) {
@@ -343,8 +162,6 @@ public:
   DILocation *getAsDILocation() const {
     return Loc;
   }
-
-  FLDebugLoc getLoc() { return Loc; }
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
   DebugLoc(DebugLocKind Kind) : DbgLocCoverageTracking(Kind), Loc() {}
@@ -450,29 +267,10 @@ public:
   DebugLoc getCopied() const { return *this; }
 #endif
 
-  DILocation *convertToDILocation() const;
-
-  FLSrcLoc getSrcLoc() const {
-    if (Loc.InlinedAtIdx)
-      return FLContext->getInlinedCall(Loc.InlinedAtIdx).getInlinee()->getSrcLoc(Loc.SrcLocIdx);
-    return FLContext->getSrcLoc(Loc.SrcLocIdx);
-  }
-
-  SrcLocData getSrcLocData() const {
-    auto *SrcContext = Loc.InlinedAtIdx ?
-      FLContext->getInlinedCall(Loc.InlinedAtIdx).getInlinee() :
-      FLContext;
-    FLSrcLoc SrcLoc = SrcContext->getSrcLoc(Loc.SrcLocIdx);
-    DILocalScope *Scope = SrcContext->getScope(SrcLoc.ScopeIdx);
-    return SrcLocData {SrcLoc.Line, SrcLoc.Column, Scope};
-  }
-
   /// Get the underlying \a DILocation.
   ///
   /// \pre !*this or \c isa<DILocation>(getAsMDNode()).
   /// @{
-<<<<<<< HEAD
-<<<<<<< HEAD
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
   DILocation *get() const { return Loc; }
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
@@ -481,18 +279,6 @@ public:
   DILocation *operator->() const { return Loc; }
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
   DILocation &operator*() const { return *Loc; }
-=======
-  LLVM_DEPRECATED("", "") DILocation *get() const { return convertToDILocation(); }
-  LLVM_DEPRECATED("", "") operator DILocation *() const { return get(); }
-  LLVM_DEPRECATED("", "") DILocation *operator->() const { return get(); }
-  LLVM_DEPRECATED("", "") DILocation &operator*() const { return *get(); }
->>>>>>> 865c7f45e1d2 (WIP FLMD impl)
-=======
-  DILocation *get() const { return convertToDILocation(); }
-  operator DILocation *() const { return get(); }
-  DILocation *operator->() const { return get(); }
-  DILocation &operator*() const { return *get(); }
->>>>>>> f7481482274b (Do some more impl stuff)
   /// @}
 
   /// Check for null.
@@ -514,21 +300,11 @@ public:
   /// Return true if the source locations match, ignoring isImplicitCode and
   /// source atom info.
   bool isSameSourceLocation(const DebugLoc &Other) const {
-<<<<<<< HEAD
     if (Loc == Other.Loc)
       return true;
     return ((bool)*this == (bool)Other) && getLine() == Other.getLine() &&
            getCol() == Other.getCol() && getScope() == Other.getScope() &&
            getInlinedAt() == Other.getInlinedAt();
-=======
-    if (FLContext != Other.FLContext)
-      return false;
-    if (Loc.SrcLocIdx != Other.Loc.SrcLocIdx)
-      return false;
-    if (Loc.InlinedAtIdx != Other.Loc.InlinedAtIdx)
-      return false;
-    return true;
->>>>>>> f7481482274b (Do some more impl stuff)
   }
 
   LLVM_ABI unsigned getLine() const;
@@ -565,8 +341,8 @@ public:
   LLVM_ABI bool isImplicitCode() const;
   LLVM_ABI void setImplicitCode(bool ImplicitCode);
 
-  bool operator==(const DebugLoc &DL) const { return FLContext == DL.FLContext && Loc == DL.Loc; }
-  bool operator!=(const DebugLoc &DL) const { return FLContext != DL.FLContext || Loc != DL.Loc; }
+  bool operator==(const DebugLoc &DL) const { return Loc == DL.Loc; }
+  bool operator!=(const DebugLoc &DL) const { return Loc != DL.Loc; }
 
   LLVM_ABI void dump() const;
   LLVM_ABI void dump(const Module *M) const;
@@ -707,13 +483,7 @@ public:
     return getUnsignedFromPrefixEncoding(
         getNextComponentInDiscriminator(getNextComponentInDiscriminator(D)));
   }
-
-  friend inline hash_code hash_value(const DebugLoc &Val);
 };
-
-inline hash_code hash_value(const DebugLoc &Val) {
-  return hash_combine(Val.Loc.asRawInt(), Val.FLContext);
-}
 
 inline raw_ostream &operator<<(raw_ostream &OS, const DebugLoc &DL) {
   DL.print(OS);
@@ -728,6 +498,10 @@ struct DenseMapInfo<DebugLoc> {
 
   static bool isEqual(DebugLoc LHS, DebugLoc RHS) { return LHS.Loc == RHS.Loc; }
 };
+
+inline hash_code hash_value(const DebugLoc &Val) {
+  return hash_value(Val.Loc);
+}
 
 } // end namespace llvm
 
