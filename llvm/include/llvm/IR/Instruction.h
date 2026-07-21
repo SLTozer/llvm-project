@@ -460,8 +460,8 @@ public:
   /// If the metadata is not found then return null.
   MDNode *getMetadata(unsigned KindID) const {
     // Handle 'dbg' as a special case since it is not stored in the hash table.
-    assert (KindID != LLVMContext::MD_dbg &&
-            "!dbg metadata for Instructions is no longer accepted.");
+    if (KindID == LLVMContext::MD_dbg)
+      return getDebugLoc().getAsMDNode();
     return hasMetadataOtherThanDebugLoc() ? Value::getMetadataImpl(KindID)
                                           : nullptr;
   }
