@@ -287,7 +287,7 @@ public:
 class DebugLoc {
   DbgLocStorage Storage;
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  DIFunctionLocalMetadataStorage *FLContext;
+  DIFunctionLocalMetadata *FLContext;
 #endif
 public:
   friend struct DenseMapInfo<DebugLoc>;
@@ -295,7 +295,7 @@ public:
   friend hash_code hash_value(const DebugLoc &Val);
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  DebugLoc(DbgLocStorage Loc, DIFunctionLocalMetadataStorage *FLContext)
+  DebugLoc(DbgLocStorage Loc, DIFunctionLocalMetadata *FLContext)
     : Storage(Loc), FLContext(FLContext) {}
 #else
   DebugLoc(DbgLocStorage Loc) : Storage(Loc) {}
@@ -303,9 +303,16 @@ public:
 
   DebugLoc() : Storage() {}
   DebugLoc(std::nullptr_t) : Storage() {}
+  #if LLVM_USE_FLMD_SOURCE_LOCS
+  LLVM_DEPRECATED("Implicit conversion disabled", "getFromDILocation")
+  DebugLoc(const DILocation *L) {
+    *this = DebugLoc::getFromDILocation(L);
+  }
+  #else
   /// Construct from an \a DILocation.
   LLVM_DEPRECATED("Implicit conversion disabled", "getFromDILocation")
   DebugLoc(const DILocation *L) : Storage(const_cast<DILocation *>(L)) {}
+  #endif
 
   DbgLocStorage getStorage() { return Storage; };
 
@@ -660,6 +667,10 @@ struct DenseMapInfo<DebugLoc> {
 
   static bool isEqual(DebugLoc LHS, DebugLoc RHS) { return LHS.Storage == RHS.Storage; }
 };
+
+inline hash_code hash_value(const FLDebugLoc &Val) {
+  return hash_value(Val.asRawInt());
+}
 
 inline hash_code hash_value(const DbgLocStorage &Val) {
   return hash_value(Val.Loc);
