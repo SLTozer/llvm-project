@@ -238,6 +238,10 @@ endif()
 # LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE (non-cached) is expected to be
 # 1 or 0 here, assuming referenced in #cmakedefine01.
 
+if( LLVM_FLMD_SOURCE_LOCS )
+  set( LLVM_USE_FLMD_SOURCE_LOCS 1 )
+endif()
+
 if( LLVM_REVERSE_ITERATION )
   set( LLVM_ENABLE_REVERSE_ITERATION 1 )
 endif()
