@@ -151,8 +151,23 @@ struct FLDebugLoc {
   }
 
   /// An FLDebugLoc is empty iff it has no SrcLoc and no InlinedAtIdx.
+  /// TODO: Determine whether the indirect InlinedAt referencing is actually
+  /// necessary for the complete implementation.
   operator bool() const { return SrcLocIdx || InlinedAtIdx; }
+  bool isValidLoc() const { return (bool)*this; }
+  bool isInlinedInstr() const { return InlinedAtIdx && SrcLocIdx; }
   bool isInlinedCall() const { return InlinedAtIdx && !SrcLocIdx; }
+  /// If this is an InlinedCall, return the FLDebugLoc for the call itself. Note
+  /// that this removes the distinction between different inlined calls with
+  /// identical source locations, meaning e.g. if a call is duplicated by loop
+  /// unrolling and then inlined, each inlined call has a distinct index and the
+  /// FLDebugLoc for each will not be equal, but the result of
+  /// getLocForInlinedCall from each of them will be identical.
+  FLDebugLoc getLocForInlinedCall(DIFunctionLocalMetadata *Context) const {
+    assert(isInlinedCall() && "getInlinedCallLoc requires an inlined call");
+    FLInlinedCall InlinedCall = Context->getInlinedCall(InlinedAtIdx);
+    return FLDebugLoc(InlinedCall.SrcLocIdx, InlinedCall.InlinedAtIdx);
+  }
   // TODO: Better name please.
   bool isLeafLoc() const { return SrcLocIdx; }
 
@@ -161,6 +176,43 @@ struct FLDebugLoc {
     uint64_t Result;
     std::memcpy(&Result, this, sizeof(Result));
     return Result;
+  }
+
+private:
+  DIFunctionLocalMetadata *getSrcLocContext(DIFunctionLocalMetadata *Context) const {
+    if (!InlinedAtIdx)
+      return Context;
+    return Context->getInlinedCall(InlinedAtIdx).getInlinee();
+  }
+public:
+  std::optional<FLInlinedCall> getInlinedCall(DIFunctionLocalMetadata *Context) const {
+    if (!InlinedAtIdx)
+      return {};
+    return Context->getInlinedCall(InlinedAtIdx);
+  }
+  FLDebugLoc getInlinedAt(DIFunctionLocalMetadata *Context) const {
+    if (isInlinedCall())
+      return FLDebugLoc::getInlinedCallLoc(getLocForInlinedCall(Context).InlinedAtIdx);
+    return FLDebugLoc::getInlinedCallLoc(InlinedAtIdx);
+  }
+  FLSrcLoc getSrcLoc(DIFunctionLocalMetadata *Context) const {
+    if (isInlinedCall())
+      return getLocForInlinedCall(Context).getSrcLoc(Context);      
+    return Context->getSrcLoc(SrcLocIdx, InlinedAtIdx);
+  }
+  DILocalScope *getScope(DIFunctionLocalMetadata *Context) const {
+    if (isInlinedCall())
+      return getLocForInlinedCall(Context).getScope(Context);
+    FLSrcLoc SrcLoc = getSrcLoc(Context);
+    return Context->getScope(SrcLoc.ScopeIdx, InlinedAtIdx);
+  }
+  // If we know in advance we know both, this can be faster.
+  std::pair<FLSrcLoc, DILocalScope *> getSrcLocAndScope(DIFunctionLocalMetadata *Context) const {
+    if (isInlinedCall())
+      return getLocForInlinedCall(Context).getSrcLocAndScope(Context);
+    FLSrcLoc SrcLoc = getSrcLoc(Context);
+    DILocalScope *Scope = Context->getScope(SrcLoc.ScopeIdx, InlinedAtIdx);
+    return {SrcLoc, Scope};
   }
 
   static FLDebugLoc getFromDILocation(const DILocation *DIL);
@@ -314,7 +366,10 @@ public:
   DebugLoc(const DILocation *L) : Storage(const_cast<DILocation *>(L)) {}
   #endif
 
-  DbgLocStorage getStorage() { return Storage; };
+  DbgLocStorage getStorage() const { return Storage; }
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  DIFunctionLocalMetadata *getFLContext() const { return FLContext; }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Metadata/DILocation compatibility interface
@@ -355,13 +410,13 @@ public:
   /// \pre !*this or \c isa<DILocation>(getAsMDNode()).
   /// @{
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
-  DILocation *get() const;
+  DILocation *get() const { return getAsDILocation(); }
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
-  operator DILocation *() const;
+  operator DILocation *() const { return getAsDILocation(); }
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
-  DILocation *operator->() const;
+  DILocation *operator->() const { return getAsDILocation(); }
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
-  DILocation &operator*() const;
+  DILocation &operator*() const { return *getAsDILocation(); }
   /// @}
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -671,6 +726,14 @@ struct DenseMapInfo<DebugLoc> {
 inline hash_code hash_value(const FLDebugLoc &Val) {
   return hash_value(Val.asRawInt());
 }
+template <>
+struct DenseMapInfo<FLDebugLoc> {
+  static unsigned getHashValue(FLDebugLoc DL) {
+    return hash_value(DL);
+  }
+
+  static bool isEqual(FLDebugLoc LHS, FLDebugLoc RHS) { return LHS.asRawInt() == RHS.asRawInt(); }
+};
 
 inline hash_code hash_value(const DbgLocStorage &Val) {
   return hash_value(Val.Loc);
@@ -679,6 +742,19 @@ inline hash_code hash_value(const DbgLocStorage &Val) {
 inline hash_code hash_value(const DebugLoc &Val) {
   return hash_value(Val.Storage);
 }
+
+/// Class used to temporarily create DILocations from FLDebugLocs, which are
+/// owned by this class rather than the LLVM context, and are deallocated when
+/// this class is destroyed.
+// class TemporaryFLMDToMDSourceLocConversionContext {
+//   DenseMap<DebugLoc, std::unique_ptr<DILocation>> FLDebugLocToDILocationMap;
+// public:
+//   DILocation *getDILocation(DebugLoc DL);
+//   DILocation *getTempDILocation(LLVMContext &Context, unsigned Line,
+//                                 unsigned Column, Metadata *Scope,
+//                                 Metadata *InlinedAt, bool ImplicitCode,
+//                                 uint64_t AtomGroup, uint8_t AtomRank);
+// };
 
 } // end namespace llvm
 

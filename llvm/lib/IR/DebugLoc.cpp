@@ -12,7 +12,10 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/FunctionLocalMetadata.h"
+#include "llvm/Support/Discriminator.h"
+#include "llvm/Support/ErrorHandling.h"
 #include <cstdint>
+#include <memory>
 #include <optional>
 
 using namespace llvm;
@@ -55,7 +58,7 @@ struct FLMDSourceLocConversionContext {
 
 static FLMDSourceLocConversionContext FLMDConversionContext;
 
-FLIndex<uint16_t> getInlinedDILocationToFLIndex(DILocation *DIL) {
+static FLIndex<uint16_t> getInlinedDILocationToFLIndex(DILocation *DIL) {
   // No inlinedAt -> empty inlinedAt index.
   if (!DIL)
     return FLIndex<uint16_t>();
@@ -90,20 +93,34 @@ DebugLoc DebugLoc::getFromDILocation(const DILocation *DIL) {
   return DebugLoc(Storage, FLContext);
 }
 
-DILocation *DebugLoc::convertToDILocation() const {
+static DILocation *getInlinedAtDILocation(DIFunctionLocalMetadata *FLMD,
+                                          FLIndex<uint16_t> InlinedAtIdx) {
+  if (!InlinedAtIdx)
+    return nullptr;
+  // If we've already got a DILocation for this inlined call, reuse it.
+  if (auto ExistingIt = FLMDConversionContext.InlinedCallIdxToDILocMap.find({InlinedAtIdx, FLMD}); ExistingIt != FLMDConversionContext.InlinedCallIdxToDILocMap.end())
+    return ExistingIt->second;
+  // Otherwise, make a new one.
+  FLInlinedCall InlinedCall = FLMD->getInlinedCall(InlinedAtIdx);
+  DILocation *InlinedAt = getInlinedAtDILocation(FLMD, InlinedCall.InlinedAtIdx);
+  FLSrcLoc SrcLoc = FLMD->getSrcLoc(InlinedCall.SrcLocIdx, InlinedCall.InlinedAtIdx);
+  DILocalScope *Scope = FLMD->getScope(SrcLoc.ScopeIdx, InlinedCall.InlinedAtIdx);
+  DILocation *Result = DILocation::getDistinct(FLMD->getContext(), SrcLoc.Line, SrcLoc.Column, Scope, InlinedAt);
+  FLMDConversionContext.InlinedCallIdxToDILocMap.insert({{InlinedAtIdx, FLMD}, Result});
+  return Result;
+}
+
+// Should be called directly on a DebugLoc obtained from an instruction or loop
+// metadata, not from the result of DebugLoc::getInlinedAt.
+DILocation *DebugLoc::getAsDILocation() const {
   if (!*this)
     return nullptr;
-  if (SelfInlinedCallIdx) {
-    if (auto ExistingDILIt = FLMDConversionContext.InlinedCallIdxToDILocMap.find({SelfInlinedCallIdx, FLContext}); ExistingDILIt != FLMDConversionContext.InlinedCallIdxToDILocMap.end())
-      return ExistingDILIt->second;
-  }
-  DILocation *InlinedAt = getInlinedAt().convertToDILocation();
-  SrcLocData SrcLoc = getSrcLocData();
-  DILocation *Result = DILocation::get(FLContext->getContext(), SrcLoc.Line, SrcLoc.Column, SrcLoc.Scope, InlinedAt, false, Storage.AtomGroup, Storage.AtomRank);
-  if (SelfInlinedCallIdx) {
-    FLMDConversionContext.InlinedCallLocMap.insert({Result, SelfInlinedCallIdx});
-    FLMDConversionContext.InlinedCallIdxToDILocMap.insert({{SelfInlinedCallIdx, FLContext}, Result});
-  }
+  DILocation *InlinedAt = getInlinedAtDILocation(getFLContext(), Storage.get().InlinedAtIdx);
+  FLSrcLoc SrcLoc = getFLContext()->getSrcLoc(Storage.get().SrcLocIdx, Storage.get().InlinedAtIdx);
+  DILocalScope *Scope = getFLContext()->getScope(SrcLoc.ScopeIdx, Storage.get().InlinedAtIdx);
+  DILocation *Result = DILocation::get(FLContext->getContext(), SrcLoc.Line,
+    SrcLoc.Column, Scope, InlinedAt, false, Storage.get().AtomGroup,
+    Storage.get().AtomRank);
   return Result;
 }
 #else
@@ -132,9 +149,6 @@ DebugLoc DebugLoc::get(
     LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
     DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
     uint8_t AtomRank) {
-  DISubprogram *SP = cast<DILocalScope>(Scope)->getSubprogram();
-  OrigFLMD = Function::getFunctionForSP(SP)->FLMD;
-
   return DebugLoc::getFromDILocation(DILocation::get(Context, Line, Column, Scope, InlinedAt.getAsDILocation(), ImplicitCode, AtomGroup, AtomRank));
 }
 DebugLoc DebugLoc::getDistinct(
@@ -165,29 +179,32 @@ DebugLoc DebugLoc::getFromMDNode(const MDNode *MD) {
 #if LLVM_USE_FLMD_SOURCE_LOCS
 unsigned DebugLoc::getLine() const {
   assert(Storage && "Expected valid DebugLoc");
-  return FLContext->getSrcLoc(Storage.SrcLocIdx).Line;
+  return FLContext->getSrcLoc(Storage.get().SrcLocIdx).Line;
 }
 
 unsigned DebugLoc::getCol() const {
   assert(Storage && "Expected valid DebugLoc");
-  return FLContext->getSrcLoc(Storage.SrcLocIdx).Column;
+  return FLContext->getSrcLoc(Storage.get().SrcLocIdx).Column;
 }
 
 DILocalScope *DebugLoc::getScope() const {
   assert(Storage && "Expected valid DebugLoc");
-  return FLContext->getScope(FLContext->getSrcLoc(Storage.SrcLocIdx).ScopeIdx);
+  return FLContext->getScope(FLContext->getSrcLoc(Storage.get().SrcLocIdx).ScopeIdx);
 }
 
 DebugLoc DebugLoc::getInlinedAt() const {
   assert(Storage && "Expected valid DebugLoc");
-  return DebugLoc(FLDebugLoc::getInlinedCallLoc(Storage.InlinedAtIdx), FLContext);
+  return DebugLoc(FLDebugLoc::getInlinedCallLoc(Storage.get().InlinedAtIdx), FLContext);
 }
 DILocalScope *DebugLoc::getInlinedAtScope() const {
-  FLDebugLoc RootLoc = Storage;
-  while (Storage.InlinedAtIdx) {
-    RootLoc = FLDebugLoc::getInlinedCallLoc(FLContext->getInlinedCall(Storage.InlinedAtIdx));
+  FLIndex<uint32_t> SrcLocIdx = Storage.get().SrcLocIdx;
+  FLIndex<uint16_t> InlinedAtIdx = Storage.get().InlinedAtIdx;
+  while (InlinedAtIdx) {
+    FLInlinedCall InlinedCall = FLContext->getInlinedCall(InlinedAtIdx);
+    InlinedAtIdx = InlinedCall.InlinedAtIdx;
+    SrcLocIdx = InlinedCall.SrcLocIdx;
   }
-  return FLContext->getScope(FLContext->getSrcLoc(RootLoc.SrcLocIdx).ScopeIdx);
+  return FLContext->getScope(FLContext->getSrcLoc(SrcLocIdx).ScopeIdx);
 }
 
 DebugLoc DebugLoc::getFnDebugLoc() const {
@@ -201,24 +218,20 @@ DebugLoc DebugLoc::getFnDebugLoc() const {
 }
 
 MDNode *DebugLoc::getAsMDNode() const {
-  return convertToDILocation();
+  return getAsDILocation();
 }
 
 bool DebugLoc::isImplicitCode() const {
   /// FIXME: We could add implicitcode to the FLSrcLoc, but do we actually need to?
+  /// It may be appropriate in the FLDebugLoc, though - existing behaviour is
+  /// somewhat inconsistent.
   return false;
 }
 
 void DebugLoc::setImplicitCode(bool ImplicitCode) {
 }
 
-DebugLoc DebugLoc::replaceInlinedAtSubprogram(
-    const DebugLoc &RootLoc, DISubprogram &NewSP, LLVMContext &Ctx,
-    DenseMap<const MDNode *, MDNode *> &Cache) {
-  return getFromDILocation(
-    replaceInlinedAtSubprogram(RootLoc.convertToDILocation(), NewSP, Ctx, Cache));
-}
-DILocation *DebugLoc::replaceInlinedAtSubprogram(
+static DILocation *replaceDILocationInlinedAtSubprogram(
     const DILocation *RootLoc, DISubprogram &NewSP, LLVMContext &Ctx,
     DenseMap<const MDNode *, MDNode *> &Cache) {
   SmallVector<DILocation *> LocChain;
@@ -257,17 +270,23 @@ DILocation *DebugLoc::replaceInlinedAtSubprogram(
 
   return UpdatedLoc;
 }
+DebugLoc DebugLoc::replaceInlinedAtSubprogram(
+    const DebugLoc &RootLoc, DISubprogram &NewSP, LLVMContext &Ctx,
+    DenseMap<const MDNode *, MDNode *> &Cache) {
+  return getFromDILocation(
+    replaceDILocationInlinedAtSubprogram(RootLoc.getAsDILocation(), NewSP, Ctx, Cache));
+}
 
 
-DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DebugLoc InlinedAt,
+DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
                                    LLVMContext &Ctx,
                                    DenseMap<const MDNode *, MDNode *> &Cache) {
-  SmallVector<DebugLoc, 3> InlinedAtLocations;
-  DebugLoc Last = InlinedAt;
-  DebugLoc CurInlinedAt = DL;
+  SmallVector<DILocation *, 3> InlinedAtLocations;
+  DILocation *Last = InlinedAt;
+  DILocation *CurInlinedAt = DL.getAsDILocation();
 
   // Gather all the inlined-at nodes.
-  while (DebugLoc IA = CurInlinedAt->getInlinedAt()) {
+  while (DILocation *IA = CurInlinedAt->getInlinedAt()) {
     // Skip any we've already built nodes for.
     if (auto *Found = Cache[IA]) {
       Last = cast<DILocation>(Found);
@@ -282,13 +301,11 @@ DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DebugLoc InlinedAt,
   // location (then rebuilding the rest of the chain behind it) and update the
   // map of already-constructed inlined-at nodes.
   // Key Instructions: InlinedAt fields don't need atom info.
-  for (DebugLoc MD : reverse(InlinedAtLocations)) {
-    Last = DebugLoc::getDistinct(
+  for (const DILocation *MD : reverse(InlinedAtLocations))
+    Cache[MD] = Last = DILocation::getDistinct(
         Ctx, MD->getLine(), MD->getColumn(), MD->getScope(), Last);
-    Cache[MD] = Last;
-  }
 
-  return Last;
+  return DebugLoc::getFromDILocation(Last);
 }
 
 DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
@@ -304,6 +321,292 @@ DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
   }
   return Merged;
 }
+
+namespace {
+using LineColumn = std::pair<unsigned /* Line */, unsigned /* Column */>;
+
+/// Returns the location of DILocalScope, if present, or a default value.
+static LineColumn getLocalScopeLocationOr(DIScope *S, LineColumn Default) {
+  assert(isa<DILocalScope>(S) && "Expected DILocalScope.");
+
+  if (isa<DILexicalBlockFile>(S))
+    return Default;
+  if (auto *LB = dyn_cast<DILexicalBlock>(S))
+    return {LB->getLine(), LB->getColumn()};
+  if (auto *SP = dyn_cast<DISubprogram>(S))
+    return {SP->getLine(), 0u};
+
+  llvm_unreachable("Unhandled type of DILocalScope.");
+}
+
+// Returns the nearest matching scope inside a subprogram.
+template <typename MatcherT>
+static std::pair<DIScope *, LineColumn>
+getNearestMatchingScope(DebugLoc L1, DebugLoc L2) {
+  MatcherT Matcher;
+
+  DIScope *S1 = L1.getScope();
+  DIScope *S2 = L2.getScope();
+
+  LineColumn Loc1(L1.getLine(), L1.getColumn());
+  for (; S1; S1 = S1->getScope()) {
+    Loc1 = getLocalScopeLocationOr(S1, Loc1);
+    Matcher.insert(S1, Loc1);
+    if (isa<DISubprogram>(S1))
+      break;
+  }
+
+  LineColumn Loc2(L2.getLine(), L2.getColumn());
+  for (; S2; S2 = S2->getScope()) {
+    Loc2 = getLocalScopeLocationOr(S2, Loc2);
+
+    if (DIScope *S = Matcher.match(S2, Loc2))
+      return std::make_pair(S, Loc2);
+
+    if (isa<DISubprogram>(S2))
+      break;
+  }
+  return std::make_pair(nullptr, LineColumn(L2.getLine(), L2.getColumn()));
+}
+
+// Matches equal scopes.
+struct EqualScopesMatcher {
+  SmallPtrSet<DIScope *, 8> Scopes;
+
+  void insert(DIScope *S, LineColumn Loc) { Scopes.insert(S); }
+
+  DIScope *match(DIScope *S, LineColumn Loc) {
+    return Scopes.contains(S) ? S : nullptr;
+  }
+};
+
+// Matches scopes with the same location.
+struct ScopeLocationsMatcher {
+  SmallMapVector<std::pair<DIFile *, LineColumn>, SmallSetVector<DIScope *, 8>,
+                 8>
+      Scopes;
+
+  void insert(DIScope *S, LineColumn Loc) {
+    Scopes[{S->getFile(), Loc}].insert(S);
+  }
+
+  DIScope *match(DIScope *S, LineColumn Loc) {
+    auto *ScopesAtLoc = Scopes.find({S->getFile(), Loc});
+    // No scope found with the given location.
+    if (ScopesAtLoc == Scopes.end())
+      return nullptr;
+
+    // Prefer S over other scopes with the same location.
+    if (ScopesAtLoc->second.contains(S))
+      return S;
+
+    if (!ScopesAtLoc->second.empty())
+      return *ScopesAtLoc->second.begin();
+
+    llvm_unreachable("Scopes must not have empty entries.");
+  }
+};
+static DILexicalBlockBase *cloneAndReplaceParentScope(DILexicalBlockBase *LBB,
+                                                      DIScope *NewParent) {
+  TempMDNode ClonedScope = LBB->clone();
+  cast<DILexicalBlockBase>(*ClonedScope).replaceScope(NewParent);
+  return cast<DILexicalBlockBase>(
+      MDNode::replaceWithUniqued(std::move(ClonedScope)));
+}
+} // end anonymous namespace
+
+static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
+  if (LocA == LocB)
+    return LocA;
+
+  // For some use cases (SamplePGO), it is important to retain distinct source
+  // locations. When this flag is set, we choose arbitrarily between A and B,
+  // rather than computing a merged location using line 0, which is typically
+  // not useful for PGO. If one of them is null, then try to return one which is
+  // valid.
+  if (PickMergedSourceLocations) {
+    if (!LocA || !LocB)
+      return LocA ? LocA : LocB;
+
+    auto A = std::make_tuple(LocA.getLine(), LocA.getColumn(),
+                             LocA.getDiscriminator(), LocA.getFilename(),
+                             LocA.getDirectory());
+    auto B = std::make_tuple(LocB.getLine(), LocB.getColumn(),
+                             LocB.getDiscriminator(), LocB.getFilename(),
+                             LocB.getDirectory());
+    return A < B ? LocA : LocB;
+  }
+
+  if (!LocA || !LocB)
+    return nullptr;
+
+  LLVMContext &C = LocA.getContext();
+
+  using LocVec = SmallVector<DebugLoc>;
+  LocVec ALocs;
+  LocVec BLocs;
+  SmallDenseMap<std::pair<const DISubprogram *, DebugLoc>, unsigned,
+                4>
+      ALookup;
+
+  // Walk through LocA and its inlined-at locations, populate them in ALocs and
+  // save the index for the subprogram and inlined-at pair, which we use to find
+  // a matching starting location in LocB's chain.
+  for (auto [L, I] = std::make_pair(LocA, 0U); L; L = L.getInlinedAt(), I++) {
+    ALocs.push_back(L);
+    auto Res = ALookup.try_emplace(
+        {L.getScope()->getSubprogram(), L.getInlinedAt()}, I);
+    assert(Res.second && "Multiple <SP, InlinedAt> pairs in a location chain?");
+    (void)Res;
+  }
+
+  LocVec::reverse_iterator ARIt = ALocs.rend();
+  LocVec::reverse_iterator BRIt = BLocs.rend();
+
+  // Populate BLocs and look for a matching starting location, the first
+  // location with the same subprogram and inlined-at location as in LocA's
+  // chain. Since the two locations have the same inlined-at location we do
+  // not need to look at those parts of the chains.
+  for (auto [L, I] = std::make_pair(LocB, 0U); L; L = L.getInlinedAt(), I++) {
+    BLocs.push_back(L);
+
+    if (ARIt != ALocs.rend())
+      // We have already found a matching starting location.
+      continue;
+
+    auto IT = ALookup.find({L.getScope()->getSubprogram(), L.getInlinedAt()});
+    if (IT == ALookup.end())
+      continue;
+
+    // The + 1 is to account for the &*rev_it = &(it - 1) relationship.
+    ARIt = LocVec::reverse_iterator(ALocs.begin() + IT->second + 1);
+    BRIt = LocVec::reverse_iterator(BLocs.begin() + I + 1);
+
+    // If we have found a matching starting location we do not need to add more
+    // locations to BLocs, since we will only look at location pairs preceding
+    // the matching starting location, and adding more elements to BLocs could
+    // invalidate the iterator that we initialized here.
+    break;
+  }
+
+  // Merge the two locations if possible, using the supplied
+  // inlined-at location for the created location.
+  DebugLoc LocAIA = LocA.getInlinedAt();
+  DebugLoc LocBIA = LocB.getInlinedAt();
+  auto MergeLocPair = [&C, LocAIA,
+                       LocBIA](const DebugLoc L1, const DebugLoc L2,
+                               DebugLoc InlinedAt) -> DebugLoc {
+    if (L1 == L2)
+      return DebugLoc::get(C, L1.getLine(), L1.getColumn(), L1.getScope(),
+                             InlinedAt, L1.isImplicitCode(),
+                             L1.getAtomGroup(), L1.getAtomRank());
+
+    // If the locations originate from different subprograms we can't produce
+    // a common location.
+    if (L1.getScope()->getSubprogram() != L2.getScope()->getSubprogram())
+      return nullptr;
+
+    // Find nearest common scope inside subprogram.
+    DIScope *Scope = getNearestMatchingScope<EqualScopesMatcher>(L1, L2).first;
+    assert(Scope && "No common scope in the same subprogram?");
+
+    // Try using the nearest scope with common location if files are different.
+    if (Scope->getFile() != L1.getFile() || L1.getFile() != L2.getFile()) {
+      auto [CommonLocScope, CommonLoc] =
+          getNearestMatchingScope<ScopeLocationsMatcher>(L1, L2);
+
+      // If CommonLocScope is a DILexicalBlockBase, clone it and locate
+      // a new scope inside the nearest common scope to preserve
+      // lexical blocks structure.
+      if (auto *LBB = dyn_cast<DILexicalBlockBase>(CommonLocScope);
+          LBB && LBB != Scope)
+        CommonLocScope = cloneAndReplaceParentScope(LBB, Scope);
+
+      Scope = CommonLocScope;
+
+      // If files are still different, assume that L1 and L2 were "included"
+      // from CommonLoc. Use it as merged location.
+      if (Scope->getFile() != L1.getFile() || L1.getFile() != L2.getFile())
+        return DebugLoc::get(C, CommonLoc.first, CommonLoc.second,
+                               CommonLocScope, InlinedAt);
+    }
+
+    bool SameLine = L1.getLine() == L2.getLine();
+    bool SameCol = L1.getColumn() == L2.getColumn();
+    unsigned Line = SameLine ? L1.getLine() : 0;
+    unsigned Col = SameLine && SameCol ? L1.getColumn() : 0;
+    bool IsImplicitCode = L1.isImplicitCode() && L2.isImplicitCode();
+
+    // Discard source location atom if the line becomes 0. And there's nothing
+    // further to do if neither location has an atom number.
+    if (!SameLine || !(L1.getAtomGroup() || L2.getAtomGroup()))
+      return DebugLoc::get(C, Line, Col, Scope, InlinedAt, IsImplicitCode,
+                             /*AtomGroup*/ 0, /*AtomRank*/ 0);
+
+    uint64_t Group = 0;
+    uint64_t Rank = 0;
+    // If we're preserving the same matching inlined-at field we can
+    // preserve the atom.
+    if (LocBIA == LocAIA && InlinedAt == LocBIA) {
+      // Deterministically keep the lowest non-zero ranking atom group
+      // number.
+      // FIXME: It would be nice if we could track that an instruction
+      // belongs to two source atoms.
+      bool UseL1Atom = [L1, L2]() {
+        if (L1.getAtomRank() == L2.getAtomRank()) {
+          // Arbitrarily choose the lowest non-zero group number.
+          if (!L1.getAtomGroup() || !L2.getAtomGroup())
+            return !L2.getAtomGroup();
+          return L1.getAtomGroup() < L2.getAtomGroup();
+        }
+        // Choose the lowest non-zero rank.
+        if (!L1.getAtomRank() || !L2.getAtomRank())
+          return !L2.getAtomRank();
+        return L1.getAtomRank() < L2.getAtomRank();
+      }();
+      Group = UseL1Atom ? L1.getAtomGroup() : L2.getAtomGroup();
+      Rank = UseL1Atom ? L1.getAtomRank() : L2.getAtomRank();
+    } else {
+      // If either instruction is part of a source atom, reassign it a new
+      // atom group. This essentially regresses to non-key-instructions
+      // behaviour (now that it's the only instruction in its group it'll
+      // probably get is_stmt applied).
+      Group = C.incNextDILocationAtomGroup();
+      Rank = 1;
+    }
+    return DebugLoc::get(C, Line, Col, Scope, InlinedAt, IsImplicitCode,
+                           Group, Rank);
+  };
+
+  DebugLoc Result = ARIt != ALocs.rend() ? (*ARIt).getInlinedAt() : nullptr;
+
+  // If we have found a common starting location, walk up the inlined-at chains
+  // and try to produce common locations.
+  for (; ARIt != ALocs.rend() && BRIt != BLocs.rend(); ++ARIt, ++BRIt) {
+    DebugLoc Tmp = MergeLocPair(*ARIt, *BRIt, Result);
+
+    if (!Tmp)
+      // We have walked up to a point in the chains where the two locations
+      // are irreconsilable. At this point Result contains the nearest common
+      // location in the inlined-at chains of LocA and LocB, so we break here.
+      break;
+
+    Result = Tmp;
+  }
+
+  if (Result)
+    return Result;
+
+  // We ended up with LocA and LocB as irreconsilable locations. Produce a
+  // location at 0:0 with one of the locations' scope. The function has
+  // historically picked A's scope, and a nullptr inlined-at location, so that
+  // behavior is mimicked here but I am not sure if this is always the correct
+  // way to handle this.
+  // Key Instructions: it's fine to drop atom group and rank here, as line 0
+  // is a nonsensical is_stmt location.
+  return DebugLoc::get(C, 0, 0, LocA.getScope());
+}
+
 DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {
   if (!(PickMergedSourceLocations && (LocA || LocB)) && (!LocA || !LocB)) {
     // If coverage tracking is enabled, prioritize returning empty non-annotated
@@ -318,11 +621,12 @@ DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {
       return LocA;
     return LocB;
   }
-  return DILocation::getMergedLocation(LocA, LocB);
+  return getMergedDebugLoc(LocA, LocB);
 }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 LLVM_DUMP_METHOD void DebugLoc::dump() const { print(dbgs()); }
+LLVM_DUMP_METHOD void DebugLoc::dump(const Module *M) const { print(dbgs(), M); }
 #endif
 
 void DebugLoc::print(raw_ostream &OS) const {
@@ -344,64 +648,99 @@ void DebugLoc::print(raw_ostream &OS) const {
 }
 
 void DebugLoc::print(raw_ostream &OS, const Module *M, bool IsForDebug) const {
-  return get()->print(OS, M, IsForDebug);
+  return getAsDILocation()->print(OS, M, IsForDebug);
 }
 void DebugLoc::print(raw_ostream &OS, ModuleSlotTracker &MST, const Module *M,
                      bool IsForDebug) const {
-  return get()->print(OS, MST, M, IsForDebug);
+  return getAsDILocation()->print(OS, MST, M, IsForDebug);
 }
 void DebugLoc::printAsOperand(raw_ostream &OS, const Module *M) const {
-  return get()->printAsOperand(OS, M);
+  return getAsDILocation()->printAsOperand(OS, M);
 }
 void DebugLoc::printAsOperand(raw_ostream &OS, ModuleSlotTracker &MST,
                      const Module *M) const {
-  return get()->printAsOperand(OS, MST, M);
+  return getAsDILocation()->printAsOperand(OS, MST, M);
 }
 bool DebugLoc::isDistinct() const {
-  return get()->isDistinct();
+  /// FIXME: Not relevant with FLMD.
+  return false;
 }
 
 LLVMContext &DebugLoc::getContext() const { return FLContext->getContext(); }
 
 uint64_t DebugLoc::getAtomGroup() const {
-  return get()->getAtomGroup();
+  return Storage.Loc.AtomGroup;
 }
 uint8_t DebugLoc::getAtomRank() const {
-  return get()->getAtomRank();
+  return Storage.Loc.AtomRank;
 }
 
 DebugLoc DebugLoc::getWithoutAtom() const {
-  return get()->getWithoutAtom();
+  FLDebugLoc Loc = Storage.Loc;
+  Loc.AtomGroup = 0;
+  Loc.AtomRank = 0;
+  return DebugLoc(Loc, FLContext);
 }
 
 StringRef DebugLoc::getSubprogramLinkageName() const {
-  return get()->getSubprogramLinkageName();
+  DISubprogram *SP = getScope()->getSubprogram();
+  if (!SP)
+    return "";
+  auto Name = SP->getLinkageName();
+  if (!Name.empty())
+    return Name;
+  return SP->getName();
 }
 
 DIFile *DebugLoc::getFile() const {
-  return get()->getFile();
+  return getScope()->getFile();
 }
 StringRef DebugLoc::getFilename() const {
-  return get()->getFilename();
+  return getScope()->getFilename();
 }
 StringRef DebugLoc::getDirectory() const {
-  return get()->getDirectory();
+  return getScope()->getDirectory();
 }
 std::optional<StringRef> DebugLoc::getSource() const {
-  return get()->getSource();
+  return getScope()->getSource();
 }
 
 DebugLoc DebugLoc::getInlinedAtLocation() const {
-  return get()->getInlinedAtLocation();
+  FLDebugLoc Loc = Storage.Loc;
+  // We get the "inlinedAt" location by setting SrcLocIdx to none.
+  // FIXME: Or do we?
+  return DebugLoc(FLDebugLoc(FLIndex<uint32_t>(), Loc.InlinedAtIdx), FLContext);
 }
 
 unsigned DebugLoc::getDiscriminator() const {
-  return get()->getDiscriminator();
+  if (auto *F = dyn_cast<DILexicalBlockFile>(getScope()))
+    return F->getDiscriminator();
+  return 0;
 }
 
 /// Returns a new DebugLoc with updated \p Discriminator.
 DebugLoc DebugLoc::cloneWithDiscriminator(unsigned Discriminator) const {
-  return get()->cloneWithDiscriminator(Discriminator);
+  DILocalScope *Scope = getScope();
+  // Skip all parent DILexicalBlockFile that already have a discriminator
+  // assigned. We do not want to have nested DILexicalBlockFiles that have
+  // multiple discriminators because only the leaf DILexicalBlockFile's
+  // dominator will be used.
+  for (auto *LBF = dyn_cast<DILexicalBlockFile>(Scope);
+       LBF && LBF->getDiscriminator() != 0;
+       LBF = dyn_cast<DILexicalBlockFile>(Scope))
+    Scope = LBF->getScope();
+  DILexicalBlockFile *NewScope =
+      DILexicalBlockFile::get(getContext(), Scope, getFile(), Discriminator);
+  return DebugLoc::get(getContext(), getLine(), getColumn(), NewScope,
+                       getInlinedAt(), isImplicitCode(), getAtomGroup(),
+                       getAtomRank());
+}
+void DebugLoc::decodeDiscriminator(unsigned D, unsigned &BD, unsigned &DF,
+                                     unsigned &CI) {
+  BD = getUnsignedFromPrefixEncoding(D);
+  DF = getUnsignedFromPrefixEncoding(getNextComponentInDiscriminator(D));
+  CI = getUnsignedFromPrefixEncoding(
+      getNextComponentInDiscriminator(getNextComponentInDiscriminator(D)));
 }
 
 /// Returns a new DebugLoc with updated base discriminator \p BD. Only the
@@ -409,27 +748,45 @@ DebugLoc DebugLoc::cloneWithDiscriminator(unsigned Discriminator) const {
 /// are elided.
 /// If the discriminator cannot be encoded, the function returns std::nullopt.
 std::optional<DebugLoc>
-DebugLoc::cloneWithBaseDiscriminator(unsigned BD) const {
-  std::optional<const DILocation*> DL = get()->cloneWithBaseDiscriminator(BD);
-  if (DL)
-    return *DL;
+DebugLoc::cloneWithBaseDiscriminator(unsigned D) const {
+  // Do not interfere with pseudo probes. Pseudo probe at a callsite uses
+  // the dwarf discriminator to store pseudo probe related information,
+  // such as the probe id.
+  if (isPseudoProbeDiscriminator(getDiscriminator()))
+    return *this;
+
+  unsigned BD, DF, CI;
+
+  if (EnableFSDiscriminator) {
+    BD = getBaseDiscriminator();
+    if (D == BD)
+      return *this;
+    return cloneWithDiscriminator(D);
+  }
+
+  decodeDiscriminator(getDiscriminator(), BD, DF, CI);
+  if (D == BD)
+    return *this;
+  if (std::optional<unsigned> Encoded = encodeDiscriminator(D, DF, CI))
+    return cloneWithDiscriminator(*Encoded);
   return std::nullopt;
 }
 
 /// Returns the duplication factor stored in the discriminator, or 1 if no
 /// duplication factor (or 0) is encoded.
 unsigned DebugLoc::getDuplicationFactor() const {
-  return get()->getDuplicationFactor();
+  return getDuplicationFactorFromDiscriminator(getDiscriminator());
 }
 
 /// Returns the copy identifier stored in the discriminator.
 unsigned DebugLoc::getCopyIdentifier() const {
-  return get()->getCopyIdentifier();
+  return getCopyIdentifierFromDiscriminator(getDiscriminator());
 }
 
 /// Returns the base discriminator stored in the discriminator.
 unsigned DebugLoc::getBaseDiscriminator() const {
-  return get()->getBaseDiscriminator();
+  return getBaseDiscriminatorFromDiscriminator(getDiscriminator(),
+                                               EnableFSDiscriminator);
 }
 
 /// Returns a new DebugLoc with duplication factor \p DF * current
@@ -438,22 +795,31 @@ unsigned DebugLoc::getBaseDiscriminator() const {
 /// Returns std::nullopt if encoding failed.
 std::optional<DebugLoc>
 DebugLoc::cloneByMultiplyingDuplicationFactor(unsigned DF) const {
-  std::optional<const DILocation*> DL = get()->cloneByMultiplyingDuplicationFactor(DF);
-  if (DL)
-    return *DL;
+  assert(!EnableFSDiscriminator && "FSDiscriminator should not call this.");
+  // Do no interfere with pseudo probes. Pseudo probe doesn't need duplication
+  // factor support as samples collected on cloned probes will be aggregated.
+  // Also pseudo probe at a callsite uses the dwarf discriminator to store
+  // pseudo probe related information, such as the probe id.
+  if (isPseudoProbeDiscriminator(getDiscriminator()))
+    return *this;
+
+  DF *= getDuplicationFactor();
+  if (DF <= 1)
+    return *this;
+
+  unsigned BD = getBaseDiscriminator();
+  unsigned CI = getCopyIdentifier();
+  if (std::optional<unsigned> D = encodeDiscriminator(BD, DF, CI))
+    return cloneWithDiscriminator(*D);
   return std::nullopt;
 }
 
 Metadata *DebugLoc::getRawScope() const {
   assert(Storage && "Expected valid DebugLoc");
-  FLIndex<uint32_t> SrcLocIdx = Storage.get().isInlinedCall()
-    ? FLContext->getInlinedCall(Storage.get().InlinedAtIdx).SrcLocIdx :
-    : Storage.get().SrcLocIdx;
-  FLSrcLoc SrcLoc = FLContext->getSrcLoc();
-  return FLContext->get()->getRawScope();
+  return Storage.Loc.getScope(FLContext);
 }
 Metadata *DebugLoc::getRawInlinedAt() const {
-  return get()->getRawInlinedAt();
+  llvm_unreachable("Invalid when FLMD enabled.");
 }
 
 bool DebugLoc::isPseudoProbeDiscriminator(unsigned Discriminator) {
@@ -757,3 +1123,30 @@ DebugLoc::encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI) {
   return DILocation::encodeDiscriminator(BD, DF, CI);
 }
 #endif
+
+// DILocation *TemporaryFLMDToMDSourceLocConversionContext::getTempDILocation(
+//     LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
+//     Metadata *InlinedAt, bool ImplicitCode, uint64_t AtomGroup, uint8_t AtomRank) {
+//   // Similar to DILocation::getImpl, but allocates each DILocation as if it were
+//   // Distinct, but without ever storing it in the Context itself.
+//   // This is a bit of a hack
+//   return nullptr;
+// }
+// DILocation *TemporaryFLMDToMDSourceLocConversionContext::getDILocation(DebugLoc DL) {
+//   // Assumption here: no pair of DebugLocs with different contents will have the
+//   // same DILocation. If they did, then we would end up with two different
+//   // allocations of the same value, which might(?) cause problems.
+//   if (auto ExistingIt = FLDebugLocToDILocationMap.find(DL); ExistingIt != FLDebugLocToDILocationMap.end())
+//     return ExistingIt->second.get();
+//   DIFunctionLocalMetadata *Context = DL.getFLContext();
+//   FLDebugLoc FLDL = DL.getStorage().get();
+//   DILocation *InlinedAt = nullptr;
+//   if (DebugLoc InlinedAtDL = DL.getInlinedAt())
+//     InlinedAt = getDILocation(InlinedAtDL);
+//   auto [SrcLoc, Scope] = DL.getStorage().Loc.getSrcLocAndScope(DL.getFLContext());
+//   DILocation *TempDILoc = getTempDILocation(
+//     Context->getContext(), SrcLoc.Line, SrcLoc.Column, Scope, InlinedAt, false,
+//     FLDL.AtomGroup, FLDL.AtomRank);
+//   FLDebugLocToDILocationMap.insert({DL, std::unique_ptr<DILocation>(TempDILoc)});
+//   return TempDILoc;
+// }

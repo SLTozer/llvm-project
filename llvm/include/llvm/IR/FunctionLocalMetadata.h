@@ -24,6 +24,7 @@
 #include "llvm/Support/DataTypes.h"
 #include "llvm/Support/Discriminator.h"
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <optional>
 
@@ -245,8 +246,18 @@ public:
   FLScope getScope(FLIndex<uint16_t> Idx) const {
     return Scopes[Idx.get()];
   }
+  FLScope getScope(FLIndex<uint16_t> Idx, FLIndex<uint16_t> InlinedAt) const {
+    if (!InlinedAt)
+      return Scopes[Idx.get()];
+    return InlinedCalls[InlinedAt.get()].getInlinee()->getScope(Idx);
+  }
   FLSrcLoc getSrcLoc(FLIndex<uint32_t> Idx) const {
     return SrcLocs[Idx.get()];
+  }
+  FLSrcLoc getSrcLoc(FLIndex<uint32_t> Idx, FLIndex<uint16_t> InlinedAt) const {
+    if (!InlinedAt)
+      return SrcLocs[Idx.get()];
+    return InlinedCalls[InlinedAt.get()].getInlinee()->getSrcLoc(Idx);
   }
   FLInlinedCall getInlinedCall(FLIndex<uint16_t> Idx) const {
     return InlinedCalls[Idx.get()];
