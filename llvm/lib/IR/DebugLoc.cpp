@@ -123,6 +123,18 @@ DILocation *DebugLoc::getAsDILocation() const {
     Storage.get().AtomRank);
   return Result;
 }
+DILocation *DebugLoc::get() const {
+  return getAsDILocation();
+}
+DebugLoc::operator DILocation *() const {
+  return getAsDILocation();
+}
+DILocation *DebugLoc::operator->() const {
+  return getAsDILocation();
+}
+DILocation &DebugLoc::operator*() const {
+  return *getAsDILocation();
+}
 #else
 DebugLoc DebugLoc::getFromDILocation(const DILocation *DIL) {
   DebugLoc DL;
@@ -137,6 +149,12 @@ DILocation *DebugLoc::get() const {
 }
 DebugLoc::operator DILocation *() const {
   return Storage.get();
+}
+DILocation *DebugLoc::operator->() const {
+  return Storage.get();
+}
+DILocation &DebugLoc::operator*() const {
+  return *Storage.get();
 }
 #endif
 

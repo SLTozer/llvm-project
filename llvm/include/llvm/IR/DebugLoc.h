@@ -410,13 +410,13 @@ public:
   /// \pre !*this or \c isa<DILocation>(getAsMDNode()).
   /// @{
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
-  DILocation *get() const { return getAsDILocation(); }
+  DILocation *get() const;
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
-  operator DILocation *() const { return getAsDILocation(); }
+  operator DILocation *() const;
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
-  DILocation *operator->() const { return getAsDILocation(); }
+  DILocation *operator->() const;
   LLVM_DEPRECATED("Implicit conversion disabled", "getAsDILocation")
-  DILocation &operator*() const { return *getAsDILocation(); }
+  DILocation &operator*() const;
   /// @}
 
 ////////////////////////////////////////////////////////////////////////////////
