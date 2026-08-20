@@ -545,6 +545,8 @@ public:
     DbgLoc = Loc.getStorage();
   }
   void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
+  void setDebugLocIfPresent(DebugLoc Loc) { DbgLoc = Loc.getStorage().orElse(DbgLoc); }
+  void setDebugLocIfPresent(DbgLocStorage Loc) { DbgLoc = Loc.orElse(DbgLoc); }
   void copyDebugLocFrom(Instruction *Other) {
     DbgLoc = Other->DbgLoc;
   }

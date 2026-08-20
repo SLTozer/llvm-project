@@ -74,10 +74,6 @@ public:
   using arg_iterator = Argument *;
   using const_arg_iterator = const Argument *;
 
-  // FIXME: This will be a metadata attachment in time, but while scaffolding
-  // we own it directly.
-  DIFunctionLocalMetadata *FLMD;
-
 private:
   constexpr static HungOffOperandsAllocMarker AllocMarker{};
 
@@ -125,8 +121,6 @@ public:
   bool hasLazyArguments() const {
     return getSubclassDataFromValue() & (1<<0);
   }
-  
-  static DIFunctionLocalMetadata *getFLMDForSP(const DISubprogram *SP);
 
   /// \see BasicBlock::convertToNewDbgValues.
   void convertToNewDbgValues();

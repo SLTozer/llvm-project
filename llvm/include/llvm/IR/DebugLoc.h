@@ -240,6 +240,9 @@ struct SrcLocData {
   DILocalScope *Scope;
 };
 
+DIFunctionLocalMetadata *getFLMDForInstruction(const Instruction *I);
+DIFunctionLocalMetadata *getFLMDForFunction(const Function *F);
+
 /// Debug location information stored directly inside an Instruction.
 /// Underlying interface can be accessed via `get`, but care must be taken
 /// since the stored type depends on `LLVM_USE_FLMD_SOURCE_LOCS`, so any code

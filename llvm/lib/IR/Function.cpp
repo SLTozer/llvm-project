@@ -484,8 +484,6 @@ Function::Function(FunctionType *Ty, LinkageTypes Linkage, unsigned AddrSpace,
          "invalid return type");
   setGlobalObjectSubClassData(0);
 
-  FLMD = DIFunctionLocalMetadata::getDistinct(getContext());
-
   // We only need a symbol table for a function if the context keeps value names
   if (!getContext().shouldDiscardValueNames())
     SymTab = std::make_unique<ValueSymbolTable>(NonGlobalValueMaxNameSize);

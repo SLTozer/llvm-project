@@ -16,6 +16,7 @@
 #include "llvm/IR/AttributeMask.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -97,14 +98,14 @@ const DataLayout &Instruction::getDataLayout() const {
 
 DebugLoc Instruction::getDebugLoc() const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  return DebugLoc(DbgLoc, getFunction()->FLMD);
+  return DebugLoc(DbgLoc, getFLMDForInstruction(this));
 #else
   return DebugLoc(DbgLoc);
 #endif
 }
 DebugLoc Instruction::getDebugLoc(Function *ContextFunction) const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  return DebugLoc(DbgLoc, ContextFunction->FLMD);
+  return DebugLoc(DbgLoc, getFLMDForFunction(ContextFunction));
 #else
   return DebugLoc(DbgLoc);
 #endif

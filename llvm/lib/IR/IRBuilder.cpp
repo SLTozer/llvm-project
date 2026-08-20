@@ -67,7 +67,7 @@ void IRBuilderBase::SetInstDebugLocation(Instruction *I) const {
   // We prefer to set our current debug location if any has been set, but if
   // our debug location is empty and I has a valid location, we shouldn't
   // overwrite it.
-  I->setDebugLoc(StoredDL.orElse(I->getDebugLoc()));
+  I->setDebugLocIfPresent(StoredDL.getStorage());
 }
 
 Value *IRBuilderBase::CreateAggregateCast(Value *V, Type *DestTy) {

@@ -50,13 +50,40 @@ void DbgLocOrigin::addTrace() {
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
 /// Stores the context needed to convert between MD and FLMD source locations.
+namespace {
 struct FLMDSourceLocConversionContext {
   DenseMap<DILocation *, FLIndex<uint16_t>> InlinedCallLocMap;
   DenseMap<std::pair<FLIndex<uint16_t>, DIFunctionLocalMetadata*>, DILocation *> InlinedCallIdxToDILocMap;
   DenseMap<FLIndex<uint16_t>, uint16_t> MaxAtomMap;
+  // Whenever we convert DILocation->DebugLoc, we use the
+  // DIFunctionLocalMetadata associated with the final inlinedAt DISubprogram.
+  // If this does not already exist, we create one - this should stop being
+  // necessary at some point, but for now this is how we create new FLMD.
+  DenseMap<DISubprogram *, DIFunctionLocalMetadata *> SPToFLMDMap;
+  DIFunctionLocalMetadata *getFLMDForSP(DISubprogram *SP) {
+    if (auto Existing = SPToFLMDMap.find(SP); Existing != SPToFLMDMap.end())
+      return Existing->second;
+    FLMDBuilder Builder(SP);
+    auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
+    NewFLMD->build(Builder);
+    SPToFLMDMap.insert({SP, NewFLMD});
+    return NewFLMD;
+  }
 };
+} // namespace
 
 static FLMDSourceLocConversionContext FLMDConversionContext;
+
+
+DIFunctionLocalMetadata *llvm::getFLMDForInstruction(const Instruction *I) {
+  assert(I->getFunction() && "Instruction must be inside of function");
+  return getFLMDForFunction(I->getFunction());
+}
+DIFunctionLocalMetadata *llvm::getFLMDForFunction(const Function *F) {
+  if (!F->getSubprogram())
+    return nullptr;
+  return FLMDConversionContext.getFLMDForSP(F->getSubprogram());
+}
 
 static FLIndex<uint16_t> getInlineCallDILocationToFLIndex(DILocation *DIL, DISubprogram *InlinedSP) {
   // No inlinedAt -> empty inlinedAt index.
@@ -72,9 +99,9 @@ static FLIndex<uint16_t> getInlineCallDILocationToFLIndex(DILocation *DIL, DISub
   // Get inlinedAtIdx...
   FLIndex<uint16_t> InlinedAtIdx = getInlineCallDILocationToFLIndex(DIL->getInlinedAt(), OrigScope->getSubprogram());
   // Get srcLocIdx...
-  DIFunctionLocalMetadata *OrigFLMD = Function::getFLMDForSP(InlinedSP);
+  DIFunctionLocalMetadata *OrigFLMD = FLMDConversionContext.getFLMDForSP(InlinedSP);
   FLIndex<uint32_t> SrcLocIdx = OrigFLMD->getFLSrcLocIdx(DIL->getLine(), DIL->getColumn(), OrigScope);
-  DIFunctionLocalMetadata *InlinedAtFLMD = Function::getFLMDForSP(DIL->getInlinedAtScope()->getSubprogram());
+  DIFunctionLocalMetadata *InlinedAtFLMD = FLMDConversionContext.getFLMDForSP(DIL->getInlinedAtScope()->getSubprogram());
   FLIndex<uint16_t> NewIdx = InlinedAtFLMD->addInlinedCall(FLInlinedCall(SrcLocIdx, InlinedAtIdx, OrigFLMD));
   FLMDConversionContext.InlinedCallLocMap.insert({DIL, NewIdx});
   FLMDConversionContext.InlinedCallIdxToDILocMap.insert({{NewIdx, InlinedAtFLMD}, DIL});
@@ -88,7 +115,7 @@ FLDebugLoc FLDebugLoc::getFromDILocation(const DILocation *DIL) {
     return FLDebugLoc::getInlinedCallLoc(getInlineCallDILocationToFLIndex(const_cast<DILocation*>(DIL), nullptr));
   DILocalScope *OrigScope = DIL->getScope();
   FLIndex<uint16_t> InlinedAtIdx = getInlineCallDILocationToFLIndex(DIL->getInlinedAt(), OrigScope->getSubprogram());
-  DIFunctionLocalMetadata *OrigFLMD = Function::getFLMDForSP(OrigScope->getSubprogram());
+  DIFunctionLocalMetadata *OrigFLMD = FLMDConversionContext.getFLMDForSP(OrigScope->getSubprogram());
   FLIndex<uint32_t> SrcLocIdx = OrigFLMD->getFLSrcLocIdx(DIL->getLine(), DIL->getColumn(), OrigScope);
   return FLDebugLoc(SrcLocIdx, InlinedAtIdx, DIL->getAtomGroup(), DIL->getAtomRank());
 }
@@ -97,7 +124,7 @@ DebugLoc DebugLoc::getFromDILocation(const DILocation *DIL) {
   if (!DIL)
     return DebugLoc();
   FLDebugLoc Storage = FLDebugLoc::getFromDILocation(DIL);
-  DIFunctionLocalMetadata *FLContext = Function::getFLMDForSP(DIL->getInlinedAtScope()->getSubprogram());
+  DIFunctionLocalMetadata *FLContext = FLMDConversionContext.getFLMDForSP(DIL->getInlinedAtScope()->getSubprogram());
   return DebugLoc(Storage, FLContext);
 }
 
@@ -191,7 +218,7 @@ DebugLoc DebugLoc::getDistinct(
     getInlineCallDILocationToFLIndex(
       DILocation::getDistinct(Context, Line, Column, Scope, InlinedAt.getAsDILocation(), ImplicitCode, AtomGroup, AtomRank),
       InlinedSP)),
-    Function::getFLMDForSP(RootSP));
+    FLMDConversionContext.getFLMDForSP(RootSP));
 }
 #else
 DebugLoc DebugLoc::get(
