@@ -1181,6 +1181,7 @@ static void cloneInstructionsIntoPredecessorBlockAndUpdateSSAUses(
 
     Instruction *NewBonusInst = BonusInst.clone();
 
+    NewBonusInst->insertInto(PredBlock, PTI->getIterator());
     if (!NewBonusInst->getDebugLoc().isSameSourceLocation(PTI->getDebugLoc())) {
       // Unless the instruction has the same !dbg location as the original
       // branch, drop it. When we fold the bonus instructions we want to make
@@ -1201,7 +1202,6 @@ static void cloneInstructionsIntoPredecessorBlockAndUpdateSSAUses(
     // location the call is moved to.
     NewBonusInst->dropUBImplyingAttrsAndMetadata();
 
-    NewBonusInst->insertInto(PredBlock, PTI->getIterator());
     auto Range = NewBonusInst->cloneDebugInfoFrom(&BonusInst);
     RemapDbgRecordRange(NewBonusInst->getModule(), Range, VMap,
                         RF_NoModuleLevelChanges | RF_IgnoreMissingLocals);

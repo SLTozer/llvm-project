@@ -126,7 +126,7 @@ public:
     return getSubclassDataFromValue() & (1<<0);
   }
   
-  static Function *getFunctionForSP(const DISubprogram *SP);
+  static DIFunctionLocalMetadata *getFLMDForSP(const DISubprogram *SP);
 
   /// \see BasicBlock::convertToNewDbgValues.
   void convertToNewDbgValues();

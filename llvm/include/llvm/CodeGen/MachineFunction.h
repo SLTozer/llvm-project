@@ -51,7 +51,6 @@ class DebugLoc;
 struct DenormalMode;
 class DIExpression;
 class DILocalVariable;
-class DILocation;
 class Function;
 class GISelChangeObserver;
 class GlobalValue;

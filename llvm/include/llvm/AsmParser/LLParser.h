@@ -22,6 +22,7 @@
 #include "llvm/IR/FMF.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/ModuleSummaryIndex.h"
+#include "llvm/IR/TrackingMDRef.h"
 #include "llvm/Support/ModRef.h"
 #include <map>
 #include <optional>
@@ -189,6 +190,7 @@ namespace llvm {
         PendingDbgRecords;
     SmallVector<std::tuple<LocTy, Instruction *, TrackingMDNodeRef>>
         PendingDbgInsts;
+    SmallVector<std::tuple<LocTy, Function *, TrackingMDNodeRef>> PendingFnSPs;
 
     /// Only the llvm-as tool may set this to false to bypass
     /// UpgradeDebuginfo so it can generate broken bitcode.

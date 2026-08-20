@@ -193,6 +193,8 @@ void LLParser::dropUnknownMetadataReferences() {
                  [](const auto &E) { return std::get<2>(E)->isTemporary(); });
   llvm::erase_if(PendingDbgInsts,
                  [](const auto &E) { return std::get<2>(E)->isTemporary(); });
+  llvm::erase_if(PendingFnSPs,
+                 [](const auto &E) { return std::get<2>(E)->isTemporary(); });
 
   for (const auto &[ID, Info] : make_early_inc_range(ForwardRefMDNodes)) {
     // Check whether there is only a single use left, which would be in our
@@ -340,6 +342,13 @@ bool LLParser::validateEndOfModule(bool UpgradeDebugInfo) {
                  "use of undefined metadata '!" +
                      Twine(ForwardRefMDNodes.begin()->first) + "'");
 
+  // Update the SP->Fn map.
+  for (auto [Loc, Fn, SP] : PendingFnSPs) {
+    if (auto *SPNode = dyn_cast<DISubprogram>(SP))
+      Fn->setSubprogram(SPNode);
+    else
+      return error(Loc, "invalid sp attachment");
+  }
   // Set debug locations.
   for (auto [Loc, DR, MD] : PendingDbgRecords) {
     if (auto *DI = dyn_cast<DILocation>(MD))
@@ -2487,6 +2496,8 @@ bool LLParser::parseGlobalObjectMetadataAttachment(GlobalObject &GO) {
     return true;
 
   GO.addMetadata(MDK, *N);
+  if (auto *F = dyn_cast<Function>(&GO); F && MDK == LLVMContext::MD_dbg)
+    PendingFnSPs.emplace_back(Lex.getLoc(), F, N);
   return false;
 }
 

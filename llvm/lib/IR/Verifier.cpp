@@ -5879,6 +5879,14 @@ void Verifier::visitInstruction(Instruction &I) {
       }
     }
   }
+  #if LLVM_USE_FLMD_SOURCE_LOCS
+  if (auto DL = I.getDebugLoc()) {
+    do {
+      DL.getLine();
+      DL.getScope();
+    } while ((DL = DL.getInlinedAt()));
+  }
+  #endif
 
   SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
   I.getAllMetadata(MDs);

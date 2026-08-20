@@ -27,6 +27,7 @@
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseMapInfo.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/TrackingMDRef.h"
 #include "llvm/IR/ValueHandle.h"
 #include "llvm/Support/Casting.h"
@@ -88,7 +89,7 @@ class ValueMap {
   using MapT = DenseMap<ValueMapCVH, ValueT, DenseMapInfo<ValueMapCVH>>;
   using MDMapT = DenseMap<const Metadata *, TrackingMDRef>;
   /// Map {(InlinedAt, old atom number) -> new atom number}.
-  using DMAtomT = SmallDenseMap<std::pair<Metadata *, uint64_t>, uint64_t>;
+  using DMAtomT = SmallDenseMap<std::pair<DebugLoc, uint64_t>, uint64_t>;
   using ExtraData = typename Config::ExtraData;
 
   MapT Map;

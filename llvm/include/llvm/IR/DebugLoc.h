@@ -143,7 +143,13 @@ struct FLDebugLoc {
   FLDebugLoc() : SrcLocIdx(), InlinedAtIdx(), AtomGroup(0), AtomRank(0) {}
   FLDebugLoc(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, uint16_t AtomGroup = 0, uint8_t AtomRank = 0)
       : SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx), AtomGroup(AtomGroup), AtomRank(AtomRank) {
-    assert(SrcLocIdx && "Non-empty FLDebugLoc must have a non-empty SrcLoc.");
+  }
+
+  bool operator==(const FLDebugLoc& Other) const {
+    return asRawInt() == Other.asRawInt();
+  }
+  bool operator!=(const FLDebugLoc& Other) const {
+    return asRawInt() != Other.asRawInt();
   }
 
   static FLDebugLoc getInlinedCallLoc(FLIndex<uint16_t> InlinedCallIdx) {
@@ -153,7 +159,7 @@ struct FLDebugLoc {
   /// An FLDebugLoc is empty iff it has no SrcLoc and no InlinedAtIdx.
   /// TODO: Determine whether the indirect InlinedAt referencing is actually
   /// necessary for the complete implementation.
-  operator bool() const { return SrcLocIdx || InlinedAtIdx; }
+  explicit operator bool() const { return SrcLocIdx || InlinedAtIdx; }
   bool isValidLoc() const { return (bool)*this; }
   bool isInlinedInstr() const { return InlinedAtIdx && SrcLocIdx; }
   bool isInlinedCall() const { return InlinedAtIdx && !SrcLocIdx; }
@@ -164,9 +170,13 @@ struct FLDebugLoc {
   /// FLDebugLoc for each will not be equal, but the result of
   /// getLocForInlinedCall from each of them will be identical.
   FLDebugLoc getLocForInlinedCall(DIFunctionLocalMetadata *Context) const {
-    assert(isInlinedCall() && "getInlinedCallLoc requires an inlined call");
+    assert(isInlinedCall() && "getLocForInlinedCallLoc requires an inlined call");
     FLInlinedCall InlinedCall = Context->getInlinedCall(InlinedAtIdx);
     return FLDebugLoc(InlinedCall.SrcLocIdx, InlinedCall.InlinedAtIdx);
+  }
+  FLIndex<uint16_t> getIdxForInlinedCall() const {
+    assert(isInlinedCall() && "can only getIdxForInlinedCall for an inlined call");
+    return InlinedAtIdx;
   }
   // TODO: Better name please.
   bool isLeafLoc() const { return SrcLocIdx; }
@@ -194,6 +204,11 @@ public:
     if (isInlinedCall())
       return FLDebugLoc::getInlinedCallLoc(getLocForInlinedCall(Context).InlinedAtIdx);
     return FLDebugLoc::getInlinedCallLoc(InlinedAtIdx);
+  }
+  FLIndex<uint16_t> getInlinedAtIdx(DIFunctionLocalMetadata *Context) const {
+    if (isInlinedCall())
+      return getLocForInlinedCall(Context).InlinedAtIdx;
+    return InlinedAtIdx;
   }
   FLSrcLoc getSrcLoc(DIFunctionLocalMetadata *Context) const {
     if (isInlinedCall())
@@ -257,8 +272,8 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 /// DILocation Compatibility
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  bool operator==(const DILocation *Other) const { return false; }
-  bool operator!=(const DILocation *Other) const { return true; }
+  bool operator==(const DILocation *Other) const { llvm_unreachable("Don't compare these"); }
+  bool operator!=(const DILocation *Other) const { llvm_unreachable("Don't compare these"); }
 #else
   bool operator==(const DILocation *Other) const { return Loc == Other; }
   bool operator!=(const DILocation *Other) const { return Loc != Other; }
@@ -394,6 +409,7 @@ public:
     DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
     uint8_t AtomRank = 0);
   static DebugLoc getDistinct(
+    DISubprogram *InlinedSP,
     LLVMContext &Context, unsigned Line, unsigned Column,Metadata *Scope,
     DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
     uint8_t AtomRank = 0);
@@ -720,7 +736,7 @@ struct DenseMapInfo<DebugLoc> {
     return hash_value(DL);
   }
 
-  static bool isEqual(DebugLoc LHS, DebugLoc RHS) { return LHS.Storage == RHS.Storage; }
+  static bool isEqual(DebugLoc LHS, DebugLoc RHS) { return LHS == RHS; }
 };
 
 inline hash_code hash_value(const FLDebugLoc &Val) {

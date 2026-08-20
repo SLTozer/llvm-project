@@ -545,9 +545,21 @@ public:
     DbgLoc = Loc.getStorage();
   }
   void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
+  void copyDebugLocFrom(Instruction *Other) {
+    DbgLoc = Other->DbgLoc;
+  }
+  void copyDebugLocFromIfPresent(Instruction *Other) {
+    DbgLoc = Other->DbgLoc.orElse(DbgLoc);
+  }
 
   /// Return the debug location for this node as a DebugLoc.
   DebugLoc getDebugLoc() const;
+  DbgLocStorage getDebugLocStorage() const { return DbgLoc; }
+  /// Return the debug location for this node as a DebugLoc, using the provided
+  /// Function's FLMD context for FLMD builds. This is only needed, and should
+  /// only be used, for instructions that have not been inserted into a function
+  /// yet.
+  DebugLoc getDebugLoc(Function *ContextFunction) const;
 
   /// Fetch the debug location for this node, unless this is a debug intrinsic,
   /// in which case fetch the debug location of the next non-debug node.

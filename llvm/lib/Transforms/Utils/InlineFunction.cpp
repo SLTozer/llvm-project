@@ -48,6 +48,7 @@
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/EHPersonalities.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/InlineAsm.h"
@@ -1958,10 +1959,12 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
   auto &Ctx = Fn->getContext();
   DebugLoc InlinedAtNode = TheCallDL;
 
+  DISubprogram *CalleeSP = cast<CallInst>(TheCall)->getCalledFunction()->getSubprogram();
+
   // Create a unique call site, not to be confused with any other call from the
   // same location.
   InlinedAtNode = DebugLoc::getDistinct(
-      Ctx, InlinedAtNode.getLine(), InlinedAtNode.getColumn(),
+      CalleeSP, Ctx, InlinedAtNode.getLine(), InlinedAtNode.getColumn(),
       InlinedAtNode.getScope(), InlinedAtNode.getInlinedAt());
 
   // Cache the inlined-at nodes as they're built so they are reused, without

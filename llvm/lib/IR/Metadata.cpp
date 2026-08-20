@@ -1958,15 +1958,15 @@ GlobalObject::VCallVisibility GlobalObject::getVCallVisibility() const {
 }
 
 // FIXME: Temp SP->Fn lookup, used as scaffolding while implementing FLMD.
-DenseMap<const DISubprogram *, Function *> SPToFunc;
+DenseMap<const DISubprogram *, DIFunctionLocalMetadata *> SPToFunc;
 
-Function *Function::getFunctionForSP(const DISubprogram *SP) {
+DIFunctionLocalMetadata *Function::getFLMDForSP(const DISubprogram *SP) {
   return SPToFunc.find(SP)->second;
 }
 
 void Function::setSubprogram(DISubprogram *SP) {
   setMetadata(LLVMContext::MD_dbg, SP);
-  SPToFunc.insert({SP, this});
+  SPToFunc.insert({SP, FLMD});
 }
 
 DISubprogram *Function::getSubprogram() const {

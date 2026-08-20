@@ -102,6 +102,13 @@ DebugLoc Instruction::getDebugLoc() const {
   return DebugLoc(DbgLoc);
 #endif
 }
+DebugLoc Instruction::getDebugLoc(Function *ContextFunction) const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  return DebugLoc(DbgLoc, ContextFunction->FLMD);
+#else
+  return DebugLoc(DbgLoc);
+#endif
+}
 
 void Instruction::removeFromParent() {
   // Perform any debug-info maintenence required.

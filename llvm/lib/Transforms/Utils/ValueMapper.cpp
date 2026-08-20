@@ -1326,7 +1326,28 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
   if (!AtomGroup)
     return;
 
-  auto R = VM.AtomMap.find({DL.getInlinedAt().getAsMDNode(), AtomGroup});
+  auto R = VM.AtomMap.find({DL.getInlinedAt(), AtomGroup});
+  if (R == VM.AtomMap.end())
+    return;
+  AtomGroup = R->second;
+
+  // Remap the atom group and copy all other fields.
+  DebugLoc New = DebugLoc::get(
+      I->getContext(), DL.getLine(), DL.getCol(), DL.getScope(),
+      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL.getAtomRank());
+  I->setDebugLoc(New);
+}
+
+void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM, Function *F) {
+  const DebugLoc &DL = I->getDebugLoc(F);
+  if (!DL)
+    return;
+
+  auto AtomGroup = DL.getAtomGroup();
+  if (!AtomGroup)
+    return;
+
+  auto R = VM.AtomMap.find({DL.getInlinedAt(), AtomGroup});
   if (R == VM.AtomMap.end())
     return;
   AtomGroup = R->second;
