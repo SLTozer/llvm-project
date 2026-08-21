@@ -415,7 +415,7 @@ Value *PHITransAddr::insertTranslatedSubExpr(
     CastInst *New = CastInst::Create(Cast->getOpcode(), OpVal, InVal->getType(),
                                      InVal->getName() + ".phi.trans.insert",
                                      PredBB->getTerminator()->getIterator());
-    New->setDebugLoc(Inst->getDebugLoc());
+    New->copyDebugLocFrom(Inst);
     NewInsts.push_back(New);
     return New;
   }
@@ -434,7 +434,7 @@ Value *PHITransAddr::insertTranslatedSubExpr(
         GEP->getSourceElementType(), GEPOps[0], ArrayRef(GEPOps).slice(1),
         InVal->getName() + ".phi.trans.insert",
         PredBB->getTerminator()->getIterator());
-    Result->setDebugLoc(Inst->getDebugLoc());
+    Result->copyDebugLocFrom(Inst);
     Result->setNoWrapFlags(GEP->getNoWrapFlags());
     NewInsts.push_back(Result);
     return Result;

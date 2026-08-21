@@ -226,7 +226,7 @@ void FastISel::flushLocalValueMap() {
           EmitStartPt ? ++MachineBasicBlock::iterator(EmitStartPt)
                       : FuncInfo.MBB->begin();
       if (FirstLocalValue != FirstNonValue && !FirstLocalValue->getDebugLoc())
-        FirstLocalValue->setDebugLoc(FirstNonValue->getDebugLoc());
+        FirstLocalValue->copyDebugLocFrom(&*FirstNonValue);
     }
   }
 

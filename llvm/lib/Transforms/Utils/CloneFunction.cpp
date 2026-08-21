@@ -632,7 +632,7 @@ void PruningFunctionCloner::CloneBlock(
     if (Cond) {
       BasicBlock *Dest = BI->getSuccessor(!Cond->getZExtValue());
       auto *NewBI = UncondBrInst::Create(Dest, NewBB);
-      NewBI->setDebugLoc(BI->getDebugLoc());
+      NewBI->copyDebugLocFrom(BI);
       VMap[OldTI] = NewBI;
       ToClone.push_back(Dest);
       TerminatorDone = true;
@@ -648,7 +648,7 @@ void PruningFunctionCloner::CloneBlock(
       SwitchInst::ConstCaseHandle Case = *SI->findCaseValue(Cond);
       BasicBlock *Dest = const_cast<BasicBlock *>(Case.getCaseSuccessor());
       auto *NewBI = UncondBrInst::Create(Dest, NewBB);
-      NewBI->setDebugLoc(SI->getDebugLoc());
+      NewBI->copyDebugLocFrom(SI);
       VMap[OldTI] = NewBI;
       ToClone.push_back(Dest);
       TerminatorDone = true;

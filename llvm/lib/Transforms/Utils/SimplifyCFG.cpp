@@ -1419,7 +1419,7 @@ bool SimplifyCFGOpt::performValueComparisonIntoPredecessorFolding(
 
   // Now that the successors are updated, create the new Switch instruction.
   SwitchInst *NewSI = Builder.CreateSwitch(CV, PredDefault, PredCases.size());
-  NewSI->setDebugLoc(PTI->getDebugLoc());
+  NewSI->copyDebugLocFrom(PTI);
   for (ValueEqualityComparisonCase &V : PredCases)
     NewSI->addCase(V.Value, V.Dest);
 
@@ -2928,7 +2928,7 @@ static void mergeCompatibleInvokesImpl(ArrayRef<InvokeInst *> Invokes,
     auto *BI = UncondBrInst::Create(MergedInvoke->getParent(), II->getParent());
     // The unconditional branch is part of the replacement for the original
     // invoke, so should use its DebugLoc.
-    BI->setDebugLoc(II->getDebugLoc());
+    BI->copyDebugLocFrom(II);
     bool Success = MergedInvoke->tryIntersectAttributes(II);
     assert(Success && "Merged invokes with incompatible attributes");
     // For NDEBUG Compile
@@ -3707,7 +3707,7 @@ foldCondBranchOnValueKnownInPredecessorImpl(CondBrInst *BI, DomTreeUpdater *DTU,
     BB->removePredecessor(EdgeBB);
     UncondBrInst *EdgeBI = cast<UncondBrInst>(EdgeBB->getTerminator());
     EdgeBI->setSuccessor(0, RealDest);
-    EdgeBI->setDebugLoc(BI->getDebugLoc());
+    EdgeBI->copyDebugLocFrom(BI);
 
     if (DTU) {
       SmallVector<DominatorTree::UpdateType, 2> Updates;
@@ -7955,7 +7955,7 @@ static bool simplifySwitchOfPowersOfTwo(SwitchInst *SI, IRBuilder<> &Builder,
       setBranchWeights(*SI, Weights, /*IsExpected=*/false);
     }
     // BI is handling the default case for SI, and so should share its DebugLoc.
-    BI->setDebugLoc(SI->getDebugLoc());
+    BI->copyDebugLocFrom(SI);
     It->eraseFromParent();
 
     addPredecessorToBlock(DefaultCaseBB, OrigBB, SplitBB);

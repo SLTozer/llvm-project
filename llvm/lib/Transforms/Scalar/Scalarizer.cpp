@@ -572,7 +572,7 @@ void ScalarizerVisitor::transferMetadataAndIRFlags(Instruction *Op,
           New->setMetadata(MD.first, MD.second);
       New->copyIRFlags(Op);
       if (Op->getDebugLoc() && !New->getDebugLoc())
-        New->setDebugLoc(Op->getDebugLoc());
+        New->copyDebugLocFrom(Op);
     }
   }
 }

@@ -382,7 +382,7 @@ static BasicBlock *insertUniqueBackedgeBlock(Loop *L, BasicBlock *Preheader,
   BasicBlock *BEBlock = BasicBlock::Create(Header->getContext(),
                                            Header->getName() + ".backedge", F);
   UncondBrInst *BETerminator = UncondBrInst::Create(Header, BEBlock);
-  BETerminator->setDebugLoc(Header->getFirstNonPHIIt()->getDebugLoc());
+  BETerminator->copyDebugLocFrom(&*Header->getFirstNonPHIIt());
 
   LLVM_DEBUG(dbgs() << "LoopSimplify: Inserting unique backedge block "
                     << BEBlock->getName() << "\n");

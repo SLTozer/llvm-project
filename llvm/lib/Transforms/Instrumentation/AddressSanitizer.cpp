@@ -2047,7 +2047,7 @@ void AddressSanitizer::instrumentAddress(Instruction *OrigIns,
   Instruction *Crash = generateCrashCode(
       CrashTerm, AddrLong, IsWrite, AccessSizeIndex, SizeArgument, Exp, RTCI);
   if (OrigIns->getDebugLoc())
-    Crash->setDebugLoc(OrigIns->getDebugLoc());
+    Crash->copyDebugLocFrom(OrigIns);
 }
 
 // Instrument unusual size or unusual alignment.

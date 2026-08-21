@@ -539,7 +539,7 @@ Value *WebAssemblyLowerEmscriptenEHSjLj::wrapInvoke(CallBase *CI) {
   CallInst *NewCall = IRB.CreateCall(getInvokeWrapper(CI), Args);
   NewCall->takeName(CI);
   NewCall->setCallingConv(CallingConv::WASM_EmscriptenInvoke);
-  NewCall->setDebugLoc(CI->getDebugLoc());
+  NewCall->copyDebugLocFrom(CI);
 
   // Because we added the pointer to the callee as first argument, all
   // argument attribute indices have to be incremented by one.

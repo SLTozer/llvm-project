@@ -160,6 +160,9 @@ public:
   /// (not an MDNode, or MDNode::isResolved() returns true).
   Metadata *mapMetadata(const Metadata *MD);
 
+  /// Map a DebugLoc.
+  DebugLoc mapDebugLoc(DebugLoc DL);
+
   void scheduleMapGlobalInitializer(GlobalVariable &GV, Constant &Init,
                                     unsigned MCID);
   void scheduleMapAppendingVariable(GlobalVariable &GV, GlobalVariable *OldGV,
@@ -544,8 +547,10 @@ Value *Mapper::mapValue(const Value *V) {
 
 void Mapper::remapDbgRecord(DbgRecord &DR) {
   // Remap DILocations.
+  #if !LLVM_USE_FLMD_SOURCE_LOCS
   auto *MappedDILoc = mapMetadata(DR.getDebugLoc().getAsMDNode());
   DR.setDebugLoc(DebugLoc::getFromDILocation(cast<DILocation>(MappedDILoc)));
+  #endif
 
   if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
     // Remap labels.
@@ -1016,13 +1021,19 @@ void Mapper::remapInstruction(Instruction *I) {
 
   // Remap attached metadata.
   SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
-  I->getAllMetadata(MDs);
+  I->getAllMetadataOtherThanDebugLoc(MDs);
   for (const auto &MI : MDs) {
     MDNode *Old = MI.second;
     MDNode *New = cast_or_null<MDNode>(mapMetadata(Old));
     if (New != Old)
       I->setMetadata(MI.first, New);
   }
+  #if !LLVM_USE_FLMD_SOURCE_LOCS
+  // With FLMD, we don't need to remap the FLDebugLoc attached to the
+  // instruction, and getDebugLoc() will fail for Instructions not inserted
+  // into a function.
+  I->setDebugLoc(mapMetadata(I->getDebugLoc()));
+  #endif
 
   // Remap source location atom instance.
   if (!(Flags & RF_DoNotRemapAtoms))

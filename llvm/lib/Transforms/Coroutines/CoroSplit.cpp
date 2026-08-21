@@ -107,13 +107,13 @@ static void lowerAwaitSuspend(IRBuilder<> &Builder, CoroAwaitSuspendInst *CB,
     std::copy(Invoke->bundle_op_info_begin(), Invoke->bundle_op_info_end(),
               WrapperInvoke->bundle_op_info_begin());
     WrapperInvoke->setAttributes(NewAttributes);
-    WrapperInvoke->setDebugLoc(Invoke->getDebugLoc());
+    WrapperInvoke->copyDebugLocFrom(Invoke);
     NewCall = WrapperInvoke;
   } else if (auto Call = dyn_cast<CallInst>(CB)) {
     auto WrapperCall = Builder.CreateCall(Wrapper, {Awaiter, FramePtr});
 
     WrapperCall->setAttributes(NewAttributes);
-    WrapperCall->setDebugLoc(Call->getDebugLoc());
+    WrapperCall->copyDebugLocFrom(Call);
     NewCall = WrapperCall;
   } else {
     llvm_unreachable("Unexpected coro_await_suspend invocation method");

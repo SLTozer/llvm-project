@@ -1353,7 +1353,7 @@ llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
 
     // Replace the conditional branch with an unconditional one.
     auto *BI = UncondBrInst::Create(Dest, Term->getIterator());
-    BI->setDebugLoc(Term->getDebugLoc());
+    BI->copyDebugLocFrom(Term);
     Term->eraseFromParent();
 
     DTUpdates.emplace_back(DominatorTree::Delete, Src, DeadSucc);

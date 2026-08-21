@@ -796,7 +796,7 @@ bool LoopRotate::rotateLoop(Loop *L, bool SimplifiedLatch) {
     // simpler. The first step is to remove the extra edge to the Exit block.
     Exit->removePredecessor(OrigPreheader, true /*preserve LCSSA*/);
     UncondBrInst *NewBI = UncondBrInst::Create(NewHeader, PHBI->getIterator());
-    NewBI->setDebugLoc(PHBI->getDebugLoc());
+    NewBI->copyDebugLocFrom(PHBI);
     PHBI->eraseFromParent();
 
     // With our CFG finalized, update DomTree if it is available.

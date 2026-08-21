@@ -1841,7 +1841,7 @@ Instruction *InstCombinerImpl::FoldOpIntoSelect(Instruction &Op, SelectInst *SI,
                        {LLVMContext::MD_prof, LLVMContext::MD_unpredictable});
 
   // Preserve source location information.
-  NewSel->setDebugLoc(SI->getDebugLoc());
+  NewSel->copyDebugLocFrom(SI);
 
   return NewSel;
 }
@@ -2074,7 +2074,7 @@ Instruction *InstCombinerImpl::foldOpIntoPhi(Instruction &I, PHINode *PN,
   PHINode *NewPN = PHINode::Create(I.getType(), PN->getNumIncomingValues());
   InsertNewInstBefore(NewPN, PN->getIterator());
   NewPN->takeName(PN);
-  NewPN->setDebugLoc(PN->getDebugLoc());
+  NewPN->copyDebugLocFrom(PN);
 
   for (unsigned i = 0; i != NumPHIValues; ++i)
     NewPN->addIncoming(NewPhiValues[i], PN->getIncomingBlock(i));
@@ -4022,7 +4022,7 @@ Instruction *InstCombinerImpl::visitAllocSite(Instruction &MI) {
       Function *F = Intrinsic::getOrInsertDeclaration(M, Intrinsic::donothing);
       auto *NewII = InvokeInst::Create(
           F, II->getNormalDest(), II->getUnwindDest(), {}, "", II->getParent());
-      NewII->setDebugLoc(II->getDebugLoc());
+      NewII->copyDebugLocFrom(II);
     }
 
     // Remove debug intrinsics which describe the value contained within the

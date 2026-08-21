@@ -253,7 +253,7 @@ static bool replaceSignedInst(SCCPSolver &Solver,
   NewInst->takeName(&Inst);
   InsertedValues.insert(NewInst);
   Inst.replaceAllUsesWith(NewInst);
-  NewInst->setDebugLoc(Inst.getDebugLoc());
+  NewInst->copyDebugLocFrom(&Inst);
   Solver.removeLatticeValueFor(&Inst);
   Inst.eraseFromParent();
   return true;
@@ -452,7 +452,7 @@ bool SCCPSolver::removeNonFeasibleEdges(BasicBlock *BB, DomTreeUpdater &DTU,
     }
 
     Instruction *BI = UncondBrInst::Create(OnlyFeasibleSuccessor, BB);
-    BI->setDebugLoc(TI->getDebugLoc());
+    BI->copyDebugLocFrom(TI);
     TI->eraseFromParent();
     DTU.applyUpdatesPermissive(Updates);
   } else if (FeasibleSuccessors.size() > 1) {

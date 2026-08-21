@@ -1209,7 +1209,7 @@ bool LoopIdiomRecognize::processLoopStridedStore(
     return Changed;
   }
 
-  NewCall->setDebugLoc(TheStore->getDebugLoc());
+  NewCall->copyDebugLocFrom(TheStore);
 
   if (MSSAU) {
     MemoryAccess *NewMemAcc = MSSAU->createMemoryAccessInBB(
@@ -1512,7 +1512,7 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(
         StoreBasePtr, *StoreAlign, LoadBasePtr, *LoadAlign, NumBytes, StoreSize,
         AATags);
   }
-  NewCall->setDebugLoc(TheStore->getDebugLoc());
+  NewCall->copyDebugLocFrom(TheStore);
 
   if (MSSAU) {
     MemoryAccess *NewMemAcc = MSSAU->createMemoryAccessInBB(

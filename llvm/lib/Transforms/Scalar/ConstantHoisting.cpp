@@ -759,7 +759,7 @@ void ConstantHoistingPass::emitBaseConstants(Instruction *Base,
                       << " + " << *Adj->Offset << ") in BB "
                       << Mat->getParent()->getName() << '\n'
                       << *Mat << '\n');
-    Mat->setDebugLoc(Adj->User.Inst->getDebugLoc());
+    Mat->copyDebugLocFrom(Adj->User.Inst);
   }
   Value *Opnd = Adj->User.Inst->getOperand(Adj->User.OpndIdx);
 
@@ -783,7 +783,7 @@ void ConstantHoistingPass::emitBaseConstants(Instruction *Base,
       ClonedCastInst->setOperand(0, Mat);
       ClonedCastInst->insertAfter(CastInst->getIterator());
       // Use the same debug location as the original cast instruction.
-      ClonedCastInst->setDebugLoc(CastInst->getDebugLoc());
+      ClonedCastInst->copyDebugLocFrom(CastInst);
       LLVM_DEBUG(dbgs() << "Clone instruction: " << *CastInst << '\n'
                         << "To               : " << *ClonedCastInst << '\n');
     }
@@ -809,7 +809,7 @@ void ConstantHoistingPass::emitBaseConstants(Instruction *Base,
     ConstExprInst->setOperand(0, Mat);
 
     // Use the same debug location as the instruction we are about to update.
-    ConstExprInst->setDebugLoc(Adj->User.Inst->getDebugLoc());
+    ConstExprInst->copyDebugLocFrom(Adj->User.Inst);
 
     LLVM_DEBUG(dbgs() << "Create instruction: " << *ConstExprInst << '\n'
                       << "From              : " << *ConstExpr << '\n');
@@ -879,7 +879,7 @@ bool ConstantHoistingPass::emitBaseConstants(GlobalVariable *BaseGV) {
         Base = new BitCastInst(ConstInfo.BaseInt, Ty, "const", IP);
       }
 
-      Base->setDebugLoc(IP->getDebugLoc());
+      Base->copyDebugLocFrom(&*IP);
 
       LLVM_DEBUG(dbgs() << "Hoist constant (" << *ConstInfo.BaseInt
                         << ") to BB " << IP->getParent()->getName() << '\n'

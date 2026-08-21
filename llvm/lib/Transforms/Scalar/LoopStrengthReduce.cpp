@@ -2459,7 +2459,7 @@ void LSRInstance::OptimizeShadowIV() {
 
     /* Add new PHINode. */
     PHINode *NewPH = PHINode::Create(DestTy, 2, "IV.S.", PH->getIterator());
-    NewPH->setDebugLoc(PH->getDebugLoc());
+    NewPH->copyDebugLocFrom(PH);
 
     /* create new increment. '++d' in above example. */
     Constant *CFP = ConstantFP::get(DestTy, C->getZExtValue());
@@ -2467,7 +2467,7 @@ void LSRInstance::OptimizeShadowIV() {
         Incr->getOpcode() == Instruction::Add ? Instruction::FAdd
                                               : Instruction::FSub,
         NewPH, CFP, "IV.S.next.", Incr->getIterator());
-    NewIncr->setDebugLoc(Incr->getDebugLoc());
+    NewIncr->copyDebugLocFrom(Incr);
 
     NewPH->addIncoming(NewInit, PH->getIncomingBlock(Entry));
     NewPH->addIncoming(NewIncr, PH->getIncomingBlock(Latch));
@@ -2639,7 +2639,7 @@ Instruction *LSRInstance::OptimizeMax(ICmpInst *Cond, IVStrideUse *&CondUse) {
                                    Cond->getOperand(0), NewRHS, "scmp");
 
   // Delete the max calculation instructions.
-  NewCond->setDebugLoc(Cond->getDebugLoc());
+  NewCond->copyDebugLocFrom(Cond);
   Cond->replaceAllUsesWith(NewCond);
   CondUse->setUser(NewCond);
   Instruction *Cmp = cast<Instruction>(Sel->getOperand(0));

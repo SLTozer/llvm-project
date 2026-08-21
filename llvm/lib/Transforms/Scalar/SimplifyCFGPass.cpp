@@ -149,7 +149,7 @@ performBlockTailMerging(Function &F, ArrayRef<BasicBlock *> BBs,
     // And turn BB into a block that just unconditionally branches
     // to the canonical block.
     Instruction *BI = UncondBrInst::Create(CanonicalBB, BB);
-    BI->setDebugLoc(Term->getDebugLoc());
+    BI->copyDebugLocFrom(Term);
     Term->eraseFromParent();
 
     if (Updates)

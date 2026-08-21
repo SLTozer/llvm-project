@@ -175,7 +175,7 @@ llvm::SplitKnownCriticalEdge(Instruction *TI, unsigned SuccNum,
                                                      "_crit_edge");
   // Create our unconditional branch.
   UncondBrInst *NewBI = UncondBrInst::Create(DestBB, NewBB);
-  NewBI->setDebugLoc(TI->getDebugLoc());
+  NewBI->copyDebugLocFrom(TI);
   if (auto *LoopMD = TI->getMetadata(LLVMContext::MD_loop))
     NewBI->setMetadata(LLVMContext::MD_loop, LoopMD);
 
@@ -476,7 +476,7 @@ bool llvm::SplitIndirectBrCriticalEdges(Function &F,
       PHINode *NewIndPHI = PHINode::Create(IndPHI->getType(), 1, "ind", InsertPt);
       NewIndPHI->addIncoming(IndPHI->getIncomingValueForBlock(IBRPred),
                              IBRPred);
-      NewIndPHI->setDebugLoc(IndPHI->getDebugLoc());
+      NewIndPHI->copyDebugLocFrom(IndPHI);
 
       // Create a PHI in the body block, to merge the direct and indirect
       // predecessors.

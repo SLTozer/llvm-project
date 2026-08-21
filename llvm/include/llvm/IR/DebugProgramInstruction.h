@@ -144,12 +144,12 @@ public:
   enum Kind : uint8_t { ValueKind, LabelKind };
 
 protected:
-  DebugLoc DbgLoc;
+  DbgLocStorage DbgLoc;
   Kind RecordKind; ///< Subclass discriminator.
 
 public:
   DbgRecord(Kind RecordKind, DebugLoc DL)
-      : DbgLoc(DL), RecordKind(RecordKind) {}
+      : DbgLoc(DL.getStorage()), RecordKind(RecordKind) {}
 
   /// Methods that dispatch to subclass implementations. These need to be
   /// manually updated when a new subclass is added.
@@ -213,8 +213,36 @@ public:
   LLVM_ABI void moveBefore(self_iterator MoveBefore);
   LLVM_ABI void moveAfter(self_iterator MoveAfter);
 
-  DebugLoc getDebugLoc() const { return DbgLoc; }
-  void setDebugLoc(DebugLoc Loc) { DbgLoc = std::move(Loc); }
+  DebugLoc getDebugLoc() const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    return DebugLoc(DbgLoc, getFLMDForFunction(getFunction()));
+#else
+    return DebugLoc(DbgLoc);
+#endif
+  }
+  DebugLoc getDebugLoc(Function *FunctionContext) const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    return DebugLoc(DbgLoc, getFLMDForFunction(FunctionContext));
+#else
+    return DebugLoc(DbgLoc);
+#endif
+  }
+  void setDebugLoc(DebugLoc Loc) { DbgLoc = Loc.getStorage(); }
+  void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
+  void setDebugLocIfPresent(DebugLoc Loc) { DbgLoc = Loc.getStorage().orElse(DbgLoc); }
+  void setDebugLocIfPresent(DbgLocStorage Loc) { DbgLoc = Loc.orElse(DbgLoc); }
+  void copyDebugLocFrom(const Instruction *Other) {
+    DbgLoc = Other->getDebugLocStorage();
+  }
+  void copyDebugLocFromIfPresent(const Instruction *Other) {
+    DbgLoc = Other->getDebugLocStorage().orElse(DbgLoc);
+  }
+  void copyDebugLocFrom(const DbgRecord *Other) {
+    DbgLoc = Other->DbgLoc;
+  }
+  void copyDebugLocFromIfPresent(const DbgRecord *Other) {
+    DbgLoc = Other->DbgLoc.orElse(DbgLoc);
+  }
 
   LLVM_ABI void dump() const;
 

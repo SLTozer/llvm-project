@@ -5399,7 +5399,7 @@ bool InstCombinerImpl::transformConstExprCastCall(CallBase &Call) {
   if (OldRetTy != NV->getType() && !Caller->use_empty()) {
     assert(!NV->getType()->isVoidTy());
     NV = NC = CastInst::CreateBitOrPointerCast(NC, OldRetTy);
-    NC->setDebugLoc(Caller->getDebugLoc());
+    NC->copyDebugLocFrom(Caller);
 
     auto OptInsertPt = NewCall->getInsertionPointAfterDef();
     assert(OptInsertPt && "No place to insert cast");
@@ -5552,7 +5552,7 @@ InstCombinerImpl::transformCallThroughTrampoline(CallBase &Call,
             cast<CallInst>(Call).getCallingConv());
         cast<CallInst>(NewCaller)->setAttributes(NewPAL);
       }
-      NewCaller->setDebugLoc(Call.getDebugLoc());
+      NewCaller->copyDebugLocFrom(&Call);
 
       return NewCaller;
     }

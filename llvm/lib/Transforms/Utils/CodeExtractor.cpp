@@ -1113,7 +1113,7 @@ static void applyFirstDebugLoc(Function *oldFunction,
       return any_of(*BB, [&BranchI](const Instruction &I) {
         if (!I.getDebugLoc())
           return false;
-        BranchI->setDebugLoc(I.getDebugLoc());
+        BranchI->copyDebugLocFrom(&I);
         return true;
       });
     });

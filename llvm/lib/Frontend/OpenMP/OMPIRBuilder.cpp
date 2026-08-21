@@ -2908,7 +2908,7 @@ OpenMPIRBuilder::InsertPointOrErrorTy OpenMPIRBuilder::createTask(
         CI = createRuntimeFunctionCall(&OutlinedFn, {ThreadID, TaskData});
       else
         CI = createRuntimeFunctionCall(&OutlinedFn, {ThreadID});
-      CI->setDebugLoc(StaleCI->getDebugLoc());
+      CI->copyDebugLocFrom(StaleCI);
       createRuntimeFunctionCall(TaskCompleteFn, {Ident, ThreadID, TaskData});
       Builder.SetInsertPoint(ThenTI);
     }
@@ -9663,7 +9663,7 @@ OpenMPIRBuilder::InsertPointOrErrorTy OpenMPIRBuilder::emitTargetTask(
           getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_omp_task_complete_if0);
       createRuntimeFunctionCall(TaskBeginFn, {Ident, ThreadID, TaskData});
       CallInst *CI = createRuntimeFunctionCall(ProxyFn, {ThreadID, TaskData});
-      CI->setDebugLoc(StaleCI->getDebugLoc());
+      CI->copyDebugLocFrom(StaleCI);
       createRuntimeFunctionCall(TaskCompleteFn, {Ident, ThreadID, TaskData});
     } else if (DepArray) {
       // HasNoWait - meaning the task may be deferred. Call

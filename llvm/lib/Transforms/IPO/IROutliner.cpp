@@ -1478,7 +1478,7 @@ CallInst *replaceCalledFunction(Module &M, OutlinableRegion &Region) {
     Region.NewBack->Inst = Call;
 
   // Transfer any debug information.
-  Call->setDebugLoc(Region.Call->getDebugLoc());
+  Call->copyDebugLocFrom(Region.Call);
   // Since our output may determine which branch we go to, we make sure to
   // propagate this new call value through the module.
   OldCall->replaceAllUsesWith(Call);

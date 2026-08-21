@@ -481,7 +481,7 @@ Instruction *MemCpyOptPass::tryMergingIntoMemset(Instruction *StartInst,
                                               << *SI << '\n';
                dbgs() << "With: " << *AMemSet << '\n');
     if (!Range.TheStores.empty())
-      AMemSet->setDebugLoc(Range.TheStores[0]->getDebugLoc());
+      AMemSet->copyDebugLocFrom(Range.TheStores[0]);
 
     auto *NewDef = cast<MemoryDef>(
         MemInsertPoint->getMemoryInst() == &*BI

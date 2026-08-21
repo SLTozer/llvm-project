@@ -215,7 +215,7 @@ static bool optimizeDivRem(Function &F, const TargetTransformInfo &TTI,
       RemInst = RealRem;
       // And replace the original instruction with the new one.
       OrigRemInst->replaceAllUsesWith(RealRem);
-      RealRem->setDebugLoc(OrigRemInst->getDebugLoc());
+      RealRem->copyDebugLocFrom(OrigRemInst);
       OrigRemInst->eraseFromParent();
       NumRecomposed++;
       // Note that we have left ((X / Y) * Y) around.
@@ -367,9 +367,9 @@ static bool optimizeDivRem(Function &F, const TargetTransformInfo &TTI,
       if (!DivDominates)
         DivInst->moveBefore(RemInst->getIterator());
       Mul->insertAfter(RemInst->getIterator());
-      Mul->setDebugLoc(RemInst->getDebugLoc());
+      Mul->copyDebugLocFrom(RemInst);
       Sub->insertAfter(Mul->getIterator());
-      Sub->setDebugLoc(RemInst->getDebugLoc());
+      Sub->copyDebugLocFrom(RemInst);
 
       // If DivInst has the exact flag, remove it. Otherwise this optimization
       // may replace a well-defined value 'X % Y' with poison.
@@ -387,7 +387,7 @@ static bool optimizeDivRem(Function &F, const TargetTransformInfo &TTI,
       if (!isGuaranteedNotToBeUndef(X, nullptr, DivInst, &DT)) {
         auto *FrX =
             new FreezeInst(X, X->getName() + ".frozen", DivInst->getIterator());
-        FrX->setDebugLoc(DivInst->getDebugLoc());
+        FrX->copyDebugLocFrom(DivInst);
         DivInst->setOperand(0, FrX);
         Sub->setOperand(0, FrX);
       }
@@ -396,7 +396,7 @@ static bool optimizeDivRem(Function &F, const TargetTransformInfo &TTI,
       if (!isGuaranteedNotToBeUndef(Y, nullptr, DivInst, &DT)) {
         auto *FrY =
             new FreezeInst(Y, Y->getName() + ".frozen", DivInst->getIterator());
-        FrY->setDebugLoc(DivInst->getDebugLoc());
+        FrY->copyDebugLocFrom(DivInst);
         DivInst->setOperand(1, FrY);
         Mul->setOperand(1, FrY);
       }

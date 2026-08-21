@@ -241,7 +241,7 @@ void LandingPadInliningInfo::forwardResume(
   BasicBlock *Src = RI->getParent();
 
   auto *BI = UncondBrInst::Create(Dest, Src);
-  BI->setDebugLoc(RI->getDebugLoc());
+  BI->copyDebugLocFrom(RI);
 
   // Update the PHIs in the destination. They were inserted in an order which
   // makes this work.
@@ -3086,7 +3086,7 @@ void llvm::InlineFunctionImpl(CallBase &CB, InlineFunctionInfo &IFI,
           Params.append(VarArgsToForward.begin(), VarArgsToForward.end());
           CallInst *NewCI = CallInst::Create(
               CI->getFunctionType(), CI->getCalledOperand(), Params, "", CI->getIterator());
-          NewCI->setDebugLoc(CI->getDebugLoc());
+          NewCI->copyDebugLocFrom(CI);
           NewCI->setAttributes(Attrs);
           NewCI->setCallingConv(CI->getCallingConv());
           CI->replaceAllUsesWith(NewCI);
@@ -3373,7 +3373,7 @@ void llvm::InlineFunctionImpl(CallBase &CB, InlineFunctionInfo &IFI,
     if (InvokeInst *II = dyn_cast<InvokeInst>(&CB)) {
       UncondBrInst *NewBr =
           UncondBrInst::Create(II->getNormalDest(), CB.getIterator());
-      NewBr->setDebugLoc(Returns[0]->getDebugLoc());
+      NewBr->copyDebugLocFrom(Returns[0]);
     }
 
     // If the return instruction returned a value, replace uses of the call with
@@ -3506,7 +3506,7 @@ void llvm::InlineFunctionImpl(CallBase &CB, InlineFunctionInfo &IFI,
     AfterCallBB->splice(AfterCallBB->begin(), ReturnBB);
 
     if (CreatedBranchToNormalDest)
-      CreatedBranchToNormalDest->setDebugLoc(Returns[0]->getDebugLoc());
+      CreatedBranchToNormalDest->copyDebugLocFrom(Returns[0]);
 
     // Delete the return instruction now and empty ReturnBB now.
     Returns[0]->eraseFromParent();

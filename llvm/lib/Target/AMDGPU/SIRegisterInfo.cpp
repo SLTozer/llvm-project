@@ -93,7 +93,7 @@ struct SGPRSpillBuilder {
   ArrayRef<int16_t> SplitParts;
   unsigned NumSubRegs;
   bool IsKill;
-  const DebugLoc &DL;
+  DebugLoc DL;
 
   /* When spilling to stack */
   // The SGPRs are written into this VGPR, which is then written to scratch

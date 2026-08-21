@@ -489,7 +489,7 @@ Instruction *NaryReassociatePass::tryReassociatedBinaryOp(SCEVUse LHSExpr,
   default:
     llvm_unreachable("Unexpected instruction.");
   }
-  NewI->setDebugLoc(I->getDebugLoc());
+  NewI->copyDebugLocFrom(I);
   NewI->takeName(I);
   return NewI;
 }

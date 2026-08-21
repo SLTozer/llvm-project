@@ -869,7 +869,7 @@ public:
       NewBI->copyMetadata(*BI, {LLVMContext::MD_prof});
     // FIXME: Issue #152767: debug info should also be the same as the
     // original branch, **if** the user explicitly indicated that.
-    NewBI->setDebugLoc(HoistTarget->getTerminator()->getDebugLoc());
+    NewBI->copyDebugLocFrom(HoistTarget->getTerminator());
 
     ++NumClonedBranches;
 
@@ -946,14 +946,14 @@ bool llvm::hoistRegion(DomTreeNode *N, AAResults *AA, LoopInfo *LI,
         ReciprocalDivisor->setFastMathFlags(I.getFastMathFlags());
         SafetyInfo->insertInstructionTo(ReciprocalDivisor, I.getParent());
         ReciprocalDivisor->insertBefore(I.getIterator());
-        ReciprocalDivisor->setDebugLoc(I.getDebugLoc());
+        ReciprocalDivisor->copyDebugLocFrom(&I);
 
         auto Product =
             BinaryOperator::CreateFMul(I.getOperand(0), ReciprocalDivisor);
         Product->setFastMathFlags(I.getFastMathFlags());
         SafetyInfo->insertInstructionTo(Product, I.getParent());
         Product->insertAfter(I.getIterator());
-        Product->setDebugLoc(I.getDebugLoc());
+        Product->copyDebugLocFrom(&I);
         I.replaceAllUsesWith(Product);
         eraseInstruction(I, *SafetyInfo, MSSAU);
 

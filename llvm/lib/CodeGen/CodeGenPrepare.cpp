@@ -1930,7 +1930,7 @@ static bool sinkCmpExpression(CmpInst *Cmp, const TargetLowering &TLI,
                                     Cmp->getOperand(0), Cmp->getOperand(1), "");
       InsertedCmp->insertBefore(*UserBB, InsertPt);
       // Propagate the debug info.
-      InsertedCmp->setDebugLoc(Cmp->getDebugLoc());
+      InsertedCmp->copyDebugLocFrom(Cmp);
     }
 
     // Replace a use of the cmp with a use of the new cmp.
@@ -2359,7 +2359,7 @@ static bool sinkAndCmp0Expression(Instruction *AndI, const TargetLowering &TLI,
         Instruction::And, AndI->getOperand(0), AndI->getOperand(1), "",
         InsertPt->getIterator());
     // Propagate the debug info.
-    InsertedAnd->setDebugLoc(AndI->getDebugLoc());
+    InsertedAnd->copyDebugLocFrom(AndI);
 
     // Replace a use of the 'and' with a use of the new 'and'.
     TheUse = InsertedAnd;
@@ -2446,7 +2446,7 @@ SinkShiftAndTruncate(BinaryOperator *ShiftI, Instruction *User, ConstantInt *CI,
       else
         InsertedShift =
             BinaryOperator::CreateLShr(ShiftI->getOperand(0), CI, "");
-      InsertedShift->setDebugLoc(ShiftI->getDebugLoc());
+      InsertedShift->copyDebugLocFrom(ShiftI);
       InsertedShift->insertBefore(*TruncUserBB, InsertPt);
 
       // Sink the trunc
@@ -2459,7 +2459,7 @@ SinkShiftAndTruncate(BinaryOperator *ShiftI, Instruction *User, ConstantInt *CI,
       InsertedTrunc = CastInst::Create(TruncI->getOpcode(), InsertedShift,
                                        TruncI->getType(), "");
       InsertedTrunc->insertBefore(*TruncUserBB, TruncInsertPt);
-      InsertedTrunc->setDebugLoc(TruncI->getDebugLoc());
+      InsertedTrunc->copyDebugLocFrom(TruncI);
 
       MadeChange = true;
 
@@ -2552,7 +2552,7 @@ static bool OptimizeExtractBits(BinaryOperator *ShiftI, ConstantInt *CI,
         InsertedShift =
             BinaryOperator::CreateLShr(ShiftI->getOperand(0), CI, "");
       InsertedShift->insertBefore(*UserBB, InsertPt);
-      InsertedShift->setDebugLoc(ShiftI->getDebugLoc());
+      InsertedShift->copyDebugLocFrom(ShiftI);
 
       MadeChange = true;
     }
@@ -7899,7 +7899,7 @@ bool CodeGenPrepare::optimizeSelectInst(SelectInst *SI) {
     PN->takeName(SI);
     PN->addIncoming(getTrueOrFalseValue(SI, true, INS), TrueBlock);
     PN->addIncoming(getTrueOrFalseValue(SI, false, INS), FalseBlock);
-    PN->setDebugLoc(SI->getDebugLoc());
+    PN->copyDebugLocFrom(SI);
 
     replaceAllUsesWith(SI, PN, FreshBBs, IsHugeFunc);
     SI->eraseFromParent();
@@ -8062,7 +8062,7 @@ bool CodeGenPrepare::optimizeSwitchType(SwitchInst *SI) {
 
   auto *ExtInst = CastInst::Create(ExtType, Cond, NewType);
   ExtInst->insertBefore(SI->getIterator());
-  ExtInst->setDebugLoc(SI->getDebugLoc());
+  ExtInst->copyDebugLocFrom(SI);
   SI->setCondition(ExtInst);
   for (auto Case : SI->cases()) {
     const APInt &NarrowConst = Case.getCaseValue()->getValue();
@@ -9026,7 +9026,7 @@ bool CodeGenPrepare::optimizeInst(Instruction *I, ModifyDT &ModifiedDT) {
       /// The GEP operand must be a pointer, so must its result -> BitCast
       Instruction *NC = new BitCastInst(GEPI->getOperand(0), GEPI->getType(),
                                         GEPI->getName(), GEPI->getIterator());
-      NC->setDebugLoc(GEPI->getDebugLoc());
+      NC->copyDebugLocFrom(GEPI);
       replaceAllUsesWith(GEPI, NC, FreshBBs, IsHugeFunc);
       RecursivelyDeleteTriviallyDeadInstructions(
           GEPI, TLInfo, nullptr,

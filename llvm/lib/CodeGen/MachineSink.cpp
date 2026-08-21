@@ -579,7 +579,7 @@ bool MachineSinking::PerformSinkAndFold(MachineInstr &MI,
       TII->reMaterialize(*SinkDst->getParent(), InsertPt, DstReg, 0, MI);
       New = &*std::prev(InsertPt);
       if (!New->getDebugLoc())
-        New->setDebugLoc(SinkDst->getDebugLoc());
+        New->copyDebugLocFrom(SinkDst);
 
       // The operand registers of the "sunk" instruction have their live range
       // extended and their kill flags may no longer be correct. Conservatively

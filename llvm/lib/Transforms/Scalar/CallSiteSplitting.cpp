@@ -312,7 +312,7 @@ static void splitCallSite(CallBase &CB,
   // this phi in a `TailBB`.
   if (!IsMustTailCall && !CB.use_empty()) {
     CallPN = PHINode::Create(CB.getType(), Preds.size(), "phi.call");
-    CallPN->setDebugLoc(CB.getDebugLoc());
+    CallPN->copyDebugLocFrom(&CB);
   }
 
   LLVM_DEBUG(dbgs() << "split call-site : " << CB << " into \n");
@@ -396,7 +396,7 @@ static void splitCallSite(CallBase &CB,
       if (isa<PHINode>(CurrentI))
         continue;
       PHINode *NewPN = PHINode::Create(CurrentI->getType(), Preds.size());
-      NewPN->setDebugLoc(CurrentI->getDebugLoc());
+      NewPN->copyDebugLocFrom(CurrentI);
       for (auto &Mapping : ValueToValueMaps) {
         Value *V = Mapping[CurrentI];
         NewPN->addIncoming(V, cast<Instruction>(V)->getParent());

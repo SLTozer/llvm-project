@@ -738,7 +738,7 @@ static Value *phiNodeOperandWithNewAddressSpace(AddrSpaceCastInst *NewI,
                                                 Value *Operand) {
   auto InsertBefore = [NewI](auto It) {
     NewI->insertBefore(It);
-    NewI->setDebugLoc(It->getDebugLoc());
+    NewI->copyDebugLocFrom(&*It);
     return NewI;
   };
 
@@ -763,7 +763,7 @@ static Value *phiNodeOperandWithNewAddressSpace(AddrSpaceCastInst *NewI,
 
   // Otherwise, insert immediately after the operand definition.
   NewI->insertAfter(OpInst->getIterator());
-  NewI->setDebugLoc(OpInst->getDebugLoc());
+  NewI->copyDebugLocFrom(OpInst);
   return NewI;
 }
 
@@ -797,7 +797,7 @@ static Value *operandWithNewAddressSpaceOrCreatePoison(
       return phiNodeOperandWithNewAddressSpace(NewI, Operand);
 
     NewI->insertBefore(Inst->getIterator());
-    NewI->setDebugLoc(Inst->getDebugLoc());
+    NewI->copyDebugLocFrom(Inst);
     return NewI;
   }
 
@@ -848,7 +848,7 @@ Value *InferAddressSpacesImpl::clonePtrMaskWithNewAddressSpace(
       Type *NewPtrType = getPtrOrVecOfPtrsWithNewAS(I->getType(), NewAddrSpace);
       Instruction *AddrSpaceCast =
           new AddrSpaceCastInst(I, NewPtrType, "", *InsertPoint);
-      AddrSpaceCast->setDebugLoc(I->getDebugLoc());
+      AddrSpaceCast->copyDebugLocFrom(I);
       return AddrSpaceCast;
     }
   }
@@ -905,7 +905,7 @@ Value *InferAddressSpacesImpl::cloneInstructionWithNewAddressSpace(
     Type *NewPtrTy = getPtrOrVecOfPtrsWithNewAS(I->getType(), AS);
     auto *NewI = new AddrSpaceCastInst(I, NewPtrTy);
     NewI->insertAfter(I->getIterator());
-    NewI->setDebugLoc(I->getDebugLoc());
+    NewI->copyDebugLocFrom(I);
     return NewI;
   }
 
@@ -1078,7 +1078,7 @@ Value *InferAddressSpacesImpl::cloneValueWithNewAddressSpace(
       if (NewI->getParent() == nullptr) {
         NewI->insertBefore(I->getIterator());
         NewI->takeName(I);
-        NewI->setDebugLoc(I->getDebugLoc());
+        NewI->copyDebugLocFrom(I);
       }
     }
     return NewV;

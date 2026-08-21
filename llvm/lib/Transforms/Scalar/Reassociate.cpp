@@ -326,7 +326,7 @@ static BinaryOperator *LowerNegateToMultiply(Instruction *Neg) {
   Neg->setOperand(OpNo, Constant::getNullValue(Ty)); // Drop use of op.
   Res->takeName(Neg);
   Neg->replaceAllUsesWith(Res);
-  Res->setDebugLoc(Neg->getDebugLoc());
+  Res->copyDebugLocFrom(Neg);
   return Res;
 }
 
@@ -887,7 +887,7 @@ static Value *NegateValue(Value *V, Instruction *BI,
   Instruction *NewNeg =
       CreateNeg(V, V->getName() + ".neg", BI->getIterator(), BI);
   // NewNeg is generated to potentially replace BI, so use its DebugLoc.
-  NewNeg->setDebugLoc(BI->getDebugLoc());
+  NewNeg->copyDebugLocFrom(BI);
   ToRedo.insert(NewNeg);
   return NewNeg;
 }
@@ -981,7 +981,7 @@ static BinaryOperator *convertOrWithNoCommonBitsToAdd(Instruction *Or) {
 
   // Everyone now refers to the add instruction.
   Or->replaceAllUsesWith(New);
-  New->setDebugLoc(Or->getDebugLoc());
+  New->copyDebugLocFrom(Or);
 
   LLVM_DEBUG(dbgs() << "Converted or into an add: " << *New << '\n');
   return New;
@@ -1036,7 +1036,7 @@ static BinaryOperator *BreakUpDistribute(Instruction *Mul,
       BinaryOperator::CreateAdd(M1, M2, "DistAdd", Mul->getIterator());
 
   Mul->replaceAllUsesWith(Result);
-  Result->setDebugLoc(Mul->getDebugLoc());
+  Result->copyDebugLocFrom(Mul);
 
   ToRedo.insert(M1);
   ToRedo.insert(M2);
@@ -1092,7 +1092,7 @@ static BinaryOperator *BreakUpSubtract(Instruction *Sub,
 
   // Everyone now refers to the add instruction.
   Sub->replaceAllUsesWith(New);
-  New->setDebugLoc(Sub->getDebugLoc());
+  New->copyDebugLocFrom(Sub);
 
   LLVM_DEBUG(dbgs() << "Negated: " << *New << '\n');
   return New;
@@ -1113,7 +1113,7 @@ static BinaryOperator *ConvertShiftToMul(Instruction *Shl) {
 
   // Everyone now refers to the mul instruction.
   Shl->replaceAllUsesWith(Mul);
-  Mul->setDebugLoc(Shl->getDebugLoc());
+  Mul->copyDebugLocFrom(Shl);
 
   // We can safely preserve the nuw flag in all cases.  It's also safe to turn a
   // nuw nsw shl into a nuw nsw mul.  However, nsw in isolation requires special
@@ -1164,7 +1164,7 @@ static Value *EmitAddTreeOfValues(Instruction *I,
   Value *V1 = Ops.pop_back_val();
   Value *V2 = EmitAddTreeOfValues(I, Ops);
   auto *NewAdd = CreateAdd(V2, V1, "reass.add", I->getIterator(), I);
-  NewAdd->setDebugLoc(I->getDebugLoc());
+  NewAdd->copyDebugLocFrom(I);
   return NewAdd;
 }
 
@@ -1325,7 +1325,7 @@ static Value *createAndInstr(BasicBlock::iterator InsertBefore, Value *Opnd,
   Instruction *I = BinaryOperator::CreateAnd(
       Opnd, ConstantInt::get(Opnd->getType(), ConstOpnd), "and.ra",
       InsertBefore);
-  I->setDebugLoc(InsertBefore->getDebugLoc());
+  I->copyDebugLocFrom(&*InsertBefore);
   return I;
 }
 
@@ -1598,7 +1598,7 @@ Value *ReassociatePass::OptimizeAdd(Instruction *I,
                                            /*ImplicitTrunc=*/true)
                         : ConstantFP::get(Ty, NumFound);
       Instruction *Mul = CreateMul(TheOp, C, "factor", I->getIterator(), I);
-      Mul->setDebugLoc(I->getDebugLoc());
+      Mul->copyDebugLocFrom(I);
 
       // Now that we have inserted a multiply, optimize it. This allows us to
       // handle cases that require multiple factoring steps, such as this:
@@ -1786,7 +1786,7 @@ Value *ReassociatePass::OptimizeAdd(Instruction *I,
 
     // Create the multiply.
     Instruction *V2 = CreateMul(V, MaxOccVal, "reass.mul", I->getIterator(), I);
-    V2->setDebugLoc(I->getDebugLoc());
+    V2->copyDebugLocFrom(I);
 
     // Rerun associate on the multiply in case the inner expression turned into
     // a multiply.  We want to make sure that we keep things in canonical form.
@@ -2416,7 +2416,7 @@ void ReassociatePass::ReassociateExpression(BinaryOperator *I) {
     I->replaceAllUsesWith(V);
     if (Instruction *VI = dyn_cast<Instruction>(V))
       if (I->getDebugLoc())
-        VI->setDebugLoc(I->getDebugLoc());
+        VI->copyDebugLocFrom(I);
     RedoInsts.insert(I);
     ++NumAnnihil;
     return;
@@ -2454,7 +2454,7 @@ void ReassociatePass::ReassociateExpression(BinaryOperator *I) {
     // eliminate it.
     I->replaceAllUsesWith(Ops[0].Op);
     if (Instruction *OI = dyn_cast<Instruction>(Ops[0].Op))
-      OI->setDebugLoc(I->getDebugLoc());
+      OI->copyDebugLocFrom(I);
     RedoInsts.insert(I);
     return;
   }

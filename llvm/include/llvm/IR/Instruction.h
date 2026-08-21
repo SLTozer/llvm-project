@@ -547,10 +547,10 @@ public:
   void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
   void setDebugLocIfPresent(DebugLoc Loc) { DbgLoc = Loc.getStorage().orElse(DbgLoc); }
   void setDebugLocIfPresent(DbgLocStorage Loc) { DbgLoc = Loc.orElse(DbgLoc); }
-  void copyDebugLocFrom(Instruction *Other) {
+  void copyDebugLocFrom(const Instruction *Other) {
     DbgLoc = Other->DbgLoc;
   }
-  void copyDebugLocFromIfPresent(Instruction *Other) {
+  void copyDebugLocFromIfPresent(const Instruction *Other) {
     DbgLoc = Other->DbgLoc.orElse(DbgLoc);
   }
 

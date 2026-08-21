@@ -485,7 +485,7 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
     // that all the split stores should get the same line number.
     if (NewAssign != DbgAssign) {
       NewAssign->moveBefore(DbgAssign->getIterator());
-      NewAssign->setDebugLoc(DbgAssign->getDebugLoc());
+      NewAssign->copyDebugLocFrom(DbgAssign);
     }
     LLVM_DEBUG(dbgs() << "Created new assign: " << *NewAssign << "\n");
   };
@@ -5563,7 +5563,7 @@ SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS, Partition &P) {
         AI.getName() + ".sroa." + Twine(P.begin() - AS.begin()),
         AI.getIterator());
     // Copy the old AI debug location over to the new one.
-    NewAI->setDebugLoc(AI.getDebugLoc());
+    NewAI->copyDebugLocFrom(&AI);
     ++NumNewAllocas;
   }
 
