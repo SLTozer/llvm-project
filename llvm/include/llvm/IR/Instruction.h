@@ -107,6 +107,11 @@ public:
 
 private:
   DbgLocStorage DbgLoc;                         // 'dbg' Metadata cache.
+  #if LLVM_USE_FLMD_SOURCE_LOCS
+  // Temporary scaffolding, used to enable FLMD without affecting
+  // `getDebugLoc()` for non-inserted instructions.
+  class DIFunctionLocalMetadata *FLMDContext = nullptr;
+  #endif
 
   friend class Value;
   /// Index of first metadata attachment in context, or zero.
@@ -540,18 +545,37 @@ public:
   /// Returns false if no metadata was found.
   LLVM_ABI bool extractProfTotalWeight(uint64_t &TotalVal) const;
 
+  void updateFLContext(DebugLoc Loc) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    if (Loc)
+      FLMDContext = Loc.getFLContext();
+#endif
+  }
+  void copyFLContext(const Instruction *Other) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    FLMDContext = Other->FLMDContext;
+#endif
+  }
+
   /// Set the debug location information for this instruction.
   void setDebugLoc(DebugLoc Loc) {
     DbgLoc = Loc.getStorage();
+    updateFLContext(Loc);
   }
   void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
-  void setDebugLocIfPresent(DebugLoc Loc) { DbgLoc = Loc.getStorage().orElse(DbgLoc); }
+  void setDebugLocIfPresent(DebugLoc Loc) {
+    DbgLoc = Loc.getStorage().orElse(DbgLoc);
+    updateFLContext(Loc);
+  }
   void setDebugLocIfPresent(DbgLocStorage Loc) { DbgLoc = Loc.orElse(DbgLoc); }
   void copyDebugLocFrom(const Instruction *Other) {
     DbgLoc = Other->DbgLoc;
+    copyFLContext(Other);
+    
   }
   void copyDebugLocFromIfPresent(const Instruction *Other) {
     DbgLoc = Other->DbgLoc.orElse(DbgLoc);
+    copyFLContext(Other);
   }
 
   /// Return the debug location for this node as a DebugLoc.
@@ -561,7 +585,7 @@ public:
   /// Function's FLMD context for FLMD builds. This is only needed, and should
   /// only be used, for instructions that have not been inserted into a function
   /// yet.
-  DebugLoc getDebugLoc(Function *ContextFunction) const;
+  DebugLoc getDebugLoc(const Function *ContextFunction) const;
 
   /// Fetch the debug location for this node, unless this is a debug intrinsic,
   /// in which case fetch the debug location of the next non-debug node.

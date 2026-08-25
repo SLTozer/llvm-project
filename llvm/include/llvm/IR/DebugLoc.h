@@ -230,7 +230,9 @@ public:
     return {SrcLoc, Scope};
   }
 
-  static FLDebugLoc getFromDILocation(const DILocation *DIL);
+  /// Create an FLDebugLoc from the equivalent DILocation. If the DILocation is
+  /// an inlined call location, the inlined DISubprogram must also be provided.
+  static FLDebugLoc getFromDILocation(const DILocation *DIL, DISubprogram *InlinedSP = nullptr);
 };
 
 /// Unwrapped data from FLSrcLoc storage.
@@ -242,6 +244,8 @@ struct SrcLocData {
 
 DIFunctionLocalMetadata *getFLMDForInstruction(const Instruction *I);
 DIFunctionLocalMetadata *getFLMDForFunction(const Function *F);
+void setFLMDForFunction(const Function *F, DIFunctionLocalMetadata *FLMD);
+DIFunctionLocalMetadata *cloneFLMDForFunction(const Function *Old, const Function *New);
 
 /// Debug location information stored directly inside an Instruction.
 /// Underlying interface can be accessed via `get`, but care must be taken
@@ -357,7 +361,7 @@ public:
 class DebugLoc {
   DbgLocStorage Storage;
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  DIFunctionLocalMetadata *FLContext;
+  DIFunctionLocalMetadata *FLContext = nullptr;
 #endif
 public:
   friend struct DenseMapInfo<DebugLoc>;
@@ -418,7 +422,9 @@ public:
     uint8_t AtomRank = 0);
 
   static DebugLoc getFromMDNode(const MDNode *L);
-  static DebugLoc getFromDILocation(const DILocation *L);
+  /// Create a DebugLoc from the equivalent DILocation. If the DILocation is an
+  /// inlined call location, the inlined DISubprogram must also be provided.
+  static DebugLoc getFromDILocation(const DILocation *L, DISubprogram *InlinedSP = nullptr);
   DILocation *getAsDILocation() const;
 
   /// Return \c this as a bar \a MDNode.

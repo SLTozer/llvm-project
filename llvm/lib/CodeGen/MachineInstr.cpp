@@ -101,6 +101,7 @@ MachineInstr::MachineInstr(MachineFunction &MF, const MCInstrDesc &TID,
                            DebugLoc DL, bool NoImp)
     : MCID(&TID), NumOperands(0), Flags(0), AsmPrinterFlags(0),
       Opcode(TID.Opcode), DebugInstrNum(0), DbgLoc(DL.getStorage()) {
+  updateFLContext(DL);
   // Reserve space for the expected number of operands.
   if (unsigned NumOps = MCID->getNumOperands() + MCID->implicit_defs().size() +
                         MCID->implicit_uses().size()) {
@@ -763,7 +764,11 @@ bool MachineInstr::isIdenticalTo(const MachineInstr &Other,
 
 DebugLoc MachineInstr::getDebugLoc() const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  return DebugLoc(DbgLoc, getFLMDForFunction(&getMF()->getFunction()));
+  if (!DbgLoc)
+    return DebugLoc();
+  if (!FLMDContext)
+    const_cast<MachineInstr*>(this)->FLMDContext = getFLMDForFunction(&getMF()->getFunction());
+  return DebugLoc(DbgLoc, FLMDContext);
 #else
   return DebugLoc(DbgLoc);
 #endif

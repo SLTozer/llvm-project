@@ -98,12 +98,16 @@ const DataLayout &Instruction::getDataLayout() const {
 
 DebugLoc Instruction::getDebugLoc() const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  return DebugLoc(DbgLoc, getFLMDForInstruction(this));
+  if (!DbgLoc)
+    return DebugLoc();
+  if (true/*!FLMDContext*/)
+    const_cast<Instruction*>(this)->FLMDContext = getFLMDForInstruction(this);
+  return DebugLoc(DbgLoc, FLMDContext);
 #else
   return DebugLoc(DbgLoc);
 #endif
 }
-DebugLoc Instruction::getDebugLoc(Function *ContextFunction) const {
+DebugLoc Instruction::getDebugLoc(const Function *ContextFunction) const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
   return DebugLoc(DbgLoc, getFLMDForFunction(ContextFunction));
 #else

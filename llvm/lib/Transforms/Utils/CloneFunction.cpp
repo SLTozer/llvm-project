@@ -23,8 +23,10 @@
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -154,7 +156,7 @@ BasicBlock *llvm::CloneBasicBlock(const BasicBlock *BB, ValueToValueMapTy &VMap,
     VMap[&I] = NewInst; // Add instruction map to value.
 
     if (MapAtoms) {
-      if (const DebugLoc &DL = NewInst->getDebugLoc())
+      if (const DebugLoc &DL = NewInst->getDebugLoc(BB->getParent()))
         mapAtomInstance(DL, VMap);
     }
 
@@ -240,6 +242,11 @@ void llvm::CloneFunctionMetadataInto(Function &NewFunc, const Function &OldFunc,
     NewFunc.addMetadata(Kind, *MapMetadata(MD, VMap, RemapFlag, TypeMapper,
                                            Materializer, IdentityMD));
   }
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  DIFunctionLocalMetadata *OldFLMD = getFLMDForFunction(&OldFunc);
+  DIFunctionLocalMetadata *NewFLMD = cast<DIFunctionLocalMetadata>(MapMetadata(OldFLMD, VMap, RemapFlag, TypeMapper, Materializer, IdentityMD));
+  setFLMDForFunction(&NewFunc, NewFLMD);
+#endif
 }
 
 void llvm::CloneFunctionBodyInto(Function &NewFunc, const Function &OldFunc,
@@ -280,6 +287,18 @@ void llvm::CloneFunctionBodyInto(Function &NewFunc, const Function &OldFunc,
     if (ReturnInst *RI = dyn_cast<ReturnInst>(CBB->getTerminator()))
       Returns.push_back(RI);
   }
+
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  for (Function::iterator
+           BB = cast<BasicBlock>(VMap[&OldFunc.front()])->getIterator(),
+           BE = NewFunc.end();
+       BB != BE; ++BB)
+    for (Instruction &II : *BB) {
+      II.setDebugLoc(II.getDebugLoc(&NewFunc));
+      for (auto &DVR : II.getDbgRecordRange())
+        DVR.setDebugLoc(DVR.getDebugLoc(&NewFunc));
+    }
+#endif
 
   // Loop over all of the instructions in the new function, fixing up operand
   // references as we go. This uses VMap to do all the hard work.

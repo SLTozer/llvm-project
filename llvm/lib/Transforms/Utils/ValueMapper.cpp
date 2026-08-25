@@ -24,6 +24,7 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalAlias.h"
 #include "llvm/IR/GlobalIFunc.h"
 #include "llvm/IR/GlobalObject.h"
@@ -187,6 +188,7 @@ private:
 
   /// Map metadata that doesn't require visiting operands.
   std::optional<Metadata *> mapSimpleMetadata(const Metadata *MD);
+  Metadata *mapFLMetadata(const DIFunctionLocalMetadata *FLMD);
 
   Metadata *mapToMetadata(const Metadata *Key, Metadata *Val);
   Metadata *mapToSelf(const Metadata *MD);
@@ -921,12 +923,51 @@ std::optional<Metadata *> Mapper::mapSimpleMetadata(const Metadata *MD) {
   return std::nullopt;
 }
 
+Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
+  // Mapping FLMD means:
+  // 1. Map the DISubprogram and all other local scopes using standard MD
+  //    mapping logic.
+  // 2. Remap all self-references in the InlinedCalls array.
+
+  // Set up the new FLMD and its builder, manually handling the mapping of the
+  // subprogram.
+  DIFunctionLocalMetadata *NewFLMD = MDNode::replaceWithDistinct(FLMD->clone());
+  const DISubprogram *OldSP = cast<DISubprogram>(FLMD->Scopes[0].get());
+  DISubprogram *NewSP = cast_or_null<DISubprogram>(mapMetadata(OldSP));
+  assert(NewSP && OldSP != NewSP && "Cannot have non-identity FLMD mapping with an identity subprogram mapping.");
+  FLMDBuilder Builder(NewSP);
+
+  // Add SrcLocs, which are unchanged.
+  Builder.SrcLocs.append(FLMD->SrcLocs.begin() + 3, FLMD->SrcLocs.end());
+  // Add FLScopes, which must each be remapped.
+  for (FLScope Scope : drop_begin(FLMD->Scopes))
+    Builder.Scopes.emplace_back(cast<DILocalScope>(mapMetadata(Scope.get())));
+  // Add InlinedCalls, which probably don't need to be remapped at all.
+  // TODO: We should be sure that we have the right principled approach. There
+  // are potential advantages to keeping references to the old FLMD from the new
+  // one, namely that it allows us to copy only non-inline-used SrcLocs/Scopes
+  // over to the new FLMD; there probably aren't any issues, unless we would end
+  // up otherwise able to delete the old FLMD. This seems uncommon enough for
+  // the performance concerns to be unimportant either way, so we just take the
+  // simplest approach here.
+  Builder.InlinedCalls.append(FLMD->InlinedCalls);
+  // FIXME: Loops contain MDOperands which may need remapping, revisit this
+  // later.
+  Builder.Loops.append(FLMD->Loops);
+
+  NewFLMD->build(Builder);
+  return NewFLMD;
+}
+
 Metadata *Mapper::mapMetadata(const Metadata *MD) {
   assert(MD && "Expected valid metadata");
   assert(!isa<LocalAsMetadata>(MD) && "Unexpected local metadata");
 
   if (std::optional<Metadata *> NewMD = mapSimpleMetadata(MD))
     return *NewMD;
+
+  if (auto *FLMD = dyn_cast<DIFunctionLocalMetadata>(MD))
+    return mapFLMetadata(FLMD);
 
   return MDNodeMapper(*this).map(*cast<MDNode>(MD));
 }
@@ -1032,7 +1073,8 @@ void Mapper::remapInstruction(Instruction *I) {
   // With FLMD, we don't need to remap the FLDebugLoc attached to the
   // instruction, and getDebugLoc() will fail for Instructions not inserted
   // into a function.
-  I->setDebugLoc(mapMetadata(I->getDebugLoc()));
+  if (I->getDebugLoc())
+    I->setDebugLoc(DebugLoc::getFromDILocation(cast<DILocation>(mapMetadata(I->getDebugLoc().getAsDILocation()))));
   #endif
 
   // Remap source location atom instance.

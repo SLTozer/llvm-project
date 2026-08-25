@@ -193,6 +193,7 @@ public:
   DenseMap<std::tuple<uint32_t, uint16_t, DILocalScope*>, FLIndex<uint32_t>> SrcLocMap;
   SmallVector<FLInlinedCall, 0> InlinedCalls;
   SmallVector<FLLoop, 0> Loops;
+  // TODO: Need to remap this in ValueMapper
   SmallDenseMap<class Instruction *, uint16_t> InstrLoops;
 
   FLIndex<uint16_t> addScope(DILocalScope* Scope) {
@@ -209,6 +210,7 @@ public:
     return SrcLocs.size() - 1;
   }
   FLMDBuilder(const DISubprogram *SP);
+  FLMDBuilder(const DISubprogram *SP, DIFunctionLocalMetadata *ToClone);
 };
 
 /// Storage class for function-local metadata objects.
@@ -230,6 +232,7 @@ public:
   // created Distinct. Decide later whether this needs to change.
   static DIFunctionLocalMetadata *getDistinct(LLVMContext &Context);
   static TempDIFunctionLocalMetadata getTemporary(LLVMContext &Context);
+  TempDIFunctionLocalMetadata clone() const { return cloneImpl(); }
   TempDIFunctionLocalMetadata cloneImpl() const {
     return getTemporary(getContext());
   }

@@ -327,6 +327,9 @@ private:
       Info;
 
   DbgLocStorage DbgLoc; // Source line information.
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  DIFunctionLocalMetadata *FLMDContext = nullptr;
+#endif
 
   // Intrusive list support
   friend struct ilist_traits<MachineInstr>;
@@ -1928,15 +1931,34 @@ public:
 
   /// Replace current source information with new such.
   /// Avoid using this, the constructor argument is preferable.
-  void setDebugLoc(DebugLoc DL) { DbgLoc = DL.getStorage(); }
+  void updateFLContext(DebugLoc Loc) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    if (Loc)
+      FLMDContext = Loc.getFLContext();
+#endif
+  }
+  void copyFLContext(const MachineInstr *Other) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    FLMDContext = Other->FLMDContext;
+#endif
+  }
+  void setDebugLoc(DebugLoc DL) {
+    DbgLoc = DL.getStorage();
+    updateFLContext(DL);
+  }
   void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
-  void setDebugLocIfPresent(DebugLoc Loc) { DbgLoc = Loc.getStorage().orElse(DbgLoc); }
+  void setDebugLocIfPresent(DebugLoc Loc) {
+    DbgLoc = Loc.getStorage().orElse(DbgLoc);
+    updateFLContext(Loc);
+  }
   void setDebugLocIfPresent(DbgLocStorage Loc) { DbgLoc = Loc.orElse(DbgLoc); }
   void copyDebugLocFrom(const MachineInstr *Other) {
     DbgLoc = Other->DbgLoc;
+    copyFLContext(Other);
   }
   void copyDebugLocFromIfPresent(const MachineInstr *Other) {
     DbgLoc = Other->DbgLoc.orElse(DbgLoc);
+    copyFLContext(Other);
   }
 
   /// Erase an operand from an instruction, leaving it with one

@@ -1959,12 +1959,13 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
   auto &Ctx = Fn->getContext();
   DebugLoc InlinedAtNode = TheCallDL;
 
-  DISubprogram *CalleeSP = cast<CallInst>(TheCall)->getCalledFunction()->getSubprogram();
+  Function *CalledFn = cast<CallBase>(TheCall)->getCalledFunction();
+  DISubprogram *CalledSP = CalledFn->getSubprogram();
 
   // Create a unique call site, not to be confused with any other call from the
   // same location.
   InlinedAtNode = DebugLoc::getDistinct(
-      CalleeSP, Ctx, InlinedAtNode.getLine(), InlinedAtNode.getColumn(),
+      CalledSP, Ctx, InlinedAtNode.getLine(), InlinedAtNode.getColumn(),
       InlinedAtNode.getScope(), InlinedAtNode.getInlinedAt());
 
   // Cache the inlined-at nodes as they're built so they are reused, without
@@ -1989,7 +1990,7 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
     updateLoopMetadataDebugLocations(I, updateLoopInfoLoc);
 
     if (!NoInlineLineTables)
-      if (DebugLoc DL = I.getDebugLoc()) {
+      if (DebugLoc DL = I.getDebugLoc(CalledFn)) {
         DebugLoc IDL =
             inlineDebugLoc(DL, InlinedAtNode, I.getContext(), IANodes);
         I.setDebugLoc(IDL);
@@ -2021,12 +2022,12 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
 
   // Helper-util for updating debug-info records attached to instructions.
   auto UpdateDVR = [&](DbgRecord *DVR) {
-    assert(DVR->getDebugLoc() && "Debug Value must have debug loc");
+    assert(DVR->getDebugLoc(CalledFn) && "Debug Value must have debug loc");
     if (NoInlineLineTables) {
       DVR->setDebugLoc(TheCallDL);
       return;
     }
-    DebugLoc DL = DVR->getDebugLoc();
+    DebugLoc DL = DVR->getDebugLoc(CalledFn);
     DebugLoc IDL =
         inlineDebugLoc(DL, InlinedAtNode,
                        DVR->getMarker()->getParent()->getContext(), IANodes);
