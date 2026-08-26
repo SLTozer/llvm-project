@@ -88,26 +88,35 @@ struct DenseMapInfo<FLIndex<IndexType>> {
 struct FLInlinedCall {
   FLIndex<uint32_t> SrcLocIdx;
   FLIndex<uint16_t> InlinedAtIdx;
-  uint16_t MaxAtomGroup;
+  uint16_t MaxAtomGroup : 15;
+  uint16_t Uniquable : 1;
   TrackingMDNodeRef InlineeFLMD;
   FLInlinedCall() = default;
-  FLInlinedCall(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNode *InlineeFLMD)
-    : SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx), InlineeFLMD(InlineeFLMD) {}
+  FLInlinedCall(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNode *InlineeFLMD, bool Uniquable)
+    : SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx), Uniquable(Uniquable), InlineeFLMD(InlineeFLMD) {}
   DIFunctionLocalMetadata *getInlinee() const {
     return cast<DIFunctionLocalMetadata>(InlineeFLMD);
   }
   std::pair<uint64_t, DIFunctionLocalMetadata*> asRawParts() const {
     uint64_t Result = (uint64_t)SrcLocIdx.asRaw() << 32;
     Result |= (uint64_t)InlinedAtIdx.asRaw() << 16;
-    Result |= MaxAtomGroup;
+    Result |= (uint64_t)MaxAtomGroup << 1;
+    Result |= Uniquable;
     return {Result, getInlinee()};
   }
   static FLInlinedCall fromRawParts(uint64_t RawInt, DIFunctionLocalMetadata *Inlinee) {
     FLInlinedCall Result;
     Result.SrcLocIdx = FLIndex<uint32_t>::fromRaw(RawInt >> 32);
     Result.InlinedAtIdx = FLIndex<uint16_t>::fromRaw(RawInt >> 16);
-    Result.MaxAtomGroup = RawInt;
+    Result.MaxAtomGroup = (RawInt & 0xfffe) >> 1;
+    Result.Uniquable = (RawInt & 1);
     return Result;
+  }
+  bool operator==(const FLInlinedCall &Other) const {
+    return asRawParts() == Other.asRawParts();
+  }
+  bool operator!=(const FLInlinedCall &Other) const {
+    return asRawParts() != Other.asRawParts();
   }
 };
 
@@ -290,6 +299,11 @@ public:
     return getFLSrcLocIdx(Line, Column, getFLScopeIdx(Scope));
   }
   FLIndex<uint16_t> addInlinedCall(FLInlinedCall InlinedCall) {
+    if (InlinedCall.Uniquable) {
+      for (uint16_t Idx = 0; Idx < InlinedCalls.size(); ++Idx)
+        if (InlinedCall == InlinedCalls[Idx])
+          return FLIndex<uint16_t>(Idx);
+    }
     InlinedCalls.push_back(InlinedCall);
     return InlinedCalls.size() - 1;
   }

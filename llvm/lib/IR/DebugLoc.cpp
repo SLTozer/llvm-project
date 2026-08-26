@@ -141,7 +141,7 @@ static FLIndex<uint16_t> getInlineCallDILocationToFLIndex(DILocation *DIL, DISub
   DIFunctionLocalMetadata *InlinedFLMD = FLMDConversionContext.getFLMDForSP(InlinedSP);
   // Get SrcLocIdx for this call, which references InlineeFLMD->SrcLocs
   FLIndex<uint32_t> SrcLocIdx = InlineeFLMD->getFLSrcLocIdx(DIL->getLine(), DIL->getColumn(), InlineeScope);
-  FLIndex<uint16_t> NewIdx = LastInlineeFLMD->addInlinedCall(FLInlinedCall(SrcLocIdx, InlinedAtIdx, InlinedFLMD));
+  FLIndex<uint16_t> NewIdx = LastInlineeFLMD->addInlinedCall(FLInlinedCall(SrcLocIdx, InlinedAtIdx, InlinedFLMD, !DIL->isDistinct()));
   if (DIL->isDistinct()) {
     FLMDConversionContext.InlinedCallLocMap.insert({DIL, NewIdx});
     FLMDConversionContext.InlinedCallIdxToDILocMap.insert({{NewIdx, LastInlineeFLMD}, DIL});
@@ -181,8 +181,13 @@ static DILocation *getInlinedAtDILocation(DIFunctionLocalMetadata *FLMD,
   DILocation *InlinedAt = getInlinedAtDILocation(FLMD, InlinedCall.InlinedAtIdx);
   FLSrcLoc SrcLoc = FLMD->getSrcLoc(InlinedCall.SrcLocIdx, InlinedCall.InlinedAtIdx);
   DILocalScope *Scope = FLMD->getScope(SrcLoc.ScopeIdx, InlinedCall.InlinedAtIdx);
-  DILocation *Result = DILocation::getDistinct(FLMD->getContext(), SrcLoc.Line, SrcLoc.Column, Scope, InlinedAt);
-  FLMDConversionContext.InlinedCallIdxToDILocMap.insert({{InlinedAtIdx, FLMD}, Result});
+  DILocation *Result;
+  if (InlinedCall.Uniquable)
+    Result = DILocation::get(FLMD->getContext(), SrcLoc.Line, SrcLoc.Column, Scope, InlinedAt);
+  else {
+    Result = DILocation::getDistinct(FLMD->getContext(), SrcLoc.Line, SrcLoc.Column, Scope, InlinedAt);
+    FLMDConversionContext.InlinedCallIdxToDILocMap.insert({{InlinedAtIdx, FLMD}, Result});
+  }
   return Result;
 }
 
@@ -382,14 +387,17 @@ DebugLoc DebugLoc::replaceInlinedAtSubprogram(
 DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
                                    LLVMContext &Ctx,
                                    DenseMap<const MDNode *, MDNode *> &Cache) {
-  SmallVector<DILocation *, 3> InlinedAtLocations;
+  SmallVector<DebugLoc, 3> InlinedAtLocations;
   DILocation *Last = InlinedAt;
-  DILocation *CurInlinedAt = DL.getAsDILocation();
+  DebugLoc CurInlinedAt = DL;
 
+  auto FakePointer = [](DebugLoc DL) {
+    return reinterpret_cast<const MDNode *>(DL.getStorage().get().asRawInt());
+  };
   // Gather all the inlined-at nodes.
-  while (DILocation *IA = CurInlinedAt->getInlinedAt()) {
+  while (DebugLoc IA = CurInlinedAt.getInlinedAt()) {
     // Skip any we've already built nodes for.
-    if (auto *Found = Cache[IA]) {
+    if (auto *Found = Cache[FakePointer(IA)]) {
       Last = cast<DILocation>(Found);
       break;
     }
@@ -402,9 +410,10 @@ DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
   // location (then rebuilding the rest of the chain behind it) and update the
   // map of already-constructed inlined-at nodes.
   // Key Instructions: InlinedAt fields don't need atom info.
-  for (const DILocation *MD : reverse(InlinedAtLocations))
-    Cache[MD] = Last = DILocation::getDistinct(
-        Ctx, MD->getLine(), MD->getColumn(), MD->getScope(), Last);
+  for (DebugLoc MD : reverse(InlinedAtLocations)) {
+    Cache[FakePointer(MD)] = Last = DILocation::getDistinct(
+        Ctx, MD.getLine(), MD.getColumn(), MD.getScope(), Last);
+  }
 
   return DebugLoc::getFromDILocation(Last, DL.getScope()->getSubprogram());
 }
