@@ -1958,7 +1958,19 @@ GlobalObject::VCallVisibility GlobalObject::getVCallVisibility() const {
 }
 
 void Function::setSubprogram(DISubprogram *SP) {
+  // FIXME: We track a context-level mapping from DISubprogram to Function, in
+  // order to be able to map arbitrary DILocations to the sole Function that
+  // it is valid for them to appear in.
+  // NB: The above statement is not fully correct; there is a niche exception
+  // for instructions inlined from a function with debug info to a function
+  // without debug info, because in this case the caller function does not have
+  // a DISubprogram, and thus DILocations can only map to the callee. This
+  // should not be a problem until after we've fixed the need to use this
+  // context map anyway.
+  getContext().pImpl->unsetFunctionSPMapping(
+    dyn_cast_if_present<DISubprogram>(getMetadata(LLVMContext::MD_dbg)), this);
   setMetadata(LLVMContext::MD_dbg, SP);
+  getContext().pImpl->setFunctionSPMapping(SP, this);
 }
 
 DISubprogram *Function::getSubprogram() const {

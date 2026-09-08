@@ -1840,7 +1840,7 @@ static void HandleByValArgumentInit(Type *ByValType, Value *Dst, Value *Src,
   // purposes). Assign a dummy location to satisfy the constraint.
   if (!CI->getDebugLoc() && InsertBlock->getParent()->getSubprogram())
     if (DISubprogram *SP = CalledFunc->getSubprogram())
-      CI->setDebugLoc(DebugLoc::get(SP->getContext(), 0, 0, SP));
+      CI->setDebugLoc(DebugLoc::get(CalledFunc, 0, 0, SP));
 }
 
 /// When inlining a call site that has a byval argument,
@@ -1937,7 +1937,7 @@ static DebugLoc inlineDebugLoc(DebugLoc OrigDL, DebugLoc InlinedAt,
                                LLVMContext &Ctx,
                                DenseMap<const MDNode *, MDNode *> &IANodes) {
   auto IA = DebugLoc::appendInlinedAt(OrigDL, InlinedAt.getAsDILocation(), Ctx, IANodes);
-  return DebugLoc::get(Ctx, OrigDL.getLine(), OrigDL.getCol(),
+  return DebugLoc::get(IA, OrigDL.getLine(), OrigDL.getCol(),
                          OrigDL.getScope(), IA, OrigDL.isImplicitCode(),
                          OrigDL.getAtomGroup(), OrigDL.getAtomRank());
 }
@@ -1964,8 +1964,8 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
 
   // Create a unique call site, not to be confused with any other call from the
   // same location.
-  InlinedAtNode = DebugLoc::getDistinct(
-      CalledSP, Ctx, InlinedAtNode.getLine(), InlinedAtNode.getColumn(),
+  InlinedAtNode = DebugLoc::getDistinctInlinedCall(
+      CalledSP, Fn, InlinedAtNode.getLine(), InlinedAtNode.getColumn(),
       InlinedAtNode.getScope(), InlinedAtNode.getInlinedAt());
 
   // Cache the inlined-at nodes as they're built so they are reused, without

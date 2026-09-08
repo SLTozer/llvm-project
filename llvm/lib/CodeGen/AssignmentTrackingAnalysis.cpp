@@ -1584,7 +1584,7 @@ void AssignmentTrackingLowering::processUnknownStoreToVariable(
   DebugVariable V = FnVarLocs->getVariable(Var);
   DebugLoc InlinedAt = V.getInlinedAt();
   DebugLoc DILoc = DebugLoc::get(
-      Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
+      &Fn, 0, 0, V.getVariable()->getScope(), InlinedAt);
 
   VarLocInfo VarLoc;
   VarLoc.VariableID = Var;
@@ -1664,7 +1664,7 @@ void AssignmentTrackingLowering::processUntaggedInstruction(
     // Get DILocation for this unrecorded assignment.
     DebugLoc InlinedAt = V.getInlinedAt();
     DebugLoc DILoc = DebugLoc::get(
-        Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
+        &Fn, 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;
     VarLoc.VariableID = static_cast<VariableID>(Var);
@@ -1721,7 +1721,7 @@ void AssignmentTrackingLowering::processEscapingCall(
 
     DebugLoc InlinedAt = V.getInlinedAt();
     DebugLoc DILoc = DebugLoc::get(
-        Fn.getContext(), 0, 0, V.getVariable()->getScope(), InlinedAt);
+        &Fn, 0, 0, V.getVariable()->getScope(), InlinedAt);
 
     VarLocInfo VarLoc;
     VarLoc.VariableID = Var;

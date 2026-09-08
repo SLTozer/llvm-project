@@ -1420,16 +1420,34 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
     DVR->getMarker()->MarkedInstr->dropOneDbgRecord(DVR);
   DIB.finalizeSubprogram(NewSP);
 
+
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  DIFunctionLocalMetadata *FLContext = DIB.startFunctionContext(&NewFunc, NewSP).Context;
+#endif
+
   // Fix up the scope information attached to the line locations and the
   // debug assignment metadata in the new function.
   DenseMap<DIAssignID *, DIAssignID *> AssignmentIDMap;
   for (Instruction &I : instructions(NewFunc)) {
+    // If FLMD source locs are in use, we don't need to renumber each
+    // instruction - the indices will transfer. We only need to remap scopes
+    // from the new FLMD context.
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    if (const DebugLoc &DL = I.getDebugLoc())
+    
+      I.setDebugLoc(
+          DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, Ctx, Cache));
+    for (DbgRecord &DR : I.getDbgRecordRange())
+      DR.setDebugLoc(DebugLoc::replaceInlinedAtSubprogram(DR.getDebugLoc(),
+                                                          *NewSP, Ctx, Cache));
+#else
     if (const DebugLoc &DL = I.getDebugLoc())
       I.setDebugLoc(
           DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, Ctx, Cache));
     for (DbgRecord &DR : I.getDbgRecordRange())
       DR.setDebugLoc(DebugLoc::replaceInlinedAtSubprogram(DR.getDebugLoc(),
                                                           *NewSP, Ctx, Cache));
+#endif
 
     // Loop info metadata may contain line locations. Fix them up.
     auto updateLoopInfoLoc = [&Ctx, &Cache, NewSP](Metadata *MD) -> Metadata * {
@@ -1441,7 +1459,7 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
     at::remapAssignID(AssignmentIDMap, I);
   }
   if (!TheCall.getDebugLoc())
-    TheCall.setDebugLoc(DebugLoc::get(Ctx, 0, 0, OldSP));
+    TheCall.setDebugLoc(DebugLoc::get(&OldFunc, 0, 0, OldSP));
 
   eraseDebugIntrinsicsWithNonLocalRefs(NewFunc);
 }

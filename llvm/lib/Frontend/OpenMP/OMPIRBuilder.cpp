@@ -8896,7 +8896,7 @@ static void FixupDebugInfoForOutlinedFunction(
     DILocalVariable *Var = DB.createParameterVariable(
         NewSP, "dyn_ptr", ArgNo, NewSP->getFile(), /*LineNo=*/0, VoidPtrTy,
         /*AlwaysPreserve=*/false, DINode::DIFlags::FlagArtificial);
-    auto Loc = DebugLoc::get(Func->getContext(), 0, 0, NewSP);
+    auto Loc = DebugLoc::get(Func, 0, 0, NewSP);
     Argument *LastArg = Func->getArg(Func->arg_size() - 1);
     DB.insertDeclare(LastArg, Var, DB.createExpression(), Loc,
                      &(*Func->begin()));

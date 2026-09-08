@@ -752,7 +752,7 @@ static void buildFrameDebugInfo(Function &F, coro::Shape &Shape,
   // Construct the location for the frame debug variable. The column number
   // is fake but it should be fine.
   DebugLoc DILoc =
-      DebugLoc::get(DIS->getContext(), LineNum, /*Column=*/1, DIS);
+      DebugLoc::get(&F, LineNum, /*Column=*/1, DIS);
   assert(FrameDIVar->isValidLocationForIntrinsic(DILoc));
 
   DbgVariableRecord *NewDVR =

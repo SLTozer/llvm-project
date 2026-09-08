@@ -963,7 +963,7 @@ public:
   MachineInstrBuilder emitMOLoc(const MachineOperand &MO,
                                 const DebugVariable &Var,
                                 const DbgValueProperties &Properties) {
-    DebugLoc DL = DebugLoc::get(Var.getVariable()->getContext(), 0, 0,
+    DebugLoc DL = DebugLoc::get(&MF.getFunction(), 0, 0,
                                   Var.getVariable()->getScope(),
                                   Var.getInlinedAt());
     auto MIB = BuildMI(MF, DL, TII->get(TargetOpcode::DBG_VALUE));

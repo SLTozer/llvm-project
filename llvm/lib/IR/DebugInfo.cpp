@@ -163,7 +163,7 @@ DebugLoc llvm::getDebugValueLoc(DbgVariableRecord *DVR) {
   // and inlinedAt is significant. Zero line numbers are used in case this
   // DebugLoc leaks into any adjacent instructions. Produce an unknown location
   // with the correct scope / inlinedAt fields.
-  return DebugLoc::get(DVR->getContext(), 0, 0, Scope, InlinedAt);
+  return DebugLoc::get(DeclareLoc, 0, 0, Scope, InlinedAt);
 }
 
 //===----------------------------------------------------------------------===//
@@ -985,7 +985,7 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
           Scope = remap(Scope);
           InlinedAt = remap(InlinedAt);
           return DebugLoc::get(
-            M.getContext(), DL.getLine(), DL.getCol(), Scope,
+            DL, DL.getLine(), DL.getCol(), Scope,
             DebugLoc::getFromDILocation(cast_or_null<DILocation>(InlinedAt)));
         };
 
@@ -1097,7 +1097,7 @@ void Instruction::dropLocation() {
     // If a function scope is available, set it on the line 0 location. When
     // hoisting a call to a predecessor block, using the function scope avoids
     // making it look like the callee was reached earlier than it should be.
-    setDebugLoc(DebugLoc::get(getContext(), 0, 0, SP));
+    setDebugLoc(DebugLoc::get(DL, 0, 0, SP));
   else
     // The parent function has no scope. Go ahead and drop the location. If
     // the parent function is inlined, and the callee has a subprogram, the

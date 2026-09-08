@@ -549,10 +549,10 @@ Value *Mapper::mapValue(const Value *V) {
 
 void Mapper::remapDbgRecord(DbgRecord &DR) {
   // Remap DILocations.
-  #if !LLVM_USE_FLMD_SOURCE_LOCS
+#if !LLVM_USE_FLMD_SOURCE_LOCS
   auto *MappedDILoc = mapMetadata(DR.getDebugLoc().getAsMDNode());
   DR.setDebugLoc(DebugLoc::getFromDILocation(cast<DILocation>(MappedDILoc)));
-  #endif
+#endif
 
   if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
     // Remap labels.
@@ -1379,15 +1379,14 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
   if (!AtomGroup)
     return;
 
-  auto R = VM.AtomMap.find({DL.getInlinedAt(), AtomGroup});
+  
+  auto R = VM.AtomMap.find({DL.getAtomContext(), AtomGroup});
   if (R == VM.AtomMap.end())
     return;
   AtomGroup = R->second;
 
   // Remap the atom group and copy all other fields.
-  DebugLoc New = DebugLoc::get(
-      I->getContext(), DL.getLine(), DL.getCol(), DL.getScope(),
-      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL.getAtomRank());
+  DebugLoc New = DL.getWithAtom(AtomGroup, DL.getAtomRank());
   I->setDebugLoc(New);
 }
 
@@ -1400,14 +1399,12 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM, Function *F) {
   if (!AtomGroup)
     return;
 
-  auto R = VM.AtomMap.find({DL.getInlinedAt(), AtomGroup});
+  auto R = VM.AtomMap.find({DL.getAtomContext(), AtomGroup});
   if (R == VM.AtomMap.end())
     return;
   AtomGroup = R->second;
 
   // Remap the atom group and copy all other fields.
-  DebugLoc New = DebugLoc::get(
-      I->getContext(), DL.getLine(), DL.getCol(), DL.getScope(),
-      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL.getAtomRank());
+  DebugLoc New = DL.getWithAtom(AtomGroup, DL.getAtomRank());
   I->setDebugLoc(New);
 }

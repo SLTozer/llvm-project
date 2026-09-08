@@ -30,7 +30,9 @@
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
@@ -1534,8 +1536,160 @@ struct MDAttachment {
   TrackingMDNodeRef Node;
 };
 
+/// Context class used to handle conversions between DILocation and FLMD source
+/// locations. This can be used whether LLVM has been built with FLMD or
+/// DILocations as the source location storage method - it does not deal with
+/// DebugLoc/DbgLocStorage directly, only the underlying types (DILocation and
+/// {FLDebugLoc, DIFunctionLocalMetadata}).
+/// Besides providing conversion methods, this class stores the mappings needed
+/// to maintain identity for distinct source locations across forms.
+/// NB: AtomGroup numbers are not stable when converting back and forth between
+///     forms, i.e. they may (and almost certainly will) change in a roundtrip.
+///     This should not affect the compiler's output, as atom groups will
+///     maintain their identity within their InlinedAt context.
+struct FLMDDILocationConversionContext {
+  using FLMDSrcLoc = std::pair<FLDebugLoc, DIFunctionLocalMetadata*>;
+  using FLMDInlinedCall = std::pair<FLIndex<uint16_t>, DIFunctionLocalMetadata*>;
+  // Two-way mapping between *distinct* DILocations and their corresponding FLMD
+  // inlined calls.
+  // NB: This relies on the assumption that we never create distinct DILocations
+  //     for non-inline-call locations; we never need to create distinct
+  //     locations otherwise, so this assumption should be safe.
+  DenseMap<DILocation *, FLMDInlinedCall> InlinedCallDILocationToFLMDMap;
+  DenseMap<FLMDInlinedCall, DILocation *> InlinedCallFLMDToDILocationMap;
+  // Whenever we convert DILocation->DebugLoc, we use the
+  // DIFunctionLocalMetadata associated with the final inlinedAt DISubprogram.
+  // If this does not already exist, we create one - this should stop being
+  // necessary at some point, but for now this is how we create new FLMD.
+  DenseMap<DISubprogram *, DIFunctionLocalMetadata *> SPToFLMDMap;
+  DenseMap<DISubprogram *, Function *> SPToFnMap;
+  /// Since FLDebugLoc supports up to 13-bit AtomGroups, with 0 being reserved
+  /// for "no atom group", we modulo the input group by 2^13-1 and then add one
+  /// to remap into the new valid group range.
+  /// For DILocations, collisions between group numbers for DILocations with a
+  /// different Function/InlinedAt context won't affect the end result, so we
+  /// don't need any change to transform FLMD atom groups back to DILocation
+  /// atom groups - we leave them as-is.
+  /// There is technically the possibility of collisions between group numbers
+  /// whose difference is a multiple of 2^13; however in practice, even very
+  /// large input files barely reach that number of atom groups towards the end
+  /// of compilation, so the chances that we end up with clashing atom groups
+  /// within a single Function/InlinedAt context is near-0, and the worst case
+  /// result would be a differently-applied is_stmt, so we ignore the risk
+  /// here.
+  static uint16_t getFLMDAtomGroup(uint64_t DILocationAtomGroup) {
+    return DILocationAtomGroup ? DILocationAtomGroup % (0xfff) + 1 : 0;
+  }
+  DIFunctionLocalMetadata *getFLMDContextForDILocation(DILocation *DIL) {
+    DISubprogram *SP = DIL->getScope()->getSubprogram();
+    if (auto Existing = SPToFLMDMap.find(SP); Existing != SPToFLMDMap.end())
+      return Existing->second;
+    FLMDBuilder Builder(SP);
+    auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
+    NewFLMD->build(Builder);
+    SPToFLMDMap.insert({SP, NewFLMD});
+    return NewFLMD;
+  }
+  DIFunctionLocalMetadata *getFLMDForSP(DISubprogram *SP) {
+    if (auto Existing = SPToFLMDMap.find(SP); Existing != SPToFLMDMap.end())
+      return Existing->second;
+    FLMDBuilder Builder(SP);
+    auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
+    NewFLMD->build(Builder);
+    SPToFLMDMap.insert({SP, NewFLMD});
+    return NewFLMD;
+  }
+  FLIndex<uint16_t> getInlineCallDILocationToFLIndex(DILocation *DIL, DISubprogram *InlinedSP) {
+    // No inlinedAt -> empty inlinedAt index.
+    if (!DIL)
+      return FLIndex<uint16_t>();
+    if(DIL->isDistinct()) {
+      if (auto ExistingIdxIt = InlinedCallDILocationToFLMDMap.find(DIL);
+          ExistingIdxIt != InlinedCallDILocationToFLMDMap.end()) {
+        return ExistingIdxIt->second.first;
+      }
+    }
+    assert(InlinedSP != nullptr);
+    DILocalScope *InlineeScope = DIL->getScope();
+    DISubprogram *InlineeSP = InlineeScope->getSubprogram();
+    // Reference into LastInlineeFLMD->InlinedCalls.
+    FLIndex<uint16_t> InlinedAtIdx = getInlineCallDILocationToFLIndex(DIL->getInlinedAt(), InlineeSP);
+    // Get inlinedAtIdx...
+    // For a given FLInlinedCall `IC`, there are 2-3 relevant DIFunctionLocalMetadata:
+    // - InlinedFLMD: The inlined function, which `IC` was a call of.
+    // - InlineeFLMD: The inlinee function, which `IC` was in.
+    // - LastInlineeFLMD: The outermost function of the chain of inlined calls
+    //   containing `IC`.
+    // Indexes for the created FLInlinedCall `IC` are as follows
+    // - SrcLocIdx references LastInlineeFLMD->InlinedCalls[IC.InlinedAtIdx]->getInlinee().
+    // - InlinedAtIdx references LastInlineeFLMD->InlinedCalls.
+    // - Any FLDebugLocs or FLInlinedCalls inlined at `IC` have SrcLocIdx referring to InlineeFLMD.
+    // Relevant FLMD contexts: 
+    DIFunctionLocalMetadata *InlineeFLMD = getFLMDForSP(InlineeSP);
+    DIFunctionLocalMetadata *LastInlineeFLMD = getFLMDForSP(DIL->getInlinedAtScope()->getSubprogram());
+    DIFunctionLocalMetadata *InlinedFLMD = getFLMDForSP(InlinedSP);
+    // Get SrcLocIdx for this call, which references InlineeFLMD->SrcLocs
+    FLIndex<uint32_t> SrcLocIdx = InlineeFLMD->getFLSrcLocIdx(DIL->getLine(), DIL->getColumn(), InlineeScope);
+    FLIndex<uint16_t> NewIdx = LastInlineeFLMD->addInlinedCall(FLInlinedCall(SrcLocIdx, InlinedAtIdx, InlinedFLMD, !DIL->isDistinct()));
+    if (DIL->isDistinct()) {
+      InlinedCallDILocationToFLMDMap.insert({DIL, {NewIdx, LastInlineeFLMD}});
+      InlinedCallFLMDToDILocationMap.insert({{NewIdx, LastInlineeFLMD}, DIL});
+    }
+    return NewIdx;
+  }
+
+  /// Converts a DILocation to an FLDebugLoc+DIFunctionLocalMetadata. In
+  /// addition to the DILocation itself, it is necessary to provide the
+  /// DISubprogram of the function that DIL is a call of, iff DIL is an inlined
+  /// call DILocation.
+  /// Note that it is possible for a single DILocation to be the location of
+  /// multiple inlined calls to different functions and also be attached
+  /// directly to an instruction: this function should be called once for each
+  /// use, with the appropriate InlinedSP (nullptr for the non-call case) passed
+  /// each time. This will produce a separate result each time, but the
+  /// resulting FLMD source locations will be converted back into the same
+  /// DILocation if converted back, i.e. this is still a roundtrip.
+  FLDebugLoc convertDILocationToFLDebugLoc(const DILocation *DIL, DISubprogram *InlinedSP) {
+    if (!DIL)
+      return FLDebugLoc();
+    if(InlinedSP)
+      return FLDebugLoc::getInlinedCallLoc(getInlineCallDILocationToFLIndex(const_cast<DILocation*>(DIL), InlinedSP));
+    DILocalScope *OrigScope = DIL->getScope();
+    FLIndex<uint16_t> InlinedAtIdx = getInlineCallDILocationToFLIndex(DIL->getInlinedAt(), OrigScope->getSubprogram());
+    DIFunctionLocalMetadata *OrigFLMD = getFLMDForSP(OrigScope->getSubprogram());
+    FLIndex<uint32_t> SrcLocIdx = OrigFLMD->getFLSrcLocIdx(DIL->getLine(), DIL->getColumn(), OrigScope);
+    return FLDebugLoc(SrcLocIdx, InlinedAtIdx, DIL->getAtomGroup(), DIL->getAtomRank());
+  }
+
+};
+
 class LLVMContextImpl {
 public:
+  /// FIXME: Scaffolding class used to initially implement FLMD.
+  FLMDDILocationConversionContext FLMDContext;
+  void unsetFunctionSPMapping(const DISubprogram *SP, const Function *Fn) {
+    if (!SP)
+      return;
+    DISubprogram *SPRef = const_cast<DISubprogram*>(SP);
+    Function *FnRef = const_cast<Function*>(Fn);
+    assert(FLMDContext.SPToFnMap.contains(SPRef)
+      && FLMDContext.SPToFnMap.find(SPRef)->second == FnRef
+      && "Subprogram not already associated with function?");
+    FLMDContext.SPToFnMap.erase(SPRef);
+  }
+  void setFunctionSPMapping(const DISubprogram *SP, const Function *Fn) {
+    if (!SP)
+      return;
+    DISubprogram *SPRef = const_cast<DISubprogram*>(SP);
+    Function *FnRef = const_cast<Function*>(Fn);
+    assert(!FLMDContext.SPToFnMap.contains(SPRef)
+      && "Subprogram is associated with multiple functions?");
+    FLMDContext.SPToFnMap.insert({SPRef, FnRef});
+    if (FLMDContext.SPToFLMDMap.contains(SP)) {
+      
+    }
+  }
+
   /// OwnedModules - The set of modules instantiated in this context, and which
   /// will be automatically deleted if this context is deleted.
   SmallPtrSet<Module *, 4> OwnedModules;

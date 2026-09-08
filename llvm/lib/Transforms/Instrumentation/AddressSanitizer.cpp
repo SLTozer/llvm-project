@@ -3555,7 +3555,7 @@ void FunctionStackPoisoner::processStaticAllocas() {
   DebugLoc EntryDebugLocation;
   if (auto SP = F.getSubprogram())
     EntryDebugLocation =
-        DebugLoc::get(SP->getContext(), SP->getScopeLine(), 0, SP);
+        DebugLoc::get(&F, SP->getScopeLine(), 0, SP);
 
   Instruction *InsBefore = AllocaVec[0];
   IRBuilder<> IRB(InsBefore);

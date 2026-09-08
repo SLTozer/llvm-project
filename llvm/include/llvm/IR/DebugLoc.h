@@ -20,6 +20,7 @@
 #include "llvm/IR/ModuleSlotTracker.h"
 #include "llvm/IR/PseudoProbe.h"
 #include "llvm/IR/TrackingMDRef.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/DataTypes.h"
@@ -179,7 +180,7 @@ struct FLDebugLoc {
     return InlinedAtIdx;
   }
   // TODO: Better name please.
-  bool isLeafLoc() const { return SrcLocIdx; }
+  bool isInstrLoc() const { return SrcLocIdx; }
 
   uint64_t asRawInt() const {
     static_assert(sizeof(*this) == sizeof(uint64_t));
@@ -188,16 +189,8 @@ struct FLDebugLoc {
     return Result;
   }
 
-private:
-  DIFunctionLocalMetadata *getSrcLocContext(DIFunctionLocalMetadata *Context) const {
-    if (!InlinedAtIdx)
-      return Context;
-    return Context->getInlinedCall(InlinedAtIdx).getInlinee();
-  }
-public:
-  std::optional<FLInlinedCall> getInlinedCall(DIFunctionLocalMetadata *Context) const {
-    if (!InlinedAtIdx)
-      return {};
+  FLInlinedCall getAsInlinedCall(DIFunctionLocalMetadata *Context) const {
+    assert(isInlinedCall() && "getAsInlinedCall for non-inlined-call.");
     return Context->getInlinedCall(InlinedAtIdx);
   }
   FLDebugLoc getInlinedAt(DIFunctionLocalMetadata *Context) const {
@@ -245,7 +238,6 @@ struct SrcLocData {
 DIFunctionLocalMetadata *getFLMDForInstruction(const Instruction *I);
 DIFunctionLocalMetadata *getFLMDForFunction(const Function *F);
 void setFLMDForFunction(const Function *F, DIFunctionLocalMetadata *FLMD);
-DIFunctionLocalMetadata *cloneFLMDForFunction(const Function *Old, const Function *New);
 
 /// Debug location information stored directly inside an Instruction.
 /// Underlying interface can be accessed via `get`, but care must be taken
@@ -393,6 +385,9 @@ public:
   DIFunctionLocalMetadata *getFLContext() const { return FLContext; }
 #endif
 
+  std::pair<FLDebugLoc, DIFunctionLocalMetadata *> getAsFLDebugLoc() const;
+  static DebugLoc getFromFLDebugLoc(FLDebugLoc FLDL, DIFunctionLocalMetadata *FLContext);
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Metadata/DILocation compatibility interface
 
@@ -411,15 +406,92 @@ public:
 
   bool operator<(const DebugLoc &Other) const { return Storage < Other.Storage; }
 
+private:
+  /// The following set of functions are the "real" functions that we use to
+  /// create a DebugLoc; all require a "context" object, which is the
+  /// LLVMContext for non-FLMD DebugLocs, and DIFunctionLocalMetadata* for FLMD
+  /// DebugLocs. To avoid compile errors when toggling the FLMD DebugLocs
+  /// feature, passing the context objects directly is not enabled; instead, we
+  /// pass an object which can be used to locate either context object depending
+  /// on the feature toggle, using a wrapper `DebugLocContext` class. An
+  /// explicit `DebugLocContext(<ActualContext>)` is also available, but should
+  /// only be used in cases where the feature toggle is known (and will
+  /// otherwise not compile).
+#if LLVM_USE_FLMD_SOURCE_LOCS
   static DebugLoc get(
-    LLVMContext &Context, unsigned Line, unsigned Column,Metadata *Scope,
+    DIFunctionLocalMetadata *Context, unsigned Line, unsigned Column, Metadata *Scope,
     DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
     uint8_t AtomRank = 0);
-  static DebugLoc getDistinct(
-    DISubprogram *InlinedSP,
-    LLVMContext &Context, unsigned Line, unsigned Column,Metadata *Scope,
+  static DebugLoc getDistinctInlinedCall(
+    DIFunctionLocalMetadata *CalleeContext,
+    DIFunctionLocalMetadata *Context, unsigned Line, unsigned Column, Metadata *Scope,
     DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
     uint8_t AtomRank = 0);
+  static DebugLoc getUniquedInlinedCall(
+    DIFunctionLocalMetadata *CalleeContext,
+    DIFunctionLocalMetadata *Context, unsigned Line, unsigned Column, Metadata *Scope,
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
+    uint8_t AtomRank = 0);
+#else
+  static DebugLoc get(
+    LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
+    uint8_t AtomRank = 0);
+  static DebugLoc getDistinctInlinedCall(
+    LLVMContext &CalleeContext,
+    LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
+    uint8_t AtomRank = 0);
+  static DebugLoc getUniquedInlinedCall(
+    LLVMContext &CalleeContext,
+    LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
+    uint8_t AtomRank = 0);
+#endif
+public:
+
+  /// Helper class used to fetch the required context object to create a new
+  /// DebugLoc from any of the objects that can reach it (see comment above the
+  /// private functions above).
+  struct DebugLocContext {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    DIFunctionLocalMetadata *Context;
+    explicit DebugLocContext(DIFunctionLocalMetadata *FLMDContext) : Context(FLMDContext) {}
+    DebugLocContext(DebugLoc DL) {
+      assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
+      Context = DL.getFLContext();
+    }
+#else
+    LLVMContext &Context;
+    explicit DebugLocContext(LLVMContext &LLVMContext) : Context(LLVMContext) {}
+    DebugLocContext(DebugLoc DL) {
+      assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
+      Context = DL.getContext();
+    }
+#endif
+    DebugLocContext(const Instruction *I);
+    DebugLocContext(const Function *F);
+  };
+  static DebugLoc get(
+    DebugLocContext Context, unsigned Line, unsigned Column, Metadata *Scope,
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
+    uint8_t AtomRank = 0) {
+    return DebugLoc::get(Context.Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+  }
+  static DebugLoc getDistinctInlinedCall(
+    DebugLocContext CalleeContext,
+    DebugLocContext Context, unsigned Line, unsigned Column, Metadata *Scope,
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
+    uint8_t AtomRank = 0) {
+    return DebugLoc::getDistinctInlinedCall(CalleeContext.Context, Context.Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+  }
+  static DebugLoc getUniquedInlinedCall(
+    DebugLocContext CalleeContext,
+    DebugLocContext Context, unsigned Line, unsigned Column, Metadata *Scope,
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
+    uint8_t AtomRank = 0) {
+    return DebugLoc::getUniquedInlinedCall(CalleeContext.Context, Context.Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+  }
 
   static DebugLoc getFromMDNode(const MDNode *L);
   /// Create a DebugLoc from the equivalent DILocation. If the DILocation is an
@@ -469,6 +541,9 @@ public:
   ///
   /// \p Locs: The locations to be merged.
   LLVM_ABI static DebugLoc getMergedLocations(ArrayRef<DebugLoc> Locs);
+
+  LLVM_ABI DebugLoc getAsInlinedCall(bool IsDistinct = true) const;
+  LLVM_ABI DebugLoc getLocForInlinedCall() const;
 
   enum { ReplaceLastInlinedAt = true };
   /// Rebuild the entire inlined-at chain for this instruction so that the top
@@ -689,6 +764,17 @@ public:
   uint8_t getAtomRank() const;
 
   DebugLoc getWithoutAtom() const;
+  DebugLoc getWithAtom(uint16_t Group, uint16_t Rank) const;
+  /// Creates and returns a new atom group number that can be applied to this
+  /// DebugLoc, and any other DebugLocs within the same "atom context", meaning
+  /// the combination of the current Function/InlinedAt (i.e. the tuple given
+  /// below).
+  uint16_t getNewAtomGroup() const;
+  /// Returns a DebugLoc that uniquely represents this DebugLoc's
+  /// "atom context". The tuple of (AtomContext, AtomGroup) uniquely identify an
+  /// atom group, i.e. two DebugLocs may have the same AtomGroup number but have
+  /// different actual atom groups if they differ in AtomContext.
+  DebugLoc getAtomContext() const;
 
   /// Return the linkage name of Subprogram. If the linkage name is empty,
   /// return scope name (the demangled name).
@@ -767,6 +853,42 @@ inline hash_code hash_value(const DbgLocStorage &Val) {
 inline hash_code hash_value(const DebugLoc &Val) {
   return hash_value(Val.Storage);
 }
+
+// Class used to map DebugLocs from one context to another.
+class DebugLocMap {
+  // Default initialize the SmallVectors with empty elements (which are all 0s).
+  SmallVector<FLIndex<uint32_t>> SrcLocMap;
+  SmallVector<FLIndex<uint16_t>> InlinedCallMap;
+  DIFunctionLocalMetadata *Src;
+public:
+  DebugLocMap(DIFunctionLocalMetadata *Src) :
+    SrcLocMap(Src->SrcLocs.size()), InlinedCallMap(Src->InlinedCalls.size()),
+    Src(Src) {}
+  FLDebugLoc getFLDebugLoc(FLDebugLoc In) {
+
+  }
+  FLIndex<uint32_t> getSrcLoc(FLIndex<uint32_t> In) {
+    if (!In)
+      return In;
+    return SrcLocMap[In.get()];
+  }
+  FLIndex<uint16_t> getInlinedCall(FLIndex<uint16_t> In) {
+    if (!In)
+      return In;
+    return InlinedCallMap[In.get()];
+  }
+  void mapSrcLoc(FLIndex<uint32_t> In, FLIndex<uint32_t> Out) {
+    assert(In && !SrcLocMap[In.get()] && "Must map existing unmapped index only.");
+    SrcLocMap[In.get()] = Out;
+  }
+  void mapInlinedCall(FLIndex<uint16_t> In, FLIndex<uint16_t> Out) {
+    assert(In && !InlinedCallMap[In.get()] && "Must map existing unmapped index only.");
+    InlinedCallMap[In.get()] = Out;
+  }
+  FLIndex<uint32_t> mapSrcLoc(FLIndex<uint32_t> In, function_ref<MDNode *(MDNode *)> MDUpdater);
+  FLIndex<uint16_t> mapInlinedCall(FLIndex<uint16_t> In, function_ref<MDNode *(MDNode *)> MDUpdater);
+};
+
 
 /// Class used to temporarily create DILocations from FLDebugLocs, which are
 /// owned by this class rather than the LLVM context, and are deallocated when

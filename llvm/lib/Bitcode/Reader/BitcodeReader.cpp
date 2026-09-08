@@ -5246,7 +5246,7 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
           return error("Invalid debug loc record");
       }
 
-      LastLoc = DebugLoc::get(Scope->getContext(), Line, Col, Scope, DebugLoc::getFromMDNode(IA),
+      LastLoc = DebugLoc::get(F, Line, Col, Scope, DebugLoc::getFromMDNode(IA),
                                 isImplicitCode, AtomGroup, AtomRank);
       I->setDebugLoc(LastLoc);
       I = nullptr;

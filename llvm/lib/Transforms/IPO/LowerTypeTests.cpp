@@ -1563,7 +1563,7 @@ createJumpTableDebugInfo(Function *F, ArrayRef<GlobalTypeMember *> Functions) {
 
   F->setSubprogram(UbsanSP);
 
-  DebugLoc UbsanLoc = DebugLoc::get(M.getContext(), 0, 0, UbsanSP);
+  DebugLoc UbsanLoc = DebugLoc::get(F, 0, 0, UbsanSP);
 
   SmallVector<DebugLoc> Locations;
   Locations.reserve(Functions.size());
@@ -1576,7 +1576,7 @@ createJumpTableDebugInfo(Function *F, ArrayRef<GlobalTypeMember *> Functions) {
         DINode::FlagArtificial, DISubprogram::SPFlagDefinition);
 
     DebugLoc EntryLoc =
-        DebugLoc::get(M.getContext(), 0, 0, JumpSP, UbsanLoc);
+        DebugLoc::get(UbsanLoc, 0, 0, JumpSP, UbsanLoc);
 
     Locations.push_back(EntryLoc);
   }

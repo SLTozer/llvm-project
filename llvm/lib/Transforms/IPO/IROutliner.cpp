@@ -715,8 +715,8 @@ static void moveFunctionData(Function &Old, Function &New,
         auto updateLoopInfoLoc = [&New](Metadata *MD) -> Metadata * {
           if (DISubprogram *SP = New.getSubprogram())
             if (DebugLoc Loc = DebugLoc::getFromDILocation(dyn_cast_or_null<DILocation>(MD)))
-              return DebugLoc::get(New.getContext(), Loc.getLine(),
-                                     Loc.getColumn(), SP).getAsMDNode();
+              return DebugLoc::get(&New, Loc.getLine(),
+                                   Loc.getColumn(), SP).getAsMDNode();
           return MD;
         };
         updateLoopMetadataDebugLocations(Val, updateLoopInfoLoc);
@@ -725,7 +725,7 @@ static void moveFunctionData(Function &Old, Function &New,
 
       // Edit the scope of called functions inside of outlined functions.
       if (DISubprogram *SP = New.getSubprogram()) {
-        DebugLoc DI = DebugLoc::get(New.getContext(), 0, 0, SP);
+        DebugLoc DI = DebugLoc::get(&New, 0, 0, SP);
         Val.setDebugLoc(DI);
       }
     }

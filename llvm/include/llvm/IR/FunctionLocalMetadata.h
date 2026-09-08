@@ -15,6 +15,7 @@
 #define LLVM_IR_FUNCTIONLOCALMETADATA_H
 
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/ModuleSlotTracker.h"
 #include "llvm/IR/PseudoProbe.h"
@@ -188,6 +189,36 @@ struct FLLoop {
 
 
 
+/// An FLSrcLoc with external references (i.e. the ScopeIdx) resolved and
+/// replaced with the underlying data (up to the metadata pointers only), such
+/// that no further FLMD lookups/context are necessary.
+struct ResolvedFLSrcLoc {
+  uint32_t Line;
+  uint16_t Column;
+  DILocalScope *Scope;
+};
+
+/// An FLInlinedCall with external references resolved and replaced with the
+/// underlying data (up to the metadata pointers only), such that no further
+/// FLMD lookups/context are necessary.
+/// The full chain of inlined calls are stored as a linked list of
+/// ResolvedFLInlinedCalls.
+/// Even though references are resolved, we still store the index of every
+/// FLInlinedCall, because it forms a part of the inlined call's unique
+/// identity, which logically distinguishes it from other inlined calls with
+/// identical data fields.
+struct ResolvedFLInlinedCall {
+  ResolvedFLSrcLoc SrcLoc;
+  uint16_t SelfIndex;
+  uint16_t MaxAtomGroup : 15;
+  uint16_t Uniquable : 1;
+  std::unique_ptr<ResolvedFLInlinedCall> InlinedAt;
+
+  bool isSame(const ResolvedFLInlinedCall &Other) {
+    return SelfIndex == Other.SelfIndex;
+  }
+};
+
 
 /// Builder class to perform the initial population for FLMD.
 /// Besides allowing direct modification of arrays that normally have a limited
@@ -306,6 +337,24 @@ public:
     }
     InlinedCalls.push_back(InlinedCall);
     return InlinedCalls.size() - 1;
+  }
+
+  ResolvedFLSrcLoc getResolvedSrcLoc(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx = FLIndex<uint16_t>()) {
+    if (InlinedAtIdx)
+      return InlinedCalls[InlinedAtIdx.get()].getInlinee()->getResolvedSrcLoc(SrcLocIdx);
+    FLSrcLoc SrcLoc = SrcLocs[SrcLocIdx.get()];
+    DILocalScope *Scope = Scopes[SrcLoc.ScopeIdx.get()].get();
+    return ResolvedFLSrcLoc { SrcLoc.Line, SrcLoc.Column, Scope };
+  }
+  ResolvedFLInlinedCall getResolvedInlinedCall(FLIndex<uint16_t> InlinedAtIdx) {
+    FLInlinedCall InlinedCall = InlinedCalls[InlinedAtIdx.get()];
+    std::unique_ptr<ResolvedFLInlinedCall> InlinedAt;
+    if (InlinedCall.InlinedAtIdx)
+      InlinedAt.reset(new ResolvedFLInlinedCall(getResolvedInlinedCall(InlinedCall.InlinedAtIdx)));
+    ResolvedFLSrcLoc SrcLoc = getResolvedSrcLoc(InlinedCall.SrcLocIdx, InlinedCall.InlinedAtIdx);
+    return ResolvedFLInlinedCall {
+      SrcLoc, InlinedAtIdx.get(), InlinedCall.MaxAtomGroup,
+      InlinedCall.Uniquable, std::move(InlinedAt) };
   }
 };
 

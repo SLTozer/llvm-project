@@ -2070,7 +2070,7 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
     // The scope could have an extra lexical block file.
     const DILocalScope *LocalScope =
         Label->getScope()->getNonLexicalBlockFileScope();
-    // Get inlined DILocation if it is inlined label.
+    // Get inlined DebugLoc if it is inlined label.
     if (DebugLoc IA = IL.second)
       Scope = LScopes.findInlinedScope(LocalScope, IA);
     else
@@ -2420,7 +2420,7 @@ findPrologueEndLoc(const MachineFunction *MF) {
         // Create and assign the scope-line position.
         unsigned ScopeLine = SP->getScopeLine();
         DebugLoc ScopeLineDILoc =
-            DebugLoc::get(SP->getContext(), ScopeLine, 0, SP);
+            DebugLoc::get(&F, ScopeLine, 0, SP);
         const_cast<MachineInstr *>(&*CurInst)->setDebugLoc(ScopeLineDILoc);
 
         // Consider this position to be where prologue_end is placed.

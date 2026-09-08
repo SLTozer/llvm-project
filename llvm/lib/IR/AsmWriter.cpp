@@ -112,6 +112,12 @@ static cl::opt<bool> PrintAddrspaceName("print-addrspace-name", cl::Hidden,
                                         cl::init(false),
                                         cl::desc("Print address space names"));
 
+static cl::opt<bool> PrintFLMD(
+    "print-flmd", cl::init(false),
+    cl::desc("If set, debug locations will be printed as function-local "
+             "metadata attachments; otherwise they will be printed as standard "
+             "metadata."));
+
 // Make virtual table appear in this compilation unit.
 AssemblyAnnotationWriter::~AssemblyAnnotationWriter() = default;
 
@@ -1911,6 +1917,8 @@ struct MDFieldPrinter {
                           bool ShouldSkipZero = true);
   template <class IntTy>
   void printInt(StringRef Name, IntTy Int, bool ShouldSkipZero = true);
+  template <class IntTy>
+  void printIntArray(StringRef Name, ArrayRef<IntTy> Ints, bool ShouldSkipEmpty = true);
   void printAPInt(StringRef Name, const APInt &Int, bool IsUnsigned,
                   bool ShouldSkipZero);
   void printBool(StringRef Name, bool Value,
@@ -2002,6 +2010,17 @@ void MDFieldPrinter::printInt(StringRef Name, IntTy Int, bool ShouldSkipZero) {
     return;
 
   Out << FS << Name << ": " << Int;
+}
+template <class IntTy>
+void MDFieldPrinter::printIntArray(StringRef Name, ArrayRef<IntTy> Ints, bool ShouldSkipEmpty) {
+  if (ShouldSkipEmpty && Ints.empty())
+    return;
+
+  ListSeparator AS;
+  Out << FS << Name << ": " << "[";
+  for (IntTy Int : Ints)
+    Out << AS << Int;
+  Out << "]";
 }
 
 void MDFieldPrinter::printAPInt(StringRef Name, const APInt &Int,
@@ -2112,6 +2131,36 @@ static void writeGenericDINode(raw_ostream &Out, const GenericDINode *N,
   Out << ")";
 }
 
+static void writeFLSrcLoc(raw_ostream &Out, FLSrcLoc SrcLoc, AsmWriterContext &WriterCtx) {
+  Out << "  (line: " << SrcLoc.Line;
+  if (SrcLoc.Column)
+    Out << ", column: " << SrcLoc.Column;
+  Out << ", scope:" << SrcLoc.ScopeIdx.get() << ")";
+}
+static void writeFLInlinedCall(raw_ostream &Out, FLInlinedCall InlinedCall, AsmWriterContext &WriterCtx) {
+  Out << "  (srcLoc: " << InlinedCall.SrcLocIdx.get();
+  if (InlinedCall.InlinedAtIdx)
+    Out << ", inlinedAt: " << InlinedCall.InlinedAtIdx.get();
+  if (InlinedCall.MaxAtomGroup)
+    Out << ", maxAtomGroup: " << InlinedCall.MaxAtomGroup;
+  Out << ", inlineeFLMD: ";
+  writeMetadataAsOperand(Out, InlinedCall.InlineeFLMD, WriterCtx);
+  Out << ")";
+}
+static void writeFLLoop(raw_ostream &Out, FLLoop Loop, AsmWriterContext &WriterCtx) {
+  Out << "  (properties: ";
+  writeMetadataAsOperand(Out, Loop.getProperties().get(), WriterCtx);
+  if (Loop.StartSrcLocIdx)
+    Out << ", startSrcLoc: " << Loop.StartSrcLocIdx.get();
+  if (Loop.StartInlinedAtIdx)
+    Out << ", startInlinedAt: " << Loop.StartInlinedAtIdx.get();
+  if (Loop.EndSrcLocIdx)
+    Out << ", endSrcLoc: " << Loop.EndSrcLocIdx.get();
+  if (Loop.EndInlinedAtIdx)
+    Out << ", endInlinedAt: " << Loop.EndInlinedAtIdx.get();
+  Out << ")";
+}
+
 static void writeDIFunctionLocalMetadata(raw_ostream &Out, const DIFunctionLocalMetadata *FLMD,
                                          AsmWriterContext &WriterCtx) {
   Out << "!DIFunctionLocalMetadata(";
@@ -2129,41 +2178,24 @@ static void writeDIFunctionLocalMetadata(raw_ostream &Out, const DIFunctionLocal
   if (FLMD->SrcLocs.size()) {
     Out << LS << "srcLocs: [\n";
     for (auto &SrcLoc : FLMD->SrcLocs) {
-      Out << "  (line: " << SrcLoc.Line;
-      if (SrcLoc.Column)
-        Out << ", column: " << SrcLoc.Column;
-      Out << ", scope:" << SrcLoc.ScopeIdx.get() << "),\n";
+      writeFLSrcLoc(Out, SrcLoc, WriterCtx);
+      Out << ",\n";
     }
     Out << "]";
   }
   if (FLMD->InlinedCalls.size()) {
     Out << LS << "inlinedCalls: [\n";
     for (auto &InlinedCall : FLMD->InlinedCalls) {
-      Out << "  (srcLoc: " << InlinedCall.SrcLocIdx.get();
-      if (InlinedCall.InlinedAtIdx)
-        Out << ", inlinedAt: " << InlinedCall.InlinedAtIdx.get();
-      if (InlinedCall.MaxAtomGroup)
-        Out << ", maxAtomGroup: " << InlinedCall.MaxAtomGroup;
-      Out << ", inlineeFLMD: ";
-      writeMetadataAsOperand(Out, InlinedCall.InlineeFLMD, WriterCtx);
-      Out << "),\n";
+      writeFLInlinedCall(Out, InlinedCall, WriterCtx);
+      Out << ",\n";
     }
     Out << "]";
   }
   if (FLMD->Loops.size()) {
     Out << LS << "loops: [\n";
     for (auto &Loop : FLMD->Loops) {
-      Out << "  (properties: ";
-      writeMetadataAsOperand(Out, Loop.getProperties().get(), WriterCtx);
-      if (Loop.StartSrcLocIdx)
-        Out << ", startSrcLoc: " << Loop.StartSrcLocIdx.get();
-      if (Loop.StartInlinedAtIdx)
-        Out << ", startInlinedAt: " << Loop.StartInlinedAtIdx.get();
-      if (Loop.EndSrcLocIdx)
-        Out << ", endSrcLoc: " << Loop.EndSrcLocIdx.get();
-      if (Loop.EndInlinedAtIdx)
-        Out << ", endInlinedAt: " << Loop.EndInlinedAtIdx.get();
-      Out << "),\n";
+      writeFLLoop(Out, Loop, WriterCtx);
+      Out << ",\n";
     }
     Out << "]";
   }
@@ -2184,6 +2216,16 @@ static void writeDILocation(raw_ostream &Out, const DILocation *DL,
   Printer.printInt("atomGroup", DL->getAtomGroup());
   Printer.printInt<unsigned>("atomRank", DL->getAtomRank());
   Out << ")";
+}
+
+static void writeFLDebugLoc(raw_ostream &Out, FLDebugLoc DL, AsmWriterContext &WriterCtx) {
+  Out << "!!dbgLoc(";
+  MDFieldPrinter Printer(Out, WriterCtx);
+  Printer.printInt("srcLoc", DL.SrcLocIdx.get(), false);
+  if (DL.InlinedAtIdx)
+    Printer.printInt("inlinedAt", DL.InlinedAtIdx.get(), false);
+  if (DL.AtomGroup != 0)
+    Printer.printIntArray<uint16_t>("atom", {DL.AtomGroup, DL.AtomRank});
 }
 
 static void writeDIAssignID(raw_ostream &Out, const DIAssignID *DL,
@@ -4942,7 +4984,27 @@ void AssemblyWriter::printInstruction(const Instruction &I) {
 
   // Print Metadata info.
   SmallVector<std::pair<unsigned, MDNode *>, 4> InstMD;
-  I.getAllMetadata(InstMD);
+  if (auto DL = I.getDebugLoc()) {
+    if (PrintFLMD) {
+      // Print !!dbgLoc
+      Out << ", !!dbgLoc(";
+#if LLVM_USE_FLMD_SOURCE_LOCS
+      ListSeparator LS;
+      Out << "srcLoc: " << DL.getStorage().get().SrcLocIdx.get();
+      if (DL.getInlinedAt())
+        Out << LS << "inlinedAt: " << DL.getStorage().get().InlinedAtIdx.get();
+      if (DL.getAtomGroup())
+        Out << LS << "atom: [" << DL.getAtomGroup() << ", " << DL.getAtomRank() << "]";
+      Out << ")";
+#else
+      llvm_unreachable("TODO");
+#endif
+    } else {
+      InstMD.push_back({LLVMContext::MD_dbg, DL.getAsDILocation()});
+    }
+  }
+  I.getAllMetadataOtherThanDebugLoc(InstMD);
+
   printMetadataAttachments(InstMD, ", ");
 
   // Print a nice comment.
