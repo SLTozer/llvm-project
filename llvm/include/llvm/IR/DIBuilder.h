@@ -72,6 +72,7 @@ namespace llvm {
     /// of cases where a frontend creates repeated inlined instances that
     /// *could* share a location is large enough for complicated/expensive
     /// tracking here to be worth it.
+    DenseMap<DISubprogram *, DIFunctionLocalMetadata *> InlinedCallContexts;
     DenseMap<DIFunctionLocalMetadata *, SmallVector<Function *>> InlinedFunctionContexts;
 #endif
 

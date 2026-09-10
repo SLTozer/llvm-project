@@ -1353,6 +1353,7 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
   SmallDenseMap<DINode *, DINode *> RemappedMetadata;
   SmallVector<DbgVariableRecord *, 4> DVRsToDelete;
   DenseMap<const MDNode *, MDNode *> Cache;
+  DebugLocMap DLMap(&OldFunc, &NewFunc);
 
   auto GetUpdatedDIVariable = [&](DILocalVariable *OldVar) {
     DINode *&NewVar = RemappedMetadata[OldVar];
@@ -1420,11 +1421,6 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
     DVR->getMarker()->MarkedInstr->dropOneDbgRecord(DVR);
   DIB.finalizeSubprogram(NewSP);
 
-
-#if LLVM_USE_FLMD_SOURCE_LOCS
-  DIFunctionLocalMetadata *FLContext = DIB.startFunctionContext(&NewFunc, NewSP).Context;
-#endif
-
   // Fix up the scope information attached to the line locations and the
   // debug assignment metadata in the new function.
   DenseMap<DIAssignID *, DIAssignID *> AssignmentIDMap;
@@ -1436,23 +1432,23 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
     if (const DebugLoc &DL = I.getDebugLoc())
     
       I.setDebugLoc(
-          DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, Ctx, Cache));
+          DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, &NewFunc, Cache, DLMap));
     for (DbgRecord &DR : I.getDbgRecordRange())
       DR.setDebugLoc(DebugLoc::replaceInlinedAtSubprogram(DR.getDebugLoc(),
-                                                          *NewSP, Ctx, Cache));
+                                                          *NewSP, &NewFunc, Cache, DLMap));
 #else
     if (const DebugLoc &DL = I.getDebugLoc())
       I.setDebugLoc(
-          DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, Ctx, Cache));
+          DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, &NewFunc, Cache, DLMap));
     for (DbgRecord &DR : I.getDbgRecordRange())
       DR.setDebugLoc(DebugLoc::replaceInlinedAtSubprogram(DR.getDebugLoc(),
-                                                          *NewSP, Ctx, Cache));
+                                                          *NewSP, &NewFunc, Cache, DLMap));
 #endif
 
     // Loop info metadata may contain line locations. Fix them up.
-    auto updateLoopInfoLoc = [&Ctx, &Cache, NewSP](Metadata *MD) -> Metadata * {
+    auto updateLoopInfoLoc = [&Cache, &DLMap, &NewFunc, NewSP](Metadata *MD) -> Metadata * {
       if (DebugLoc Loc = DebugLoc::getFromDILocation(dyn_cast_or_null<DILocation>(MD)))
-        return DebugLoc::replaceInlinedAtSubprogram(Loc, *NewSP, Ctx, Cache).getAsMDNode();
+        return DebugLoc::replaceInlinedAtSubprogram(Loc, *NewSP, &NewFunc, Cache, DLMap).getAsMDNode();
       return MD;
     };
     updateLoopMetadataDebugLocations(I, updateLoopInfoLoc);

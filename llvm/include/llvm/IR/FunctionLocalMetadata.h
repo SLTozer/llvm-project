@@ -113,6 +113,16 @@ struct FLInlinedCall {
     Result.Uniquable = (RawInt & 1);
     return Result;
   }
+  uint16_t getNewAtomGroup() {
+    // FIXME: Remove this assert later, it's not really a problem if atom groups
+    // wrap - but we probably want to wrap straight to 1 rather than 0, and we
+    // also want to know if this trips regularly during development.
+    assert(MaxAtomGroup < 0x7fff && "Atom group unexpectedly wrapped!");
+    return ++MaxAtomGroup;
+  }
+  // FIXME: We should really ignore MaxAtomGroup for some/most/all equality
+  //        comparisons, but exactly how we handle that field during e.g.
+  //        uniquing may not be as simple as ignoring it.
   bool operator==(const FLInlinedCall &Other) const {
     return asRawParts() == Other.asRawParts();
   }
@@ -267,6 +277,8 @@ public:
   SmallVector<FLInlinedCall, 0> InlinedCalls;
   SmallVector<FLLoop, 0> Loops;
   SmallDenseMap<class Instruction *, uint16_t> InstrLoops;
+  // TODO: Move this to Subclassdata.
+  uint16_t MaxAtomGroup;
 
   // FIXME: FLMD is a funny case where it takes no arguments and can only be
   // created Distinct. Decide later whether this needs to change.
@@ -307,6 +319,15 @@ public:
   }
   FLLoop getLoop(FLIndex<uint32_t> Idx) const {
     return Loops[Idx.get()];
+  }
+
+  uint16_t getNewAtomGroup(FLIndex<uint16_t> InlinedCallIdx) {
+    if (!InlinedCallIdx) {
+      // FIXME: See comment in corresponding FLInlinedCall method.
+      assert(MaxAtomGroup < 0x7fff && "Atom group unexpectedly wrapped!");
+      return ++MaxAtomGroup;
+    }
+    return InlinedCalls[InlinedCallIdx.get()].getNewAtomGroup();
   }
 
   FLIndex<uint16_t> getFLScopeIdx(DILocalScope *Scope) {

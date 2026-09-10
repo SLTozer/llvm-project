@@ -182,7 +182,7 @@ void CGDebugInfo::addInstSourceAtomMetadata(llvm::Instruction *I,
 
   // Apply the new DILocation to the instruction.
   llvm::DebugLoc NewDL = llvm::DebugLoc::get(
-      FnContextStack.back(), DL.getLine(), DL.getCol(), DL.getScope(),
+      DL, DL.getLine(), DL.getCol(), DL.getScope(),
       DL.getInlinedAt(), DL.isImplicitCode(), Group, Rank);
   I->setDebugLoc(NewDL);
 }
@@ -5179,9 +5179,8 @@ void CGDebugInfo::EmitInlineFunctionStart(CGBuilderTy &Builder, GlobalDecl GD) {
   // TODO: Is this the right way to get the current function? It seems odd that
   // we don't have any direct access to it from here, though not too odd since
   // this is just the debug info builder.
-  auto *CurrentFn = Builder.GetInsertBlock()->getParent();
   auto InlinedAt = DBuilder.addInlinedFunctionContext(
-    CurrentFn, SP, Builder.getCurrentDebugLocation());
+    SP, Builder.getCurrentDebugLocation());
   /// We reuse the same function context for an inlined function.
   FnContextStack.push_back(FnContextStack.back());
   LexicalBlockStack.emplace_back(SP);

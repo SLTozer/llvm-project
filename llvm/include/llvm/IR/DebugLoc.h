@@ -158,11 +158,11 @@ struct FLDebugLoc {
   }
 
   /// An FLDebugLoc is empty iff it has no SrcLoc and no InlinedAtIdx.
-  /// TODO: Determine whether the indirect InlinedAt referencing is actually
-  /// necessary for the complete implementation.
   explicit operator bool() const { return SrcLocIdx || InlinedAtIdx; }
   bool isValidLoc() const { return (bool)*this; }
-  bool isInlinedInstr() const { return InlinedAtIdx && SrcLocIdx; }
+  bool isInlinedInstrLoc() const { return InlinedAtIdx && SrcLocIdx; }
+  bool isNonInlinedInstrLoc() const { return !InlinedAtIdx && SrcLocIdx; }
+  bool isInstrLoc() const { return SrcLocIdx; }
   bool isInlinedCall() const { return InlinedAtIdx && !SrcLocIdx; }
   /// If this is an InlinedCall, return the FLDebugLoc for the call itself. Note
   /// that this removes the distinction between different inlined calls with
@@ -179,8 +179,6 @@ struct FLDebugLoc {
     assert(isInlinedCall() && "can only getIdxForInlinedCall for an inlined call");
     return InlinedAtIdx;
   }
-  // TODO: Better name please.
-  bool isInstrLoc() const { return SrcLocIdx; }
 
   uint64_t asRawInt() const {
     static_assert(sizeof(*this) == sizeof(uint64_t));
@@ -223,6 +221,10 @@ struct FLDebugLoc {
     return {SrcLoc, Scope};
   }
 
+  uint16_t getWholeAtom() const {
+    return AtomGroup << 3 | AtomRank;
+  }
+
   /// Create an FLDebugLoc from the equivalent DILocation. If the DILocation is
   /// an inlined call location, the inlined DISubprogram must also be provided.
   static FLDebugLoc getFromDILocation(const DILocation *DIL, DISubprogram *InlinedSP = nullptr);
@@ -237,7 +239,6 @@ struct SrcLocData {
 
 DIFunctionLocalMetadata *getFLMDForInstruction(const Instruction *I);
 DIFunctionLocalMetadata *getFLMDForFunction(const Function *F);
-void setFLMDForFunction(const Function *F, DIFunctionLocalMetadata *FLMD);
 
 /// Debug location information stored directly inside an Instruction.
 /// Underlying interface can be accessed via `get`, but care must be taken
@@ -343,6 +344,8 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 };
 
+class DebugLocMap;
+
 /// A debug info location.
 ///
 /// This class is a wrapper around an \a DILocation
@@ -381,8 +384,48 @@ public:
   #endif
 
   DbgLocStorage getStorage() const { return Storage; }
+  // Gets the underlying storage type in a DebugLoc, either a DILocation* or an
+  // FLDebugLoc depending on the LLVM_USE_FLMD_SOURCE_LOCS flag. Because these
+  // types have incompatible interfaces, this should only be called where the
+  // status of the flag is known, i.e. in conditionally-compiled code.
+  DbgLocStorage::LocType getUnderlyingStorage() const { return Storage.get(); }
 #if LLVM_USE_FLMD_SOURCE_LOCS
   DIFunctionLocalMetadata *getFLContext() const { return FLContext; }
+  // Several methods from FLDebugLoc are not relevant or possible for
+  // DILocations, but are useful to be callable from a DebugLoc.
+  bool isInlinedInstrLoc() const {
+    return getUnderlyingStorage().isInlinedInstrLoc();
+  }
+  bool isNonInlinedInstrLoc() const {
+    return getUnderlyingStorage().isNonInlinedInstrLoc();
+  }
+  bool isInstrLoc() const {
+    return getUnderlyingStorage().isInstrLoc();
+  }
+  bool isInlinedCall() const {
+    return getUnderlyingStorage().isInlinedCall();
+  }
+  DebugLoc getLocForInlinedCall() const {
+    return DebugLoc(
+      getUnderlyingStorage().getLocForInlinedCall(FLContext), FLContext);
+  }
+  FLIndex<uint16_t> getIdxForInlinedCall() const {
+    return getUnderlyingStorage().getIdxForInlinedCall();
+  }
+
+  FLInlinedCall getAsInlinedCall() const {
+    return getUnderlyingStorage().getAsInlinedCall(FLContext);
+  }
+  FLIndex<uint16_t> getInlinedAtIdx() const {
+    return getUnderlyingStorage().getInlinedAtIdx(FLContext);
+  }
+  FLSrcLoc getSrcLoc() const {
+    return getUnderlyingStorage().getSrcLoc(FLContext);
+  }
+  // If we know in advance we know both, this can be faster.
+  std::pair<FLSrcLoc, DILocalScope *> getSrcLocAndScope() const {
+    return getUnderlyingStorage().getSrcLocAndScope(FLContext);
+  }
 #endif
 
   std::pair<FLDebugLoc, DIFunctionLocalMetadata *> getAsFLDebugLoc() const;
@@ -456,6 +499,9 @@ public:
   struct DebugLocContext {
 #if LLVM_USE_FLMD_SOURCE_LOCS
     DIFunctionLocalMetadata *Context;
+    /// Warning: Only use in conditionally-compiled code, where
+    /// LLVM_USE_FLMD_SOURCE_LOCS is defined - otherwise this will cause an
+    /// error when the flag is not defined.
     explicit DebugLocContext(DIFunctionLocalMetadata *FLMDContext) : Context(FLMDContext) {}
     DebugLocContext(DebugLoc DL) {
       assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
@@ -463,6 +509,9 @@ public:
     }
 #else
     LLVMContext &Context;
+    /// Warning: Only use in conditionally-compiled code, where
+    /// LLVM_USE_FLMD_SOURCE_LOCS is not defined - otherwise this will cause an
+    /// error when the flag is defined.
     explicit DebugLocContext(LLVMContext &LLVMContext) : Context(LLVMContext) {}
     DebugLocContext(DebugLoc DL) {
       assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
@@ -492,6 +541,18 @@ public:
     uint8_t AtomRank = 0) {
     return DebugLoc::getUniquedInlinedCall(CalleeContext.Context, Context.Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
   }
+  DebugLocContext getDLContext() const {
+    assert((bool)*this && "Can only get DL Context from a valid DebugLoc.");
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    return DebugLocContext(getFLContext());
+#else
+    return getUnderlyingStorage()->getContext();
+#endif
+  }
+
+  /// Creates a DebugLoc representing the same location as this DebugLoc, but
+  /// as an inlined call to the function with the given context.
+  DebugLoc convertToInlinedCall(DebugLocContext CalleeContext) const;
 
   static DebugLoc getFromMDNode(const MDNode *L);
   /// Create a DebugLoc from the equivalent DILocation. If the DILocation is an
@@ -542,23 +603,23 @@ public:
   /// \p Locs: The locations to be merged.
   LLVM_ABI static DebugLoc getMergedLocations(ArrayRef<DebugLoc> Locs);
 
-  LLVM_ABI DebugLoc getAsInlinedCall(bool IsDistinct = true) const;
-  LLVM_ABI DebugLoc getLocForInlinedCall() const;
-
   enum { ReplaceLastInlinedAt = true };
   /// Rebuild the entire inlined-at chain for this instruction so that the top
   /// of the chain now is inlined-at the new call site.
   /// \param   InlinedAt The new outermost inlined-at in the chain.
   LLVM_ABI static DebugLoc
-  appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt, LLVMContext &Ctx,
-                  DenseMap<const MDNode *, MDNode *> &Cache);
+  appendInlinedAt(const DebugLoc &DL, DebugLoc InlinedAt, LLVMContext &Ctx,
+                  DenseMap<const MDNode *, MDNode *> &Cache,
+                  DebugLocMap &DLMap);
 
   /// Rebuild the entire inline-at chain by replacing the subprogram at the
   /// end of the chain with NewSP.
+  /// The DLMap argument is only used when FLMD source locations are enabled.
   LLVM_ABI static DebugLoc
   replaceInlinedAtSubprogram(const DebugLoc &DL, DISubprogram &NewSP,
-                             LLVMContext &Ctx,
-                             DenseMap<const MDNode *, MDNode *> &Cache);
+                             DebugLocContext NewFnContext,
+                             DenseMap<const MDNode *, MDNode *> &Cache,
+                             DebugLocMap &DLMap);
 
   static bool isPseudoProbeDiscriminator(unsigned Discriminator);
 
@@ -739,9 +800,17 @@ public:
   LLVM_ABI bool isImplicitCode() const;
   LLVM_ABI void setImplicitCode(bool ImplicitCode);
 
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  bool operator==(const DebugLoc &DL) const {
+    return Storage == DL.Storage && FLContext == DL.FLContext;
+  }
+  bool operator!=(const DebugLoc &DL) const {
+    return Storage != DL.Storage || FLContext != DL.FLContext;
+  }
+#else
   bool operator==(const DebugLoc &DL) const { return Storage == DL.Storage; }
   bool operator!=(const DebugLoc &DL) const { return Storage != DL.Storage; }
-
+#endif
   LLVM_ABI void dump() const;
   LLVM_ABI void dump(const Module *M) const;
 
@@ -765,10 +834,22 @@ public:
 
   DebugLoc getWithoutAtom() const;
   DebugLoc getWithAtom(uint16_t Group, uint16_t Rank) const;
-  /// Creates and returns a new atom group number that can be applied to this
+  /// Creates and returns a new atom group number. If this is an instruction
+  /// loc, then the resulting atom group is one that can be applied to this
   /// DebugLoc, and any other DebugLocs within the same "atom context", meaning
   /// the combination of the current Function/InlinedAt (i.e. the tuple given
   /// below).
+  /// If this is an inlined call DebugLoc, then returns a new atom group number
+  /// for instruction locs inlined directly at this DebugLoc. Finally, if this
+  /// is an empty DebugLoc, it returns a new atom group for non-inlined
+  /// instructions in the current function.
+  /// TODO: It may be worth defining clearly which functions are valid on empty
+  /// DebugLocs and which are not - with DILocations the answer is "all of them"
+  /// since they are a nullptr, but some methods like this may have actual
+  /// meaning for FLMD DebugLocs, e.g. for a non-inlined instruction loc `DL`,
+  /// `DL->getInlinedAt()->getNewAtomGroup()` is a totally valid construct which
+  /// returns the correct result even though `DL->getInlinedAt()` is an empty
+  /// DebugLoc.
   uint16_t getNewAtomGroup() const;
   /// Returns a DebugLoc that uniquely represents this DebugLoc's
   /// "atom context". The tuple of (AtomContext, AtomGroup) uniquely identify an
@@ -825,6 +906,87 @@ inline raw_ostream &operator<<(raw_ostream &OS, const DebugLoc &DL) {
   return OS;
 }
 
+#if LLVM_USE_FLMD_SOURCE_LOCS
+// Class used to map DebugLocs from one context to another. Currently used only
+// for replaceInlinedAtSubprogram, and thus assumes that the InlineeFLMD
+// contexts do not change, meaning that for any given DebugLoc we remap either
+// the SrcLocIdx or the InlinedAtIdx, never both. If this assumption is broken,
+// e.g. if we perform a more complex remapping, replacing the InlineeFLMD
+// references, then this class needs to be updated.
+class DebugLocMap {
+  // Default initialize the SmallVectors with empty elements (which are all 0s).
+  SmallVector<FLIndex<uint32_t>> SrcLocMap;
+  SmallVector<FLIndex<uint16_t>> InlinedCallMap;
+  DIFunctionLocalMetadata *SrcContext;
+  DIFunctionLocalMetadata *DestContext;
+public:
+  DebugLocMap(Function *SrcFn, Function *DestFn);
+
+  FLIndex<uint32_t> getSrcLoc(FLIndex<uint32_t> In) {
+    if (!In)
+      return In;
+    return SrcLocMap[In.get()];
+  }
+  void insertSrcLoc(FLIndex<uint32_t> In, FLIndex<uint32_t> Out) {
+    assert(In && !SrcLocMap[In.get()] && "Must map existing unmapped index only.");
+    SrcLocMap[In.get()] = Out;
+  }
+
+  FLIndex<uint16_t> getInlinedCall(FLIndex<uint16_t> In) {
+    if (!In)
+      return In;
+    return InlinedCallMap[In.get()];
+  }
+  void insertInlinedCall(FLIndex<uint16_t> In, FLIndex<uint16_t> Out) {
+    assert(In && !InlinedCallMap[In.get()] && "Must map existing unmapped index only.");
+    InlinedCallMap[In.get()] = Out;
+  }
+
+  FLDebugLoc getFLDebugLoc(FLDebugLoc In) {
+    if (!In)
+      return In;
+    // For non-inlined locs, we map just the SrcLoc.
+    if (In.isNonInlinedInstrLoc()) {
+      if (auto Found = getSrcLoc(In.SrcLocIdx))
+        return FLDebugLoc(Found, {}, In.AtomGroup, In.AtomRank);
+      return {};
+    }
+    // For inlined calls or inlined locs, we map just the InlinedAt.
+    if (auto Found = getInlinedCall(In.InlinedAtIdx))
+      return FLDebugLoc(In.SrcLocIdx, Found, In.AtomGroup, In.AtomRank);
+    return {};
+  }
+  void insertFLDebugLoc(FLDebugLoc In, FLDebugLoc Out) {
+    assert(In && !getFLDebugLoc(In) &&
+           "Must map existing unmapped DebugLoc only.");
+    if (In.isNonInlinedInstrLoc()) {
+      assert(Out.isNonInlinedInstrLoc() &&
+             "Attempted to map non-matching DebugLocs!");
+      insertSrcLoc(In.SrcLocIdx, Out.SrcLocIdx);
+      return;
+    }
+    assert(In.SrcLocIdx == Out.SrcLocIdx &&
+           In.getWholeAtom() == Out.getWholeAtom() &&
+           "Attempted to map non-matching DebugLocs!");
+    insertInlinedCall(In.InlinedAtIdx, Out.InlinedAtIdx);
+  }
+
+  DebugLoc getDebugLoc(DebugLoc In) {
+    assert(In.getFLContext() == SrcContext && "Mapping DebugLoc from the wrong function.");
+    return DebugLoc(getFLDebugLoc(In.getStorage().get()), DestContext);
+  }
+  void insertDebugLoc(DebugLoc In, DebugLoc Out) {
+    assert(In.getFLContext() == SrcContext && "Mapping DebugLoc from the wrong function.");
+    assert(Out.getFLContext() == DestContext && "Mapping DebugLoc to the wrong function.");
+    insertFLDebugLoc(In.getStorage().get(), Out.getStorage().get());
+  }
+};
+#else
+class DebugLocMap {
+  DebugLocMap(Function *SrcFn, Function *DestFn) {}
+};
+#endif
+
 template <>
 struct DenseMapInfo<DebugLoc> {
   static unsigned getHashValue(DebugLoc DL) {
@@ -854,54 +1016,6 @@ inline hash_code hash_value(const DebugLoc &Val) {
   return hash_value(Val.Storage);
 }
 
-// Class used to map DebugLocs from one context to another.
-class DebugLocMap {
-  // Default initialize the SmallVectors with empty elements (which are all 0s).
-  SmallVector<FLIndex<uint32_t>> SrcLocMap;
-  SmallVector<FLIndex<uint16_t>> InlinedCallMap;
-  DIFunctionLocalMetadata *Src;
-public:
-  DebugLocMap(DIFunctionLocalMetadata *Src) :
-    SrcLocMap(Src->SrcLocs.size()), InlinedCallMap(Src->InlinedCalls.size()),
-    Src(Src) {}
-  FLDebugLoc getFLDebugLoc(FLDebugLoc In) {
-
-  }
-  FLIndex<uint32_t> getSrcLoc(FLIndex<uint32_t> In) {
-    if (!In)
-      return In;
-    return SrcLocMap[In.get()];
-  }
-  FLIndex<uint16_t> getInlinedCall(FLIndex<uint16_t> In) {
-    if (!In)
-      return In;
-    return InlinedCallMap[In.get()];
-  }
-  void mapSrcLoc(FLIndex<uint32_t> In, FLIndex<uint32_t> Out) {
-    assert(In && !SrcLocMap[In.get()] && "Must map existing unmapped index only.");
-    SrcLocMap[In.get()] = Out;
-  }
-  void mapInlinedCall(FLIndex<uint16_t> In, FLIndex<uint16_t> Out) {
-    assert(In && !InlinedCallMap[In.get()] && "Must map existing unmapped index only.");
-    InlinedCallMap[In.get()] = Out;
-  }
-  FLIndex<uint32_t> mapSrcLoc(FLIndex<uint32_t> In, function_ref<MDNode *(MDNode *)> MDUpdater);
-  FLIndex<uint16_t> mapInlinedCall(FLIndex<uint16_t> In, function_ref<MDNode *(MDNode *)> MDUpdater);
-};
-
-
-/// Class used to temporarily create DILocations from FLDebugLocs, which are
-/// owned by this class rather than the LLVM context, and are deallocated when
-/// this class is destroyed.
-// class TemporaryFLMDToMDSourceLocConversionContext {
-//   DenseMap<DebugLoc, std::unique_ptr<DILocation>> FLDebugLocToDILocationMap;
-// public:
-//   DILocation *getDILocation(DebugLoc DL);
-//   DILocation *getTempDILocation(LLVMContext &Context, unsigned Line,
-//                                 unsigned Column, Metadata *Scope,
-//                                 Metadata *InlinedAt, bool ImplicitCode,
-//                                 uint64_t AtomGroup, uint8_t AtomRank);
-// };
 
 } // end namespace llvm
 

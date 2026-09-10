@@ -17,7 +17,10 @@
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include <optional>
 
@@ -1051,6 +1054,53 @@ static DISubprogram *getSubprogram(bool IsDistinct, Ts &&...Args) {
     return DISubprogram::getDistinct(std::forward<Ts>(Args)...);
   return DISubprogram::get(std::forward<Ts>(Args)...);
 }
+
+#if LLVM_USE_FLMD_SOURCE_LOCS
+DebugLoc::DebugLocContext DIBuilder::startFunctionContext(Function *F, DISubprogram *SP) {
+  assert(SP->isDefinition() && "Function context must only be created for definitions, not declarations.");
+  DIFunctionLocalMetadata *FLContext = DIFunctionLocalMetadata::getDistinct(F->getContext());
+  F->addMetadata(LLVMContext::MD_flmd, *FLContext);
+  return DebugLoc::DebugLocContext(FLContext);
+  // FIXME: Determine whether we actually need to do any map insertions here,
+  // for later normalization/using builders.
+}
+
+DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc CallLoc) {
+  assert(CalleeSP->isDefinition() && "Function context must only be created for definitions, not declarations.");
+  DIFunctionLocalMetadata *CalleeContext;
+  if (auto ExistingContextIt = InlinedCallContexts.find(CalleeSP);
+      ExistingContextIt != InlinedCallContexts.end()) {
+    CalleeContext = ExistingContextIt->second;
+  } else {
+    CalleeContext = DIFunctionLocalMetadata::getDistinct(CalleeSP->getContext());
+    InlinedCallContexts.insert({CalleeSP, CalleeContext});
+  }
+  // FIXME: If we use FLMDBuilder to create new Source Locations, do so here.
+  DebugLoc InlinedCall = DebugLoc::getDistinctInlinedCall(
+    DebugLoc::DebugLocContext(CalleeContext), CallLoc.getDLContext(),
+    CallLoc.getLine(), CallLoc.getColumn(), CallLoc.getScope());
+  return InlinedCall;
+}
+
+void DIBuilder::finalizeFunctionContext(Function *F) {
+  // DIFunctionLocalMetadata *FLContext = cast<DIFunctionLocalMetadata>(F->getMetadata(LLVMContext::MD_flmd));
+  // FIXME: Determine whether we want to do a normalization step here.
+}
+#else
+DebugLoc::DebugLocContext DIBuilder::startFunctionContext(Function *F, DISubprogram *SP) {
+  return DebugLoc::DebugLocContext(F->getContext());
+}
+
+DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc CallLoc) {
+  DebugLoc InlinedCall = DebugLoc::getDistinctInlinedCall(
+    DebugLoc::DebugLocContext(CalleeContext), CallLoc.getDLContext(),
+    CallLoc.getLine(), CallLoc.getColumn(), CallLoc.getScope());
+}
+
+void DIBuilder::finalizeFunctionContext(Function *F) {
+
+}
+#endif
 
 DISubprogram *DIBuilder::createFunction(
     DIScope *Context, StringRef Name, StringRef LinkageName, DIFile *File,

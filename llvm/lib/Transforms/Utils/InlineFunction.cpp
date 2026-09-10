@@ -1935,8 +1935,9 @@ static bool allocaWouldBeStaticInEntry(const AllocaInst *AI ) {
 /// inlined at \p InlinedAt. \p IANodes is an inlined-at cache.
 static DebugLoc inlineDebugLoc(DebugLoc OrigDL, DebugLoc InlinedAt,
                                LLVMContext &Ctx,
-                               DenseMap<const MDNode *, MDNode *> &IANodes) {
-  auto IA = DebugLoc::appendInlinedAt(OrigDL, InlinedAt.getAsDILocation(), Ctx, IANodes);
+                               DenseMap<const MDNode *, MDNode *> &IANodes,
+                               DebugLocMap &DLMap) {
+  auto IA = DebugLoc::appendInlinedAt(OrigDL, InlinedAt, Ctx, IANodes, DLMap);
   return DebugLoc::get(IA, OrigDL.getLine(), OrigDL.getCol(),
                          OrigDL.getScope(), IA, OrigDL.isImplicitCode(),
                          OrigDL.getAtomGroup(), OrigDL.getAtomRank());
@@ -1959,19 +1960,19 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
   auto &Ctx = Fn->getContext();
   DebugLoc InlinedAtNode = TheCallDL;
 
-  Function *CalledFn = cast<CallBase>(TheCall)->getCalledFunction();
-  DISubprogram *CalledSP = CalledFn->getSubprogram();
+  Function *CalleeFn = cast<CallBase>(TheCall)->getCalledFunction();
 
   // Create a unique call site, not to be confused with any other call from the
   // same location.
   InlinedAtNode = DebugLoc::getDistinctInlinedCall(
-      CalledSP, Fn, InlinedAtNode.getLine(), InlinedAtNode.getColumn(),
+      CalleeFn, Fn, InlinedAtNode.getLine(), InlinedAtNode.getColumn(),
       InlinedAtNode.getScope(), InlinedAtNode.getInlinedAt());
 
   // Cache the inlined-at nodes as they're built so they are reused, without
   // this every instruction's inlined-at chain would become distinct from each
   // other.
   DenseMap<const MDNode *, MDNode *> IANodes;
+  DebugLocMap DLMap(CalleeFn, Fn);
 
   // Check if we are not generating inline line tables and want to use
   // the call site location instead.
@@ -1982,17 +1983,17 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
     // Loop metadata needs to be updated so that the start and end locs
     // reference inlined-at locations.
     auto updateLoopInfoLoc = [&Ctx, &InlinedAtNode,
-                              &IANodes](Metadata *MD) -> Metadata * {
+                              &IANodes, &DLMap](Metadata *MD) -> Metadata * {
       if (DebugLoc Loc = DebugLoc::getFromDILocation(dyn_cast_or_null<DILocation>(MD)))
-        return inlineDebugLoc(Loc, InlinedAtNode, Ctx, IANodes).getAsMDNode();
+        return inlineDebugLoc(Loc, InlinedAtNode, Ctx, IANodes, DLMap).getAsMDNode();
       return MD;
     };
     updateLoopMetadataDebugLocations(I, updateLoopInfoLoc);
 
     if (!NoInlineLineTables)
-      if (DebugLoc DL = I.getDebugLoc(CalledFn)) {
+      if (DebugLoc DL = I.getDebugLoc(CalleeFn)) {
         DebugLoc IDL =
-            inlineDebugLoc(DL, InlinedAtNode, I.getContext(), IANodes);
+            inlineDebugLoc(DL, InlinedAtNode, I.getContext(), IANodes, DLMap);
         I.setDebugLoc(IDL);
         return;
       }
@@ -2022,15 +2023,15 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
 
   // Helper-util for updating debug-info records attached to instructions.
   auto UpdateDVR = [&](DbgRecord *DVR) {
-    assert(DVR->getDebugLoc(CalledFn) && "Debug Value must have debug loc");
+    assert(DVR->getDebugLoc(CalleeFn) && "Debug Value must have debug loc");
     if (NoInlineLineTables) {
       DVR->setDebugLoc(TheCallDL);
       return;
     }
-    DebugLoc DL = DVR->getDebugLoc(CalledFn);
+    DebugLoc DL = DVR->getDebugLoc(CalleeFn);
     DebugLoc IDL =
         inlineDebugLoc(DL, InlinedAtNode,
-                       DVR->getMarker()->getParent()->getContext(), IANodes);
+                       DVR->getMarker()->getParent()->getContext(), IANodes, DLMap);
     DVR->setDebugLoc(IDL);
   };
 

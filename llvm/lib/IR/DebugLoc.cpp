@@ -92,13 +92,7 @@ DIFunctionLocalMetadata *llvm::getFLMDForInstruction(const Instruction *I) {
   return getFLMDForFunction(I->getFunction());
 }
 DIFunctionLocalMetadata *llvm::getFLMDForFunction(const Function *F) {
-  if (!F->getSubprogram())
-    return nullptr;
-  return FLMDConversionContext.getFLMDForSP(F->getSubprogram());
-}
-void llvm::setFLMDForFunction(const Function *F, DIFunctionLocalMetadata *FLMD) {
-  assert(F->getSubprogram());
-  FLMDConversionContext.SPToFLMDMap.emplace_or_assign(F->getSubprogram(), FLMD);
+  return cast_if_present<DIFunctionLocalMetadata>(F->getMetadata(LLVMContext::MD_flmd));
 }
 
 static FLIndex<uint16_t> getInlineCallDILocationToFLIndex(DILocation *DIL, DISubprogram *InlinedSP) {
@@ -375,6 +369,10 @@ DebugLoc DebugLoc::getFromMDNode(const MDNode *MD) {
   return DebugLoc::getFromDILocation(dyn_cast_or_null<DILocation>(MD));
 }
 
+DebugLoc DebugLoc::convertToInlinedCall(DebugLocContext CalleeContext) const {
+  return DebugLoc::getDistinctInlinedCall(CalleeContext, getDLContext(), getLine(), getColumn(), getScope(), getInlinedAt(), isImplicitCode(), 0, 0);
+}
+
 #if LLVM_USE_FLMD_SOURCE_LOCS
 unsigned DebugLoc::getLine() const {
   assert(Storage && "Expected valid DebugLoc");
@@ -426,10 +424,19 @@ bool DebugLoc::isImplicitCode() const {
 void DebugLoc::setImplicitCode(bool ImplicitCode) {
 }
 
-static DebugLoc replaceDebugLocInlinedAtSubprogram(
-    DebugLoc RootLoc, DISubprogram &NewSP,
-    DebugLoc::DebugLocContext DestContext,
-    DenseMap<const MDNode *, MDNode *> &Cache, FLMDMap &FLMDCache) {
+
+DebugLocMap::DebugLocMap(Function *SrcFn, Function *DestFn) {
+  SrcContext = cast<DIFunctionLocalMetadata>(
+    SrcFn->getMetadata(LLVMContext::MD_flmd));
+  DestContext = cast<DIFunctionLocalMetadata>(
+    DestFn->getMetadata(LLVMContext::MD_flmd));
+  SrcLocMap.resize(SrcContext->SrcLocs.size());
+  InlinedCallMap.resize(SrcContext->InlinedCalls.size());
+}
+
+DebugLoc DebugLoc::replaceInlinedAtSubprogram(
+    const DebugLoc &RootLoc, DISubprogram &NewSP, DebugLocContext NewFnContext,
+    DenseMap<const MDNode *, MDNode *> &Cache, DebugLocMap &DLMap) {
   assert(RootLoc && "RootLoc must be a valid location.");
   // InlinedAt chain from the source function.
   SmallVector<FLDebugLoc> LocChain;
@@ -437,28 +444,11 @@ static DebugLoc replaceDebugLocInlinedAtSubprogram(
   // First cached result found while traversing up the InlinedAt chain, if any.
   FLDebugLoc CachedResult;
 
-  auto GetExisting = [&FLMDCache](FLDebugLoc DL) {
-    assert(DL && "Expected real DebugLoc");
-    if (DL.InlinedAtIdx) {
-      // If this DebugLoc has an InlinedAt, whether because it is an inlined
-      // instruction or an InlinedCall (which may not be inlined itself), the
-      // only mapping we check is the InlinedAt - the SrcLoc is either empty for
-      // an InlinedCall, or irrelevant for an inlined instruction (as the
-      // InlineeFLMD is not changing, and thus the SrcLocIdx remains the same).
-      if (auto NewInlinedAtIdx = FLMDCache.getInlinedCall(DL.InlinedAtIdx))
-        return FLDebugLoc(DL.SrcLocIdx, NewInlinedAtIdx, DL.AtomGroup, DL.AtomRank);
-      return FLDebugLoc();
-    }
-    if (auto NewSrcLocIdx = FLMDCache.getSrcLoc(DL.SrcLocIdx))
-      return FLDebugLoc(NewSrcLocIdx, {}, DL.AtomGroup, DL.AtomRank);
-    return FLDebugLoc();
-  };
-
   // Collect the inline chain, stopping if we find a location that has already
   // been processed.
   for (FLDebugLoc Storage = RootLoc.getStorage().get(); Storage;
        Storage = Storage.getInlinedAt(SrcContext)) {
-    CachedResult = GetExisting(Storage);
+    CachedResult = DLMap.getFLDebugLoc(Storage);
     if (CachedResult)
       break;
     LocChain.push_back(Storage);
@@ -478,22 +468,22 @@ static DebugLoc replaceDebugLocInlinedAtSubprogram(
       assert(!OldCall.InlinedAtIdx && "LocToUpdate should be the back of the InlinedAt chain.");
       // The old SrcLoc may have already been mapped; if so, then reuse it,
       // otherwise create the mapping now.
-      FLIndex<uint32_t> NewSrcLocIdx = FLMDCache.getSrcLoc(OldCall.SrcLocIdx);
+      FLIndex<uint32_t> NewSrcLocIdx = DLMap.getSrcLoc(OldCall.SrcLocIdx);
       if (!NewSrcLocIdx) {
         FLSrcLoc SrcLoc = SrcContext->getSrcLoc(OldCall.SrcLocIdx);
-        NewSrcLocIdx = DestContext.Context->getFLSrcLocIdx(SrcLoc.Line, SrcLoc.Column, NewScope);
-        FLMDCache.mapSrcLoc(OldCall.SrcLocIdx, NewSrcLocIdx);
+        NewSrcLocIdx = NewFnContext.Context->getFLSrcLocIdx(SrcLoc.Line, SrcLoc.Column, NewScope);
+        DLMap.insertSrcLoc(OldCall.SrcLocIdx, NewSrcLocIdx);
       }
       FLInlinedCall NewCall(NewSrcLocIdx, {}, OldCall.InlineeFLMD, OldCall.Uniquable);
-      FLIndex<uint16_t> NewCallIdx = DestContext.Context->addInlinedCall(NewCall);
-      FLMDCache.mapInlinedCall(LocToUpdate.getIdxForInlinedCall(), NewCallIdx);
+      FLIndex<uint16_t> NewCallIdx = NewFnContext.Context->addInlinedCall(NewCall);
+      DLMap.insertInlinedCall(LocToUpdate.getIdxForInlinedCall(), NewCallIdx);
       UpdatedLoc = FLDebugLoc::getInlinedCallLoc(NewCallIdx);
     } else {
       assert(!LocToUpdate.isInlinedCall() && LocToUpdate.isInstrLoc() && "LocToUpdate should be a non-inlined InstrLoc.");
-      assert(!FLMDCache.getSrcLoc(LocToUpdate.SrcLocIdx) && "LocToUpdate has already been updated+mapped?");
+      assert(!DLMap.getSrcLoc(LocToUpdate.SrcLocIdx) && "LocToUpdate has already been updated+mapped?");
       FLSrcLoc SrcLoc = SrcContext->getSrcLoc(LocToUpdate.SrcLocIdx);
-      FLIndex<uint32_t> NewSrcLocIdx = DestContext.Context->getFLSrcLocIdx(SrcLoc.Line, SrcLoc.Column, NewScope);
-      FLMDCache.mapSrcLoc(LocToUpdate.SrcLocIdx, NewSrcLocIdx);
+      FLIndex<uint32_t> NewSrcLocIdx = NewFnContext.Context->getFLSrcLocIdx(SrcLoc.Line, SrcLoc.Column, NewScope);
+      DLMap.insertSrcLoc(LocToUpdate.SrcLocIdx, NewSrcLocIdx);
       UpdatedLoc = FLDebugLoc(NewSrcLocIdx, {}, LocToUpdate.AtomGroup, LocToUpdate.AtomRank);
     }
   }
@@ -504,40 +494,33 @@ static DebugLoc replaceDebugLocInlinedAtSubprogram(
     assert(UpdatedLoc.isInlinedCall());
     if (LocToUpdate.isInlinedCall()) {
       FLInlinedCall OldCall = LocToUpdate.getAsInlinedCall(SrcContext);
-      FLIndex<uint16_t> NewInlinedCallIdx = DestContext.Context->addInlinedCall(
+      FLIndex<uint16_t> NewInlinedCallIdx = NewFnContext.Context->addInlinedCall(
         FLInlinedCall(OldCall.SrcLocIdx, UpdatedLoc.getIdxForInlinedCall(), OldCall.InlineeFLMD, OldCall.Uniquable)
       );
       UpdatedLoc = FLDebugLoc::getInlinedCallLoc(NewInlinedCallIdx);
-      FLMDCache.mapInlinedCall(LocToUpdate.getIdxForInlinedCall(), UpdatedLoc.getIdxForInlinedCall());
+      DLMap.insertInlinedCall(LocToUpdate.getIdxForInlinedCall(), UpdatedLoc.getIdxForInlinedCall());
     } else {
       UpdatedLoc = FLDebugLoc(LocToUpdate.SrcLocIdx, UpdatedLoc.getIdxForInlinedCall(), LocToUpdate.AtomGroup, LocToUpdate.AtomRank);
     }
   }
 
-  return DebugLoc(UpdatedLoc, DestContext.Context);
-}
-DebugLoc DebugLoc::replaceInlinedAtSubprogram(
-    const DebugLoc &RootLoc, DISubprogram &NewSP, LLVMContext &Ctx,
-    DenseMap<const MDNode *, MDNode *> &Cache) {
-
+  return DebugLoc(UpdatedLoc, NewFnContext.Context);
 }
 
 
-DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
+DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DebugLoc InlinedAt,
                                    LLVMContext &Ctx,
-                                   DenseMap<const MDNode *, MDNode *> &Cache) {
+                                   DenseMap<const MDNode *, MDNode *> &Cache,
+                                   DebugLocMap &DLMap) {
   SmallVector<DebugLoc, 3> InlinedAtLocations;
-  DILocation *Last = InlinedAt;
+  DebugLoc Last = InlinedAt;
   DebugLoc CurInlinedAt = DL;
 
-  auto FakePointer = [](DebugLoc DL) {
-    return reinterpret_cast<const MDNode *>(DL.getStorage().get().asRawInt());
-  };
   // Gather all the inlined-at nodes.
   while (DebugLoc IA = CurInlinedAt.getInlinedAt()) {
     // Skip any we've already built nodes for.
-    if (auto *Found = Cache[FakePointer(IA)]) {
-      Last = cast<DILocation>(Found);
+    if (auto Found = DLMap.getDebugLoc(IA)) {
+      Last = Found;
       break;
     }
 
@@ -550,11 +533,15 @@ DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
   // map of already-constructed inlined-at nodes.
   // Key Instructions: InlinedAt fields don't need atom info.
   for (DebugLoc MD : reverse(InlinedAtLocations)) {
-    Cache[FakePointer(MD)] = Last = DILocation::getDistinct(
-        Ctx, MD.getLine(), MD.getColumn(), MD.getScope(), Last);
+    assert(MD.isInlinedCall());
+    
+    Last = DebugLoc::getDistinctInlinedCall(
+        DebugLocContext(MD.getAsInlinedCall().getInlinee()), InlinedAt,
+        MD.getLine(), MD.getColumn(), MD.getScope(), Last);
+    DLMap.insertDebugLoc(MD, Last);
   }
 
-  return DebugLoc::getFromDILocation(Last, DL.getScope()->getSubprogram());
+  return Last;
 }
 
 DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
@@ -689,7 +676,7 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
   if (!LocA || !LocB)
     return nullptr;
 
-  LLVMContext &C = LocA.getContext();
+  DebugLoc::DebugLocContext C(LocA);
 
   using LocVec = SmallVector<DebugLoc>;
   LocVec ALocs;
@@ -820,7 +807,7 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
       // atom group. This essentially regresses to non-key-instructions
       // behaviour (now that it's the only instruction in its group it'll
       // probably get is_stmt applied).
-      Group = C.incNextDILocationAtomGroup();
+      Group = InlinedAt.getNewAtomGroup();
       Rank = 1;
     }
     return DebugLoc::get(C, Line, Col, Scope, InlinedAt, IsImplicitCode,
@@ -911,9 +898,7 @@ void DebugLoc::printAsOperand(raw_ostream &OS, ModuleSlotTracker &MST,
   return getAsDILocation()->printAsOperand(OS, MST, M);
 }
 bool DebugLoc::isDistinct() const {
-  /// TODO: This is really used as a proxy for "is inlined call". Should
-  /// probably be replaced by a dedicated method.
-  return Storage.get().isInlinedCall();
+  return isInlinedCall() && !getAsInlinedCall().Uniquable;
 }
 
 LLVMContext &DebugLoc::getContext() const { return FLContext->getContext(); }
@@ -925,11 +910,28 @@ uint8_t DebugLoc::getAtomRank() const {
   return Storage.Loc.AtomRank;
 }
 
+DebugLoc DebugLoc::getWithAtom(uint16_t Group, uint16_t Rank) const {
+  FLDebugLoc Loc = Storage.Loc;
+  Loc.AtomGroup = Group;
+  Loc.AtomRank = Rank;
+  return DebugLoc(Loc, FLContext);
+}
 DebugLoc DebugLoc::getWithoutAtom() const {
   FLDebugLoc Loc = Storage.Loc;
   Loc.AtomGroup = 0;
   Loc.AtomRank = 0;
   return DebugLoc(Loc, FLContext);
+}
+
+uint16_t DebugLoc::getNewAtomGroup() const {
+  // Although we use different definitions of `getNewAtomGroup` for instruction
+  // locs and inlined call locs, in practice the implementation is identical.
+  return FLContext->getNewAtomGroup(getUnderlyingStorage().InlinedAtIdx);
+}
+
+DebugLoc DebugLoc::getAtomContext() const {
+  assert(isInstrLoc() && "Only instruction locs have atoms.");
+  return getInlinedAt();
 }
 
 StringRef DebugLoc::getSubprogramLinkageName() const {
@@ -981,7 +983,7 @@ DebugLoc DebugLoc::cloneWithDiscriminator(unsigned Discriminator) const {
     Scope = LBF->getScope();
   DILexicalBlockFile *NewScope =
       DILexicalBlockFile::get(getContext(), Scope, getFile(), Discriminator);
-  return DebugLoc::get(getContext(), getLine(), getColumn(), NewScope,
+  return DebugLoc::get(*this, getLine(), getColumn(), NewScope,
                        getInlinedAt(), isImplicitCode(), getAtomGroup(),
                        getAtomRank());
 }
@@ -1128,8 +1130,8 @@ void DebugLoc::setImplicitCode(bool ImplicitCode) {
 }
 
 DebugLoc DebugLoc::replaceInlinedAtSubprogram(
-    const DebugLoc &RootLocDL, DISubprogram &NewSP, LLVMContext &Ctx,
-    DenseMap<const MDNode *, MDNode *> &Cache) {
+    const DebugLoc &RootLocDL, DISubprogram &NewSP, DebugLocContext NewFnContext,
+    DenseMap<const MDNode *, MDNode *> &Cache, DebugLocMap &DLMap) {
   DILocation *RootLoc = RootLocDL.getAsDILocation();
   SmallVector<DILocation *> LocChain;
   DILocation *CachedResult = nullptr;
@@ -1150,8 +1152,8 @@ DebugLoc DebugLoc::replaceInlinedAtSubprogram(
     // the DILocation whose scope ends in the Subprogram to be replaced.
     DILocation *LocToUpdate = LocChain.pop_back_val();
     DIScope *NewScope = DILocalScope::cloneScopeForSubprogram(
-        *LocToUpdate->getScope(), NewSP, Ctx, Cache);
-    UpdatedLoc = DILocation::get(Ctx, LocToUpdate->getLine(),
+        *LocToUpdate->getScope(), NewSP, NewFnContext.Context, Cache);
+    UpdatedLoc = DILocation::get(NewFnContext.Context, LocToUpdate->getLine(),
                                  LocToUpdate->getColumn(), NewScope);
     Cache[LocToUpdate] = UpdatedLoc;
   }
@@ -1160,7 +1162,7 @@ DebugLoc DebugLoc::replaceInlinedAtSubprogram(
   // cached result).
   for (const DILocation *LocToUpdate : reverse(LocChain)) {
     UpdatedLoc =
-        DILocation::get(Ctx, LocToUpdate->getLine(), LocToUpdate->getColumn(),
+        DILocation::get(NewFnContext.Context, LocToUpdate->getLine(), LocToUpdate->getColumn(),
                         LocToUpdate->getScope(), UpdatedLoc);
     Cache[LocToUpdate] = UpdatedLoc;
   }
@@ -1168,11 +1170,12 @@ DebugLoc DebugLoc::replaceInlinedAtSubprogram(
   return DebugLoc::getFromDILocation(UpdatedLoc);
 }
 
-DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DILocation *InlinedAt,
+DebugLoc DebugLoc::appendInlinedAt(const DebugLoc &DL, DebugLoc InlinedAt,
                                    LLVMContext &Ctx,
-                                   DenseMap<const MDNode *, MDNode *> &Cache) {
+                                   DenseMap<const MDNode *, MDNode *> &Cache,
+                                   DebugLocMap &DLMap) {
   SmallVector<DILocation *, 3> InlinedAtLocations;
-  DILocation *Last = InlinedAt;
+  DILocation *Last = InlinedAt.Storage.get();
   DILocation *CurInlinedAt = DL.Storage.get();
 
   // Gather all the inlined-at nodes.

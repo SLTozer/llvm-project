@@ -242,11 +242,6 @@ void llvm::CloneFunctionMetadataInto(Function &NewFunc, const Function &OldFunc,
     NewFunc.addMetadata(Kind, *MapMetadata(MD, VMap, RemapFlag, TypeMapper,
                                            Materializer, IdentityMD));
   }
-#if LLVM_USE_FLMD_SOURCE_LOCS
-  DIFunctionLocalMetadata *OldFLMD = getFLMDForFunction(&OldFunc);
-  DIFunctionLocalMetadata *NewFLMD = cast<DIFunctionLocalMetadata>(MapMetadata(OldFLMD, VMap, RemapFlag, TypeMapper, Materializer, IdentityMD));
-  setFLMDForFunction(&NewFunc, NewFLMD);
-#endif
 }
 
 void llvm::CloneFunctionBodyInto(Function &NewFunc, const Function &OldFunc,

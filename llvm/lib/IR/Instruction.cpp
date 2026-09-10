@@ -100,9 +100,7 @@ DebugLoc Instruction::getDebugLoc() const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
   if (!DbgLoc)
     return DebugLoc();
-  if (true/*!FLMDContext*/)
-    const_cast<Instruction*>(this)->FLMDContext = getFLMDForInstruction(this);
-  return DebugLoc(DbgLoc, FLMDContext);
+  return DebugLoc(DbgLoc, getFLMDForInstruction(this));
 #else
   return DebugLoc(DbgLoc);
 #endif
