@@ -329,6 +329,13 @@ public:
     }
     return InlinedCalls[InlinedCallIdx.get()].getNewAtomGroup();
   }
+  void updateAtomGroupWaterline(FLIndex<uint16_t> InlinedCallIdx, uint16_t NewWaterline) {
+    assert(NewWaterline <= 0x7fff && "New waterline is too high!");
+    if (!InlinedCallIdx)
+      MaxAtomGroup = std::max(MaxAtomGroup, NewWaterline);
+    else
+      InlinedCalls[InlinedCallIdx.get()].MaxAtomGroup = std::max(InlinedCalls[InlinedCallIdx.get()].MaxAtomGroup, NewWaterline);
+  }
 
   FLIndex<uint16_t> getFLScopeIdx(DILocalScope *Scope) {
     for (uint16_t Idx = 0; Idx < Scopes.size(); ++Idx)

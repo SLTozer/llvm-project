@@ -1585,6 +1585,7 @@ struct FLMDDILocationConversionContext {
     if (auto Existing = SPToFLMDMap.find(SP); Existing != SPToFLMDMap.end())
       return Existing->second;
     FLMDBuilder Builder(SP);
+    llvm_unreachable("no");
     auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
     NewFLMD->build(Builder);
     SPToFLMDMap.insert({SP, NewFLMD});
@@ -1594,6 +1595,7 @@ struct FLMDDILocationConversionContext {
     if (auto Existing = SPToFLMDMap.find(SP); Existing != SPToFLMDMap.end())
       return Existing->second;
     FLMDBuilder Builder(SP);
+    llvm_unreachable("no");
     auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
     NewFLMD->build(Builder);
     SPToFLMDMap.insert({SP, NewFLMD});

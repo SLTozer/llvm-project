@@ -619,6 +619,8 @@ static StoreInst *combineStoreToNewValue(InstCombinerImpl &IC, StoreInst &SI,
   SI.getAllMetadata(MD);
 
   StoreInst *NewStore = IC.Builder.CreateStore(V, Ptr, SI.getProperties());
+  // DebugLocs must be copied separately.
+  NewStore->copyDebugLocFromIfPresent(&SI);
   for (const auto &MDPair : MD) {
     unsigned ID = MDPair.first;
     MDNode *N = MDPair.second;

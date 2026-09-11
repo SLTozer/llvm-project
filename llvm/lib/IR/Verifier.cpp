@@ -83,6 +83,7 @@
 #include "llvm/IR/EHPersonalities.h"
 #include "llvm/IR/FPEnv.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GCStrategy.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
 #include "llvm/IR/GlobalAlias.h"
@@ -337,6 +338,7 @@ private:
                            const GlobalAlias &A, const Constant &C);
   void visitNamedMDNode(const NamedMDNode &NMD);
   void visitMDNode(const MDNode &MD, AreDebugLocsAllowed AllowLocs);
+  void visitDebugLoc(DebugLoc DL);
   void visitMetadataAsValue(const MetadataAsValue &MD, Function *F);
   void visitValueAsMetadata(const ValueAsMetadata &MD, Function *F);
   void visitDIArgList(const DIArgList &AL, Function *F);
@@ -526,9 +528,8 @@ void Verifier::visitDbgRecords(Instruction &I) {
   for (DbgRecord &DR : I.getDbgRecordRange()) {
     CheckDI(DR.getMarker() == I.DebugMarker,
             "DbgRecord had invalid DebugMarker", &I, &DR);
-    if (auto *Loc =
-            dyn_cast_or_null<DILocation>(DR.getDebugLoc().getAsMDNode()))
-      visitMDNode(*Loc, AreDebugLocsAllowed::Yes);
+    if (DR.getDebugLoc())
+      visitDebugLoc(DR.getDebugLoc());
     if (auto *DVR = dyn_cast<DbgVariableRecord>(&DR)) {
       visit(*DVR);
       // These have to appear after `visit` for consistency with existing
@@ -1001,6 +1002,8 @@ void Verifier::visitMDNode(const MDNode &BaseMD,
     Check(CurrentMD->isResolved(), "All nodes should be resolved!", CurrentMD);
   }
 }
+
+void Verifier::visitDebugLoc(DebugLoc DL) {}
 
 void Verifier::visitValueAsMetadata(const ValueAsMetadata &MD, Function *F) {
   Check(MD.getValue(), "Expected valid value", &MD);
@@ -3281,7 +3284,7 @@ void Verifier::visitFunction(const Function &F) {
   // FIXME: Check this incrementally while visiting !dbg attachments.
   // FIXME: Only check when N is the canonical subprogram for F.
   SmallPtrSet<const MDNode *, 32> Seen;
-  auto VisitDebugLoc = [&](const Instruction &I, const MDNode *Node) {
+  auto VisitDILocation = [&](const Instruction &I, const MDNode *Node) {
     // Be careful about using DILocation here since we might be dealing with
     // broken code (this is the Verifier after all).
     const DILocation *DL = dyn_cast_or_null<DILocation>(Node);
@@ -3313,14 +3316,26 @@ void Verifier::visitFunction(const Function &F) {
   };
   for (auto &BB : F)
     for (auto &I : BB) {
-      VisitDebugLoc(I, I.getDebugLoc().getAsMDNode());
       // The llvm.loop annotations also contain two DILocations.
       if (auto MD = I.getMetadata(LLVMContext::MD_loop))
         for (unsigned i = 1; i < MD->getNumOperands(); ++i)
-          VisitDebugLoc(I, dyn_cast_or_null<MDNode>(MD->getOperand(i)));
+          VisitDILocation(I, dyn_cast_or_null<MDNode>(MD->getOperand(i)));
       if (BrokenDebugInfo)
         return;
     }
+  // Now do the same check, but check FLMD instead.
+  MDNode *RawFLContext = F.getMetadata(LLVMContext::MD_flmd);
+  if (RawFLContext) {
+    CheckDI(isa<DIFunctionLocalMetadata>(RawFLContext), "Unexepected !flmd attachment to function", &F, RawFLContext);
+    auto *FLContext = cast<DIFunctionLocalMetadata>(RawFLContext);
+    CheckDI(!FLContext->Scopes.empty(),
+      "FLMD context should contain a subprogram pointing at the function", FLContext, &F);
+    CheckDI(!FLContext->Scopes.empty() && isa<DISubprogram>(FLContext->Scopes[0].get()) && cast<DISubprogram>(FLContext->Scopes[0].get())->describes(&F),
+      "First scope in FLMD context should be subprogram pointing at the function", FLContext, &F, FLContext->Scopes[0].get());
+    DISubprogram *FnSP = cast<DISubprogram>(FLContext->Scopes[0].get());
+    for (DILocalScope *LS : drop_begin(FLContext->Scopes))
+      CheckDI(LS->getSubprogram() == FnSP, "scope in FLMD context points at wrong subprogram for function", LS, FnSP, &F, FLContext);
+  }
 }
 
 // verifyBasicBlock - Verify that a basic block is well formed...
@@ -5867,18 +5882,6 @@ void Verifier::visitInstruction(Instruction &I) {
   if (MDNode *MD = I.getMetadata(LLVMContext::MD_mem_cache_hint))
     visitMemCacheHintMetadata(I, MD);
 
-  if (MDNode *N = I.getDebugLoc().getAsMDNode()) {
-    CheckDI(isa<DILocation>(N), "invalid !dbg metadata attachment", &I, N);
-    visitMDNode(*N, AreDebugLocsAllowed::Yes);
-    if (auto *DL = dyn_cast<DILocation>(N)) {
-      if (DL->getAtomGroup()) {
-        CheckDI(DL->getScope()->getSubprogram()->getKeyInstructionsEnabled(),
-                "DbgLoc uses atomGroup but DISubprogram doesn't have Key "
-                "Instructions enabled",
-                DL, DL->getScope()->getSubprogram());
-      }
-    }
-  }
   #if LLVM_USE_FLMD_SOURCE_LOCS
   if (auto DL = I.getDebugLoc()) {
     do {
@@ -7050,11 +7053,6 @@ void Verifier::visit(DbgLabelRecord &DLR) {
   CheckDI(isa<DILabel>(DLR.getRawLabel()),
           "invalid #dbg_label intrinsic variable", &DLR, DLR.getRawLabel());
 
-  // Ignore broken !dbg attachments; they're checked elsewhere.
-  if (MDNode *N = DLR.getDebugLoc().getAsMDNode())
-    if (!isa<DILocation>(N))
-      return;
-
   BasicBlock *BB = DLR.getParent();
   Function *F = BB ? BB->getParent() : nullptr;
 
@@ -7147,9 +7145,6 @@ void Verifier::visit(DbgVariableRecord &DVR) {
   CheckDI(isType(Var->getRawType()), "invalid type ref", Var, Var->getRawType(),
           BB, F);
 
-  auto *DLNode = DVR.getDebugLoc().getAsMDNode();
-  CheckDI(isa_and_nonnull<DILocation>(DLNode), "invalid #dbg record DILocation",
-          &DVR, DLNode, BB, F);
   DebugLoc Loc = DVR.getDebugLoc();
 
   // The scopes for variables and !dbg attachments must agree.

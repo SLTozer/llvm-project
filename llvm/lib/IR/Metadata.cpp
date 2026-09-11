@@ -1754,6 +1754,9 @@ void Instruction::setMetadata(unsigned KindID, MDNode *Node) {
 
   // Handle 'dbg' as a special case since it is not stored in the hash table.
   if (KindID == LLVMContext::MD_dbg) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    llvm_unreachable("Should not be using this with FLMD enabled!");
+#endif
     DbgLoc = DebugLoc::getFromDILocation(cast_or_null<DILocation>(Node)).getStorage();
     return;
   }
@@ -1867,10 +1870,8 @@ void Instruction::getAllMetadataImpl(
   Result.clear();
 
   // Handle 'dbg' as a special case since it is not stored in the hash table.
-  if (DbgLoc) {
-    Result.push_back(
-        std::make_pair((unsigned)LLVMContext::MD_dbg, getDebugLoc().getAsMDNode()));
-  }
+  // FIXME: Ignore Dbg entirely. We *must* now handle it separately.
+
   Value::getAllMetadata(Result);
 }
 

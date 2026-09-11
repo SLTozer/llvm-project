@@ -3127,6 +3127,8 @@ void llvm::combineAAMetadata(Instruction *K, const Instruction *J) {
 void llvm::copyMetadataForLoad(LoadInst &Dest, const LoadInst &Source) {
   SmallVector<std::pair<unsigned, MDNode *>, 8> MD;
   Source.getAllMetadata(MD);
+  // DebugLocs must be copied separately.
+  Dest.copyDebugLocFromIfPresent(&Source);
   MDBuilder MDB(Dest.getContext());
   Type *NewType = Dest.getType();
   const DataLayout &DL = Source.getDataLayout();

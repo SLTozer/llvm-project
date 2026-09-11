@@ -114,6 +114,9 @@ class AggressiveDeadCodeElimination {
 
   /// Debug info scopes around a live instruction.
   SmallPtrSet<const Metadata *, 32> AliveScopes;
+  /// FIXME: Storing the whole DebugLoc is overkill, if this gets reset between
+  /// functions then we can store some subset of this information.
+  SmallDenseSet<DebugLoc, 32> VisitedDLs;
 
   /// Set of blocks with not known to have live terminators.
   SmallSetVector<BasicBlock *, 16> BlocksWithDeadTerminators;
@@ -351,7 +354,7 @@ void AggressiveDeadCodeElimination::collectLiveScopes(const DILocalScope &LS) {
 void AggressiveDeadCodeElimination::collectLiveScopes(DebugLoc DL) {
   // Even though DILocations are not scopes, shove them into AliveScopes so we
   // don't revisit them.
-  if (!AliveScopes.insert(DL.getAsMDNode()).second)
+  if (!VisitedDLs.insert(DL).second)
     return;
 
   // Collect live scopes from the scope chain.

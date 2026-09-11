@@ -67,6 +67,7 @@ struct FLMDSourceLocConversionContext {
     if (auto Existing = SPToFLMDMap.find(SP); Existing != SPToFLMDMap.end())
       return Existing->second;
     FLMDBuilder Builder(SP);
+    llvm_unreachable("no");
     auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
     NewFLMD->build(Builder);
     SPToFLMDMap.insert({SP, NewFLMD});
@@ -76,6 +77,7 @@ struct FLMDSourceLocConversionContext {
     auto Existing = SPToFLMDMap.find(SP);
     assert(Existing == SPToFLMDMap.end() && "Should not already exist in map");
     FLMDBuilder Builder(SP, OldFLMD);
+    llvm_unreachable("no");
     auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
     NewFLMD->build(Builder);
     SPToFLMDMap.insert({SP, NewFLMD});
@@ -135,6 +137,7 @@ static FLIndex<uint16_t> getInlineCallDILocationToFLIndex(DILocation *DIL, DISub
 }
 
 FLDebugLoc FLDebugLoc::getFromDILocation(const DILocation *DIL, DISubprogram *InlinedSP) {
+  llvm_unreachable("No conversions!");
   if (!DIL)
     return FLDebugLoc();
   if(DIL->isDistinct())
@@ -147,6 +150,7 @@ FLDebugLoc FLDebugLoc::getFromDILocation(const DILocation *DIL, DISubprogram *In
 }
 
 DebugLoc DebugLoc::getFromDILocation(const DILocation *DIL, DISubprogram *InlinedSP) {
+  llvm_unreachable("No conversions!");
   if (!DIL)
     return DebugLoc();
   FLDebugLoc Storage = FLDebugLoc::getFromDILocation(DIL, InlinedSP);
@@ -186,6 +190,7 @@ DebugLoc DebugLoc::getFromFLDebugLoc(FLDebugLoc FLDL, DIFunctionLocalMetadata *F
 // Should be called directly on a DebugLoc obtained from an instruction or loop
 // metadata, not from the result of DebugLoc::getInlinedAt.
 DILocation *DebugLoc::getAsDILocation() const {
+  llvm_unreachable("No conversions!");
   if (!*this)
     return nullptr;
   if (isDistinct())
@@ -260,6 +265,7 @@ DebugLoc DebugLoc::get(
   } else {
     SrcLocIdx = Context->getFLSrcLocIdx(Line, Column, LocalScope);
   }
+  Context->updateAtomGroupWaterline(InlinedAtIdx, AtomGroup);
   FLDebugLoc FLDbgLoc(SrcLocIdx, InlinedAtIdx, AtomGroup, AtomRank);
   return DebugLoc(FLDbgLoc, Context);
 }
@@ -268,6 +274,7 @@ DebugLoc DebugLoc::getDistinctInlinedCall(
     DIFunctionLocalMetadata *Context, unsigned Line, unsigned Column, Metadata *Scope,
     DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
     uint8_t AtomRank) {
+  assert(AtomGroup == 0 && "Inlined calls have no atom!");
   DILocalScope *LocalScope = cast<DILocalScope>(Scope);
   
   FLIndex<uint32_t> SrcLocIdx;
@@ -288,6 +295,7 @@ DebugLoc DebugLoc::getUniquedInlinedCall(
     DIFunctionLocalMetadata *Context, unsigned Line, unsigned Column, Metadata *Scope,
     DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
     uint8_t AtomRank) {
+  assert(AtomGroup == 0 && "Inlined calls have no atom!");
   DILocalScope *LocalScope = cast<DILocalScope>(Scope);
   
   FLIndex<uint32_t> SrcLocIdx;
