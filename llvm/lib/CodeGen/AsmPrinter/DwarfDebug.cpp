@@ -2091,6 +2091,12 @@ void DwarfDebug::collectEntityInfo(DwarfCompileUnit &TheCU,
   for (const DINode *DN : SP->getRetainedNodes()) {
     const auto *LS = getRetainedNodeScope(DN);
     if (isa<DILocalVariable>(DN) || isa<DILabel>(DN)) {
+      // FIXME: There is an issue that occurs here due to comparison between
+      // two empty DebugLocs with different FLContexts; the "nullptr" ctor for
+      // DebugLoc has no FLContext. For now, we can fix this by making all empty
+      // DLs compare equal, but long-term we should consider giving a harder
+      // rule to how empty DLs are constructed and handled, rather than having
+      // it be some kind of hidden-yet-meaningful state.
       if (!Processed.insert(InlinedEntity(DN, nullptr)).second)
         continue;
       LexicalScope *LexS = LScopes.findLexicalScope(LS);

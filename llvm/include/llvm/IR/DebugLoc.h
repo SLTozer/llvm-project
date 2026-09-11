@@ -802,9 +802,10 @@ public:
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
   bool operator==(const DebugLoc &DL) const {
-    return Storage == DL.Storage && FLContext == DL.FLContext;
+    return (!Storage && !DL.Storage) || (Storage == DL.Storage && FLContext == DL.FLContext);
   }
   bool operator!=(const DebugLoc &DL) const {
+    if (!Storage && !DL.Storage) return false;
     return Storage != DL.Storage || FLContext != DL.FLContext;
   }
 #else
