@@ -1984,8 +1984,10 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
     // reference inlined-at locations.
     auto updateLoopInfoLoc = [&Ctx, &InlinedAtNode,
                               &IANodes, &DLMap](Metadata *MD) -> Metadata * {
-      if (DebugLoc Loc = DebugLoc::getFromDILocation(dyn_cast_or_null<DILocation>(MD)))
-        return inlineDebugLoc(Loc, InlinedAtNode, Ctx, IANodes, DLMap).getAsMDNode();
+      if (DILocation *Loc = dyn_cast_or_null<DILocation>(MD)) {
+        DebugLoc DL = Loc->getAsDebugLoc();
+        return inlineDebugLoc(DL, InlinedAtNode, Ctx, IANodes, DLMap).convertToDILocation();
+      }
       return MD;
     };
     updateLoopMetadataDebugLocations(I, updateLoopInfoLoc);

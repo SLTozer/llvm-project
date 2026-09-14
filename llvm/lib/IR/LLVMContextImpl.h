@@ -275,6 +275,24 @@ template <> struct MDNodeKeyImpl<MDTuple> : MDNodeOpsKey {
   }
 };
 /// DenseMapInfo for DILocation.
+#ifdef LLVM_USE_FLMD_SOURCE_LOCS
+template <> struct MDNodeKeyImpl<DILocation> {
+  DebugLoc DL;
+
+  MDNodeKeyImpl(DebugLoc DL) : DL(DL) {}
+
+  MDNodeKeyImpl(const DILocation *L)
+      : DL(L->getAsDebugLoc()) {}
+
+  bool isKeyOf(const DILocation *RHS) const {
+    return DL == RHS->getAsDebugLoc();
+  }
+
+  unsigned getHashValue() const {
+    return hash_value(DL);
+  }
+};
+#else
 template <> struct MDNodeKeyImpl<DILocation> {
   Metadata *Scope;
   Metadata *InlinedAt;
@@ -320,6 +338,7 @@ template <> struct MDNodeKeyImpl<DILocation> {
     return hash_combine(LineColumnAndImplicitCode, Scope, InlinedAt);
   }
 };
+#endif
 
 /// DenseMapInfo for GenericDINode.
 template <> struct MDNodeKeyImpl<GenericDINode> : MDNodeOpsKey {
@@ -1665,31 +1684,66 @@ struct FLMDDILocationConversionContext {
 
 };
 
+/// In order to create function-local debug locations, additional arguments are
+/// needed to provide the appropriate function-local context. Existing methods
+/// for creating debug locations should still be supported, however,
+/// particularly for the C-API. While it is encouraged for all users of the API
+/// to upgrade, we keep a shim here to enable use of the old methods. Use of the
+/// old methods will be very inefficient, due to the addition of global context
+/// maps and generation of otherwise-unnecessary metadata, but this ensures that
+/// downstream projects aren't immediately broken at least.
+/// NB: With DISubprograms and DIFunctionLocalMetadata, we generally have the
+///     expectation that 1) before this class needs to touch them, they will
+///     have already been fully created (non-temporary), and 2) they will live
+///     forever - we never delete them. Therefore, we don't use metadata
+///     tracking here.
+class FLMDCompatibilityShim {
+  DenseMap<const DISubprogram *, DIFunctionLocalMetadata*> SPToFLMD;
+  // FLMD contexts that we did not have a Function* for, e.g. those where we
+  // created a debug location scoped at a subprogram without an associated
+  // function. Not clear what to do with these atm.
+  DenseSet<DIFunctionLocalMetadata *> OrphanedContexts;
+public:
+  inline static Function *findMatchingFn(LLVMContext &Ctx, const DISubprogram *SP);
+  DIFunctionLocalMetadata *getFLMD(LLVMContext& Ctx, const DISubprogram *SP) {
+    if (auto Existing = SPToFLMD.find(SP); Existing != SPToFLMD.end())
+      return Existing->second;
+    // We don't already have a context, so now we enter the long path...
+    Function *ExistingFn = findMatchingFn(Ctx, SP);
+    DIFunctionLocalMetadata *FLMD;
+    if (ExistingFn) {
+      FLMD = cast_if_present<DIFunctionLocalMetadata>(
+        ExistingFn->getMetadata(LLVMContext::MD_flmd));
+      if (!FLMD) {
+        FLMD = DIFunctionLocalMetadata::getDistinct(Ctx);
+        ExistingFn->addMetadata(LLVMContext::MD_flmd, *FLMD);
+      }
+    } else {
+      FLMD = DIFunctionLocalMetadata::getDistinct(Ctx);
+      OrphanedContexts.insert(FLMD);
+    }
+    SPToFLMD.insert({SP, FLMD});
+    return FLMD;
+  }
+  DIFunctionLocalMetadata *getFLMD(LLVMContext& Ctx, const Metadata *Scope) {
+    return getFLMD(Ctx, cast<DILocalScope>(Scope)->getSubprogram());
+  }
+};
+
 class LLVMContextImpl {
 public:
-  /// FIXME: Scaffolding class used to initially implement FLMD.
-  FLMDDILocationConversionContext FLMDContext;
-  void unsetFunctionSPMapping(const DISubprogram *SP, const Function *Fn) {
-    if (!SP)
-      return;
-    DISubprogram *SPRef = const_cast<DISubprogram*>(SP);
-    Function *FnRef = const_cast<Function*>(Fn);
-    assert(FLMDContext.SPToFnMap.contains(SPRef)
-      && FLMDContext.SPToFnMap.find(SPRef)->second == FnRef
-      && "Subprogram not already associated with function?");
-    FLMDContext.SPToFnMap.erase(SPRef);
-  }
-  void setFunctionSPMapping(const DISubprogram *SP, const Function *Fn) {
-    if (!SP)
-      return;
-    DISubprogram *SPRef = const_cast<DISubprogram*>(SP);
-    Function *FnRef = const_cast<Function*>(Fn);
-    assert(!FLMDContext.SPToFnMap.contains(SPRef)
-      && "Subprogram is associated with multiple functions?");
-    FLMDContext.SPToFnMap.insert({SPRef, FnRef});
-    if (FLMDContext.SPToFLMDMap.contains(SP)) {
-      
+  // Optionally-present member designed to enable compatibility with the old
+  // (non-FLMD) debug location creation methods.
+  std::unique_ptr<FLMDCompatibilityShim> FLMDCompat;
+  DIFunctionLocalMetadata *getFLMD(
+      LLVMContext &Ctx, const Metadata *MD) {
+    if (!FLMDCompat) {
+      LLVM_DEBUG(dbgs() <<
+        "warning: old DILocation creation interface used; prefer DebugLoc "
+        "interface instead.\n");
+      FLMDCompat.reset(new FLMDCompatibilityShim());
     }
+    return FLMDCompat->getFLMD(Ctx, MD);
   }
 
   /// OwnedModules - The set of modules instantiated in this context, and which
@@ -1990,6 +2044,14 @@ public:
   /// Start a 1 because 0 means the source location isn't part of an atom group.
   uint64_t NextAtomGroup = 1;
 };
+
+Function *FLMDCompatibilityShim::findMatchingFn(LLVMContext &Ctx, const DISubprogram *SP) {
+  for (auto *M : Ctx.pImpl->OwnedModules)
+    for (auto &F : M->functions())
+      if (SP->describes(&F))
+        return &F;
+  return nullptr;
+}
 
 } // end namespace llvm
 

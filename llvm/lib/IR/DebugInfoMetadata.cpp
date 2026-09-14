@@ -17,6 +17,7 @@
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/BinaryFormat/Dwarf.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/FunctionLocalMetadata.h"
@@ -24,6 +25,7 @@
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 
@@ -60,6 +62,14 @@ DebugVariable::DebugVariable(const DbgVariableRecord *DVR)
 DebugVariableAggregate::DebugVariableAggregate(const DbgVariableRecord *DVR)
     : DebugVariable(DVR->getVariable(), std::nullopt,
                     DVR->getDebugLoc().getInlinedAt()) {}
+
+static void adjustColumn(unsigned &Column) {
+  // Set to unknown on overflow.  We only have 16 bits to play with here.
+  if (Column >= (1u << 16))
+    Column = 0;
+}
+
+#if !LLVM_USE_FLMD_SOURCE_LOCS
 DILocation::DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
                        unsigned Column, uint64_t AtomGroup, uint8_t AtomRank,
                        ArrayRef<Metadata *> MDs, bool ImplicitCode)
@@ -78,12 +88,6 @@ DILocation::DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
   SubclassData16 = Column;
 
   setImplicitCode(ImplicitCode);
-}
-
-static void adjustColumn(unsigned &Column) {
-  // Set to unknown on overflow.  We only have 16 bits to play with here.
-  if (Column >= (1u << 16))
-    Column = 0;
 }
 
 DILocation *DILocation::getImpl(LLVMContext &Context, unsigned Line,
@@ -129,98 +133,6 @@ DILocation *DILocation::getMergedLocations(ArrayRef<DILocation *> Locs) {
   }
   return Merged;
 }
-
-static DILexicalBlockBase *cloneAndReplaceParentScope(DILexicalBlockBase *LBB,
-                                                      DIScope *NewParent) {
-  TempMDNode ClonedScope = LBB->clone();
-  cast<DILexicalBlockBase>(*ClonedScope).replaceScope(NewParent);
-  return cast<DILexicalBlockBase>(
-      MDNode::replaceWithUniqued(std::move(ClonedScope)));
-}
-
-using LineColumn = std::pair<unsigned /* Line */, unsigned /* Column */>;
-
-/// Returns the location of DILocalScope, if present, or a default value.
-static LineColumn getLocalScopeLocationOr(DIScope *S, LineColumn Default) {
-  assert(isa<DILocalScope>(S) && "Expected DILocalScope.");
-
-  if (isa<DILexicalBlockFile>(S))
-    return Default;
-  if (auto *LB = dyn_cast<DILexicalBlock>(S))
-    return {LB->getLine(), LB->getColumn()};
-  if (auto *SP = dyn_cast<DISubprogram>(S))
-    return {SP->getLine(), 0u};
-
-  llvm_unreachable("Unhandled type of DILocalScope.");
-}
-
-// Returns the nearest matching scope inside a subprogram.
-template <typename MatcherT>
-static std::pair<DIScope *, LineColumn>
-getNearestMatchingScope(const DILocation *L1, const DILocation *L2) {
-  MatcherT Matcher;
-
-  DIScope *S1 = L1->getScope();
-  DIScope *S2 = L2->getScope();
-
-  LineColumn Loc1(L1->getLine(), L1->getColumn());
-  for (; S1; S1 = S1->getScope()) {
-    Loc1 = getLocalScopeLocationOr(S1, Loc1);
-    Matcher.insert(S1, Loc1);
-    if (isa<DISubprogram>(S1))
-      break;
-  }
-
-  LineColumn Loc2(L2->getLine(), L2->getColumn());
-  for (; S2; S2 = S2->getScope()) {
-    Loc2 = getLocalScopeLocationOr(S2, Loc2);
-
-    if (DIScope *S = Matcher.match(S2, Loc2))
-      return std::make_pair(S, Loc2);
-
-    if (isa<DISubprogram>(S2))
-      break;
-  }
-  return std::make_pair(nullptr, LineColumn(L2->getLine(), L2->getColumn()));
-}
-
-// Matches equal scopes.
-struct EqualScopesMatcher {
-  SmallPtrSet<DIScope *, 8> Scopes;
-
-  void insert(DIScope *S, LineColumn Loc) { Scopes.insert(S); }
-
-  DIScope *match(DIScope *S, LineColumn Loc) {
-    return Scopes.contains(S) ? S : nullptr;
-  }
-};
-
-// Matches scopes with the same location.
-struct ScopeLocationsMatcher {
-  SmallMapVector<std::pair<DIFile *, LineColumn>, SmallSetVector<DIScope *, 8>,
-                 8>
-      Scopes;
-
-  void insert(DIScope *S, LineColumn Loc) {
-    Scopes[{S->getFile(), Loc}].insert(S);
-  }
-
-  DIScope *match(DIScope *S, LineColumn Loc) {
-    auto ScopesAtLoc = Scopes.find({S->getFile(), Loc});
-    // No scope found with the given location.
-    if (ScopesAtLoc == Scopes.end())
-      return nullptr;
-
-    // Prefer S over other scopes with the same location.
-    if (ScopesAtLoc->second.contains(S))
-      return S;
-
-    if (!ScopesAtLoc->second.empty())
-      return *ScopesAtLoc->second.begin();
-
-    llvm_unreachable("Scopes must not have empty entries.");
-  }
-};
 
 DILocation *DILocation::getMergedLocation(DILocation *LocA, DILocation *LocB) {
   if (LocA == LocB)
@@ -414,6 +326,40 @@ DILocation *DILocation::getMergedLocation(DILocation *LocA, DILocation *LocB) {
   return DILocation::get(C, 0, 0, LocA->getScope(), nullptr, false,
                          /*AtomGroup*/ 0, /*AtomRank*/ 0);
 }
+#else
+DILocation *DILocation::getImpl(LLVMContext &Context, DebugLoc DL,
+                                StorageType Storage, bool ShouldCreate) {
+  assert(DL && "Tried to 'get' an empty value");
+  if (Storage == Uniqued) {
+    if (auto *N = getUniqued(Context.pImpl->DILocations,
+                             DILocationInfo::KeyTy(DL)))
+      return N;
+    if (!ShouldCreate)
+      return nullptr;
+  } else {
+    assert(ShouldCreate && "Expected non-uniqued nodes to always be created");
+  }
+
+  return storeImpl(new (1, Storage)
+                       DILocation(Context, Storage, DL),
+                   Storage, Context.pImpl->DILocations);
+}
+
+DILocation *DILocation::getImpl(LLVMContext &Context, unsigned Line,
+                                unsigned Column, Metadata *Scope,
+                                Metadata *InlinedAt, bool ImplicitCode,
+                                uint64_t AtomGroup, uint8_t AtomRank,
+                                StorageType Storage, bool ShouldCreate) {
+  DILocalScope *LocalScope = dyn_cast_or_null<DILocalScope>(Scope);
+  DILocation *InlinedAtLoc = dyn_cast_or_null<DILocation>(InlinedAt);
+  assert(LocalScope && InlinedAtLoc && "TODO: Handle this failstate gracefully.");
+  DIFunctionLocalMetadata *FLContext = Context.getFLMD(LocalScope);
+  DebugLoc DL = DebugLoc::get(DebugLoc::DebugLocContext(FLContext), Line,
+    Column, Scope, InlinedAtLoc->getAsDebugLoc(), ImplicitCode, AtomGroup,
+    AtomRank);
+  return getImpl(Context, DL, Storage, ShouldCreate);
+}
+#endif
 
 std::optional<unsigned>
 DILocation::encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI) {
@@ -456,6 +402,99 @@ void DILocation::decodeDiscriminator(unsigned D, unsigned &BD, unsigned &DF,
   CI = getUnsignedFromPrefixEncoding(
       getNextComponentInDiscriminator(getNextComponentInDiscriminator(D)));
 }
+
+static DILexicalBlockBase *cloneAndReplaceParentScope(DILexicalBlockBase *LBB,
+                                                      DIScope *NewParent) {
+  TempMDNode ClonedScope = LBB->clone();
+  cast<DILexicalBlockBase>(*ClonedScope).replaceScope(NewParent);
+  return cast<DILexicalBlockBase>(
+      MDNode::replaceWithUniqued(std::move(ClonedScope)));
+}
+
+using LineColumn = std::pair<unsigned /* Line */, unsigned /* Column */>;
+
+/// Returns the location of DILocalScope, if present, or a default value.
+static LineColumn getLocalScopeLocationOr(DIScope *S, LineColumn Default) {
+  assert(isa<DILocalScope>(S) && "Expected DILocalScope.");
+
+  if (isa<DILexicalBlockFile>(S))
+    return Default;
+  if (auto *LB = dyn_cast<DILexicalBlock>(S))
+    return {LB->getLine(), LB->getColumn()};
+  if (auto *SP = dyn_cast<DISubprogram>(S))
+    return {SP->getLine(), 0u};
+
+  llvm_unreachable("Unhandled type of DILocalScope.");
+}
+
+// Returns the nearest matching scope inside a subprogram.
+template <typename MatcherT>
+static std::pair<DIScope *, LineColumn>
+getNearestMatchingScope(const DILocation *L1, const DILocation *L2) {
+  MatcherT Matcher;
+
+  DIScope *S1 = L1->getScope();
+  DIScope *S2 = L2->getScope();
+
+  LineColumn Loc1(L1->getLine(), L1->getColumn());
+  for (; S1; S1 = S1->getScope()) {
+    Loc1 = getLocalScopeLocationOr(S1, Loc1);
+    Matcher.insert(S1, Loc1);
+    if (isa<DISubprogram>(S1))
+      break;
+  }
+
+  LineColumn Loc2(L2->getLine(), L2->getColumn());
+  for (; S2; S2 = S2->getScope()) {
+    Loc2 = getLocalScopeLocationOr(S2, Loc2);
+
+    if (DIScope *S = Matcher.match(S2, Loc2))
+      return std::make_pair(S, Loc2);
+
+    if (isa<DISubprogram>(S2))
+      break;
+  }
+  return std::make_pair(nullptr, LineColumn(L2->getLine(), L2->getColumn()));
+}
+
+// Matches equal scopes.
+struct EqualScopesMatcher {
+  SmallPtrSet<DIScope *, 8> Scopes;
+
+  void insert(DIScope *S, LineColumn Loc) { Scopes.insert(S); }
+
+  DIScope *match(DIScope *S, LineColumn Loc) {
+    return Scopes.contains(S) ? S : nullptr;
+  }
+};
+
+// Matches scopes with the same location.
+struct ScopeLocationsMatcher {
+  SmallMapVector<std::pair<DIFile *, LineColumn>, SmallSetVector<DIScope *, 8>,
+                 8>
+      Scopes;
+
+  void insert(DIScope *S, LineColumn Loc) {
+    Scopes[{S->getFile(), Loc}].insert(S);
+  }
+
+  DIScope *match(DIScope *S, LineColumn Loc) {
+    auto ScopesAtLoc = Scopes.find({S->getFile(), Loc});
+    // No scope found with the given location.
+    if (ScopesAtLoc == Scopes.end())
+      return nullptr;
+
+    // Prefer S over other scopes with the same location.
+    if (ScopesAtLoc->second.contains(S))
+      return S;
+
+    if (!ScopesAtLoc->second.empty())
+      return *ScopesAtLoc->second.begin();
+
+    llvm_unreachable("Scopes must not have empty entries.");
+  }
+};
+
 dwarf::Tag DINode::getTag() const { return (dwarf::Tag)SubclassData16; }
 
 DINode::DIFlags DINode::getFlag(StringRef Flag) {

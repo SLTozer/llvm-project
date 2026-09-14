@@ -13,6 +13,7 @@
 
 #include "llvm-c/DebugInfo.h"
 #include "LLVMContextImpl.h"
+#include "llvm-c/Types.h"
 #include "llvm/ADT/APSInt.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
@@ -28,6 +29,7 @@
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GVMaterializer.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -845,11 +847,40 @@ private:
   DILocation *getReplacementMDLocation(DILocation *MLD) {
     auto *Scope = map(MLD->getScope());
     auto *InlinedAt = map(MLD->getInlinedAt());
+    /// FIXME: Instead of actually creating new DebugLocs, we should actually be
+    /// able to perform all these updates by iterating through the FLMD arrays
+    /// and not changing any indexes.
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    DebugLoc DL = MLD->getAsDebugLoc();
+    if (DL.isInlinedCall()) {
+      FLInlinedCall InlinedCall = DL.getAsInlinedCall();
+      if (InlinedCall.Uniquable) {
+        return DILocation::get(MLD->getContext(),
+          DebugLoc::getUniquedInlinedCall(
+            DebugLoc::DebugLocContext(InlinedCall.getInlinee()),
+            DebugLoc::DebugLocContext(DL.getFLContext()), DL.getLine(),
+            DL.getColumn(), Scope,
+            cast<DILocation>(InlinedAt)->getAsDebugLoc()));
+      }
+      return DILocation::get(MLD->getContext(),
+        DebugLoc::getDistinctInlinedCall(
+          DebugLoc::DebugLocContext(InlinedCall.getInlinee()),
+          DebugLoc::DebugLocContext(DL.getFLContext()), DL.getLine(),
+          DL.getColumn(), Scope, cast<DILocation>(InlinedAt)->getAsDebugLoc()));
+    }
+    return DILocation::get(MLD->getContext(),
+      DebugLoc::get(
+          DebugLoc::DebugLocContext(DL.getFLContext()), DL.getLine(),
+          DL.getColumn(), Scope,
+          cast<DILocation>(InlinedAt)->getAsDebugLoc(), false,
+          DL.getAtomGroup(), DL.getAtomRank()));
+#else
     if (MLD->isDistinct())
       return DILocation::getDistinct(MLD->getContext(), MLD->getLine(),
                                      MLD->getColumn(), Scope, InlinedAt);
     return DILocation::get(MLD->getContext(), MLD->getLine(), MLD->getColumn(),
                            Scope, InlinedAt);
+#endif
   }
 
   /// Create a new generic MDNode, to replace the one given
@@ -1334,12 +1365,67 @@ LLVMMetadataRef LLVMDIBuilderCreateImportedDeclaration(
       unwrapDI<DIScope>(Scope), unwrapDI<DINode>(Decl), unwrapDI<DIFile>(File),
       Line, {Name, NameLen}, Elts));
 }
+
+#if LLVM_USE_FLMD_SOURCE_LOCS
+static DebugLoc unwrap(LLVMDebugLoc DL) {
+  return DebugLoc(
+    FLDebugLoc::fromRawInt(DL.Loc),
+    cast<DIFunctionLocalMetadata>(unwrap(DL.Context)));
+}
+static LLVMDebugLoc wrap(DebugLoc DL) {
+  return LLVMDebugLoc {
+    DL.getUnderlyingStorage().asRawInt(),
+    wrap(DL.getFLContext()),
+  };
+}
+
+LLVMDebugLoc LLVMDIBuilderCreateDebugLocation2(
+    LLVMMetadataRef FnCtx, unsigned Line, unsigned Column, LLVMMetadataRef Scope,
+    LLVMDebugLoc InlinedAt) {
+  return wrap(DebugLoc::get(
+    DebugLoc::DebugLocContext(unwrapDI<DIFunctionLocalMetadata>(FnCtx)),
+    Line, Column, unwrap(Scope), unwrap(InlinedAt)));
+}
+LLVMDebugLoc LLVMDIBuilderCreateInlineCallDebugLocation(
+    LLVMMetadataRef CallerCtx, LLVMMetadataRef CalleeCtx, unsigned Line,
+    unsigned Column, LLVMMetadataRef Scope, LLVMDebugLoc InlinedAt) {
+  return wrap(DebugLoc::getDistinctInlinedCall(
+    DebugLoc::DebugLocContext(unwrapDI<DIFunctionLocalMetadata>(CalleeCtx)),
+    DebugLoc::DebugLocContext(unwrapDI<DIFunctionLocalMetadata>(CallerCtx)),
+    Line, Column, unwrap(Scope), unwrap(InlinedAt)));
+}
+
+unsigned LLVMDebugLocGetLine(LLVMDebugLoc Location) {
+  return unwrap(Location).getLine();
+}
+unsigned LLVMDebugLocGetColumn(LLVMDebugLoc Location) {
+  return unwrap(Location).getColumn();
+}
+LLVMMetadataRef LLVMDebugLocGetScope(LLVMDebugLoc Location) {
+  return wrap(unwrap(Location).getScope());
+}
+LLVMDebugLoc LLVMDebugLocGetInlinedAt(LLVMDebugLoc Location) {
+  return wrap(unwrap(Location).getInlinedAt());
+}
+#endif
+
 LLVMMetadataRef
 LLVMDIBuilderCreateDebugLocation(LLVMContextRef Ctx, unsigned Line,
                                  unsigned Column, LLVMMetadataRef Scope,
                                  LLVMMetadataRef InlinedAt) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  LLVMContext *UnwrappedCtx = unwrap(Ctx);
+  DIFunctionLocalMetadata *FLContext = UnwrappedCtx->getFLMD(unwrap(Scope));
+  DebugLoc DLInlinedAt = cast<DILocation>(unwrap(InlinedAt))->getAsDebugLoc();
+  return wrap(DILocation::get(
+    *unwrap(Ctx),
+    DebugLoc::get(
+      DebugLoc::DebugLocContext(FLContext), Line, Column, unwrap(Scope),
+      DLInlinedAt)));
+#else
   return wrap(DILocation::get(*unwrap(Ctx), Line, Column, unwrap(Scope),
                               unwrap(InlinedAt)));
+#endif
 }
 
 unsigned LLVMDILocationGetLine(LLVMMetadataRef Location) {

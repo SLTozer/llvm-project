@@ -714,9 +714,11 @@ static void moveFunctionData(Function &Old, Function &New,
         // several locations.
         auto updateLoopInfoLoc = [&New](Metadata *MD) -> Metadata * {
           if (DISubprogram *SP = New.getSubprogram())
-            if (DebugLoc Loc = DebugLoc::getFromDILocation(dyn_cast_or_null<DILocation>(MD)))
-              return DebugLoc::get(&New, Loc.getLine(),
-                                   Loc.getColumn(), SP).getAsMDNode();
+            if (DILocation *Loc = dyn_cast_or_null<DILocation>(MD)) {
+              DebugLoc DL = Loc->getAsDebugLoc();
+              return DebugLoc::get(&New, DL.getLine(),
+                                   DL.getColumn(), SP).convertToDILocation();
+            }
           return MD;
         };
         updateLoopMetadataDebugLocations(Val, updateLoopInfoLoc);

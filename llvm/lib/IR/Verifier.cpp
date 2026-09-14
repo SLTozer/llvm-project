@@ -1067,8 +1067,13 @@ void Verifier::visitDIFunctionLocalMetadata(const DIFunctionLocalMetadata &N) {
 void Verifier::visitDILocation(const DILocation &N) {
   CheckDI(N.getRawScope() && isa<DILocalScope>(N.getRawScope()),
           "location requires a valid scope", &N, N.getRawScope());
+  // FIXME: getRawInlinedAt() is now costly to call because it requires us to
+  // actually recreate the inline chain in DILocations; can we avoid that?
+  // In any case, this isn't relevant with FLMD enabled.
+#if !LLVM_USE_FLMD_SOURCE_LOCS
   if (auto *IA = N.getRawInlinedAt())
     CheckDI(isa<DILocation>(IA), "inlined-at should be a location", &N, IA);
+#endif
   if (auto *SP = dyn_cast<DISubprogram>(N.getRawScope()))
     CheckDI(SP->isDefinition(), "scope points into the type hierarchy", &N);
 }

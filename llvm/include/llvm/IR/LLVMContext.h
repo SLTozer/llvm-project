@@ -37,6 +37,8 @@ template <typename T> class StringMapEntry;
 class StringRef;
 class Twine;
 class LLVMRemarkStreamer;
+class DIFunctionLocalMetadata;
+class Metadata;
 
 namespace remarks {
 class RemarkStreamer;
@@ -353,6 +355,7 @@ public:
   /// the global tracker.
   LLVM_ABI uint64_t incNextDILocationAtomGroup();
 
+  LLVM_ABI DIFunctionLocalMetadata *getFLMD(const Metadata *MD);
 private:
   // Module needs access to the add/removeModule methods.
   friend class Module;

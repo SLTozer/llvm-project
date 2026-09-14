@@ -405,11 +405,11 @@ SmallVector<Metadata *, 4> clang::CodeGen::LoopInfo::createMetadata(
 
   // If we have a valid start debug location for the loop, add it.
   if (StartLoc) {
-    LoopProperties.push_back(StartLoc.getAsMDNode());
+    LoopProperties.push_back(DILocation::get(StartLoc.getContext(), StartLoc));
 
     // If we also have a valid end debug location for the loop, add it.
     if (EndLoc)
-      LoopProperties.push_back(EndLoc.getAsMDNode());
+      LoopProperties.push_back(DILocation::get(EndLoc.getContext(), EndLoc));
   }
 
   LLVMContext &Ctx = Header->getContext();

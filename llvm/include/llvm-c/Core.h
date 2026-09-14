@@ -4638,6 +4638,9 @@ LLVM_C_ABI LLVMMetadataRef LLVMGetCurrentDebugLocation2(LLVMBuilderRef Builder);
 LLVM_C_ABI void LLVMSetCurrentDebugLocation2(LLVMBuilderRef Builder,
                                              LLVMMetadataRef Loc);
 
+LLVM_C_ABI LLVMDebugLoc LLVMGetCurrentDebugLocation3(LLVMBuilderRef Builder);
+LLVM_C_ABI void LLVMSetCurrentDebugLocation3(LLVMBuilderRef Builder, LLVMDebugLoc Loc);
+
 /**
  * Attempts to set the debug location for the given instruction using the
  * current debug location for the given builder.  If the builder has no current

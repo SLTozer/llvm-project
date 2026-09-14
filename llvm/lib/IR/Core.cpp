@@ -3491,12 +3491,36 @@ void LLVMDisposeBuilder(LLVMBuilderRef Builder) {
 
 /*--.. Metadata builders ...................................................--*/
 
+#if LLVM_USE_FLMD_SOURCE_LOCS
+static DebugLoc unwrap(LLVMDebugLoc DL) {
+  return DebugLoc(
+    FLDebugLoc::fromRawInt(DL.Loc),
+    cast<DIFunctionLocalMetadata>(unwrap(DL.Context)));
+}
+static LLVMDebugLoc wrap(DebugLoc DL) {
+  return LLVMDebugLoc {
+    DL.getUnderlyingStorage().asRawInt(),
+    wrap(DL.getFLContext()),
+  };
+}
+
+LLVMDebugLoc LLVMGetCurrentDebugLocation3(LLVMBuilderRef Builder) {
+  return wrap(unwrap(Builder)->getCurrentDebugLocation());
+}
+void LLVMSetCurrentDebugLocation3(LLVMBuilderRef Builder, LLVMDebugLoc Loc) {
+  if (auto DL = unwrap(Loc))
+    unwrap(Builder)->SetCurrentDebugLocation(DL);
+  else
+    unwrap(Builder)->SetCurrentDebugLocation(DebugLoc());
+}
+#endif
+
 LLVMMetadataRef LLVMGetCurrentDebugLocation2(LLVMBuilderRef Builder) {
-  return wrap(unwrap(Builder)->getCurrentDebugLocation().getAsMDNode());
+  return wrap(unwrap(Builder)->getCurrentDebugLocation().convertToDILocation());
 }
 void LLVMSetCurrentDebugLocation2(LLVMBuilderRef Builder, LLVMMetadataRef Loc) {
   if (Loc)
-    unwrap(Builder)->SetCurrentDebugLocation(DebugLoc::getFromDILocation(unwrap<DILocation>(Loc)));
+    unwrap(Builder)->SetCurrentDebugLocation(unwrap<DILocation>(Loc)->getAsDebugLoc());
   else
     unwrap(Builder)->SetCurrentDebugLocation(DebugLoc());
 }

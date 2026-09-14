@@ -541,6 +541,22 @@ LLVM_C_ABI LLVMMetadataRef LLVMDILocationGetScope(LLVMMetadataRef Location);
  */
 LLVM_C_ABI LLVMMetadataRef LLVMDILocationGetInlinedAt(LLVMMetadataRef Location);
 
+/// FLMD-based implementations of the preceding DILocation methods. When FLMD is
+/// enabled in LLVM, these should always be preferred over the DILocation
+/// methods.
+#if LLVM_USE_FLMD_SOURCE_LOCS
+LLVM_C_ABI LLVMDebugLoc LLVMDIBuilderCreateDebugLocation2(
+    LLVMMetadataRef FnCtx, unsigned Line, unsigned Column, LLVMMetadataRef Scope,
+    LLVMDebugLoc InlinedAt);
+LLVM_C_ABI LLVMDebugLoc LLVMDIBuilderCreateInlineCallDebugLocation(
+    LLVMMetadataRef CallerCtx, LLVMMetadataRef CalleeCtx, unsigned Line,
+    unsigned Column, LLVMMetadataRef Scope, LLVMDebugLoc InlinedAt);
+LLVM_C_ABI unsigned LLVMDebugLocGetLine(LLVMDebugLoc Location);
+LLVM_C_ABI unsigned LLVMDebugLocGetColumn(LLVMDebugLoc Location);
+LLVM_C_ABI LLVMMetadataRef LLVMDebugLocGetScope(LLVMDebugLoc Location);
+LLVM_C_ABI LLVMDebugLoc LLVMDebugLocGetInlinedAt(LLVMDebugLoc Location);
+#endif
+
 /**
  * Get the metadata of the file associated with a given scope.
  * \param Scope     The scope object.

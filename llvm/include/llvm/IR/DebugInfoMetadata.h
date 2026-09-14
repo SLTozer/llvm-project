@@ -23,6 +23,7 @@
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DbgVariableFragmentInfo.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/PseudoProbe.h"
@@ -2647,11 +2648,212 @@ public:
 ///
 /// Uses the SubclassData1, SubclassData16 and SubclassData32
 /// Metadata slots.
+///
+/// If LLVM_USE_FLMD_SOURCE_LOCS is set, this is a thin-wrapper around a
+/// DebugLoc; it contains no information itself, but simply forwards all queries
+/// to the DebugLoc.
+#if LLVM_USE_FLMD_SOURCE_LOCS
 class DILocation : public MDNode {
   friend class LLVMContextImpl;
   friend class MDNode;
-  uint64_t AtomGroup : 61;
-  uint64_t AtomRank : 3;
+
+  FLDebugLoc DLStorage;
+
+  DILocation(LLVMContext &C, StorageType Storage, DebugLoc DL)
+    : MDNode(C, DILocationKind, Storage, DL.getFLContext()),
+      DLStorage(DL.getUnderlyingStorage()) {}
+  ~DILocation() { dropAllReferences(); }
+
+  static DILocation *getImpl(LLVMContext &Context, DebugLoc DL,
+                             StorageType Storage, bool ShouldCreate = true);
+
+  LLVM_ABI static DILocation *
+  getImpl(LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
+          Metadata *InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
+          uint8_t AtomRank, StorageType Storage, bool ShouldCreate = true);
+  static DILocation *getImpl(LLVMContext &Context, unsigned Line,
+                             unsigned Column, DILocalScope *Scope,
+                             DILocation *InlinedAt, bool ImplicitCode,
+                             uint64_t AtomGroup, uint8_t AtomRank,
+                             StorageType Storage, bool ShouldCreate = true) {
+    return getImpl(Context, Line, Column, static_cast<Metadata *>(Scope),
+                   static_cast<Metadata *>(InlinedAt), ImplicitCode, AtomGroup,
+                   AtomRank, Storage, ShouldCreate);
+  }
+  TempDILocation cloneImpl() const {
+    // Get the raw scope/inlinedAt since it is possible to invoke this on
+    // a DILocation containing temporary metadata.
+    return getTemporary(getContext(), getAsDebugLoc());
+  }
+
+public:
+  DIFunctionLocalMetadata *getFLContext() const {
+    return cast<DIFunctionLocalMetadata>(getOperand(0));
+  }
+  DebugLoc getAsDebugLoc() const {
+    return DebugLoc(DLStorage, getFLContext());
+  }
+
+  uint64_t getAtomGroup() const { return getAsDebugLoc().getAtomGroup(); }
+  uint8_t getAtomRank() const { return getAsDebugLoc().getAtomRank(); }
+
+  const DILocation *getWithoutAtom() const {
+    if (!getAtomGroup() && !getAtomRank())
+      return this;
+    return DILocation::get(getContext(), getAsDebugLoc().getWithoutAtom());
+  }
+
+  // Disallow replacing operands.
+  void replaceOperandWith(unsigned I, Metadata *New) = delete;
+
+  DEFINE_MDNODE_GET(DILocation, (DebugLoc DL), (DL))
+  DEFINE_MDNODE_GET(DILocation,
+                    (unsigned Line, unsigned Column, Metadata *Scope,
+                     Metadata *InlinedAt = nullptr, bool ImplicitCode = false,
+                     uint64_t AtomGroup = 0, uint8_t AtomRank = 0),
+                    (Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup,
+                     AtomRank))
+  DEFINE_MDNODE_GET(DILocation,
+                    (unsigned Line, unsigned Column, DILocalScope *Scope,
+                     DILocation *InlinedAt = nullptr, bool ImplicitCode = false,
+                     uint64_t AtomGroup = 0, uint8_t AtomRank = 0),
+                    (Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup,
+                     AtomRank))
+
+  /// Return a (temporary) clone of this.
+  TempDILocation clone() const { return cloneImpl(); }
+
+  /// Here we simply state the entire non-static DILocation API as a passthrough
+  /// to a DebugLoc.
+  unsigned getLine() const { return getAsDebugLoc().getLine(); }
+  unsigned getColumn() const { return getAsDebugLoc().getColumn(); }
+  DILocalScope *getScope() const { return getAsDebugLoc().getScope(); }
+  StringRef getSubprogramLinkageName() const {
+    return getAsDebugLoc().getSubprogramLinkageName();
+  }
+  DILocation *getInlinedAt() const {
+    return DILocation::get(getContext(), getAsDebugLoc().getInlinedAt());
+  }
+  bool isImplicitCode() const { return getAsDebugLoc().isImplicitCode(); }
+  void setImplicitCode(bool ImplicitCode) { llvm_unreachable("This should be removed."); }
+  DIFile *getFile() const { return getAsDebugLoc().getFile(); }
+  StringRef getFilename() const { return getAsDebugLoc().getFilename(); }
+  StringRef getDirectory() const { return getAsDebugLoc().getDirectory(); }
+  std::optional<StringRef> getSource() const { return getAsDebugLoc().getSource(); }
+  const DILocation *getInlinedAtLocation() const {
+    return DILocation::get(getContext(), getAsDebugLoc().getInlinedAtLocation());
+  }
+  DILocalScope *getInlinedAtScope() const {
+    return getAsDebugLoc().getInlinedAtScope();
+  }
+  inline unsigned getDiscriminator() const {
+    return getAsDebugLoc().getDiscriminator();
+  }
+  inline const DILocation *cloneWithDiscriminator(unsigned Discriminator) const {
+    return DILocation::get(getContext(), getAsDebugLoc().cloneWithDiscriminator(Discriminator));
+  }
+  inline std::optional<const DILocation *>
+  cloneWithBaseDiscriminator(unsigned BD) const {
+    auto OptResult = getAsDebugLoc().cloneWithBaseDiscriminator(BD);
+    if (OptResult)
+      return DILocation::get(getContext(), *OptResult);
+    return {};
+  }
+  inline unsigned getDuplicationFactor() const {
+    return getAsDebugLoc().getDuplicationFactor();
+  }
+  inline unsigned getCopyIdentifier() const {
+    return getAsDebugLoc().getCopyIdentifier();
+  }
+  inline unsigned getBaseDiscriminator() const {
+    return getAsDebugLoc().getBaseDiscriminator();
+  }
+  inline std::optional<const DILocation *>
+  cloneByMultiplyingDuplicationFactor(unsigned DF) const {
+    auto OptResult = getAsDebugLoc().cloneByMultiplyingDuplicationFactor(DF);
+    if (OptResult)
+      return DILocation::get(getContext(), *OptResult);
+    return {};
+  }
+  Metadata *getRawScope() const { return getAsDebugLoc().getRawScope(); }
+  Metadata *getRawInlinedAt() const {
+    return getAsDebugLoc().getRawInlinedAt();
+  }
+
+  inline static bool isPseudoProbeDiscriminator(unsigned Discriminator) {
+    return ((Discriminator & 0x7) == 0x7) && (Discriminator & 0xFFFFFFF8);
+  }
+
+  LLVM_ABI static DILocation *getMergedLocation(DILocation *LocA,
+                                                DILocation *LocB) {
+    if (!LocA && !LocB)
+      return nullptr;
+    LLVMContext &Ctx = LocA ? LocA->getContext() : LocB->getContext();
+    return DILocation::get(Ctx,
+      DebugLoc::getMergedLocation(LocA->getAsDebugLoc(), LocB->getAsDebugLoc()));
+  }
+  LLVM_ABI static DILocation *getMergedLocations(ArrayRef<DILocation *> Locs) {
+    if (Locs.empty())
+      return nullptr;
+    LLVMContext &Ctx = Locs[0]->getContext();
+    SmallVector<DebugLoc> DLocs;
+    for (auto *Loc : Locs)
+      DLocs.push_back(Loc->getAsDebugLoc());
+    return DILocation::get(Ctx, DebugLoc::getMergedLocations(DLocs));
+  }
+
+  static unsigned getMaskedDiscriminator(unsigned D, unsigned B) {
+    return (D & getN1Bits(B));
+  }
+  static unsigned getBaseDiscriminatorBits() { return getBaseFSBitEnd(); }
+  static unsigned
+  getBaseDiscriminatorFromDiscriminator(unsigned D,
+                                        bool IsFSDiscriminator = false) {
+    // Extract the dwarf base discriminator if it's encoded in the pseudo probe
+    // discriminator.
+    if (isPseudoProbeDiscriminator(D)) {
+      auto DwarfBaseDiscriminator =
+          PseudoProbeDwarfDiscriminator::extractDwarfBaseDiscriminator(D);
+      if (DwarfBaseDiscriminator)
+        return *DwarfBaseDiscriminator;
+      // Return the probe id instead of zero for a pseudo probe discriminator.
+      // This should help differenciate callsites with same line numbers to
+      // achieve a decent AutoFDO profile under -fpseudo-probe-for-profiling,
+      // where the original callsite dwarf discriminator is overwritten by
+      // callsite probe information.
+      return PseudoProbeDwarfDiscriminator::extractProbeIndex(D);
+    }
+
+    if (IsFSDiscriminator)
+      return getMaskedDiscriminator(D, getBaseDiscriminatorBits());
+    return getUnsignedFromPrefixEncoding(D);
+  }
+  LLVM_ABI static std::optional<unsigned>
+  encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI);
+  LLVM_ABI static void decodeDiscriminator(unsigned D, unsigned &BD,
+                                           unsigned &DF, unsigned &CI);
+  static unsigned getDuplicationFactorFromDiscriminator(unsigned D) {
+    if (EnableFSDiscriminator)
+      return 1;
+    D = getNextComponentInDiscriminator(D);
+    unsigned Ret = getUnsignedFromPrefixEncoding(D);
+    if (Ret == 0)
+      return 1;
+    return Ret;
+  }
+  static unsigned getCopyIdentifierFromDiscriminator(unsigned D) {
+    return getUnsignedFromPrefixEncoding(
+        getNextComponentInDiscriminator(getNextComponentInDiscriminator(D)));
+  }
+
+  static bool classof(const Metadata *MD) {
+    return MD->getMetadataID() == DILocationKind;
+  }
+};
+#else
+class DILocation : public MDNode {
+  friend class LLVMContextImpl;
+  friend class MDNode;
 
   DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
              unsigned Column, uint64_t AtomGroup, uint8_t AtomRank,
@@ -2936,7 +3138,7 @@ public:
     return MD->getMetadataID() == DILocationKind;
   }
 };
-
+#endif
 class DILexicalBlockBase : public DILocalScope {
 protected:
   LLVM_ABI DILexicalBlockBase(LLVMContext &C, unsigned ID, StorageType Storage,
@@ -3064,6 +3266,7 @@ public:
   }
 };
 
+#if !LLVM_USE_FLMD_SOURCE_LOCS
 unsigned DILocation::getDiscriminator() const {
   if (auto *F = dyn_cast<DILexicalBlockFile>(getScope()))
     return F->getDiscriminator();
@@ -3146,6 +3349,7 @@ DILocation::cloneByMultiplyingDuplicationFactor(unsigned DF) const {
     return cloneWithDiscriminator(*D);
   return std::nullopt;
 }
+#endif
 
 /// Debug lexical block.
 ///

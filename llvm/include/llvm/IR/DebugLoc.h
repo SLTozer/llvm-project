@@ -186,6 +186,12 @@ struct FLDebugLoc {
     std::memcpy(&Result, this, sizeof(Result));
     return Result;
   }
+  static FLDebugLoc fromRawInt(uint64_t Raw) {
+    static_assert(sizeof(FLDebugLoc) == sizeof(uint64_t));
+    FLDebugLoc Result;
+    std::memcpy(&Result, &Raw, sizeof(Result));
+    return Result;
+  }
 
   FLInlinedCall getAsInlinedCall(DIFunctionLocalMetadata *Context) const {
     assert(isInlinedCall() && "getAsInlinedCall for non-inlined-call.");
@@ -553,6 +559,8 @@ public:
   /// Creates a DebugLoc representing the same location as this DebugLoc, but
   /// as an inlined call to the function with the given context.
   DebugLoc convertToInlinedCall(DebugLocContext CalleeContext) const;
+  /// FIXME: Just replace this with `getAsDILocation` later.
+  DILocation *convertToDILocation() const;
 
   static DebugLoc getFromMDNode(const MDNode *L);
   /// Create a DebugLoc from the equivalent DILocation. If the DILocation is an
@@ -1010,11 +1018,13 @@ struct DenseMapInfo<FLDebugLoc> {
 };
 
 inline hash_code hash_value(const DbgLocStorage &Val) {
-  return hash_value(Val.Loc);
+  return hash_value(Val.get());
 }
 
 inline hash_code hash_value(const DebugLoc &Val) {
-  return hash_value(Val.Storage);
+  if (Val)
+    return hash_combine(Val.getStorage(), Val.getFLContext());
+  return hash_value(Val.getStorage());
 }
 
 

@@ -94,7 +94,7 @@ struct FLInlinedCall {
   TrackingMDNodeRef InlineeFLMD;
   FLInlinedCall() = default;
   FLInlinedCall(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNode *InlineeFLMD, bool Uniquable)
-    : SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx), Uniquable(Uniquable), InlineeFLMD(InlineeFLMD) {}
+    : SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx), MaxAtomGroup(0), Uniquable(Uniquable), InlineeFLMD(InlineeFLMD) {}
   DIFunctionLocalMetadata *getInlinee() const {
     return cast<DIFunctionLocalMetadata>(InlineeFLMD);
   }
@@ -278,7 +278,7 @@ public:
   SmallVector<FLLoop, 0> Loops;
   SmallDenseMap<class Instruction *, uint16_t> InstrLoops;
   // TODO: Move this to Subclassdata.
-  uint16_t MaxAtomGroup;
+  uint16_t MaxAtomGroup = 0;
 
   // FIXME: FLMD is a funny case where it takes no arguments and can only be
   // created Distinct. Decide later whether this needs to change.

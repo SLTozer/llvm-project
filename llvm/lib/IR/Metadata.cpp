@@ -1968,10 +1968,10 @@ void Function::setSubprogram(DISubprogram *SP) {
   // a DISubprogram, and thus DILocations can only map to the callee. This
   // should not be a problem until after we've fixed the need to use this
   // context map anyway.
-  getContext().pImpl->unsetFunctionSPMapping(
-    dyn_cast_if_present<DISubprogram>(getMetadata(LLVMContext::MD_dbg)), this);
+  // getContext().pImpl->unsetFunctionSPMapping(
+  //   dyn_cast_if_present<DISubprogram>(getMetadata(LLVMContext::MD_dbg)), this);
   setMetadata(LLVMContext::MD_dbg, SP);
-  getContext().pImpl->setFunctionSPMapping(SP, this);
+  // getContext().pImpl->setFunctionSPMapping(SP, this);
 }
 
 DISubprogram *Function::getSubprogram() const {

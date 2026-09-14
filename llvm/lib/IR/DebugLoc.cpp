@@ -171,12 +171,12 @@ static DILocation *getInlinedAtDILocation(DIFunctionLocalMetadata *FLMD,
   FLSrcLoc SrcLoc = FLMD->getSrcLoc(InlinedCall.SrcLocIdx, InlinedCall.InlinedAtIdx);
   DILocalScope *Scope = FLMD->getScope(SrcLoc.ScopeIdx, InlinedCall.InlinedAtIdx);
   DILocation *Result;
-  if (InlinedCall.Uniquable)
-    Result = DILocation::get(FLMD->getContext(), SrcLoc.Line, SrcLoc.Column, Scope, InlinedAt);
-  else {
-    Result = DILocation::getDistinct(FLMD->getContext(), SrcLoc.Line, SrcLoc.Column, Scope, InlinedAt);
-    FLMDConversionContext.InlinedCallIdxToDILocMap.insert({{InlinedAtIdx, FLMD}, Result});
-  }
+  // if (InlinedCall.Uniquable)
+  //   Result = DILocation::get(FLMD->getContext(), SrcLoc.Line, SrcLoc.Column, Scope, InlinedAt);
+  // else {
+  //   Result = DILocation::getDistinct(FLMD->getContext(), SrcLoc.Line, SrcLoc.Column, Scope, InlinedAt);
+  //   FLMDConversionContext.InlinedCallIdxToDILocMap.insert({{InlinedAtIdx, FLMD}, Result});
+  // }
   return Result;
 }
 
@@ -198,10 +198,11 @@ DILocation *DebugLoc::getAsDILocation() const {
   DILocation *InlinedAt = getInlinedAt().getAsDILocation();
   FLSrcLoc SrcLoc = Storage.get().getSrcLoc(FLContext);
   DILocalScope *Scope = Storage.get().getScope(FLContext);
-  DILocation *Result = DILocation::get(FLContext->getContext(), SrcLoc.Line,
-    SrcLoc.Column, Scope, InlinedAt, false, Storage.get().AtomGroup,
-    Storage.get().AtomRank);
-  return Result;
+  // DILocation *Result = DILocation::get(FLContext->getContext(), SrcLoc.Line,
+  //   SrcLoc.Column, Scope, InlinedAt, false, Storage.get().AtomGroup,
+  //   Storage.get().AtomRank);
+  // return Result;
+  return nullptr;
 }
 DILocation *DebugLoc::get() const {
   return getAsDILocation();
@@ -379,6 +380,9 @@ DebugLoc DebugLoc::getFromMDNode(const MDNode *MD) {
 
 DebugLoc DebugLoc::convertToInlinedCall(DebugLocContext CalleeContext) const {
   return DebugLoc::getDistinctInlinedCall(CalleeContext, getDLContext(), getLine(), getColumn(), getScope(), getInlinedAt(), isImplicitCode(), 0, 0);
+}
+DILocation *DebugLoc::convertToDILocation() const {
+  return DILocation::get(getContext(), *this);
 }
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
@@ -748,7 +752,22 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
     // If the locations originate from different subprograms we can't produce
     // a common location.
     if (L1.getScope()->getSubprogram() != L2.getScope()->getSubprogram())
-      return nullptr;
+      return DebugLoc();
+
+    // If the locations are not both inlined calls or both instruction locs, or
+    // if they are inlined calls that point to different inlinees, then we
+    // cannot produce a common location.
+    // TODO: Is it possible that we could merge an inlined call with a
+    // non-inlined call here if they were otherwise compatible? Should be fine
+    // to handle if so.
+    if (L1.isInlinedCall() != L2.isInlinedCall())
+      return DebugLoc();
+    if (L1.isInlinedCall() && L1.getAsInlinedCall().getInlinee() != L2.getAsInlinedCall().getInlinee())
+      return DebugLoc();
+    DIFunctionLocalMetadata *Inlinee = L1.isInlinedCall() ?
+      L1.getAsInlinedCall().getInlinee() :
+      nullptr;
+    DebugLoc::DebugLocContext InlineeCtx(Inlinee);
 
     // Find nearest common scope inside subprogram.
     DIScope *Scope = getNearestMatchingScope<EqualScopesMatcher>(L1, L2).first;
@@ -770,9 +789,13 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
 
       // If files are still different, assume that L1 and L2 were "included"
       // from CommonLoc. Use it as merged location.
-      if (Scope->getFile() != L1.getFile() || L1.getFile() != L2.getFile())
+      if (Scope->getFile() != L1.getFile() || L1.getFile() != L2.getFile()) {
+        if (Inlinee)
+          return DebugLoc::getUniquedInlinedCall(InlineeCtx, C, CommonLoc.first, CommonLoc.second,
+                                                 CommonLocScope, InlinedAt);
         return DebugLoc::get(C, CommonLoc.first, CommonLoc.second,
                                CommonLocScope, InlinedAt);
+      }
     }
 
     bool SameLine = L1.getLine() == L2.getLine();
@@ -783,9 +806,13 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
 
     // Discard source location atom if the line becomes 0. And there's nothing
     // further to do if neither location has an atom number.
-    if (!SameLine || !(L1.getAtomGroup() || L2.getAtomGroup()))
+    if (!SameLine || !(L1.getAtomGroup() || L2.getAtomGroup())) {
+      if (Inlinee)
+        return DebugLoc::getUniquedInlinedCall(InlineeCtx, C, Line, Col, Scope, InlinedAt, IsImplicitCode,
+                              /*AtomGroup*/ 0, /*AtomRank*/ 0);
       return DebugLoc::get(C, Line, Col, Scope, InlinedAt, IsImplicitCode,
                              /*AtomGroup*/ 0, /*AtomRank*/ 0);
+    }
 
     uint64_t Group = 0;
     uint64_t Rank = 0;
@@ -818,6 +845,10 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
       Group = InlinedAt.getNewAtomGroup();
       Rank = 1;
     }
+    if (Inlinee)
+      return DebugLoc::getUniquedInlinedCall(
+        InlineeCtx, C, Line, Col, Scope, InlinedAt, IsImplicitCode, Group,
+        Rank);
     return DebugLoc::get(C, Line, Col, Scope, InlinedAt, IsImplicitCode,
                            Group, Rank);
   };
