@@ -1571,11 +1571,13 @@ FLMDBuilder::FLMDBuilder(const DISubprogram *SP, DIFunctionLocalMetadata *ToClon
   Loops.append(ToClone->Loops.begin(), ToClone->Loops.end());
 }
 
-FLScope::FLScope(DILocalScope *Scope) : Scope(Scope) {}
-FLScope::operator DILocalScope*() { return cast<DILocalScope>(Scope.get()); }
-DILocalScope *FLScope::get() { return cast<DILocalScope>(Scope.get()); }
-FLScope::operator const DILocalScope*() const { return cast<DILocalScope>(Scope.get()); }
-const DILocalScope *FLScope::get() const { return cast<DILocalScope>(Scope.get()); }
+FLScope::FLScope(DILocalScope *Scope) : Scope(Scope) {
+  assert(!Scope->isTemporary() && Scope->isResolved());
+}
+FLScope::operator DILocalScope*() { return cast<DILocalScope>(Scope); }
+DILocalScope *FLScope::get() { return cast<DILocalScope>(Scope); }
+FLScope::operator const DILocalScope*() const { return cast<DILocalScope>(Scope); }
+const DILocalScope *FLScope::get() const { return cast<DILocalScope>(Scope); }
 FLLoop::FLLoop(FLIndex<uint32_t> StartSrcLocIdx, FLIndex<uint32_t> EndSrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNodeArray Properties)
     : StartSrcLocIdx(StartSrcLocIdx), EndSrcLocIdx(EndSrcLocIdx), StartInlinedAtIdx(InlinedAtIdx), EndInlinedAtIdx(InlinedAtIdx), Properties(Properties.get()) {}
 

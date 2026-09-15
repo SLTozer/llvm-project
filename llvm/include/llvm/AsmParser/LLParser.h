@@ -20,6 +20,7 @@
 #include "llvm/AsmParser/Parser.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/FMF.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/ModuleSummaryIndex.h"
 #include "llvm/IR/TrackingMDRef.h"
@@ -121,6 +122,9 @@ namespace llvm {
     SlotMapping *Slots;
 
     SmallVector<Instruction*, 64> InstsWithTBAATag;
+
+    DenseMap<DIFunctionLocalMetadata*, SmallVector<std::pair<uint32_t, uint32_t>>> FLForwardRefScopes;
+    DenseMap<DIFunctionLocalMetadata*, SmallVector<std::pair<uint32_t, uint32_t>>> FLForwardRefFLMDs;
 
     /// DIAssignID metadata does not support temporary RAUW so we cannot use
     /// the normal metadata forward reference resolution method. Instead,

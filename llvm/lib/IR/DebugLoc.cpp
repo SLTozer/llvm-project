@@ -879,7 +879,9 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
   // way to handle this.
   // Key Instructions: it's fine to drop atom group and rank here, as line 0
   // is a nonsensical is_stmt location.
-  return DebugLoc::get(C, 0, 0, LocA.getScope());
+  // NB: Drive-by change in the switch to use Function-Local Metadata: use the
+  // *InlinedAtScope*
+  return DebugLoc::get(C, 0, 0, LocA.getInlinedAtScope());
 }
 
 DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {

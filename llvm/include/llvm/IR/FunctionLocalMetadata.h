@@ -91,7 +91,7 @@ struct FLInlinedCall {
   FLIndex<uint16_t> InlinedAtIdx;
   uint16_t MaxAtomGroup : 15;
   uint16_t Uniquable : 1;
-  TrackingMDNodeRef InlineeFLMD;
+  MDNode *InlineeFLMD;
   FLInlinedCall() = default;
   FLInlinedCall(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNode *InlineeFLMD, bool Uniquable)
     : SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx), MaxAtomGroup(0), Uniquable(Uniquable), InlineeFLMD(InlineeFLMD) {}
@@ -156,7 +156,7 @@ struct FLSrcLoc {
 
 /// Unique FLMD, just a wrapper around a DILocalScope.
 struct FLScope {
-  TrackingMDNodeRef Scope;
+  MDNode *Scope;
   FLScope() = default;
   FLScope(MDNode *Scope) : Scope(Scope) {}
   FLScope(DILocalScope *Scope);
@@ -171,7 +171,7 @@ struct FLLoop {
   FLIndex<uint32_t> EndSrcLocIdx;
   FLIndex<uint16_t> StartInlinedAtIdx;
   FLIndex<uint16_t> EndInlinedAtIdx;
-  TrackingMDNodeRef Properties;
+  MDNode *Properties;
   FLLoop() = default;
   FLLoop(FLIndex<uint32_t> StartSrcLocIdx, FLIndex<uint32_t> EndSrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNodeArray Properties);
   FLLoop(FLIndex<uint32_t> StartSrcLocIdx, FLIndex<uint32_t> EndSrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNode *Properties)
@@ -184,7 +184,7 @@ struct FLLoop {
     SrcLocResult |= (uint64_t)EndSrcLocIdx.asRaw();
     uint64_t InlinedResult = (uint64_t)StartInlinedAtIdx.asRaw() << 16;
     InlinedResult |= (uint64_t)EndInlinedAtIdx.asRaw();
-    return {SrcLocResult, InlinedResult, Properties.get()};
+    return {SrcLocResult, InlinedResult, Properties};
   }
   static FLLoop fromRawParts(uint64_t SrcLocPart, uint64_t InlinedPart, MDNode *PropertiesPart) {
     FLLoop Result;
@@ -192,7 +192,7 @@ struct FLLoop {
     Result.EndSrcLocIdx = FLIndex<uint32_t>::fromRaw(SrcLocPart);
     Result.StartInlinedAtIdx = FLIndex<uint16_t>::fromRaw(InlinedPart >> 16);
     Result.EndInlinedAtIdx = FLIndex<uint16_t>::fromRaw(InlinedPart);
-    Result.Properties = TrackingMDNodeRef(PropertiesPart);
+    Result.Properties = PropertiesPart;
     return Result;
   }
 };
@@ -336,14 +336,13 @@ public:
     else
       InlinedCalls[InlinedCallIdx.get()].MaxAtomGroup = std::max(InlinedCalls[InlinedCallIdx.get()].MaxAtomGroup, NewWaterline);
   }
-
-  FLIndex<uint16_t> getFLScopeIdx(DILocalScope *Scope) {
-    for (uint16_t Idx = 0; Idx < Scopes.size(); ++Idx)
-      if (Scopes[Idx] == Scope)
-        return Idx;
-    Scopes.push_back(FLScope(Scope));
-    return Scopes.size() - 1;
+  uint16_t getAtomGroupWaterline(FLIndex<uint16_t> InlinedCallIdx) {
+    if (!InlinedCallIdx)
+      return MaxAtomGroup;
+    return InlinedCalls[InlinedCallIdx.get()].MaxAtomGroup;
   }
+
+  FLIndex<uint16_t> getFLScopeIdx(DILocalScope *Scope);
 
   FLIndex<uint32_t> getFLSrcLocIdx(uint32_t Line, uint16_t Column, FLIndex<uint16_t> ScopeIdx) {
     for (uint32_t Idx = 0; Idx < SrcLocs.size(); ++Idx) {
@@ -383,6 +382,10 @@ public:
     return ResolvedFLInlinedCall {
       SrcLoc, InlinedAtIdx.get(), InlinedCall.MaxAtomGroup,
       InlinedCall.Uniquable, std::move(InlinedAt) };
+  }
+
+  static bool classof(const Metadata *MD) {
+    return MD->getMetadataID() == DIFunctionLocalMetadataKind;
   }
 };
 

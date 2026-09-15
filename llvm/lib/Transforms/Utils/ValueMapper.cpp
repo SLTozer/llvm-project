@@ -932,6 +932,7 @@ Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
   // Set up the new FLMD and its builder, manually handling the mapping of the
   // subprogram.
   DIFunctionLocalMetadata *NewFLMD = MDNode::replaceWithDistinct(FLMD->clone());
+  NewFLMD->MaxAtomGroup = FLMD->MaxAtomGroup;
   const DISubprogram *OldSP = cast<DISubprogram>(FLMD->Scopes[0].get());
   DISubprogram *NewSP = cast_or_null<DISubprogram>(mapMetadata(OldSP));
   assert(NewSP && OldSP != NewSP && "Cannot have non-identity FLMD mapping with an identity subprogram mapping.");
@@ -956,6 +957,7 @@ Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
   Builder.Loops.append(FLMD->Loops);
 
   NewFLMD->build(Builder);
+  mapToMetadata(FLMD, NewFLMD);
   return NewFLMD;
 }
 
@@ -1386,6 +1388,7 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
   AtomGroup = R->second;
 
   // Remap the atom group and copy all other fields.
+  assert(AtomGroup <= DL.getFLContext()->getAtomGroupWaterline(DL.getInlinedAtIdx()));
   DebugLoc New = DL.getWithAtom(AtomGroup, DL.getAtomRank());
   I->setDebugLoc(New);
 }
@@ -1405,6 +1408,7 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM, Function *F) {
   AtomGroup = R->second;
 
   // Remap the atom group and copy all other fields.
+  assert(AtomGroup <= DL.getFLContext()->getAtomGroupWaterline(DL.getInlinedAtIdx()));
   DebugLoc New = DL.getWithAtom(AtomGroup, DL.getAtomRank());
   I->setDebugLoc(New);
 }

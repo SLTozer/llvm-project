@@ -60,6 +60,9 @@ void llvm::mapAtomInstance(const DebugLoc &DL, ValueToValueMapTy &VMap) {
 
   // Map entry to a new atom group.
   uint64_t NewGroup = DL.getNewAtomGroup();
+  assert(NewGroup != 0);
+  if (NewGroup <= CurGroup)
+    dbgs() << "Atom error: " << NewGroup << " <= " << CurGroup << "\n";
   assert(NewGroup > CurGroup && "Next should always be greater than current");
   It->second = NewGroup;
 
@@ -156,7 +159,13 @@ BasicBlock *llvm::CloneBasicBlock(const BasicBlock *BB, ValueToValueMapTy &VMap,
     VMap[&I] = NewInst; // Add instruction map to value.
 
     if (MapAtoms) {
-      if (const DebugLoc &DL = NewInst->getDebugLoc(BB->getParent()))
+      // FIXME: The logic behind this ternary is that if we are creating a new
+      // function with its own FLContext, we will have passed `F`. If we are
+      // not creating a new function, then the FLContext is not changing, and so
+      // we can use the existing basic block. However, this needs verifying, and
+      // also  there is a good argument that if we are inserting into a new
+      // function then we don't need to map atoms at all.
+      if (const DebugLoc &DL = NewInst->getDebugLoc(F ? F : BB->getParent()))
         mapAtomInstance(DL, VMap);
     }
 

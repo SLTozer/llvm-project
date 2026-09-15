@@ -5994,6 +5994,10 @@ bool LLParser::parseDIFunctionLocalMetadata(MDNode *&Result, bool IsDistinct) {
   FLMD->Scopes = std::move(scopes.Val);
   FLMD->InlinedCalls = std::move(inlinedCalls.Val);
   FLMD->Loops = std::move(loops.Val);
+  // Track forward refs now.
+  SmallVector<std::pair<uint32_t, uint32_t>> ScopeFwdRefs;
+  for (auto [Index, Scope] : enumerate(FLMD->Scopes)) {
+  }
   Result = FLMD;
   return false;
 }
