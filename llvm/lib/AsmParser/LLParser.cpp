@@ -6005,6 +6005,12 @@ bool LLParser::parseDIFunctionLocalMetadata(MDNode *&Result, bool IsDistinct) {
 /// parseDILocationFields:
 ///   ::= !DILocation(line: 43, column: 8, scope: !5, inlinedAt: !6,
 ///   isImplicitCode: true, atomGroup: 1, atomRank: 1)
+/// As-of FLMD, there are two possible forms a DILocation can take:
+///   1. The above form, with DebugLoc fields emitted.
+///   2. !DILocation(dbgLoc: !!dbgLoc(srcLoc: 3, inlinedAt: 4, atom: [1, 1]),
+///                  flContext: !5)
+///   We therefore have 4 possible parsing logics required depending on whether
+///   the compiler is using FLMD or not, and whether the IR uses FLMD or not.
 bool LLParser::parseDILocation(MDNode *&Result, bool IsDistinct) {
 #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                    \
   OPTIONAL(line, LineField, );                                                 \
@@ -6016,8 +6022,22 @@ bool LLParser::parseDILocation(MDNode *&Result, bool IsDistinct) {
   OPTIONAL(atomRank, MDUnsignedField, (0, UINT8_MAX));
   PARSE_MD_FIELDS();
 #undef VISIT_MD_FIELDS
+  Metadata *InlinedAt = inlinedAt.Val;
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  if (InlinedAt && !isa<DILocation>(inlinedAt.Val)) {
+    // We have a forward reference: this requires special handling, because we
+    // can't actually forward-reference a temporary. We can, however, create a
+    // "temp" FLInlinedCall and then create a real DILocation referencing that.
+    auto *FLContext = getContext().getFLMD(const Metadata *MD)
+    // First, if we have a non-temporary but incorrectly-typed argument, we
+    // create an intentionally-invalid inline call to trip the verifier later
+    // without rejecting the module during parsing.
+    if (!isa<MDNode>(InlinedAt) || !cast<MDNode>(InlinedAt)->isTemporary())
+      return tokError("invalid argument for 'inlinedAt'");
+  }
+#endif
   Result = GET_OR_DISTINCT(
-      DILocation, (Context, line.Val, column.Val, scope.Val, inlinedAt.Val,
+      DILocation, (Context, line.Val, column.Val, scope.Val, InlinedAt,
                    isImplicitCode.Val, atomGroup.Val, atomRank.Val));
   return false;
 }

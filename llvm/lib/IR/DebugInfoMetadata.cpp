@@ -352,7 +352,12 @@ DILocation *DILocation::getImpl(LLVMContext &Context, unsigned Line,
                                 StorageType Storage, bool ShouldCreate) {
   DILocalScope *LocalScope = dyn_cast_or_null<DILocalScope>(Scope);
   DILocation *InlinedAtLoc = dyn_cast_or_null<DILocation>(InlinedAt);
-  assert(LocalScope && InlinedAtLoc && "TODO: Handle this failstate gracefully.");
+  // Question: how do we replace inlinedAt forward references? This shouldn't be
+  // impossible to resolve, but we need some special storage to track and later
+  // resolve forward references. Performance is not important: this is the "bad"
+  // case, we don't long-term care about the costs of parsing non-FLMD IR into
+  // FLMD storage.
+  assert(LocalScope && (!InlinedAt || InlinedAtLoc) && "TODO: Handle this failstate gracefully.");
   DIFunctionLocalMetadata *FLContext = Context.getFLMD(LocalScope);
   DebugLoc DL = DebugLoc::get(DebugLoc::DebugLocContext(FLContext), Line,
     Column, Scope, InlinedAtLoc->getAsDebugLoc(), ImplicitCode, AtomGroup,
