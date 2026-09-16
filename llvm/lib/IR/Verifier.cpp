@@ -1004,6 +1004,7 @@ void Verifier::visitMDNode(const MDNode &BaseMD,
 }
 
 void Verifier::visitDebugLoc(DebugLoc DL) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
   CheckDI(DL.getInlinedAtScope()->getSubprogram() == DL.getFLContext()->Scopes[0],
     "InlinedAtScope for DebugLoc does not point at root function scope!",
     DL.getFLContext(), DL.getFLContext()->Scopes[0], DL.getInlinedAtScope(),
@@ -1022,6 +1023,7 @@ void Verifier::visitDebugLoc(DebugLoc DL) {
         DL.getFLContext());
     }
   }
+#endif
 }
 
 void Verifier::visitValueAsMetadata(const ValueAsMetadata &MD, Function *F) {

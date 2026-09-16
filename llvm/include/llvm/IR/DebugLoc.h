@@ -378,16 +378,16 @@ public:
 
   DebugLoc() : Storage() {}
   DebugLoc(std::nullptr_t) : Storage() {}
-  #if LLVM_USE_FLMD_SOURCE_LOCS
+#if LLVM_USE_FLMD_SOURCE_LOCS
   LLVM_DEPRECATED("Implicit conversion disabled", "getFromDILocation")
   DebugLoc(const DILocation *L) {
     *this = DebugLoc::getFromDILocation(L);
   }
-  #else
+#else
   /// Construct from an \a DILocation.
   LLVM_DEPRECATED("Implicit conversion disabled", "getFromDILocation")
   DebugLoc(const DILocation *L) : Storage(const_cast<DILocation *>(L)) {}
-  #endif
+#endif
 
   DbgLocStorage getStorage() const { return Storage; }
   // Gets the underlying storage type in a DebugLoc, either a DILocation* or an
@@ -432,10 +432,10 @@ public:
   std::pair<FLSrcLoc, DILocalScope *> getSrcLocAndScope() const {
     return getUnderlyingStorage().getSrcLocAndScope(FLContext);
   }
-#endif
-
   std::pair<FLDebugLoc, DIFunctionLocalMetadata *> getAsFLDebugLoc() const;
   static DebugLoc getFromFLDebugLoc(FLDebugLoc FLDL, DIFunctionLocalMetadata *FLContext);
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Metadata/DILocation compatibility interface
@@ -519,9 +519,8 @@ public:
     /// LLVM_USE_FLMD_SOURCE_LOCS is not defined - otherwise this will cause an
     /// error when the flag is defined.
     explicit DebugLocContext(LLVMContext &LLVMContext) : Context(LLVMContext) {}
-    DebugLocContext(DebugLoc DL) {
+    DebugLocContext(DebugLoc DL) : Context(DL.getContext()) {
       assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
-      Context = DL.getContext();
     }
 #endif
     DebugLocContext(const Instruction *I);
@@ -547,14 +546,14 @@ public:
     uint8_t AtomRank = 0) {
     return DebugLoc::getUniquedInlinedCall(CalleeContext.Context, Context.Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
   }
+#if LLVM_USE_FLMD_SOURCE_LOCS
   DebugLocContext getDLContext() const {
     assert((bool)*this && "Can only get DL Context from a valid DebugLoc.");
-#if LLVM_USE_FLMD_SOURCE_LOCS
     return DebugLocContext(getFLContext());
-#else
-    return getUnderlyingStorage()->getContext();
-#endif
   }
+#else
+  DebugLocContext getDLContext() const;
+#endif
 
   /// Creates a DebugLoc representing the same location as this DebugLoc, but
   /// as an inlined call to the function with the given context.
@@ -992,6 +991,7 @@ public:
 };
 #else
 class DebugLocMap {
+public:
   DebugLocMap(Function *SrcFn, Function *DestFn) {}
 };
 #endif
@@ -1022,8 +1022,10 @@ inline hash_code hash_value(const DbgLocStorage &Val) {
 }
 
 inline hash_code hash_value(const DebugLoc &Val) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
   if (Val)
     return hash_combine(Val.getStorage(), Val.getFLContext());
+#endif
   return hash_value(Val.getStorage());
 }
 

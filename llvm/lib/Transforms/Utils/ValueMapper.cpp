@@ -1388,8 +1388,14 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
   AtomGroup = R->second;
 
   // Remap the atom group and copy all other fields.
+#if LLVM_USE_FLMD_SOURCE_LOCS
   assert(AtomGroup <= DL.getFLContext()->getAtomGroupWaterline(DL.getInlinedAtIdx()));
   DebugLoc New = DL.getWithAtom(AtomGroup, DL.getAtomRank());
+#else
+  DebugLoc New = DebugLoc::get(
+      I, DL.getLine(), DL.getCol(), DL.getScope(),
+      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL.getAtomRank());
+#endif
   I->setDebugLoc(New);
 }
 
@@ -1408,7 +1414,13 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM, Function *F) {
   AtomGroup = R->second;
 
   // Remap the atom group and copy all other fields.
+#if LLVM_USE_FLMD_SOURCE_LOCS
   assert(AtomGroup <= DL.getFLContext()->getAtomGroupWaterline(DL.getInlinedAtIdx()));
   DebugLoc New = DL.getWithAtom(AtomGroup, DL.getAtomRank());
+#else
+  DebugLoc New = DebugLoc::get(
+      I, DL.getLine(), DL.getCol(), DL.getScope(),
+      DL.getInlinedAt(), DL.isImplicitCode(), AtomGroup, DL.getAtomRank());
+#endif
   I->setDebugLoc(New);
 }

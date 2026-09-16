@@ -6028,7 +6028,9 @@ bool LLParser::parseDILocation(MDNode *&Result, bool IsDistinct) {
     // We have a forward reference: this requires special handling, because we
     // can't actually forward-reference a temporary. We can, however, create a
     // "temp" FLInlinedCall and then create a real DILocation referencing that.
-    auto *FLContext = getContext().getFLMD(const Metadata *MD)
+
+    // auto *FLContext = getContext().getFLMD(const Metadata *MD);
+
     // First, if we have a non-temporary but incorrectly-typed argument, we
     // create an intentionally-invalid inline call to trip the verifier later
     // without rejecting the module during parsing.

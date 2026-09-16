@@ -2854,6 +2854,8 @@ public:
 class DILocation : public MDNode {
   friend class LLVMContextImpl;
   friend class MDNode;
+  uint64_t AtomGroup;
+  uint8_t AtomRank;
 
   DILocation(LLVMContext &C, StorageType Storage, unsigned Line,
              unsigned Column, uint64_t AtomGroup, uint8_t AtomRank,
@@ -2885,6 +2887,9 @@ class DILocation : public MDNode {
 public:
   uint64_t getAtomGroup() const { return AtomGroup; }
   uint8_t getAtomRank() const { return AtomRank; }
+  DebugLoc getAsDebugLoc() const {
+    return DebugLoc::getFromDILocation(this);
+  }
 
   const DILocation *getWithoutAtom() const {
     if (!getAtomGroup() && !getAtomRank())

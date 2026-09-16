@@ -217,12 +217,17 @@ DILocation &DebugLoc::operator*() const {
   return *getAsDILocation();
 }
 #else
-std::pair<FLDebugLoc, DIFunctionLocalMetadata *> DebugLoc::getAsFLDebugLoc() const {
-  return {getStorage().get(), FLContext};
+DebugLoc::DebugLocContext DebugLoc::getDLContext() const {
+  assert((bool)*this && "Can only get DL Context from a valid DebugLoc.");
+  return DebugLocContext(getUnderlyingStorage()->getContext());
 }
-DebugLoc DebugLoc::getFromFLDebugLoc(FLDebugLoc FLDL, DIFunctionLocalMetadata *FLContext) {
-  return DebugLoc(FLDL, FLContext);
-}
+
+// std::pair<FLDebugLoc, DIFunctionLocalMetadata *> DebugLoc::getAsFLDebugLoc() const {
+//   return {getStorage().get(), FLContext};
+// }
+// DebugLoc DebugLoc::getFromFLDebugLoc(FLDebugLoc FLDL, DIFunctionLocalMetadata *FLContext) {
+//   return DebugLoc(FLDL, FLContext);
+// }
 
 DebugLoc DebugLoc::getFromDILocation(const DILocation *DIL, DISubprogram *InlinedSP) {
   DebugLoc DL;
@@ -341,6 +346,9 @@ DebugLoc::DebugLocContext::DebugLocContext(const Function *F) {
   assert(Context && "Attempted to create DebugLoc for function without a "
     "DIFunctionLocalMetadata attachment.");
 }
+DILocation *DebugLoc::convertToDILocation() const {
+  return DILocation::get(getContext(), *this);
+}
 #else
 DebugLoc DebugLoc::get(
     LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
@@ -363,14 +371,17 @@ DebugLoc DebugLoc::getDistinctInlinedCall(
   return DebugLoc::getFromDILocation(DILocation::getDistinct(Context, Line, Column, Scope, InlinedAt.getAsDILocation(), ImplicitCode, AtomGroup, AtomRank));
 }
 
-DebugLoc::DebugLocContext::DebugLocContext(const Instruction *I) {
+DebugLoc::DebugLocContext::DebugLocContext(const Instruction *I) :
+    Context(I->getContext()) {
   assert(I->getParent() && I->getFunction() &&
     "Instruction cannot be used to get function context if not inserted in a "
     "function.");
-  Context = I->getContext();
 }
-DebugLoc::DebugLocContext::DebugLocContext(const Function *F) {
-  Context = F->getContext();
+DebugLoc::DebugLocContext::DebugLocContext(const Function *F) :
+    Context(F->getContext()) {}
+
+DILocation *DebugLoc::convertToDILocation() const {
+  return getAsDILocation();
 }
 #endif
 
@@ -380,9 +391,6 @@ DebugLoc DebugLoc::getFromMDNode(const MDNode *MD) {
 
 DebugLoc DebugLoc::convertToInlinedCall(DebugLocContext CalleeContext) const {
   return DebugLoc::getDistinctInlinedCall(CalleeContext, getDLContext(), getLine(), getColumn(), getScope(), getInlinedAt(), isImplicitCode(), 0, 0);
-}
-DILocation *DebugLoc::convertToDILocation() const {
-  return DILocation::get(getContext(), *this);
 }
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
@@ -1168,6 +1176,10 @@ bool DebugLoc::isImplicitCode() const {
 void DebugLoc::setImplicitCode(bool ImplicitCode) {
   if (Storage)
     Storage.get()->setImplicitCode(ImplicitCode);
+}
+
+DebugLoc DebugLoc::getAtomContext() const {
+  return getInlinedAt();
 }
 
 DebugLoc DebugLoc::replaceInlinedAtSubprogram(

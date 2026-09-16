@@ -2248,6 +2248,7 @@ static void writeFLDebugLoc(raw_ostream &Out, FLDebugLoc DL, AsmWriterContext &W
 static void writeDILocation(raw_ostream &Out, const DILocation *DL,
                             AsmWriterContext &WriterCtx) {
   Out << "!DILocation(";
+#if LLVM_USE_FLMD_SOURCE_LOCS
   if (PrintFLMD == PrintFLMDMode::Normal) {
     DebugLoc DbgLoc = DL->getAsDebugLoc();
     Out << "dbgLoc: ";
@@ -2267,6 +2268,18 @@ static void writeDILocation(raw_ostream &Out, const DILocation *DL,
     Printer.printInt("atomGroup", DL->getAtomGroup());
     Printer.printInt<unsigned>("atomRank", DL->getAtomRank());
   }
+#else
+  MDFieldPrinter Printer(Out, WriterCtx);
+  // Always output the line, since 0 is a relevant and important value for it.
+  Printer.printInt("line", DL->getLine(), /* ShouldSkipZero */ false);
+  Printer.printInt("column", DL->getColumn());
+  Printer.printMetadata("scope", DL->getRawScope(), /* ShouldSkipNull */ false);
+  Printer.printMetadata("inlinedAt", DL->getRawInlinedAt());
+  Printer.printBool("isImplicitCode", DL->isImplicitCode(),
+                    /* Default */ false);
+  Printer.printInt("atomGroup", DL->getAtomGroup());
+  Printer.printInt<unsigned>("atomRank", DL->getAtomRank());
+#endif
   Out << ")";
 }
 
@@ -5113,7 +5126,11 @@ void AssemblyWriter::printDbgVariableRecord(const DbgVariableRecord &DVR) {
     PrintOrNull(DVR.getRawAddressExpression());
     Out << ", ";
   }
+#if LLVM_USE_FLMD_SOURCE_LOCS
   writeFLDebugLoc(Out, DVR.getDebugLoc().getUnderlyingStorage(), WriterCtx);
+#else
+  PrintOrNull(DVR.getDebugLoc().getAsDILocation());
+#endif
   Out << ")";
 }
 
@@ -5131,7 +5148,11 @@ void AssemblyWriter::printDbgLabelRecord(const DbgLabelRecord &Label) {
   Out << "#dbg_label(";
   writeAsOperandInternal(Out, Label.getRawLabel(), WriterCtx, true);
   Out << ", ";
+#if LLVM_USE_FLMD_SOURCE_LOCS
   writeFLDebugLoc(Out, Label.getDebugLoc().getUnderlyingStorage(), WriterCtx);
+#else
+  writeAsOperandInternal(Out, Label.getDebugLoc().getAsDILocation(), WriterCtx, true);
+#endif
   Out << ")";
 }
 

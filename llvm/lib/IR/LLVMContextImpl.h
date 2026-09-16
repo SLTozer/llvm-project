@@ -275,7 +275,7 @@ template <> struct MDNodeKeyImpl<MDTuple> : MDNodeOpsKey {
   }
 };
 /// DenseMapInfo for DILocation.
-#ifdef LLVM_USE_FLMD_SOURCE_LOCS
+#if LLVM_USE_FLMD_SOURCE_LOCS
 template <> struct MDNodeKeyImpl<DILocation> {
   DebugLoc DL;
 

@@ -59,7 +59,11 @@ void llvm::mapAtomInstance(const DebugLoc &DL, ValueToValueMapTy &VMap) {
     return;
 
   // Map entry to a new atom group.
+#if LLVM_USE_FLMD_SOURCE_LOCS
   uint64_t NewGroup = DL.getNewAtomGroup();
+#else
+  uint64_t NewGroup = DL.getContext().incNextDILocationAtomGroup();
+#endif
   assert(NewGroup != 0);
   if (NewGroup <= CurGroup)
     dbgs() << "Atom error: " << NewGroup << " <= " << CurGroup << "\n";

@@ -1093,7 +1093,7 @@ DebugLoc::DebugLocContext DIBuilder::startFunctionContext(Function *F, DISubprog
 
 DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc CallLoc) {
   DebugLoc InlinedCall = DebugLoc::getDistinctInlinedCall(
-    DebugLoc::DebugLocContext(CalleeContext), CallLoc.getDLContext(),
+    DebugLoc::DebugLocContext(CalleeSP->getContext()), CallLoc.getDLContext(),
     CallLoc.getLine(), CallLoc.getColumn(), CallLoc.getScope());
 }
 
