@@ -9,6 +9,7 @@
 #include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/DIBuilder.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/Support/Compiler.h"
 
@@ -65,7 +66,7 @@ DbgVariableRecord::DbgVariableRecord(const DbgVariableRecord &DVR)
       AddressExpression(DVR.AddressExpression) {}
 
 DbgVariableRecord::DbgVariableRecord(Metadata *Location, DILocalVariable *DV,
-                                     DIExpression *Expr, DebugLoc DI,
+                                     DIExpression *Expr, DbgLocStorage DI,
                                      LocationType Type)
     : DbgRecord(ValueKind, DI), DebugValueUser({Location, nullptr, nullptr}),
       Type(Type), Variable(DV), Expression(Expr) {}
@@ -74,7 +75,7 @@ DbgVariableRecord::DbgVariableRecord(Metadata *Value, DILocalVariable *Variable,
                                      DIExpression *Expression,
                                      DIAssignID *AssignID, Metadata *Address,
                                      DIExpression *AddressExpression,
-                                     DebugLoc DI)
+                                     DbgLocStorage DI)
     : DbgRecord(ValueKind, DI), DebugValueUser({Value, Address, AssignID}),
       Type(LocationType::Assign), Variable(Variable), Expression(Expression),
       AddressExpression(AddressExpression) {}
@@ -146,12 +147,12 @@ DbgRecord::createDebugIntrinsic(Module *M, Instruction *InsertBefore) const {
 }
 
 DbgLabelRecord::DbgLabelRecord(MDNode *Label)
-    : DbgRecord(LabelKind, DebugLoc()), Label(Label) {
+    : DbgRecord(LabelKind, DbgLocStorage()), Label(Label) {
   assert(Label && "Unexpected nullptr");
   assert((isa<DILabel>(Label) || Label->isTemporary()) &&
          "Label type must be or resolve to a DILabel");
 }
-DbgLabelRecord::DbgLabelRecord(DILabel *Label, DebugLoc DL)
+DbgLabelRecord::DbgLabelRecord(DILabel *Label, DbgLocStorage DL)
     : DbgRecord(LabelKind, DL), Label(Label) {
   assert(Label && "Unexpected nullptr");
 }
@@ -165,7 +166,7 @@ DbgVariableRecord::DbgVariableRecord(DbgVariableRecord::LocationType Type,
                                      MDNode *Expression, MDNode *AssignID,
                                      Metadata *Address,
                                      MDNode *AddressExpression)
-    : DbgRecord(ValueKind, DebugLoc()),
+    : DbgRecord(ValueKind, DbgLocStorage()),
       DebugValueUser({Val, Address, AssignID}), Type(Type), Variable(Variable),
       Expression(Expression), AddressExpression(AddressExpression) {}
 
@@ -180,14 +181,14 @@ DbgVariableRecord *DbgVariableRecord::createUnresolvedDbgVariableRecord(
 DbgVariableRecord *
 DbgVariableRecord::createDbgVariableRecord(Value *Location, DILocalVariable *DV,
                                            DIExpression *Expr,
-                                           DebugLoc DI) {
+                                           DbgLocStorage DI) {
   return new DbgVariableRecord(ValueAsMetadata::get(Location), DV, Expr, DI,
                                LocationType::Value);
 }
 
 DbgVariableRecord *DbgVariableRecord::createDbgVariableRecord(
     Value *Location, DILocalVariable *DV, DIExpression *Expr,
-    DebugLoc DI, DbgVariableRecord &InsertBefore) {
+    DbgLocStorage DI, DbgVariableRecord &InsertBefore) {
   auto *NewDbgVariableRecord = createDbgVariableRecord(Location, DV, Expr, DI);
   NewDbgVariableRecord->insertBefore(&InsertBefore);
   return NewDbgVariableRecord;
@@ -196,14 +197,14 @@ DbgVariableRecord *DbgVariableRecord::createDbgVariableRecord(
 DbgVariableRecord *DbgVariableRecord::createDVRDeclare(Value *Address,
                                                        DILocalVariable *DV,
                                                        DIExpression *Expr,
-                                                       DebugLoc DI) {
+                                                       DbgLocStorage DI) {
   return new DbgVariableRecord(ValueAsMetadata::get(Address), DV, Expr, DI,
                                LocationType::Declare);
 }
 
 DbgVariableRecord *
 DbgVariableRecord::createDVRDeclare(Value *Address, DILocalVariable *DV,
-                                    DIExpression *Expr, DebugLoc DI,
+                                    DIExpression *Expr, DbgLocStorage DI,
                                     DbgVariableRecord &InsertBefore) {
   auto *NewDVRDeclare = createDVRDeclare(Address, DV, Expr, DI);
   NewDVRDeclare->insertBefore(&InsertBefore);
@@ -213,14 +214,14 @@ DbgVariableRecord::createDVRDeclare(Value *Address, DILocalVariable *DV,
 DbgVariableRecord *
 DbgVariableRecord::createDVRDeclareValue(Value *Address, DILocalVariable *DV,
                                          DIExpression *Expr,
-                                         DebugLoc DI) {
+                                         DbgLocStorage DI) {
   return new DbgVariableRecord(ValueAsMetadata::get(Address), DV, Expr, DI,
                                LocationType::DeclareValue);
 }
 
 DbgVariableRecord *DbgVariableRecord::createDVRDeclareValue(
     Value *Address, DILocalVariable *DV, DIExpression *Expr,
-    DebugLoc DI, DbgVariableRecord &InsertBefore) {
+    DbgLocStorage DI, DbgVariableRecord &InsertBefore) {
   auto *NewDVRCoro = createDVRDeclareValue(Address, DV, Expr, DI);
   NewDVRCoro->insertBefore(&InsertBefore);
   return NewDVRCoro;
@@ -229,7 +230,7 @@ DbgVariableRecord *DbgVariableRecord::createDVRDeclareValue(
 DbgVariableRecord *DbgVariableRecord::createDVRAssign(
     Value *Val, DILocalVariable *Variable, DIExpression *Expression,
     DIAssignID *AssignID, Value *Address, DIExpression *AddressExpression,
-    DebugLoc DI) {
+    DbgLocStorage DI) {
   return new DbgVariableRecord(ValueAsMetadata::get(Val), Variable, Expression,
                                AssignID, ValueAsMetadata::get(Address),
                                AddressExpression, DI);
@@ -238,7 +239,7 @@ DbgVariableRecord *DbgVariableRecord::createDVRAssign(
 DbgVariableRecord *DbgVariableRecord::createLinkedDVRAssign(
     Instruction *LinkedInstr, Value *Val, DILocalVariable *Variable,
     DIExpression *Expression, Value *Address, DIExpression *AddressExpression,
-    DebugLoc DI) {
+    DbgLocStorage DI) {
   auto *Link = LinkedInstr->getMetadata(LLVMContext::MD_DIAssignID);
   assert(Link && "Linked instruction must have DIAssign metadata attached");
   auto *NewDVRAssign = DbgVariableRecord::createDVRAssign(

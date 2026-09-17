@@ -389,7 +389,8 @@ public:
   DebugLoc(const DILocation *L) : Storage(const_cast<DILocation *>(L)) {}
 #endif
 
-  DbgLocStorage getStorage() const { return Storage; }
+DbgLocStorage getStorage() const { return Storage; }
+operator DbgLocStorage() const { return Storage; }
   // Gets the underlying storage type in a DebugLoc, either a DILocation* or an
   // FLDebugLoc depending on the LLVM_USE_FLMD_SOURCE_LOCS flag. Because these
   // types have incompatible interfaces, this should only be called where the

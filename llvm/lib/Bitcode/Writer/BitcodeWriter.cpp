@@ -1896,15 +1896,18 @@ void ModuleBitcodeWriter::writeDIFunctionLocalMetadata(const DIFunctionLocalMeta
   // Print each array separately, leading with a length-field.
   // Scopes
   Record.push_back(N->Scopes.size());
+  dbgs() << "Writing " << N->Scopes.size() << " Scopes...\n";
   for (const FLScope &Scope : N->Scopes)
     Record.push_back(VE.getMetadataID(Scope.get()));
   // SrcLocs
   Record.push_back(N->SrcLocs.size());
+  dbgs() << "Writing " << N->SrcLocs.size() << " SrcLocs...\n";
   for (const FLSrcLoc &SrcLoc : N->SrcLocs) {
     Record.push_back(SrcLoc.asRawInt());
   }
   // InlinedCalls
   Record.push_back(N->InlinedCalls.size());
+  dbgs() << "Writing " << N->InlinedCalls.size() << " InlinedCalls...\n";
   for (const FLInlinedCall &InlinedCall : N->InlinedCalls) {
     auto [RawInt, MDPtr] = InlinedCall.asRawParts();
     Record.push_back(RawInt);
@@ -1912,6 +1915,7 @@ void ModuleBitcodeWriter::writeDIFunctionLocalMetadata(const DIFunctionLocalMeta
   }
   // Loops
   Record.push_back(N->Loops.size());
+  dbgs() << "Writing " << N->Loops.size() << " Loops...\n";
   for (const FLLoop &Loop : N->Loops) {
     auto [RawInt1, RawInt2, MDPtr] = Loop.asRawParts();
     Record.push_back(RawInt1);
@@ -1926,6 +1930,11 @@ unsigned ModuleBitcodeWriter::createDILocationAbbrev() {
   // Assume the column is usually under 128, and always output the inlined-at
   // location (it's never more expensive than building an array size 1).
   auto Abbv = std::make_shared<BitCodeAbbrev>();
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  Abbv->Add(BitCodeAbbrevOp(bitc::METADATA_FL_LOCATION));
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // debugLoc
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // flContext
+#else
   Abbv->Add(BitCodeAbbrevOp(bitc::METADATA_LOCATION));
   Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 1)); // isDistinct
   Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6));   // line
@@ -1935,6 +1944,7 @@ unsigned ModuleBitcodeWriter::createDILocationAbbrev() {
   Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 1)); // isImplicitCode
   Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6));   // atomGroup
   Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 3)); // atomRank
+#endif
   return Stream.EmitAbbrev(std::move(Abbv));
 }
 void ModuleBitcodeWriter::writeDILocation(const DILocation *N,
@@ -1942,7 +1952,11 @@ void ModuleBitcodeWriter::writeDILocation(const DILocation *N,
                                           unsigned &Abbrev) {
   if (!Abbrev)
     Abbrev = createDILocationAbbrev();
-
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  Record.push_back(N->getAsDebugLoc().getUnderlyingStorage().asRawInt());
+  Record.push_back(VE.getMetadataID(N->getFLContext()));
+  Stream.EmitRecord(bitc::METADATA_FL_LOCATION, Record, Abbrev);
+#else
   Record.push_back(N->isDistinct());
   Record.push_back(N->getLine());
   Record.push_back(N->getColumn());
@@ -1952,6 +1966,7 @@ void ModuleBitcodeWriter::writeDILocation(const DILocation *N,
   Record.push_back(N->getAtomGroup());
   Record.push_back(N->getAtomRank());
   Stream.EmitRecord(bitc::METADATA_LOCATION, Record, Abbrev);
+#endif
   Record.clear();
 }
 
@@ -3897,6 +3912,14 @@ void ModuleBitcodeWriter::writeFunction(
           // Just repeat the same debug loc as last time.
           Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_LOC_AGAIN, Vals);
         } else {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+          uint64_t RawDL = DL.getUnderlyingStorage().asRawInt();
+          unsigned High = Hi_32(RawDL);
+          unsigned Low = Lo_32(RawDL);
+          Vals.push_back(High);
+          Vals.push_back(Low);
+          Stream.EmitRecord(bitc::FUNC_CODE_FL_DEBUG_LOC, Vals);
+#else
           Vals.push_back(DL.getLine());
           Vals.push_back(DL.getColumn());
           Vals.push_back(VE.getMetadataOrNullID(DL.getScope()));
@@ -3906,6 +3929,7 @@ void ModuleBitcodeWriter::writeFunction(
           Vals.push_back(DL.getAtomRank());
           Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_LOC, Vals,
                             FUNCTION_DEBUG_LOC_ABBREV);
+#endif
           Vals.clear();
           LastDL = DL;
         }
@@ -3944,7 +3968,20 @@ void ModuleBitcodeWriter::writeFunction(
         // re-attach to the instruction reading the records in.
         for (DbgRecord &DR : I.DebugMarker->getDbgRecordRange()) {
           if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+            // FIXME: How exactly do we indicate that we are using FLMD? There
+            // is no version field, and emitting such a field for every
+            // DbgRecord would be costly - we're already emitting +1 field per
+            // DbgRecord (although with the benefit that we don't have to lookup
+            // metadata at all!)
+            uint64_t RawDL = DLR->getDebugLoc().getUnderlyingStorage().asRawInt();
+            unsigned High = Hi_32(RawDL);
+            unsigned Low = Lo_32(RawDL);
+            Vals.push_back(High);
+            Vals.push_back(Low);
+#else
             Vals.push_back(VE.getMetadataID(DLR->getDebugLoc().getAsMDNode()));
+#endif
             Vals.push_back(VE.getMetadataID(DLR->getLabel()));
             Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_RECORD_LABEL, Vals);
             Vals.clear();
@@ -3962,7 +3999,17 @@ void ModuleBitcodeWriter::writeFunction(
           // dbg_assign (FUNC_CODE_DEBUG_RECORD_ASSIGN)
           //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
           DbgVariableRecord &DVR = cast<DbgVariableRecord>(DR);
+#if LLVM_USE_FLMD_SOURCE_LOCS
+          uint64_t RawDL = DVR.getDebugLoc().getUnderlyingStorage().asRawInt();
+          unsigned High = Hi_32(RawDL);
+          unsigned Low = Lo_32(RawDL);
+          DVR.getDebugLoc().getLine();
+          dbgs() << "Writing loc: " << RawDL << " -> " << High << ", " << Low << "\n";
+          Vals.push_back(High);
+          Vals.push_back(Low);
+#else
           Vals.push_back(VE.getMetadataID(DVR.getDebugLoc().getAsMDNode()));
+#endif
           Vals.push_back(VE.getMetadataID(DVR.getVariable()));
           Vals.push_back(VE.getMetadataID(DVR.getExpression()));
           if (DVR.isDbgValue()) {
@@ -4293,7 +4340,12 @@ void ModuleBitcodeWriter::writeBlockInfo() {
   {
     auto Abbv = std::make_shared<BitCodeAbbrev>();
     Abbv->Add(BitCodeAbbrevOp(bitc::FUNC_CODE_DEBUG_RECORD_VALUE_SIMPLE));
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 7)); // dbgloc-high
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 7)); // dbgloc-low
+#else
     Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 7)); // dbgloc
+#endif
     Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 7)); // var
     Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 7)); // expr
     Abbv->Add(ValAbbrevOp); // val

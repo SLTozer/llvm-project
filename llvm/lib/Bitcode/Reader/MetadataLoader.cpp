@@ -30,6 +30,7 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalObject.h"
@@ -347,8 +348,10 @@ class PlaceholderQueue {
 
 public:
   ~PlaceholderQueue() {
-    assert(empty() &&
-           "PlaceholderQueue hasn't been flushed before being destroyed");
+    // FIXME: This assert consistently swallows any actual/valid errors reported
+    // in the middle of metadata parsing, this should be fixed somehow.
+    // assert(empty() &&
+    //        "PlaceholderQueue hasn't been flushed before being destroyed");
   }
   bool empty() const { return PHs.empty(); }
   DistinctMDOperandPlaceholder &getPlaceholderOp(unsigned ID);
@@ -405,6 +408,9 @@ class MetadataLoader::MetadataLoaderImpl {
   LLVMContext &Context;
   Module &TheModule;
   MetadataLoaderCallbacks Callbacks;
+
+  DenseMap<DIFunctionLocalMetadata *, std::list<std::pair<uint32_t, TrackingMDRef>>> FLMDScopeFwdRefs;
+  DenseMap<DIFunctionLocalMetadata *, std::list<std::pair<uint32_t, TrackingMDRef>>> FLMDInlineeFwdRefs;
 
   /// Cursor associated with the lazy-loading of Metadata. This is the easy way
   /// to keep around the right "context" (Abbrev list) to be able to jump in
@@ -1280,6 +1286,26 @@ void MetadataLoader::MetadataLoaderImpl::resolveForwardRefsAndPlaceholders(
   // Finally, everything is in place, we can replace the placeholders operands
   // with the final node they refer to.
   Placeholders.flush(MetadataList);
+
+  // Now that we've flushed, we can resolve the awkward FLMD fwd refs too.
+  // FIXME: This is a bit of a hack, but may not be too far off the final
+  // implementation - think about it.
+  for (auto &[FLMD, ScopeFwdRefs] : FLMDScopeFwdRefs) {
+    while (!ScopeFwdRefs.empty()) {
+      auto &[Idx, Ref] = ScopeFwdRefs.front();
+      FLMD->Scopes[Idx].Scope = cast<DILocalScope>(Ref.get());
+      ScopeFwdRefs.pop_front();
+    }
+  }
+  for (auto &[FLMD, InlineeFwdRefs] : FLMDInlineeFwdRefs) {
+    while (!InlineeFwdRefs.empty()) {
+      auto &[Idx, Ref] = InlineeFwdRefs.front();
+      FLMD->InlinedCalls[Idx].InlineeFLMD = cast<DIFunctionLocalMetadata>(Ref.get());
+      InlineeFwdRefs.pop_front();
+    }
+  }
+  FLMDScopeFwdRefs.clear();
+  FLMDInlineeFwdRefs.clear();
 }
 
 static Value *getValueFwdRef(BitcodeReaderValueList &ValueList, unsigned Idx,
@@ -1499,6 +1525,21 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
     MetadataList.assignValue(
         GET_OR_DISTINCT(DILocation, (Context, Line, Column, Scope, InlinedAt,
                                      ImplicitCode, AtomGroup, AtomRank)),
+        NextMetadataNo);
+    NextMetadataNo++;
+    break;
+  }
+  case bitc::METADATA_FL_LOCATION: {
+    // 2 fields, never distinct.
+    // FIXME: Any reason to allow distinct nodes?
+    if (Record.size() != 2)
+      return error("Invalid record");
+
+    FLDebugLoc DL = FLDebugLoc::fromRawInt(Record[0]);
+    DIFunctionLocalMetadata *FLContext = dyn_cast<DIFunctionLocalMetadata>(getMD(Record[1]));
+    assert(FLContext && "Not materialized?");
+    MetadataList.assignValue(
+        DILocation::get(Context, DebugLoc(DL, FLContext)),
         NextMetadataNo);
     NextMetadataNo++;
     break;
@@ -2511,31 +2552,48 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
     DIFunctionLocalMetadata *NewFLMD = DIFunctionLocalMetadata::getDistinct(Context);
     // Scopes
     uint64_t NumScopes = Record[CurrentRecord++];
+    dbgs() << "Reading " << NumScopes << " Scopes...\n";
     for (uint64_t ScopeIdx = 0; ScopeIdx < NumScopes; ++ScopeIdx) {
       uint64_t Scope = Record[CurrentRecord++];
-      if (auto *ScopeNode = dyn_cast<MDNode>(getMD(Scope)))
+      auto *ScopeMD = getMD(Scope);
+      if (auto *ScopeNode = dyn_cast<MDNode>(ScopeMD)) {
+        // FIXME: We don't use tracking nodes for scopes in the FLMD here, and
+        // we should always enumerate them before the FLMD, so this assert
+        // should hold. If it doesn't, then we need to add extra temporary
+        // scaffolding for this.
+        assert(!ScopeNode->isTemporary() && "Scopes should appear before FLMD!");
         NewFLMD->Scopes.push_back(FLScope(ScopeNode));
-      else
-        return error("Invalid record: FL Scope must be MDNode");
+      } else {
+        auto &ScopeFwdRefs = FLMDScopeFwdRefs.try_emplace(NewFLMD).first->getSecond();
+        ScopeFwdRefs.emplace_back(ScopeIdx, ScopeMD);
+        NewFLMD->Scopes.push_back(FLScope((MDNode*)nullptr));
+      }
     }
     // SrcLocs
     uint64_t NumSrcLocs = Record[CurrentRecord++];
+    dbgs() << "Reading " << NumSrcLocs << " SrcLocs...\n";
     for (uint64_t SrcLocIdx = 0; SrcLocIdx < NumSrcLocs; ++SrcLocIdx) {
       uint64_t RawInt = Record[CurrentRecord++];
       NewFLMD->SrcLocs.push_back(FLSrcLoc::fromRawInt(RawInt));
     }
     // InlinedCalls
     uint64_t NumInlinedCalls = Record[CurrentRecord++];
+    dbgs() << "Reading " << NumInlinedCalls << " InlinedCalls...\n";
     for (uint64_t InlinedCallIdx = 0; InlinedCallIdx < NumInlinedCalls; ++InlinedCallIdx) {
       uint64_t RawInt = Record[CurrentRecord++];
-      uint64_t RawInlinee = Record[CurrentRecord++];
-      DIFunctionLocalMetadata *InlineeFLMD = dyn_cast<DIFunctionLocalMetadata>(getMD(RawInlinee));
-      if (!InlineeFLMD)
-        return error("Invalid record: InlinedAt FLMD must be DIFunctionLocalMetadata");
-      NewFLMD->InlinedCalls.push_back(FLInlinedCall::fromRawParts(RawInt, InlineeFLMD));
+      uint64_t RawInlineeID = Record[CurrentRecord++];
+      auto *InlineeMD = getMD(RawInlineeID);
+      if (DIFunctionLocalMetadata *InlineeFLMD = dyn_cast<DIFunctionLocalMetadata>(InlineeMD)) {
+        NewFLMD->InlinedCalls.push_back(FLInlinedCall::fromRawParts(RawInt, InlineeFLMD));
+      } else {
+        auto &InlineeFwdRefs = FLMDInlineeFwdRefs.try_emplace(NewFLMD).first->getSecond();
+        InlineeFwdRefs.emplace_back(InlinedCallIdx, TrackingMDRef(InlineeMD));
+        NewFLMD->InlinedCalls.push_back(FLInlinedCall::fromRawParts(RawInt, nullptr));
+      }
     }
     // Loops
     uint64_t NumLoops = Record[CurrentRecord++];
+    dbgs() << "Reading " << NumLoops << " Loops...\n";
     for (uint64_t LoopIdx = 0; LoopIdx < NumLoops; ++LoopIdx) {
       uint64_t RawSrcLocs = Record[CurrentRecord++];
       uint64_t RawInlinedAts = Record[CurrentRecord++];

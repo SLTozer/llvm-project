@@ -931,11 +931,15 @@ Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
 
   // Set up the new FLMD and its builder, manually handling the mapping of the
   // subprogram.
-  DIFunctionLocalMetadata *NewFLMD = MDNode::replaceWithDistinct(FLMD->clone());
-  NewFLMD->MaxAtomGroup = FLMD->MaxAtomGroup;
   const DISubprogram *OldSP = cast<DISubprogram>(FLMD->Scopes[0].get());
   DISubprogram *NewSP = cast_or_null<DISubprogram>(mapMetadata(OldSP));
-  assert(NewSP && OldSP != NewSP && "Cannot have non-identity FLMD mapping with an identity subprogram mapping.");
+  assert(NewSP && "Missing a mapped subprogram?");
+  if (OldSP == NewSP) {
+    return const_cast<DIFunctionLocalMetadata*>(FLMD);
+  }
+  assert(OldSP != NewSP && "Cannot have non-identity FLMD mapping with an identity subprogram mapping.");
+  DIFunctionLocalMetadata *NewFLMD = MDNode::replaceWithDistinct(FLMD->clone());
+  NewFLMD->MaxAtomGroup = FLMD->MaxAtomGroup;
   FLMDBuilder Builder(NewSP);
 
   // Add SrcLocs, which are unchanged.

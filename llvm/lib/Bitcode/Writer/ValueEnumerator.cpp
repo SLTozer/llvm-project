@@ -19,6 +19,7 @@
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalAlias.h"
 #include "llvm/IR/GlobalIFunc.h"
 #include "llvm/IR/GlobalObject.h"
@@ -450,7 +451,6 @@ ValueEnumerator::ValueEnumerator(const Module &M,
         for (DbgRecord &DR : I.getDbgRecordRange()) {
           if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
             EnumerateMetadata(&F, DLR->getLabel());
-            EnumerateMetadata(&F, DLR->getDebugLoc().getAsMDNode());
             continue;
           }
           // Enumerate non-local location metadata.
@@ -458,7 +458,6 @@ ValueEnumerator::ValueEnumerator(const Module &M,
           EnumerateNonLocalValuesFromMetadata(DVR.getRawLocation());
           EnumerateMetadata(&F, DVR.getExpression());
           EnumerateMetadata(&F, DVR.getVariable());
-          EnumerateMetadata(&F, DVR.getDebugLoc().getAsMDNode());
           if (DVR.isDbgAssign()) {
             EnumerateNonLocalValuesFromMetadata(DVR.getRawAddress());
             EnumerateMetadata(&F, DVR.getAssignID());
@@ -491,12 +490,6 @@ ValueEnumerator::ValueEnumerator(const Module &M,
         I.getAllMetadataOtherThanDebugLoc(MDs);
         for (const auto &MD : MDs)
           EnumerateMetadata(&F, MD.second);
-
-        // Don't enumerate the location directly -- it has a special record
-        // type -- but enumerate its operands.
-        if (MDNode *L = I.getDebugLoc().getAsMDNode())
-          for (const Metadata *Op : L->operands())
-            EnumerateMetadata(&F, Op);
       }
   }
   for (const GlobalIFunc &GIF : M.ifuncs()) {
@@ -693,28 +686,90 @@ void ValueEnumerator::EnumerateMetadata(unsigned F, const Metadata *MD) {
 
   // Start by enumerating MD, and then work through its transitive operands in
   // post-order.  This requires a depth-first search.
-  SmallVector<std::pair<const MDNode *, MDNode::op_iterator>, 32> Worklist;
+  SmallVector<std::pair<const MDNode *, size_t>, 32> Worklist;
   if (const MDNode *N = enumerateMetadataImpl(F, MD))
-    Worklist.push_back(std::make_pair(N, N->op_begin()));
+    Worklist.push_back(std::make_pair(N, 0));
 
   while (!Worklist.empty()) {
     const MDNode *N = Worklist.back().first;
 
     // Enumerate operands until we hit a new node.  We need to traverse these
     // nodes' operands before visiting the rest of N's operands.
-    MDNode::op_iterator I = std::find_if(
-        Worklist.back().second, N->op_end(),
-        [&](const Metadata *MD) { return enumerateMetadataImpl(F, MD); });
-    if (I != N->op_end()) {
-      auto *Op = cast<MDNode>(*I);
-      Worklist.back().second = ++I;
+    size_t NumOps = N->getNumOperands();
+    if (Worklist.back().second < NumOps) {
+      MDNode::op_iterator I = std::find_if(
+          N->op_begin() + Worklist.back().second, N->op_end(),
+          [&](const Metadata *MD) { return enumerateMetadataImpl(F, MD); });
+      if (I != N->op_end()) {
+        auto *Op = cast<MDNode>(*I);
+        Worklist.back().second = I + 1 - N->op_begin();
 
-      // Delay traversing Op if it's a distinct node and N is uniqued.
-      if (Op->isDistinct() && !N->isDistinct())
-        DelayedDistinctNodes.push_back(Op);
-      else
-        Worklist.push_back(std::make_pair(Op, Op->op_begin()));
-      continue;
+        // Delay traversing Op if it's a distinct node and N is uniqued.
+        if (Op->isDistinct() && !N->isDistinct())
+          DelayedDistinctNodes.push_back(Op);
+        else
+          Worklist.push_back(std::make_pair(Op, 0));
+        continue;
+      }
+      Worklist.back().second = NumOps;
+    }
+    
+    // Special case: if this is a DIFunctionLocalMetadata, then we must also
+    // enumerate metadata referenced from its storage context.
+    if (auto *FLContext = dyn_cast<DIFunctionLocalMetadata>(N)) {
+      size_t NumOps = FLContext->getNumOperands();
+      size_t NumScopes = FLContext->Scopes.size();
+      size_t NumInlinedCalls = FLContext->InlinedCalls.size();
+      size_t ScopesStart = NumOps;
+      size_t ScopesEnd = ScopesStart + NumScopes;
+      assert(Worklist.back().second >= ScopesStart);
+      // First try to add scopes, then try to add inlineeFLMDs.
+      if (Worklist.back().second < ScopesEnd) {
+        size_t ScopeOffset = Worklist.back().second - ScopesStart;
+        auto *ScopeIt = std::find_if(
+          FLContext->Scopes.begin() + ScopeOffset, FLContext->Scopes.end(),
+          [&](const FLScope &Scope) {
+            return enumerateMetadataImpl(F, Scope.Scope);
+          });
+        if (ScopeIt != FLContext->Scopes.end()) {
+          auto *Op = ScopeIt->Scope;
+          size_t OpScopeOffset = ScopeIt - FLContext->Scopes.begin();
+          Worklist.back().second = ScopesStart + OpScopeOffset + 1;
+
+          // Delay traversing Op if it's a distinct node and N is uniqued.
+          if (Op->isDistinct() && !N->isDistinct())
+            DelayedDistinctNodes.push_back(Op);
+          else
+            Worklist.push_back(std::make_pair(Op, 0));
+          continue;
+        }
+        Worklist.back().second = ScopesEnd;
+      }
+      size_t InlinedCallsStart = ScopesEnd;
+      size_t InlinedCallsEnd = InlinedCallsStart + NumInlinedCalls;
+      assert(Worklist.back().second >= InlinedCallsStart);
+      if (Worklist.back().second < InlinedCallsEnd) {
+        size_t InlinedCallsOffset = Worklist.back().second - InlinedCallsStart;
+        auto *InlinedCallIt = std::find_if(
+          FLContext->InlinedCalls.begin() + InlinedCallsOffset, FLContext->InlinedCalls.end(),
+          [&](const FLInlinedCall &InlinedCall) {
+            return enumerateMetadataImpl(F, InlinedCall.InlineeFLMD);
+          });
+        if (InlinedCallIt != FLContext->InlinedCalls.end()) {
+          auto *Op = InlinedCallIt->InlineeFLMD;
+          size_t OpInlinedCallOffset = InlinedCallIt - FLContext->InlinedCalls.begin();
+          Worklist.back().second = InlinedCallsStart + OpInlinedCallOffset + 1;
+
+          // Delay traversing Op if it's a distinct node and N is uniqued.
+          if (Op->isDistinct() && !N->isDistinct())
+            DelayedDistinctNodes.push_back(Op);
+          else
+            Worklist.push_back(std::make_pair(Op, 0));
+          continue;
+        }
+        Worklist.back().second = InlinedCallsEnd;
+      }
+      assert(Worklist.back().second >= InlinedCallsEnd);
     }
 
     // All the operands have been visited.  Now assign an ID.
@@ -726,7 +781,7 @@ void ValueEnumerator::EnumerateMetadata(unsigned F, const Metadata *MD) {
     // that are leaves in last uniqued subgraph.
     if (Worklist.empty() || Worklist.back().first->isDistinct()) {
       for (const MDNode *N : DelayedDistinctNodes)
-        Worklist.push_back(std::make_pair(N, N->op_begin()));
+        Worklist.push_back(std::make_pair(N, 0));
       DelayedDistinctNodes.clear();
     }
   }
