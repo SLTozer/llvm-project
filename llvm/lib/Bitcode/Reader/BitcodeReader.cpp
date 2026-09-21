@@ -6848,7 +6848,6 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       unsigned Low = Record[Slot++];
       uint64_t Result = Make_64(High, Low);
       DbgLocStorage DIL = FLDebugLoc::fromRawInt(Result);
-      dbgs() << "Reading loc: " << High << " + " << Low << " = " << Result << "\n";
 #else
       DebugLoc DIL = DebugLoc::getFromDILocation(cast<DILocation>(getFnMetadataByID(Record[Slot++])));
 #endif

@@ -558,6 +558,9 @@ public:
   }
 
   /// Return the debug location for this node as a DebugLoc.
+  bool hasDebugLoc() const {
+    return (bool)DbgLoc;
+  }
   DebugLoc getDebugLoc() const;
   DbgLocStorage getDebugLocStorage() const { return DbgLoc; }
   /// Return the debug location for this node as a DebugLoc, using the provided

@@ -2659,13 +2659,20 @@ class DILocation : public MDNode {
 
   FLDebugLoc DLStorage;
 
-  DILocation(LLVMContext &C, StorageType Storage, DebugLoc DL)
-    : MDNode(C, DILocationKind, Storage, DL.getFLContext()),
-      DLStorage(DL.getUnderlyingStorage()) {}
+  DILocation(LLVMContext &C, StorageType Storage, FLDebugLoc FLDL,
+      Metadata *FLContext)
+    : MDNode(C, DILocationKind, Storage, FLContext),
+      DLStorage(FLDL) {}
   ~DILocation() { dropAllReferences(); }
 
+  static DILocation *getImpl(LLVMContext &Context, FLDebugLoc FLDL,
+                             Metadata *FLContext, StorageType Storage,
+                             bool ShouldCreate = true);
   static DILocation *getImpl(LLVMContext &Context, DebugLoc DL,
-                             StorageType Storage, bool ShouldCreate = true);
+                             StorageType Storage, bool ShouldCreate = true) {
+    return getImpl(Context, DL.getUnderlyingStorage(), DL.getFLContext(),
+      Storage, ShouldCreate);
+  }
 
   LLVM_ABI static DILocation *
   getImpl(LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
@@ -2707,6 +2714,9 @@ public:
   void replaceOperandWith(unsigned I, Metadata *New) = delete;
 
   DEFINE_MDNODE_GET(DILocation, (DebugLoc DL), (DL))
+  DEFINE_MDNODE_GET(DILocation,
+                    (FLDebugLoc FLDL, Metadata *FLContext),
+                    (FLDL, FLContext))
   DEFINE_MDNODE_GET(DILocation,
                     (unsigned Line, unsigned Column, Metadata *Scope,
                      Metadata *InlinedAt = nullptr, bool ImplicitCode = false,

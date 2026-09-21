@@ -1943,12 +1943,71 @@ static DebugLoc inlineDebugLoc(DebugLoc OrigDL, DebugLoc InlinedAt,
                          OrigDL.getAtomGroup(), OrigDL.getAtomRank());
 }
 
+namespace {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+void inlineFLMDHack(Function *Source, Function *Dest, Function::iterator FI) {
+  DIFunctionLocalMetadata *SourceFL = getFLMDForFunction(Source);
+  DIFunctionLocalMetadata *DestFL = getFLMDForFunction(Dest);
+  if (!SourceFL)
+    return;
+  assert(!Dest->getSubprogram());
+  if (!DestFL) {
+    DestFL = DIFunctionLocalMetadata::getDistinct(Dest->getContext());
+    Dest->setMetadata(LLVMContext::MD_flmd, DestFL);
+  }
+  uint16_t ScopeOffset = DestFL->Scopes.size();
+  DestFL->Scopes.append(SourceFL->Scopes);
+  uint32_t SrcLocOffset = DestFL->SrcLocs.size();
+  DestFL->SrcLocs.append(SourceFL->SrcLocs);
+  for (auto &SrcLoc : drop_begin(DestFL->SrcLocs, SrcLocOffset))
+    SrcLoc.ScopeIdx.addOffset(ScopeOffset);
+  uint16_t InlinedCallOffset = DestFL->InlinedCalls.size();
+  DestFL->InlinedCalls.append(SourceFL->InlinedCalls);
+  for (auto &InlinedCall : drop_begin(DestFL->InlinedCalls, InlinedCallOffset)) {
+    if (InlinedCall.InlinedAtIdx)
+      InlinedCall.InlinedAtIdx.addOffset(InlinedCallOffset);
+    else
+      InlinedCall.SrcLocIdx.addOffset(SrcLocOffset);
+  }
+  // FIXME: Loops will be done at some point.
+  auto UpdateDebugLoc = [&](FLDebugLoc DL) {
+    if (DL.InlinedAtIdx)
+      DL.InlinedAtIdx.addOffset(InlinedCallOffset);
+    else
+      DL.SrcLocIdx.addOffset(SrcLocOffset);
+    return DL;
+  };
+  auto UpdateLoopInfoLoc = [&](Metadata *MD) -> Metadata * {
+    if (DILocation *Loc = dyn_cast_or_null<DILocation>(MD)) {
+      DebugLoc DL = Loc->getAsDebugLoc();
+      DebugLoc NewDL(UpdateDebugLoc(DL.getUnderlyingStorage()), DestFL);
+      return DILocation::get(Loc->getContext(), NewDL);
+    }
+    return MD;
+  };
+  for (; FI != Dest->end(); ++FI) {
+    for (Instruction &I : *FI) {
+      if (I.hasDebugLoc())
+        I.setDebugLoc(UpdateDebugLoc(I.getDebugLocStorage().get()));
+      updateLoopMetadataDebugLocations(I, UpdateLoopInfoLoc);
+      for (DbgRecord &DVR : I.getDbgRecordRange())
+        DVR.setDebugLoc(UpdateDebugLoc(DVR.getDebugLocStorage().get()));
+    }
+  }
+}
+#else
+void inlineFLMDHack(Function *Source, Function *Dest, Function::iterator FI) {}
+#endif
+} // namespace
+
 /// Update inlined instructions' line numbers to
 /// to encode location where these instructions are inlined.
 static void fixupLineNumbers(Function *Fn, Function::iterator FI,
                              Instruction *TheCall, bool CalleeHasDebugInfo) {
-  if (!TheCall->getDebugLoc())
+  if (!TheCall->getDebugLoc()) {
+    inlineFLMDHack(cast<CallBase>(TheCall)->getCalledFunction(), Fn, FI);
     return;
+  }
 
   // Don't propagate the source location atom from the call to inlined nodebug
   // instructions, and avoid putting it in the InlinedAt field of inlined

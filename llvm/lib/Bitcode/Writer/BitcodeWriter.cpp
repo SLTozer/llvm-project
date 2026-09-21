@@ -1893,21 +1893,19 @@ void ModuleBitcodeWriter::writeDIFunctionLocalMetadata(const DIFunctionLocalMeta
   // No abbreviation for this type.
   const uint64_t Version = 1 << 1;
   Record.push_back((uint64_t)N->isDistinct() | Version);
+  Record.push_back(N->MaxAtomGroup);
   // Print each array separately, leading with a length-field.
   // Scopes
   Record.push_back(N->Scopes.size());
-  dbgs() << "Writing " << N->Scopes.size() << " Scopes...\n";
   for (const FLScope &Scope : N->Scopes)
     Record.push_back(VE.getMetadataID(Scope.get()));
   // SrcLocs
   Record.push_back(N->SrcLocs.size());
-  dbgs() << "Writing " << N->SrcLocs.size() << " SrcLocs...\n";
   for (const FLSrcLoc &SrcLoc : N->SrcLocs) {
     Record.push_back(SrcLoc.asRawInt());
   }
   // InlinedCalls
   Record.push_back(N->InlinedCalls.size());
-  dbgs() << "Writing " << N->InlinedCalls.size() << " InlinedCalls...\n";
   for (const FLInlinedCall &InlinedCall : N->InlinedCalls) {
     auto [RawInt, MDPtr] = InlinedCall.asRawParts();
     Record.push_back(RawInt);
@@ -1915,7 +1913,6 @@ void ModuleBitcodeWriter::writeDIFunctionLocalMetadata(const DIFunctionLocalMeta
   }
   // Loops
   Record.push_back(N->Loops.size());
-  dbgs() << "Writing " << N->Loops.size() << " Loops...\n";
   for (const FLLoop &Loop : N->Loops) {
     auto [RawInt1, RawInt2, MDPtr] = Loop.asRawParts();
     Record.push_back(RawInt1);
@@ -4003,8 +4000,6 @@ void ModuleBitcodeWriter::writeFunction(
           uint64_t RawDL = DVR.getDebugLoc().getUnderlyingStorage().asRawInt();
           unsigned High = Hi_32(RawDL);
           unsigned Low = Lo_32(RawDL);
-          DVR.getDebugLoc().getLine();
-          dbgs() << "Writing loc: " << RawDL << " -> " << High << ", " << Low << "\n";
           Vals.push_back(High);
           Vals.push_back(Low);
 #else

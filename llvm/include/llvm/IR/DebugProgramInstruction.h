@@ -215,6 +215,9 @@ public:
   LLVM_ABI void moveBefore(self_iterator MoveBefore);
   LLVM_ABI void moveAfter(self_iterator MoveAfter);
 
+  DbgLocStorage getDebugLocStorage() const {
+    return DbgLoc;
+  }
   DebugLoc getDebugLoc() const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
     return DebugLoc(DbgLoc, getFLMDForFunction(getFunction()));

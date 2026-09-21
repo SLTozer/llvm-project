@@ -350,8 +350,8 @@ public:
   ~PlaceholderQueue() {
     // FIXME: This assert consistently swallows any actual/valid errors reported
     // in the middle of metadata parsing, this should be fixed somehow.
-    // assert(empty() &&
-    //        "PlaceholderQueue hasn't been flushed before being destroyed");
+    assert(empty() &&
+           "PlaceholderQueue hasn't been flushed before being destroyed");
   }
   bool empty() const { return PHs.empty(); }
   DistinctMDOperandPlaceholder &getPlaceholderOp(unsigned ID);
@@ -1301,6 +1301,7 @@ void MetadataLoader::MetadataLoaderImpl::resolveForwardRefsAndPlaceholders(
     while (!InlineeFwdRefs.empty()) {
       auto &[Idx, Ref] = InlineeFwdRefs.front();
       FLMD->InlinedCalls[Idx].InlineeFLMD = cast<DIFunctionLocalMetadata>(Ref.get());
+      // dbgs() << "Resolved 1 fwd ref: " << Ref.get() << "\n";
       InlineeFwdRefs.pop_front();
     }
   }
@@ -1334,6 +1335,8 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
 
   bool IsDistinct = false;
   auto getMD = [&](unsigned ID) -> Metadata * {
+    if (ID == 1792)
+      dbgs() << "here";
     if (ID < MDStringRef.size())
       return lazyLoadOneMDString(ID);
     if (!IsDistinct) {
@@ -1536,10 +1539,9 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
       return error("Invalid record");
 
     FLDebugLoc DL = FLDebugLoc::fromRawInt(Record[0]);
-    DIFunctionLocalMetadata *FLContext = dyn_cast<DIFunctionLocalMetadata>(getMD(Record[1]));
-    assert(FLContext && "Not materialized?");
+    Metadata *FLContext = getMD(Record[1]);
     MetadataList.assignValue(
-        DILocation::get(Context, DebugLoc(DL, FLContext)),
+        DILocation::get(Context, DL, FLContext),
         NextMetadataNo);
     NextMetadataNo++;
     break;
@@ -2547,21 +2549,19 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
     if (!IsDistinct)
       return error(
           "Invalid record: DIFunctionLocalMetadata must be distinct");
+    // FIXME: This should be transient, do we really want to serialize it? If
+    // we do, we could also easily combine it with Record[0].
+    uint16_t MaxAtomGroup = Record[1];
     // FLMD comprises 4 arrays with a leading length field.
-    uint64_t CurrentRecord = 1;
+    uint64_t CurrentRecord = 2;
     DIFunctionLocalMetadata *NewFLMD = DIFunctionLocalMetadata::getDistinct(Context);
+    NewFLMD->MaxAtomGroup = MaxAtomGroup;
     // Scopes
     uint64_t NumScopes = Record[CurrentRecord++];
-    dbgs() << "Reading " << NumScopes << " Scopes...\n";
     for (uint64_t ScopeIdx = 0; ScopeIdx < NumScopes; ++ScopeIdx) {
       uint64_t Scope = Record[CurrentRecord++];
       auto *ScopeMD = getMD(Scope);
       if (auto *ScopeNode = dyn_cast<MDNode>(ScopeMD)) {
-        // FIXME: We don't use tracking nodes for scopes in the FLMD here, and
-        // we should always enumerate them before the FLMD, so this assert
-        // should hold. If it doesn't, then we need to add extra temporary
-        // scaffolding for this.
-        assert(!ScopeNode->isTemporary() && "Scopes should appear before FLMD!");
         NewFLMD->Scopes.push_back(FLScope(ScopeNode));
       } else {
         auto &ScopeFwdRefs = FLMDScopeFwdRefs.try_emplace(NewFLMD).first->getSecond();
@@ -2571,29 +2571,29 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
     }
     // SrcLocs
     uint64_t NumSrcLocs = Record[CurrentRecord++];
-    dbgs() << "Reading " << NumSrcLocs << " SrcLocs...\n";
     for (uint64_t SrcLocIdx = 0; SrcLocIdx < NumSrcLocs; ++SrcLocIdx) {
       uint64_t RawInt = Record[CurrentRecord++];
       NewFLMD->SrcLocs.push_back(FLSrcLoc::fromRawInt(RawInt));
     }
     // InlinedCalls
     uint64_t NumInlinedCalls = Record[CurrentRecord++];
-    dbgs() << "Reading " << NumInlinedCalls << " InlinedCalls...\n";
+    // dbgs() << "Reading " << NumInlinedCalls << " Inlined calls for FLContext: " << NewFLMD << "\n";
     for (uint64_t InlinedCallIdx = 0; InlinedCallIdx < NumInlinedCalls; ++InlinedCallIdx) {
       uint64_t RawInt = Record[CurrentRecord++];
       uint64_t RawInlineeID = Record[CurrentRecord++];
       auto *InlineeMD = getMD(RawInlineeID);
       if (DIFunctionLocalMetadata *InlineeFLMD = dyn_cast<DIFunctionLocalMetadata>(InlineeMD)) {
+        // dbgs() << "Read 1 pre-loaded: " << RawInlineeID << " = " << InlineeFLMD << "\n";
         NewFLMD->InlinedCalls.push_back(FLInlinedCall::fromRawParts(RawInt, InlineeFLMD));
       } else {
+        // dbgs() << "Read 1 fwd ref: " << RawInlineeID << " = " << InlineeFLMD << "\n";
         auto &InlineeFwdRefs = FLMDInlineeFwdRefs.try_emplace(NewFLMD).first->getSecond();
-        InlineeFwdRefs.emplace_back(InlinedCallIdx, TrackingMDRef(InlineeMD));
+        InlineeFwdRefs.emplace_back(InlinedCallIdx, InlineeMD);
         NewFLMD->InlinedCalls.push_back(FLInlinedCall::fromRawParts(RawInt, nullptr));
       }
     }
     // Loops
     uint64_t NumLoops = Record[CurrentRecord++];
-    dbgs() << "Reading " << NumLoops << " Loops...\n";
     for (uint64_t LoopIdx = 0; LoopIdx < NumLoops; ++LoopIdx) {
       uint64_t RawSrcLocs = Record[CurrentRecord++];
       uint64_t RawInlinedAts = Record[CurrentRecord++];

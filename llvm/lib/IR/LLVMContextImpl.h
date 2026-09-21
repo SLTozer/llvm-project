@@ -277,19 +277,23 @@ template <> struct MDNodeKeyImpl<MDTuple> : MDNodeOpsKey {
 /// DenseMapInfo for DILocation.
 #if LLVM_USE_FLMD_SOURCE_LOCS
 template <> struct MDNodeKeyImpl<DILocation> {
-  DebugLoc DL;
+  FLDebugLoc FLDL;
+  Metadata *FLContext;
 
-  MDNodeKeyImpl(DebugLoc DL) : DL(DL) {}
+  MDNodeKeyImpl(FLDebugLoc FLDL, Metadata *FLContext)
+    : FLDL(FLDL), FLContext(FLContext) {}
 
   MDNodeKeyImpl(const DILocation *L)
-      : DL(L->getAsDebugLoc()) {}
+    : FLDL(L->getAsDebugLoc().getUnderlyingStorage()),
+      FLContext(L->getFLContext()) {}
 
   bool isKeyOf(const DILocation *RHS) const {
-    return DL == RHS->getAsDebugLoc();
+    auto DL = RHS->getAsDebugLoc();
+    return FLDL == DL.getUnderlyingStorage() && FLContext == DL.getFLContext();
   }
 
   unsigned getHashValue() const {
-    return hash_value(DL);
+    return hash_combine(FLDL, FLContext);
   }
 };
 #else

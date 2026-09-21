@@ -69,6 +69,10 @@ public:
     Index.Index = RawIndex;
     return Index;
   }
+  void addOffset(IndexType Offset) {
+    if (*this)
+      Index += Offset;
+  }
 
   friend inline hash_code hash_value(const FLIndex<IndexType> &Idx) {
     return hash_value(Idx.Index);
@@ -105,14 +109,7 @@ struct FLInlinedCall {
     Result |= Uniquable;
     return {Result, getInlinee()};
   }
-  static FLInlinedCall fromRawParts(uint64_t RawInt, DIFunctionLocalMetadata *Inlinee) {
-    FLInlinedCall Result;
-    Result.SrcLocIdx = FLIndex<uint32_t>::fromRaw(RawInt >> 32);
-    Result.InlinedAtIdx = FLIndex<uint16_t>::fromRaw(RawInt >> 16);
-    Result.MaxAtomGroup = (RawInt & 0xfffe) >> 1;
-    Result.Uniquable = (RawInt & 1);
-    return Result;
-  }
+  static FLInlinedCall fromRawParts(uint64_t RawInt, DIFunctionLocalMetadata *Inlinee);
   uint16_t getNewAtomGroup() {
     // FIXME: Remove this assert later, it's not really a problem if atom groups
     // wrap - but we probably want to wrap straight to 1 rather than 0, and we

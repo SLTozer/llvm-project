@@ -667,14 +667,33 @@ void ValueEnumerator::dropFunctionFromMetadata(
         Worklist.push_back(N);
   };
   push(FirstMD);
-  while (!Worklist.empty())
-    for (const Metadata *Op : Worklist.pop_back_val()->operands()) {
+  // DIFunctionLocalMetadata contains many non-operand metadata references,
+  // which are enumerated with it and thus must also be dropped with it as a
+  // special case.
+  auto DropFLContext = [&](const DIFunctionLocalMetadata *FLContext) {
+    for (auto Scope : FLContext->Scopes) {
+      auto MD = MetadataMap.find(Scope.get());
+      if (MD != MetadataMap.end())
+        push(*MD);
+    }
+    for (auto InlinedCall : FLContext->InlinedCalls) {
+      auto MD = MetadataMap.find(InlinedCall.getInlinee());
+      if (MD != MetadataMap.end())
+        push(*MD);
+    }
+  };
+  while (!Worklist.empty()) {
+    const MDNode *Next = Worklist.pop_back_val();
+    for (const Metadata *Op : Next->operands()) {
       if (!Op)
         continue;
       auto MD = MetadataMap.find(Op);
       if (MD != MetadataMap.end())
         push(*MD);
     }
+    if (auto *FLContext = dyn_cast<DIFunctionLocalMetadata>(Next))
+      DropFLContext(FLContext);
+  }
 }
 
 void ValueEnumerator::EnumerateMetadata(unsigned F, const Metadata *MD) {

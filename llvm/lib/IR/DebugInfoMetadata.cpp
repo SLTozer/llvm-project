@@ -421,12 +421,13 @@ DILocation *DILocation::getMergedLocation(DILocation *LocA, DILocation *LocB) {
                          /*AtomGroup*/ 0, /*AtomRank*/ 0);
 }
 #else
-DILocation *DILocation::getImpl(LLVMContext &Context, DebugLoc DL,
-                                StorageType Storage, bool ShouldCreate) {
-  assert(DL && "Tried to 'get' an empty value");
+DILocation *DILocation::getImpl(LLVMContext &Context, FLDebugLoc FLDL,
+                                Metadata *FLContext, StorageType Storage,
+                                bool ShouldCreate) {
+  assert(FLDL && "Tried to 'get' an empty value");
   if (Storage == Uniqued) {
     if (auto *N = getUniqued(Context.pImpl->DILocations,
-                             DILocationInfo::KeyTy(DL)))
+                             DILocationInfo::KeyTy(DebugLoc())))
       return N;
     if (!ShouldCreate)
       return nullptr;
