@@ -1335,8 +1335,6 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
 
   bool IsDistinct = false;
   auto getMD = [&](unsigned ID) -> Metadata * {
-    if (ID == 1792)
-      dbgs() << "here";
     if (ID < MDStringRef.size())
       return lazyLoadOneMDString(ID);
     if (!IsDistinct) {
