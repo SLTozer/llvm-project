@@ -73,6 +73,7 @@ static void adjustColumn(unsigned &Column) {
 
 using LineColumn = std::pair<unsigned /* Line */, unsigned /* Column */>;
 
+#if !LLVM_USE_FLMD_SOURCE_LOCS
 /// Returns the location of DILocalScope, if present, or a default value.
 static LineColumn getLocalScopeLocationOr(DIScope *S, LineColumn Default) {
   assert(isa<DILocalScope>(S) && "Expected DILocalScope.");
@@ -154,6 +155,7 @@ struct ScopeLocationsMatcher {
     llvm_unreachable("Scopes must not have empty entries.");
   }
 };
+#endif
 
 static DILexicalBlockBase *cloneAndReplaceParentScope(DILexicalBlockBase *LBB,
                                                       DIScope *NewParent) {
@@ -427,7 +429,7 @@ DILocation *DILocation::getImpl(LLVMContext &Context, FLDebugLoc FLDL,
   assert(FLDL && "Tried to 'get' an empty value");
   if (Storage == Uniqued) {
     if (auto *N = getUniqued(Context.pImpl->DILocations,
-                             DILocationInfo::KeyTy(DebugLoc())))
+                             DILocationInfo::KeyTy(FLDL, FLContext)))
       return N;
     if (!ShouldCreate)
       return nullptr;
@@ -436,7 +438,7 @@ DILocation *DILocation::getImpl(LLVMContext &Context, FLDebugLoc FLDL,
   }
 
   return storeImpl(new (1, Storage)
-                       DILocation(Context, Storage, DL),
+                       DILocation(Context, Storage, FLDL, FLContext),
                    Storage, Context.pImpl->DILocations);
 }
 

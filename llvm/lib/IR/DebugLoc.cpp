@@ -278,9 +278,7 @@ DebugLoc DebugLoc::get(
 DebugLoc DebugLoc::getDistinctInlinedCall(
     DIFunctionLocalMetadata *CalleeContext,
     DIFunctionLocalMetadata *Context, unsigned Line, unsigned Column, Metadata *Scope,
-    DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
-    uint8_t AtomRank) {
-  assert(AtomGroup == 0 && "Inlined calls have no atom!");
+    DebugLoc InlinedAt, bool ImplicitCode, uint64_t MaxAtomGroup) {
   DILocalScope *LocalScope = cast<DILocalScope>(Scope);
   
   FLIndex<uint32_t> SrcLocIdx;
@@ -292,16 +290,15 @@ DebugLoc DebugLoc::getDistinctInlinedCall(
   } else {
     SrcLocIdx = Context->getFLSrcLocIdx(Line, Column, LocalScope);
   }
-  FLInlinedCall InlinedCall(SrcLocIdx, InlinedAtIdx, CalleeContext, false);
+  FLInlinedCall InlinedCall(SrcLocIdx, InlinedAtIdx, CalleeContext, false,
+    MaxAtomGroup ? MaxAtomGroup : CalleeContext->MaxAtomGroup);
   FLIndex<uint16_t> NewInlinedAtIdx = Context->addInlinedCall(InlinedCall);
   return DebugLoc(FLDebugLoc::getInlinedCallLoc(NewInlinedAtIdx), Context);
 }
 DebugLoc DebugLoc::getUniquedInlinedCall(
     DIFunctionLocalMetadata *CalleeContext,
     DIFunctionLocalMetadata *Context, unsigned Line, unsigned Column, Metadata *Scope,
-    DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
-    uint8_t AtomRank) {
-  assert(AtomGroup == 0 && "Inlined calls have no atom!");
+    DebugLoc InlinedAt, bool ImplicitCode, uint64_t MaxAtomGroup) {
   DILocalScope *LocalScope = cast<DILocalScope>(Scope);
   
   FLIndex<uint32_t> SrcLocIdx;
@@ -313,7 +310,12 @@ DebugLoc DebugLoc::getUniquedInlinedCall(
   } else {
     SrcLocIdx = Context->getFLSrcLocIdx(Line, Column, LocalScope);
   }
-  FLInlinedCall InlinedCall(SrcLocIdx, InlinedAtIdx, CalleeContext, true);
+  FLInlinedCall InlinedCall(SrcLocIdx, InlinedAtIdx, CalleeContext, true,
+    MaxAtomGroup ? MaxAtomGroup : CalleeContext->MaxAtomGroup);
+  // FIXME: Should we take a MaxAtomGroup here? It might be a good idea to fully
+  // commit to this function being for merged InlinedCalls only, so that we can
+  // make its merged args explicit, and select the highest MaxAtomGroup. For now
+  // we can just do that at the call sites.
   FLIndex<uint16_t> NewInlinedAtIdx = Context->addInlinedCall(InlinedCall);
   return DebugLoc(FLDebugLoc::getInlinedCallLoc(NewInlinedAtIdx), Context);
 }
@@ -390,7 +392,7 @@ DebugLoc DebugLoc::getFromMDNode(const MDNode *MD) {
 }
 
 DebugLoc DebugLoc::convertToInlinedCall(DebugLocContext CalleeContext) const {
-  return DebugLoc::getDistinctInlinedCall(CalleeContext, getDLContext(), getLine(), getColumn(), getScope(), getInlinedAt(), isImplicitCode(), 0, 0);
+  return DebugLoc::getDistinctInlinedCall(CalleeContext, getDLContext(), getLine(), getColumn(), getScope(), getInlinedAt(), isImplicitCode());
 }
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
@@ -494,7 +496,7 @@ DebugLoc DebugLoc::replaceInlinedAtSubprogram(
         NewSrcLocIdx = NewFnContext.Context->getFLSrcLocIdx(SrcLoc.Line, SrcLoc.Column, NewScope);
         DLMap.insertSrcLoc(OldCall.SrcLocIdx, NewSrcLocIdx);
       }
-      FLInlinedCall NewCall(NewSrcLocIdx, {}, OldCall.InlineeFLMD, OldCall.Uniquable);
+      FLInlinedCall NewCall(NewSrcLocIdx, {}, OldCall.InlineeFLMD, OldCall.Uniquable, OldCall.MaxAtomGroup);
       FLIndex<uint16_t> NewCallIdx = NewFnContext.Context->addInlinedCall(NewCall);
       DLMap.insertInlinedCall(LocToUpdate.getIdxForInlinedCall(), NewCallIdx);
       UpdatedLoc = FLDebugLoc::getInlinedCallLoc(NewCallIdx);
@@ -515,7 +517,7 @@ DebugLoc DebugLoc::replaceInlinedAtSubprogram(
     if (LocToUpdate.isInlinedCall()) {
       FLInlinedCall OldCall = LocToUpdate.getAsInlinedCall(SrcContext);
       FLIndex<uint16_t> NewInlinedCallIdx = NewFnContext.Context->addInlinedCall(
-        FLInlinedCall(OldCall.SrcLocIdx, UpdatedLoc.getIdxForInlinedCall(), OldCall.InlineeFLMD, OldCall.Uniquable)
+        FLInlinedCall(OldCall.SrcLocIdx, UpdatedLoc.getIdxForInlinedCall(), OldCall.InlineeFLMD, OldCall.Uniquable, OldCall.MaxAtomGroup)
       );
       UpdatedLoc = FLDebugLoc::getInlinedCallLoc(NewInlinedCallIdx);
       DLMap.insertInlinedCall(LocToUpdate.getIdxForInlinedCall(), UpdatedLoc.getIdxForInlinedCall());
@@ -775,6 +777,7 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
     DIFunctionLocalMetadata *Inlinee = L1.isInlinedCall() ?
       L1.getAsInlinedCall().getInlinee() :
       nullptr;
+    uint16_t MaxMergedAtomGroup = L1.isInlinedCall() ? std::max(L1.getAsInlinedCall().MaxAtomGroup, L2.getAsInlinedCall().MaxAtomGroup) : 0;
     DebugLoc::DebugLocContext InlineeCtx(Inlinee);
 
     // Find nearest common scope inside subprogram.
@@ -800,7 +803,7 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
       if (Scope->getFile() != L1.getFile() || L1.getFile() != L2.getFile()) {
         if (Inlinee)
           return DebugLoc::getUniquedInlinedCall(InlineeCtx, C, CommonLoc.first, CommonLoc.second,
-                                                 CommonLocScope, InlinedAt);
+                                                 CommonLocScope, InlinedAt, false, MaxMergedAtomGroup);
         return DebugLoc::get(C, CommonLoc.first, CommonLoc.second,
                                CommonLocScope, InlinedAt);
       }
@@ -817,7 +820,7 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
     if (!SameLine || !(L1.getAtomGroup() || L2.getAtomGroup())) {
       if (Inlinee)
         return DebugLoc::getUniquedInlinedCall(InlineeCtx, C, Line, Col, Scope, InlinedAt, IsImplicitCode,
-                              /*AtomGroup*/ 0, /*AtomRank*/ 0);
+                              MaxMergedAtomGroup);
       return DebugLoc::get(C, Line, Col, Scope, InlinedAt, IsImplicitCode,
                              /*AtomGroup*/ 0, /*AtomRank*/ 0);
     }
@@ -855,8 +858,7 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
     }
     if (Inlinee)
       return DebugLoc::getUniquedInlinedCall(
-        InlineeCtx, C, Line, Col, Scope, InlinedAt, IsImplicitCode, Group,
-        Rank);
+        InlineeCtx, C, Line, Col, Scope, InlinedAt, IsImplicitCode, MaxMergedAtomGroup);
     return DebugLoc::get(C, Line, Col, Scope, InlinedAt, IsImplicitCode,
                            Group, Rank);
   };

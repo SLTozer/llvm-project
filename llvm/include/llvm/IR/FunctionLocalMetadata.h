@@ -97,8 +97,14 @@ struct FLInlinedCall {
   uint16_t Uniquable : 1;
   MDNode *InlineeFLMD;
   FLInlinedCall() = default;
-  FLInlinedCall(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, MDNode *InlineeFLMD, bool Uniquable)
-    : SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx), MaxAtomGroup(0), Uniquable(Uniquable), InlineeFLMD(InlineeFLMD) {}
+  FLInlinedCall(
+      FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx,
+      MDNode *InlineeFLMD, bool Uniquable, uint16_t MaxAtomGroup = 0)
+      : SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx),
+        MaxAtomGroup(MaxAtomGroup), Uniquable(Uniquable),
+        InlineeFLMD(InlineeFLMD) {
+    assert(MaxAtomGroup < 0x8000 && "Max Atom group too large for bitfield!");
+  }
   DIFunctionLocalMetadata *getInlinee() const {
     return cast<DIFunctionLocalMetadata>(InlineeFLMD);
   }
@@ -116,6 +122,13 @@ struct FLInlinedCall {
     // also want to know if this trips regularly during development.
     assert(MaxAtomGroup < 0x7fff && "Atom group unexpectedly wrapped!");
     return ++MaxAtomGroup;
+  }
+  // Equality check that ignores MaxAtomGroup.
+  bool isEquivalent(const FLInlinedCall &Other) {
+    return SrcLocIdx == Other.SrcLocIdx
+      && InlinedAtIdx == Other.InlinedAtIdx
+      && Uniquable == Other.Uniquable
+      && InlineeFLMD == Other.InlineeFLMD;
   }
   // FIXME: We should really ignore MaxAtomGroup for some/most/all equality
   //        comparisons, but exactly how we handle that field during e.g.
@@ -276,6 +289,22 @@ public:
   SmallDenseMap<class Instruction *, uint16_t> InstrLoops;
   // TODO: Move this to Subclassdata.
   uint16_t MaxAtomGroup = 0;
+  // If this is true, then this is a special FLContext, used for a function
+  // without debug info to store inlined call information. This FLContext
+  // contains no Scopes and no SrcLocs, meaning it is never valid to create a
+  // non-inlined debug loc within it.
+  // Nested InlinedCalls are copied during inlining as normal, and the resulting
+  // InlinedCall for the inlining operation has no SrcLoc and no InlinedAt; this
+  // requires some special handling for functions like "getInlinedAtLocation"
+  // that explicitly traverse the InlinedAt chain. If this function is then
+  // inlined into a debug function, the location-less InlinedCall is overwritten
+  // instead of transferred.
+  // NB: Hopefully this design doesn't raise many problems as-is, because in
+  // general we only care about debug locs inlined into a nodebug function when
+  // they are inlined again into a debug function - otherwise they are generally
+  // ignored. If this leads to problems, then we need a more sophisticated
+  // solution.
+  bool IsNonDebugFn = false;
 
   // FIXME: FLMD is a funny case where it takes no arguments and can only be
   // created Distinct. Decide later whether this needs to change.
@@ -283,9 +312,16 @@ public:
   static TempDIFunctionLocalMetadata getTemporary(LLVMContext &Context);
   TempDIFunctionLocalMetadata clone() const { return cloneImpl(); }
   TempDIFunctionLocalMetadata cloneImpl() const {
-    return getTemporary(getContext());
+    llvm_unreachable("Does this make any sense?");
   }
 
+  // TODO: Figure out the ergonomics of this.
+  bool isNonDebug() {
+    return IsNonDebugFn;
+  }
+  void setNonDebug() {
+    IsNonDebugFn = true;
+  }
   void build(FLMDBuilder &Builder) {
     assert(Scopes.empty() && SrcLocs.empty() && InlinedCalls.empty() && Loops.empty() && InstrLoops.empty() && "Can't use builder on an already-created FLMD!");
     Scopes = Builder.Scopes;
@@ -355,9 +391,12 @@ public:
   }
   FLIndex<uint16_t> addInlinedCall(FLInlinedCall InlinedCall) {
     if (InlinedCall.Uniquable) {
-      for (uint16_t Idx = 0; Idx < InlinedCalls.size(); ++Idx)
-        if (InlinedCall == InlinedCalls[Idx])
+      for (uint16_t Idx = 0; Idx < InlinedCalls.size(); ++Idx) {
+        if (InlinedCall.isEquivalent(InlinedCalls[Idx])) {
+          InlinedCalls[Idx].MaxAtomGroup = std::max(InlinedCall.MaxAtomGroup, InlinedCalls[Idx].MaxAtomGroup);
           return FLIndex<uint16_t>(Idx);
+        }
+      }
     }
     InlinedCalls.push_back(InlinedCall);
     return InlinedCalls.size() - 1;

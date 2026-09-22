@@ -475,13 +475,13 @@ private:
   static DebugLoc getDistinctInlinedCall(
     DIFunctionLocalMetadata *CalleeContext,
     DIFunctionLocalMetadata *Context, unsigned Line, unsigned Column, Metadata *Scope,
-    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
-    uint8_t AtomRank = 0);
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false,
+    uint64_t MaxAtomGroup = 0);
   static DebugLoc getUniquedInlinedCall(
     DIFunctionLocalMetadata *CalleeContext,
     DIFunctionLocalMetadata *Context, unsigned Line, unsigned Column, Metadata *Scope,
-    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
-    uint8_t AtomRank = 0);
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false,
+    uint64_t MaxAtomGroup = 0);
 #else
   static DebugLoc get(
     LLVMContext &Context, unsigned Line, unsigned Column, Metadata *Scope,
@@ -536,16 +536,14 @@ public:
   static DebugLoc getDistinctInlinedCall(
     DebugLocContext CalleeContext,
     DebugLocContext Context, unsigned Line, unsigned Column, Metadata *Scope,
-    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
-    uint8_t AtomRank = 0) {
-    return DebugLoc::getDistinctInlinedCall(CalleeContext.Context, Context.Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t MaxAtomGroup = 0) {
+    return DebugLoc::getDistinctInlinedCall(CalleeContext.Context, Context.Context, Line, Column, Scope, InlinedAt, ImplicitCode, MaxAtomGroup);
   }
   static DebugLoc getUniquedInlinedCall(
     DebugLocContext CalleeContext,
     DebugLocContext Context, unsigned Line, unsigned Column, Metadata *Scope,
-    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
-    uint8_t AtomRank = 0) {
-    return DebugLoc::getUniquedInlinedCall(CalleeContext.Context, Context.Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
+    DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint16_t MaxAtomGroup = 0) {
+    return DebugLoc::getUniquedInlinedCall(CalleeContext.Context, Context.Context, Line, Column, Scope, InlinedAt, ImplicitCode, 0);
   }
 #if LLVM_USE_FLMD_SOURCE_LOCS
   DebugLocContext getDLContext() const {

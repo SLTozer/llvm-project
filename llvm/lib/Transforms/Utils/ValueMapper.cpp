@@ -938,7 +938,7 @@ Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
     return const_cast<DIFunctionLocalMetadata*>(FLMD);
   }
   assert(OldSP != NewSP && "Cannot have non-identity FLMD mapping with an identity subprogram mapping.");
-  DIFunctionLocalMetadata *NewFLMD = MDNode::replaceWithDistinct(FLMD->clone());
+  DIFunctionLocalMetadata *NewFLMD = DIFunctionLocalMetadata::getDistinct(FLMD->getContext());
   NewFLMD->MaxAtomGroup = FLMD->MaxAtomGroup;
   FLMDBuilder Builder(NewSP);
 
