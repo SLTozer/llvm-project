@@ -125,6 +125,7 @@ using DebugLocRef = DILocation *;
 /// one based on relatively opaque \a MDNode pointers.
 class DebugLoc {
   DebugLocRef Loc = {};
+  uint32_t ExtraBloat = 0;
 
 public:
   /// Construct from an \a DILocation.
