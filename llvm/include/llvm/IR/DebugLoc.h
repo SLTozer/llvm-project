@@ -1033,7 +1033,7 @@ inline hash_code hash_value(const DebugLoc &Val) {
 
 namespace std {
 template<> struct hash<llvm::DebugLoc> {
-  constexpr size_t operator()(const llvm::DebugLoc &Val) const {
+  size_t operator()(const llvm::DebugLoc &Val) const {
     return llvm::hash_value(Val);
   }
 };
