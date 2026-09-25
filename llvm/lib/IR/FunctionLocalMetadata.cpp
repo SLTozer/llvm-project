@@ -28,10 +28,20 @@ FLInlinedCall FLInlinedCall::fromRawParts(uint64_t RawInt, DIFunctionLocalMetada
 
 FLIndex<uint16_t> DIFunctionLocalMetadata::getFLScopeIdx(DILocalScope *Scope) {
   for (uint16_t Idx = 0; Idx < Scopes.size(); ++Idx)
-    if (Scopes[Idx] == Scope)
+    if (Scopes[Idx].get() == Scope)
     return Idx;
   if (Scopes.size() > 0)
     assert(Scope->getSubprogram() == Scopes[0]);
   Scopes.push_back(FLScope(Scope));
   return Scopes.size() - 1;
+}
+
+
+FLMDBuilder::FLMDBuilder(DIFunctionLocalMetadata *FLContext, const DISubprogram *SP) : FLContext(FLContext) {
+  assert(FLContext->Scopes.empty() && FLContext->SrcLocs.empty()
+    && "Creating a builder for an already-exinst FLContext currently unsupported.");
+  FLContext->Scopes.push_back(FLScope{ const_cast<DISubprogram*>(SP) });
+  FLContext->SrcLocs.push_back(FLSrcLoc(0, 0, 0));
+  FLContext->SrcLocs.push_back(FLSrcLoc(SP->getLine(), 0, 0));
+  FLContext->SrcLocs.push_back(FLSrcLoc(SP->getScopeLine(), 0, 0));
 }

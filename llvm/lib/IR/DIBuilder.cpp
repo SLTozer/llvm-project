@@ -1058,11 +1058,11 @@ static DISubprogram *getSubprogram(bool IsDistinct, Ts &&...Args) {
 #if LLVM_USE_FLMD_SOURCE_LOCS
 DebugLoc::DebugLocContext DIBuilder::startFunctionContext(Function *F, DISubprogram *SP) {
   assert(SP->isDefinition() && "Function context must only be created for definitions, not declarations.");
+  assert(!F->getFLContext() && "Tried to create context for function that already has one!");
   DIFunctionLocalMetadata *FLContext = DIFunctionLocalMetadata::getDistinct(F->getContext());
   F->addMetadata(LLVMContext::MD_flmd, *FLContext);
+  FunctionLocBuilders.try_emplace(FLContext, FLContext, SP);
   return DebugLoc::DebugLocContext(FLContext);
-  // FIXME: Determine whether we actually need to do any map insertions here,
-  // for later normalization/using builders.
 }
 
 DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc CallLoc) {
@@ -1073,18 +1073,37 @@ DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc C
     CalleeContext = ExistingContextIt->second;
   } else {
     CalleeContext = DIFunctionLocalMetadata::getDistinct(CalleeSP->getContext());
+    FunctionLocBuilders.try_emplace(CalleeContext, CalleeContext, CalleeSP);
     InlinedCallContexts.insert({CalleeSP, CalleeContext});
   }
   // FIXME: If we use FLMDBuilder to create new Source Locations, do so here.
-  DebugLoc InlinedCall = DebugLoc::getDistinctInlinedCall(
-    DebugLoc::DebugLocContext(CalleeContext), CallLoc.getDLContext(),
-    CallLoc.getLine(), CallLoc.getColumn(), CallLoc.getScope());
-  return InlinedCall;
+  DIFunctionLocalMetadata *CallerContext = CallLoc.getFLContext();
+  FLIndex<uint16_t> NewCallIdx = CallerContext->addInlinedCall(FLInlinedCall(
+    CallLoc.getUnderlyingStorage().SrcLocIdx,
+    CallLoc.getUnderlyingStorage().InlinedAtIdx, CalleeContext, false));
+  DebugLoc InlinedAt(FLDebugLoc::getInlinedCallLoc(NewCallIdx), CallerContext);
+  return InlinedAt;
 }
 
 void DIBuilder::finalizeFunctionContext(Function *F) {
   // DIFunctionLocalMetadata *FLContext = cast<DIFunctionLocalMetadata>(F->getMetadata(LLVMContext::MD_flmd));
   // FIXME: Determine whether we want to do a normalization step here.
+}
+DebugLoc DIBuilder::getLoc(
+    DebugLoc::DebugLocContext Context, unsigned Line, unsigned Column,
+    MDNode *Scope, DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
+    uint8_t AtomRank) {
+  DIFunctionLocalMetadata *FLContext = Context.Context;
+  FLIndex<uint16_t> InlinedAtIdx;
+  if (InlinedAt)
+    InlinedAtIdx = InlinedAt.getIdxForInlinedCall();
+  auto *SrcLocContext = InlinedAtIdx ? FLContext->getInlinedCall(InlinedAtIdx).getInlinee() : FLContext;
+  auto BuilderIt = FunctionLocBuilders.find(SrcLocContext);
+  assert(BuilderIt != FunctionLocBuilders.end() && "Trying to insert location for finished/not-started FLContext!");
+  FLMDBuilder &Builder = BuilderIt->second;
+  auto SrcLocIdx = Builder.getSrcLoc(Line, Column, cast<MDNode>(Scope));
+  FLContext->updateAtomGroupWaterline(InlinedAtIdx, AtomGroup);
+  return DebugLoc(FLDebugLoc(SrcLocIdx, InlinedAtIdx, AtomGroup, AtomRank), FLContext);
 }
 #else
 DebugLoc::DebugLocContext DIBuilder::startFunctionContext(Function *F, DISubprogram *SP) {
@@ -1099,6 +1118,12 @@ DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc C
 
 void DIBuilder::finalizeFunctionContext(Function *F) {
 
+}
+DebugLoc DIBuilder::getLoc(
+    DebugLoc::DebugLocContext Context, unsigned Line, unsigned Column,
+    MDNode *Scope, DebugLoc InlinedAt, bool ImplicitCode, uint64_t AtomGroup,
+    uint8_t AtomRank) {
+  return DebugLoc::get(Context, Line, Column, Scope, InlinedAt, ImplicitCode, AtomGroup, AtomRank);
 }
 #endif
 

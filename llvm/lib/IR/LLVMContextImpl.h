@@ -1607,20 +1607,18 @@ struct FLMDDILocationConversionContext {
     DISubprogram *SP = DIL->getScope()->getSubprogram();
     if (auto Existing = SPToFLMDMap.find(SP); Existing != SPToFLMDMap.end())
       return Existing->second;
-    FLMDBuilder Builder(SP);
     llvm_unreachable("no");
     auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
-    NewFLMD->build(Builder);
+    FLMDBuilder Builder(NewFLMD, SP);
     SPToFLMDMap.insert({SP, NewFLMD});
     return NewFLMD;
   }
   DIFunctionLocalMetadata *getFLMDForSP(DISubprogram *SP) {
     if (auto Existing = SPToFLMDMap.find(SP); Existing != SPToFLMDMap.end())
       return Existing->second;
-    FLMDBuilder Builder(SP);
     llvm_unreachable("no");
     auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
-    NewFLMD->build(Builder);
+    FLMDBuilder Builder(NewFLMD, SP);
     SPToFLMDMap.insert({SP, NewFLMD});
     return NewFLMD;
   }

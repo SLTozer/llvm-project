@@ -941,13 +941,13 @@ Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
   assert(OldSP != NewSP && "Cannot have non-identity FLMD mapping with an identity subprogram mapping.");
   DIFunctionLocalMetadata *NewFLMD = DIFunctionLocalMetadata::getDistinct(FLMD->getContext());
   NewFLMD->MaxAtomGroup = FLMD->MaxAtomGroup;
-  FLMDBuilder Builder(NewSP);
+  FLMDBuilder Builder(NewFLMD, NewSP);
 
   // Add SrcLocs, which are unchanged.
-  Builder.SrcLocs.append(FLMD->SrcLocs.begin() + 3, FLMD->SrcLocs.end());
+  NewFLMD->SrcLocs.append(FLMD->SrcLocs.begin() + DIFunctionLocalMetadata::FirstNormalSrcLoxIdx, FLMD->SrcLocs.end());
   // Add FLScopes, which must each be remapped.
   for (FLScope Scope : drop_begin(FLMD->Scopes))
-    Builder.Scopes.emplace_back(cast<DILocalScope>(mapMetadata(Scope.get())));
+    NewFLMD->Scopes.emplace_back(cast<DILocalScope>(mapMetadata(Scope.get())));
   // Add InlinedCalls, which probably don't need to be remapped at all.
   // TODO: We should be sure that we have the right principled approach. There
   // are potential advantages to keeping references to the old FLMD from the new
@@ -956,12 +956,11 @@ Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
   // up otherwise able to delete the old FLMD. This seems uncommon enough for
   // the performance concerns to be unimportant either way, so we just take the
   // simplest approach here.
-  Builder.InlinedCalls.append(FLMD->InlinedCalls);
+  NewFLMD->InlinedCalls.append(FLMD->InlinedCalls);
   // FIXME: Loops contain MDOperands which may need remapping, revisit this
   // later.
-  Builder.Loops.append(FLMD->Loops);
+  NewFLMD->Loops.append(FLMD->Loops);
 
-  NewFLMD->build(Builder);
   mapToMetadata(FLMD, NewFLMD);
   return NewFLMD;
 }

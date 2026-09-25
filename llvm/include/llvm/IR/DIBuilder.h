@@ -67,6 +67,7 @@ namespace llvm {
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
     DenseMap<DIFunctionLocalMetadata *, FLMDBuilder> FunctionLocBuilders;
+    DenseMap<DIFunctionLocalMetadata *, Function*> NonInlinedFLContexts;
     /// TODO: Figure out how to use this. Maybe we could actually just create a
     /// separate FLMD for every inlined instance; it's unlikely that the number
     /// of cases where a frontend creates repeated inlined instances that
@@ -143,6 +144,12 @@ namespace llvm {
     /// TODO: Figure out if we really care about normalizing/sorting source
     /// locations or not; if not, then a lot of this can really be skipped.
     void finalizeFunctionContext(Function *F);
+    DebugLoc getLoc(
+        DebugLoc::DebugLocContext Context, unsigned Line, unsigned Column,
+        MDNode *Scope, DebugLoc InlinedAt = DebugLoc(),
+        bool ImplicitCode = false, uint64_t AtomGroup = 0,
+        uint8_t AtomRank = 0);
+
 
     /// A CompileUnit provides an anchor for all debugging
     /// information generated during this instance of compilation.

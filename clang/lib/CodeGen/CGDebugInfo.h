@@ -492,7 +492,7 @@ public:
 
   /// Update the current inline scope. All subsequent calls to \p EmitLocation
   /// will create a location with this inlinedAt field.
-  void setInlinedAt(llvm::DebugLoc InlinedAt) { CurInlinedAt = InlinedAt; }
+  void setInlinedAt(llvm::DebugLoc InlinedAt) { CurInlinedAt = InlinedAt; assert(InlinedAt.isInlinedCall()); }
 
   /// \return the current inline scope.
   llvm::DebugLoc getInlinedAt() const { return CurInlinedAt; }

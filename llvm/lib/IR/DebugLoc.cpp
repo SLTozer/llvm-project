@@ -66,22 +66,12 @@ struct FLMDSourceLocConversionContext {
   DIFunctionLocalMetadata *getFLMDForSP(DISubprogram *SP) {
     if (auto Existing = SPToFLMDMap.find(SP); Existing != SPToFLMDMap.end())
       return Existing->second;
-    FLMDBuilder Builder(SP);
     llvm_unreachable("no");
-    auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
-    NewFLMD->build(Builder);
-    SPToFLMDMap.insert({SP, NewFLMD});
-    return NewFLMD;
   }
   DIFunctionLocalMetadata *makeClonedFLMDForSP(DISubprogram *SP, DIFunctionLocalMetadata *OldFLMD) {
     auto Existing = SPToFLMDMap.find(SP);
     assert(Existing == SPToFLMDMap.end() && "Should not already exist in map");
-    FLMDBuilder Builder(SP, OldFLMD);
     llvm_unreachable("no");
-    auto *NewFLMD = DIFunctionLocalMetadata::getDistinct(SP->getContext());
-    NewFLMD->build(Builder);
-    SPToFLMDMap.insert({SP, NewFLMD});
-    return NewFLMD;
   }
 };
 } // namespace

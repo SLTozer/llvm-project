@@ -139,6 +139,20 @@ struct FLInlinedCall {
   bool operator!=(const FLInlinedCall &Other) const {
     return asRawParts() != Other.asRawParts();
   }
+
+  friend inline hash_code hash_value(const FLInlinedCall &IC) {
+    return hash_value(IC.asRawParts());
+  }
+};
+template<>
+struct DenseMapInfo<FLInlinedCall> {
+  static unsigned getHashValue(FLInlinedCall IC) {
+    return hash_value(IC);
+  }
+
+  static bool isEqual(FLInlinedCall LHS, FLInlinedCall RHS) {
+    return LHS == RHS;
+  }
 };
 
 /// Unique FLMD.
@@ -151,6 +165,10 @@ struct FLSrcLoc {
   FLSrcLoc(uint32_t Line, uint16_t Column, FLIndex<uint16_t> ScopeIdx) : Line(Line), Column(Column), ScopeIdx(ScopeIdx) {
     assert(ScopeIdx && "SrcLoc needs valid scope!");
   }
+  bool operator==(const FLSrcLoc &Other) {
+    return std::tie(Line, Column, ScopeIdx) ==
+      std::tie(Other.Line, Other.Column, Other.ScopeIdx);
+  }
   uint64_t asRawInt() const {
     static_assert(sizeof(*this) == sizeof(uint64_t));
     uint64_t Result;
@@ -162,6 +180,19 @@ struct FLSrcLoc {
     std::memcpy(&Result, &RawInt, sizeof(Result));
     return Result;
   }
+  friend inline hash_code hash_value(const FLSrcLoc &SrcLoc) {
+    return hash_value(SrcLoc.asRawInt());
+  }
+};
+template<>
+struct DenseMapInfo<FLSrcLoc> {
+  static unsigned getHashValue(FLSrcLoc SrcLoc) {
+    return hash_value(SrcLoc);
+  }
+
+  static bool isEqual(FLSrcLoc LHS, FLSrcLoc RHS) {
+    return LHS == RHS;
+  }
 };
 
 /// Unique FLMD, just a wrapper around a DILocalScope.
@@ -171,9 +202,25 @@ struct FLScope {
   FLScope(MDNode *Scope) : Scope(Scope) {}
   FLScope(DILocalScope *Scope);
   operator DILocalScope*();
+  bool operator==(const FLScope &Other) {
+    return Scope == Other.Scope;
+  }
   DILocalScope *get();
   operator const DILocalScope*() const;
   const DILocalScope *get() const;
+  friend inline hash_code hash_value(const FLScope &Scope) {
+    return hash_value(Scope.Scope);
+  }
+};
+template<>
+struct DenseMapInfo<FLScope> {
+  static unsigned getHashValue(FLScope Scope) {
+    return hash_value(Scope);
+  }
+
+  static bool isEqual(FLScope LHS, FLScope RHS) {
+    return LHS == RHS;
+  }
 };
 
 struct FLLoop {
@@ -240,39 +287,6 @@ struct ResolvedFLInlinedCall {
 };
 
 
-/// Builder class to perform the initial population for FLMD.
-/// Besides allowing direct modification of arrays that normally have a limited
-/// interface, this also ensures that some of the elements that are required to
-/// appear at a fixed position in the array  
-/// TODO: Merge this into DIBuilder.
-class FLMDBuilder {
-public:
-  SmallVector<FLScope, 0> Scopes;
-  DenseMap<DILocalScope*, FLIndex<uint16_t>> ScopeMap;
-  SmallVector<FLSrcLoc, 0> SrcLocs;
-  DenseMap<std::tuple<uint32_t, uint16_t, DILocalScope*>, FLIndex<uint32_t>> SrcLocMap;
-  SmallVector<FLInlinedCall, 0> InlinedCalls;
-  SmallVector<FLLoop, 0> Loops;
-  // TODO: Need to remap this in ValueMapper
-  SmallDenseMap<class Instruction *, uint16_t> InstrLoops;
-
-  FLIndex<uint16_t> addScope(DILocalScope* Scope) {
-    if (auto ScopeIt = ScopeMap.find(Scope); ScopeIt != ScopeMap.end())
-      return ScopeIt->second;
-    Scopes.push_back(FLScope{Scope});
-    return Scopes.size() - 1;
-  }
-  FLIndex<uint32_t> addSrcLoc(uint32_t Line, uint16_t Column, DILocalScope* Scope) {
-    if (auto SrcLocIt = SrcLocMap.find({Line, Column, Scope}); SrcLocIt != SrcLocMap.end())
-      return SrcLocIt->second;
-    FLIndex<uint16_t> ScopeIdx = addScope(Scope);
-    SrcLocs.push_back(FLSrcLoc(Line, Column, ScopeIdx));
-    return SrcLocs.size() - 1;
-  }
-  FLMDBuilder(const DISubprogram *SP);
-  FLMDBuilder(const DISubprogram *SP, DIFunctionLocalMetadata *ToClone);
-};
-
 /// Storage class for function-local metadata objects.
 /// TODO: Figure out how to divide this class and the actual FLMD types up among
 /// existing headers.
@@ -280,6 +294,15 @@ class DIFunctionLocalMetadata : public MDNode {
   DIFunctionLocalMetadata(LLVMContext &C, StorageType Storage) : MDNode(C, DIFunctionLocalMetadataKind, Storage, {}) {}
   ~DIFunctionLocalMetadata() = default;
 public:
+  // These are 3 fixed values inserted into every DIFunctionLocalMetadata with
+  // source locations, corresponding to "special" locations that we might select
+  // for "compiler-generated" instructions at some point.
+  enum {
+    LineZeroSrcLocIdx = 0,
+    SPLineSrcLocIdx = 1,
+    SPScopeLineSrcLocIdx = 2,
+    FirstNormalSrcLoxIdx = 3,
+  };
   friend class LLVMContextImpl;
   friend class MDNode;
   SmallVector<FLScope, 0> Scopes;
@@ -321,14 +344,6 @@ public:
   }
   void setNonDebug() {
     IsNonDebugFn = true;
-  }
-  void build(FLMDBuilder &Builder) {
-    assert(Scopes.empty() && SrcLocs.empty() && InlinedCalls.empty() && Loops.empty() && InstrLoops.empty() && "Can't use builder on an already-created FLMD!");
-    Scopes = Builder.Scopes;
-    SrcLocs = Builder.SrcLocs;
-    InlinedCalls = Builder.InlinedCalls;
-    Loops = Builder.Loops;
-    InstrLoops = Builder.InstrLoops;
   }
 
   FLScope getScope(FLIndex<uint16_t> Idx) const {
@@ -423,6 +438,43 @@ public:
   static bool classof(const Metadata *MD) {
     return MD->getMetadataID() == DIFunctionLocalMetadataKind;
   }
+};
+
+/// Builder class used to perform the initial population for FLMD, and
+/// optionally future updates.
+/// 
+/// Besides allowing direct modification of arrays that normally have a limited
+/// interface, this also ensures that some of the elements that are required to
+/// appear at a fixed position in the array  
+class FLMDBuilder {
+  DIFunctionLocalMetadata *FLContext;
+  DenseMap<FLScope, FLIndex<uint16_t>> ScopeMap;
+  DenseMap<FLSrcLoc, FLIndex<uint32_t>> SrcLocMap;
+  DenseMap<FLInlinedCall, uint16_t> UniqueInlinedCalls;
+public:
+
+  // TODO: Should we accept DILocalScope here? Doing so unfortunately forces the
+  // slow path of using the non-inlined FLScope constructor.
+  FLIndex<uint16_t> getScope(MDNode* Scope) {
+    FLScope InsertedScope(Scope);
+    if (auto ScopeIt = ScopeMap.find(InsertedScope); ScopeIt != ScopeMap.end())
+      return ScopeIt->second;
+    FLContext->Scopes.push_back(InsertedScope);
+    return FLContext->Scopes.size() - 1;
+  }
+  FLIndex<uint32_t> getSrcLoc(uint32_t Line, uint16_t Column, MDNode* Scope) {
+    // TODO: This might be slightly faster if we store the Scope in the
+    // SrcLocMap, so we don't have to do two map lookups. The map would pack
+    // less well, though.
+    FLIndex<uint16_t> ScopeIdx = getScope(Scope);
+    FLSrcLoc InsertedSrcLoc(Line, Column, ScopeIdx);
+    if (auto SrcLocIt = SrcLocMap.find(InsertedSrcLoc); SrcLocIt != SrcLocMap.end())
+      return SrcLocIt->second;
+    FLContext->SrcLocs.push_back(InsertedSrcLoc);
+    return FLContext->SrcLocs.size() - 1;
+  }
+
+  FLMDBuilder(DIFunctionLocalMetadata *FLContext, const DISubprogram *SP);
 };
 
 } // end namespace llvm

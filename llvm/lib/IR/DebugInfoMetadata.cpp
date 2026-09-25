@@ -1563,24 +1563,6 @@ void DISubprogram::cleanupRetainedNodes() {
     replaceRetainedNodes(MDNode::get(getContext(), MDs));
 }
 
-FLMDBuilder::FLMDBuilder(const DISubprogram *SP) {
-  Scopes.push_back(FLScope{ const_cast<DISubprogram*>(SP) });
-  SrcLocs.push_back(FLSrcLoc(0, 0, 0));
-  SrcLocs.push_back(FLSrcLoc(SP->getLine(), 0, 0));
-  SrcLocs.push_back(FLSrcLoc(SP->getScopeLine(), 0, 0));
-}
-
-FLMDBuilder::FLMDBuilder(const DISubprogram *SP, DIFunctionLocalMetadata *ToClone) {
-  Scopes.push_back(FLScope{ const_cast<DISubprogram*>(SP) });
-  Scopes.append(ToClone->Scopes.begin() + 1, ToClone->Scopes.end());
-  SrcLocs.push_back(FLSrcLoc(0, 0, 0));
-  SrcLocs.push_back(FLSrcLoc(SP->getLine(), 0, 0));
-  SrcLocs.push_back(FLSrcLoc(SP->getScopeLine(), 0, 0));
-  SrcLocs.append(ToClone->SrcLocs.begin() + 3, ToClone->SrcLocs.end());
-  InlinedCalls.append(ToClone->InlinedCalls.begin(), ToClone->InlinedCalls.end());
-  Loops.append(ToClone->Loops.begin(), ToClone->Loops.end());
-}
-
 FLScope::FLScope(DILocalScope *Scope) : Scope(Scope) {
   assert(!Scope->isTemporary() && Scope->isResolved());
 }
