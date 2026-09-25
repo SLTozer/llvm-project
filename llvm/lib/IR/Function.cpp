@@ -522,6 +522,10 @@ Function::~Function() {
 
   // Remove the function from the on-the-side GC table.
   clearGC();
+
+  // Clear metadata here (instead of in ~GlobalObject) to ensure FLContext is
+  // included.
+  clearMetadata();
 }
 
 void Function::BuildLazyArguments() const {

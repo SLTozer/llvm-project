@@ -429,6 +429,10 @@ private:
   void writeFunctionMetadataAttachment(const Function &F);
   void pushGlobalMetadataAttachment(SmallVectorImpl<uint64_t> &Record,
                                     const GlobalObject &GO);
+  // Function may contain locally-stored metadata attachments, so needs a
+  // separate overload.
+  void pushGlobalMetadataAttachment(SmallVectorImpl<uint64_t> &Record,
+                                    const Function &F);
   void writeModuleMetadataKinds();
   void writeOperandBundleTags();
   void writeSyncScopeNames();
@@ -2802,9 +2806,23 @@ void ModuleBitcodeWriter::writeFunctionMetadata(const Function &F) {
 
 void ModuleBitcodeWriter::pushGlobalMetadataAttachment(
     SmallVectorImpl<uint64_t> &Record, const GlobalObject &GO) {
+  if (auto *F = dyn_cast<Function>(&GO)) {
+    pushGlobalMetadataAttachment(Record, *F);
+    return;
+  }
   // [n x [id, mdnode]]
   SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
   GO.getAllMetadata(MDs);
+  for (const auto &I : MDs) {
+    Record.push_back(I.first);
+    Record.push_back(VE.getMetadataID(I.second));
+  }
+}
+void ModuleBitcodeWriter::pushGlobalMetadataAttachment(
+    SmallVectorImpl<uint64_t> &Record, const Function &F) {
+  // [n x [id, mdnode]]
+  SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
+  F.getAllMetadata(MDs);
   for (const auto &I : MDs) {
     Record.push_back(I.first);
     Record.push_back(VE.getMetadataID(I.second));

@@ -983,6 +983,9 @@ private:
 
   /// Add the metadata directly attached to a GlobalObject.
   void processGlobalObjectMetadata(const GlobalObject &GO);
+  /// Function may contain specially-stored metadata that must be enumerated
+  /// specifically.
+  void processGlobalObjectMetadata(const Function &F);
 
   /// Add all of the metadata from a function.
   void processFunctionMetadata(const Function &F);
@@ -1252,6 +1255,12 @@ int SlotTracker::processIndex() {
 void SlotTracker::processGlobalObjectMetadata(const GlobalObject &GO) {
   SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
   GO.getAllMetadata(MDs);
+  for (auto &MD : MDs)
+    CreateMetadataSlot(MD.second);
+}
+void SlotTracker::processGlobalObjectMetadata(const Function &F) {
+  SmallVector<std::pair<unsigned, MDNode *>, 4> MDs;
+  F.getAllMetadata(MDs);
   for (auto &MD : MDs)
     CreateMetadataSlot(MD.second);
 }

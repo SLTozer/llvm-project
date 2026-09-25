@@ -397,22 +397,22 @@ DebugLoc DebugLoc::convertToInlinedCall(DebugLocContext CalleeContext) const {
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
 unsigned DebugLoc::getLine() const {
-  assert(Storage && "Expected valid DebugLoc");
+  assert(Storage && FLContext && "Expected valid DebugLoc");
   return Storage.get().getSrcLoc(FLContext).Line;
 }
 
 unsigned DebugLoc::getCol() const {
-  assert(Storage && "Expected valid DebugLoc");
+  assert(Storage && FLContext && "Expected valid DebugLoc");
   return Storage.get().getSrcLoc(FLContext).Column;
 }
 
 DILocalScope *DebugLoc::getScope() const {
-  assert(Storage && "Expected valid DebugLoc");
+  assert(Storage && FLContext && "Expected valid DebugLoc");
   return Storage.get().getScope(FLContext);
 }
 
 DebugLoc DebugLoc::getInlinedAt() const {
-  assert(Storage && "Expected valid DebugLoc");
+  assert(Storage && FLContext && "Expected valid DebugLoc");
   return DebugLoc(FLDebugLoc::getInlinedCallLoc(Storage.get().getInlinedAtIdx(FLContext)), FLContext);
 }
 DILocalScope *DebugLoc::getInlinedAtScope() const {
@@ -1118,7 +1118,7 @@ DebugLoc::cloneByMultiplyingDuplicationFactor(unsigned DF) const {
 }
 
 Metadata *DebugLoc::getRawScope() const {
-  assert(Storage && "Expected valid DebugLoc");
+  assert(Storage && FLContext && "Expected valid DebugLoc");
   return Storage.Loc.getScope(FLContext);
 }
 Metadata *DebugLoc::getRawInlinedAt() const {
@@ -1135,22 +1135,22 @@ DebugLoc::encodeDiscriminator(unsigned BD, unsigned DF, unsigned CI) {
 }
 #else
 unsigned DebugLoc::getLine() const {
-  assert(Storage && "Expected valid DebugLoc");
+  assert(Storage && FLContext && "Expected valid DebugLoc");
   return Storage.get()->getLine();
 }
 
 unsigned DebugLoc::getCol() const {
-  assert(Storage && "Expected valid DebugLoc");
+  assert(Storage && FLContext && "Expected valid DebugLoc");
   return Storage.get()->getColumn();
 }
 
 DILocalScope *DebugLoc::getScope() const {
-  assert(Storage && "Expected valid DebugLoc");
+  assert(Storage && FLContext && "Expected valid DebugLoc");
   return Storage.get()->getScope();
 }
 
 DebugLoc DebugLoc::getInlinedAt() const {
-  assert(Storage && "Expected valid DebugLoc");
+  assert(Storage && FLContext && "Expected valid DebugLoc");
   return DebugLoc::getFromDILocation(Storage.get()->getInlinedAt());
 }
 

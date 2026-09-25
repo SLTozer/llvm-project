@@ -145,6 +145,7 @@ public:
   void addFlags(RemapFlags Flags);
 
   void remapGlobalObjectMetadata(GlobalObject &GO);
+  void remapGlobalObjectMetadata(Function &GO);
 
   Value *mapValue(const Value *V);
   void remapInstruction(Instruction *I);
@@ -1129,11 +1130,22 @@ void Mapper::remapInstruction(Instruction *I) {
 }
 
 void Mapper::remapGlobalObjectMetadata(GlobalObject &GO) {
+  if (auto *F = dyn_cast<Function>(&GO)) {
+    remapGlobalObjectMetadata(*F);
+    return;
+  }
   SmallVector<std::pair<unsigned, MDNode *>, 8> MDs;
   GO.getAllMetadata(MDs);
   GO.clearMetadata();
   for (const auto &I : MDs)
     GO.addMetadata(I.first, *cast<MDNode>(mapMetadata(I.second)));
+}
+void Mapper::remapGlobalObjectMetadata(Function &F) {
+  SmallVector<std::pair<unsigned, MDNode *>, 8> MDs;
+  F.getAllMetadata(MDs);
+  F.clearMetadata();
+  for (const auto &I : MDs)
+    F.addMetadata(I.first, *cast<MDNode>(mapMetadata(I.second)));
 }
 
 void Mapper::remapFunction(Function &F) {

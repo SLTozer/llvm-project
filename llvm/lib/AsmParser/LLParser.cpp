@@ -2495,7 +2495,10 @@ bool LLParser::parseGlobalObjectMetadataAttachment(GlobalObject &GO) {
   if (parseMetadataAttachment(MDK, N))
     return true;
 
-  GO.addMetadata(MDK, *N);
+  if (auto *F = dyn_cast<Function>(&GO))
+    F->addMetadata(MDK, *N);
+  else
+    GO.addMetadata(MDK, *N);
   if (auto *F = dyn_cast<Function>(&GO); F && MDK == LLVMContext::MD_dbg)
     PendingFnSPs.emplace_back(Lex.getLoc(), F, N);
   return false;

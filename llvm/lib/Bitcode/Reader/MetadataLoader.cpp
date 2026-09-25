@@ -2659,7 +2659,10 @@ Error MetadataLoader::MetadataLoaderImpl::parseGlobalObjectAttachment(
         dyn_cast_or_null<MDNode>(getMetadataFwdRefOrLoad(Record[I + 1]));
     if (!MD)
       return error("Invalid metadata attachment: expect fwd ref to MDNode");
-    GO.addMetadata(K->second, *MD);
+    if (auto *F = dyn_cast<Function>(&GO))
+      F->addMetadata(K->second, *MD);
+    else
+      GO.addMetadata(K->second, *MD);
   }
   return Error::success();
 }
