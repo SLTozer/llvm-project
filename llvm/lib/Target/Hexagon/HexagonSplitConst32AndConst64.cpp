@@ -68,14 +68,14 @@ bool HexagonSplitConst32AndConst64::runOnMachineFunction(MachineFunction &Fn) {
       if (Opc == Hexagon::CONST32) {
         Register DestReg = MI.getOperand(0).getReg();
         uint64_t ImmValue = MI.getOperand(1).getImm();
-        const DebugLoc &DL = MI.getDebugLoc();
+        DebugLoc DL = MI.getFullDebugLoc();
         BuildMI(B, MI, DL, TII->get(Hexagon::A2_tfrsi), DestReg)
             .addImm(ImmValue);
         B.erase(&MI);
       } else if (Opc == Hexagon::CONST64) {
         Register DestReg = MI.getOperand(0).getReg();
         int64_t ImmValue = MI.getOperand(1).getImm();
-        const DebugLoc &DL = MI.getDebugLoc();
+        DebugLoc DL = MI.getFullDebugLoc();
         Register DestLo = TRI->getSubReg(DestReg, Hexagon::isub_lo);
         Register DestHi = TRI->getSubReg(DestReg, Hexagon::isub_hi);
 

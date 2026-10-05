@@ -123,7 +123,7 @@ private:
   bool canSwapInstructions(const MachineInstr *A, const MachineInstr *B);
   MachineInstr *widenLoadStoreAddAsl(Register NewPairReg,
                                      const MachineInstr *FirstMem,
-                                     const DebugLoc &DL);
+                                     DebugLoc DL);
 };
 
 struct HexagonStoreWidening : public MachineFunctionPass {
@@ -550,7 +550,7 @@ bool HexagonLoadStoreWidening::createWideInsts(InstrGroup &OG, InstrGroup &NG,
 // do a normal widening.
 // Same behavior followed for store.
 MachineInstr *HexagonLoadStoreWidening::widenLoadStoreAddAsl(
-    Register NewPairReg, const MachineInstr *FirstMem, const DebugLoc &DL) {
+    Register NewPairReg, const MachineInstr *FirstMem, DebugLoc DL) {
 
   unsigned Base, Offset;
   HII->getBaseAndOffsetPosition(*FirstMem, Base, Offset);
@@ -672,7 +672,7 @@ bool HexagonLoadStoreWidening::createWideStores(InstrGroup &OG, InstrGroup &NG,
   }
 
   MachineInstr *FirstSt = OG.front();
-  DebugLoc DL = OG.back()->getDebugLoc();
+  DebugLoc DL = OG.back()->getFullDebugLoc();
   const MachineMemOperand &OldM = getMemTarget(FirstSt);
   MachineMemOperand *NewM =
       MF->getMachineMemOperand(OldM.getPointerInfo(), OldM.getFlags(),
@@ -805,7 +805,7 @@ bool HexagonLoadStoreWidening::createWideLoads(InstrGroup &OG, InstrGroup &NG,
   MachineOperand &MRBase =
       (HII->isPostIncrement(*FirstLd) ? FirstLd->getOperand(2)
                                       : FirstLd->getOperand(1));
-  DebugLoc DL = OG.back()->getDebugLoc();
+  DebugLoc DL = OG.back()->getFullDebugLoc();
 
   // Create the double register Load Instruction.
   Register NewMR = MRI->createVirtualRegister(&Hexagon::DoubleRegsRegClass);

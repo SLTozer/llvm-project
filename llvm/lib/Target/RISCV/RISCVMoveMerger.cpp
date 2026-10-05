@@ -170,7 +170,7 @@ RISCVMoveMerge::mergeGPRPairInsns(MachineBasicBlock::iterator I,
 
   if (NextI == Paired)
     NextI = next_nodbg(NextI, E);
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
 
   // Make a copy of the second instruction to update the kill
   // flag.
@@ -207,7 +207,7 @@ RISCVMoveMerge::mergePairedInsns(MachineBasicBlock::iterator I,
 
   if (NextI == Paired)
     NextI = next_nodbg(NextI, E);
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
 
   // Make a copy so we can update the kill flag in the MoveFromSToA case. The
   // copied operand needs to be scoped outside the if since we make a pointer
@@ -258,7 +258,7 @@ RISCVMoveMerge::mergePLIPair(MachineBasicBlock::iterator I,
 
   if (NextI == Paired)
     NextI = next_nodbg(NextI, E);
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
 
   unsigned Opcode = getPairedPLIOpcode(I->getOpcode());
   unsigned GPRPairIdx =

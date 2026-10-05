@@ -212,7 +212,7 @@ public:
   bool isVariadic() const { return IsVariadic; }
 
   /// Returns the DebugLoc.
-  const DebugLoc &getDebugLoc() const { return DL; }
+  DebugLoc getDebugLoc() const { return DL; }
 
   /// Returns the SDNodeOrder.  This is the order of the preceding node in the
   /// input.
@@ -252,7 +252,7 @@ public:
   MDNode *getLabel() const { return Label; }
 
   /// Returns the DebugLoc.
-  const DebugLoc &getDebugLoc() const { return DL; }
+  DebugLoc getDebugLoc() const { return DL; }
 
   /// Returns the SDNodeOrder.  This is the order of the preceding node in the
   /// input.

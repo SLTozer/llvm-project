@@ -279,7 +279,7 @@ static void insertNoopsInBundle(MachineInstr *MI, const SIInstrInfo &TII,
   while (Quantity > 0) {
     unsigned Arg = std::min(Quantity, 8u);
     Quantity -= Arg;
-    BuildMI(*MI->getParent(), MI, MI->getDebugLoc(), TII.get(AMDGPU::S_NOP))
+    BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(), TII.get(AMDGPU::S_NOP))
         .addImm(Arg - 1);
   }
 }
@@ -1371,7 +1371,7 @@ int GCNHazardRecognizer::checkReadM0Hazards(MachineInstr *MI) const {
 void GCNHazardRecognizer::emitVNops(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator InsertPt,
                                     int WaitStatesNeeded, bool IsHoisting) {
-  const DebugLoc &DL = IsHoisting ? DebugLoc() : InsertPt->getDebugLoc();
+  DebugLoc DL = IsHoisting ? DebugLoc() : InsertPt->getFullDebugLoc();
   for (int I = 0; I < WaitStatesNeeded; ++I)
     BuildMI(MBB, InsertPt, DL, TII.get(AMDGPU::V_NOP_e32));
 }
@@ -1438,7 +1438,7 @@ bool GCNHazardRecognizer::fixVcmpxPermlaneHazards(MachineInstr *MI) {
   auto *Src0 = TII->getNamedOperand(*MI, AMDGPU::OpName::src0);
   Register Reg = Src0->getReg();
   bool IsUndef = Src0->isUndef();
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII->get(AMDGPU::V_MOV_B32_e32))
       .addReg(Reg, RegState::Define | getDeadRegState(IsUndef))
       .addReg(Reg, IsUndef ? RegState::Undef : RegState::Kill);
@@ -1486,7 +1486,7 @@ bool GCNHazardRecognizer::fixVMEMtoScalarWriteHazards(MachineInstr *MI) {
     return false;
 
   const SIInstrInfo *TII = ST.getInstrInfo();
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII->get(AMDGPU::S_WAITCNT_DEPCTR))
       .addImm(AMDGPU::DepCtr::encodeFieldVmVsrc(0, ST));
   return true;
@@ -1576,7 +1576,7 @@ bool GCNHazardRecognizer::fixSMEMtoVectorWriteHazards(MachineInstr *MI) {
       std::numeric_limits<int>::max())
     return false;
 
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII->get(AMDGPU::S_MOV_B32), AMDGPU::SGPR_NULL)
       .addImm(0);
   return true;
@@ -1619,7 +1619,7 @@ bool GCNHazardRecognizer::fixVcmpxExecWARHazard(MachineInstr *MI) {
       std::numeric_limits<int>::max())
     return false;
 
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII->get(AMDGPU::S_WAITCNT_DEPCTR))
       .addImm(AMDGPU::DepCtr::encodeFieldSaSdst(0, ST));
   return true;
@@ -1700,7 +1700,7 @@ bool GCNHazardRecognizer::fixLdsBranchVmemWARHazard(MachineInstr *MI) {
     return false;
 
   const SIInstrInfo *TII = ST.getInstrInfo();
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII->get(AMDGPU::S_WAITCNT_VSCNT))
     .addReg(AMDGPU::SGPR_NULL, RegState::Undef)
     .addImm(0);
@@ -1784,7 +1784,7 @@ bool GCNHazardRecognizer::fixLdsDirectVMEMHazard(MachineInstr *MI) {
   if (LdsdirCanWait) {
     TII.getNamedOperand(*MI, AMDGPU::OpName::waitvsrc)->setImm(0);
   } else {
-    BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+    BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
             TII.get(AMDGPU::S_WAITCNT_DEPCTR))
         .addImm(AMDGPU::DepCtr::encodeFieldVmVsrc(0, ST));
   }
@@ -1942,7 +1942,7 @@ bool GCNHazardRecognizer::fixVALUPartialForwardingHazard(MachineInstr *MI) {
                             std::next(MI->getReverseIterator())))
     return false;
 
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII.get(AMDGPU::S_WAITCNT_DEPCTR))
       .addImm(AMDGPU::DepCtr::encodeFieldVaVdst(0, ST));
 
@@ -2028,7 +2028,7 @@ bool GCNHazardRecognizer::fixVALUTransUseHazard(MachineInstr *MI) {
 
   // Hazard is observed - insert a wait on va_dst counter to ensure hazard is
   // avoided.
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII.get(AMDGPU::S_WAITCNT_DEPCTR))
       .addImm(AMDGPU::DepCtr::encodeFieldVaVdst(0, ST));
 
@@ -2077,7 +2077,7 @@ bool GCNHazardRecognizer::fixVALUTransCoexecutionHazards(MachineInstr *MI) {
   if (::getWaitStatesSince(IsTransHazardFn, MI, IsExpiredFn) == HasVALU)
     return false;
 
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(), TII->get(AMDGPU::V_NOP_e32));
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(), TII->get(AMDGPU::V_NOP_e32));
   return true;
 }
 
@@ -2130,7 +2130,7 @@ bool GCNHazardRecognizer::fixWMMAHazards(MachineInstr *MI) {
       std::numeric_limits<int>::max())
     return false;
 
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(), TII->get(AMDGPU::V_NOP_e32));
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(), TII->get(AMDGPU::V_NOP_e32));
 
   return true;
 }
@@ -2429,7 +2429,7 @@ bool GCNHazardRecognizer::fixShift64HighRegBug(MachineInstr *MI) {
   assert(ST.needsAlignedVGPRs());
   static_assert(AMDGPU::VGPR0 + 1 == AMDGPU::VGPR1);
 
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   MachineBasicBlock *MBB = MI->getParent();
   MachineOperand *Src1 = TII.getNamedOperand(*MI, AMDGPU::OpName::src1);
 
@@ -3737,7 +3737,7 @@ bool GCNHazardRecognizer::fixVALUMaskWriteHazard(MachineInstr *MI) {
 
   // Add s_waitcnt_depctr after SGPR write.
   auto NextMI = std::next(MI->getIterator());
-  auto NewMI = BuildMI(*MI->getParent(), NextMI, MI->getDebugLoc(),
+  auto NewMI = BuildMI(*MI->getParent(), NextMI, MI->getFullDebugLoc(),
                        TII.get(AMDGPU::S_WAITCNT_DEPCTR))
                    .addImm(DepCtr);
 
@@ -3832,7 +3832,7 @@ bool GCNHazardRecognizer::fixRequiredExportPriority(MachineInstr *MI) {
     EndOfShader = NextMI->getOpcode() == AMDGPU::S_ENDPGM;
   }
 
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   // Lower priority.
   BuildMI(*MBB, NextMI, DL, TII.get(AMDGPU::S_SETPRIO))
@@ -3872,7 +3872,7 @@ bool GCNHazardRecognizer::fixGetRegWaitIdle(MachineInstr *MI) {
     break;
   }
 
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII->get(AMDGPU::S_WAITCNT_DEPCTR))
       .addImm(0);
   return true;
@@ -3883,10 +3883,10 @@ bool GCNHazardRecognizer::fixDsAtomicAsyncBarrierArriveB64(MachineInstr *MI) {
     return false;
 
   const SIInstrInfo *TII = ST.getInstrInfo();
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII->get(AMDGPU::S_WAITCNT_DEPCTR))
       .addImm(AMDGPU::DepCtr::encodeFieldVmVsrc(0, ST));
-  BuildMI(*MI->getParent(), std::next(MI->getIterator()), MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), std::next(MI->getIterator()), MI->getFullDebugLoc(),
           TII->get(AMDGPU::S_WAITCNT_DEPCTR))
       .addImm(AMDGPU::DepCtr::encodeFieldVmVsrc(0, ST));
 
@@ -3962,7 +3962,7 @@ bool GCNHazardRecognizer::fixScratchBaseForwardingHazard(MachineInstr *MI) {
        !IsRegDefHazard(AMDGPU::SGPR103)))
     return false;
 
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
           TII->get(AMDGPU::S_WAITCNT_DEPCTR))
       .addImm(AMDGPU::DepCtr::encodeFieldVaSdst(
           AMDGPU::DepCtr::encodeFieldSaSdst(0, ST), 0));
@@ -3974,7 +3974,7 @@ bool GCNHazardRecognizer::fixSetRegMode(MachineInstr *MI) {
       MI->getOperand(1).getImm() != AMDGPU::Hwreg::ID_MODE)
     return false;
 
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(), TII.get(AMDGPU::V_NOP_e32));
-  BuildMI(*MI->getParent(), MI, MI->getDebugLoc(), TII.get(AMDGPU::V_NOP_e32));
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(), TII.get(AMDGPU::V_NOP_e32));
+  BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(), TII.get(AMDGPU::V_NOP_e32));
   return true;
 }

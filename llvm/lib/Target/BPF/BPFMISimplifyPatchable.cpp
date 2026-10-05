@@ -172,7 +172,7 @@ void BPFMISimplifyPatchable::checkADDrr(MachineRegisterInfo *MRI,
         continue;
     }
 
-    BuildMI(*DefInst->getParent(), *DefInst, DefInst->getDebugLoc(), TII->get(COREOp))
+    BuildMI(*DefInst->getParent(), *DefInst, DefInst->getFullDebugLoc(), TII->get(COREOp))
         .add(DefInst->getOperand(0)).addImm(Opcode).add(*BaseOp)
         .addGlobalAddress(GVal);
     DefInst->eraseFromParent();
@@ -187,7 +187,7 @@ void BPFMISimplifyPatchable::checkShift(MachineRegisterInfo *MRI,
   if (RelocOp != &Inst->getOperand(2))
     return;
 
-  BuildMI(MBB, *Inst, Inst->getDebugLoc(), TII->get(BPF::CORE_SHIFT))
+  BuildMI(MBB, *Inst, Inst->getFullDebugLoc(), TII->get(BPF::CORE_SHIFT))
       .add(Inst->getOperand(0)).addImm(Opcode)
       .add(Inst->getOperand(1)).addGlobalAddress(GVal);
   Inst->eraseFromParent();
@@ -219,7 +219,7 @@ void BPFMISimplifyPatchable::processCandidate(MachineRegisterInfo *MRI,
       }
     }
 
-    BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(BPF::COPY), DstReg)
+    BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(BPF::COPY), DstReg)
         .addReg(SrcReg, {}, BPF::sub_32);
     return;
   }

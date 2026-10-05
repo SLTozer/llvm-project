@@ -150,9 +150,9 @@ static CallInst *isGEPAndStore(Value *I) {
 
 template <class T = Instruction>
 static DebugLoc mergeDebugLocs(SmallVector<T *> &Insns) {
-  DebugLoc Merged = (*Insns.begin())->getDebugLoc();
+  DebugLoc Merged = (*Insns.begin())->getFullDebugLoc();
   for (T *I : Insns)
-    Merged = DebugLoc::getMergedLocation(Merged, I->getDebugLoc());
+    Merged = DebugLoc::getMergedLocation(Merged, I->getFullDebugLoc());
   return Merged;
 }
 
@@ -226,7 +226,7 @@ static Instruction *makeGEPAndLoad(Module *M, GEPChainInfo &GEP,
   CallInst *Call = makeIntrinsicCall(M, Intrinsic::bpf_getelementptr_and_load,
                                      {Load->getType()}, Args);
   setParamElementType(Call, 0, GEP.SourceElementType);
-  Call->applyMergedLocation(mergeDebugLocs(GEP.Members), Load->getDebugLoc());
+  Call->applyMergedLocation(mergeDebugLocs(GEP.Members), Load->getFullDebugLoc());
   Call->setName((*GEP.Members.rbegin())->getName());
   if (Load->isUnordered()) {
     Call->setOnlyReadsMemory();
@@ -250,7 +250,7 @@ static Instruction *makeGEPAndStore(Module *M, GEPChainInfo &GEP,
   setParamElementType(Call, 1, GEP.SourceElementType);
   if (Store->getValueOperand()->getType()->isPointerTy())
     setParamReadNone(Call, 0);
-  Call->applyMergedLocation(mergeDebugLocs(GEP.Members), Store->getDebugLoc());
+  Call->applyMergedLocation(mergeDebugLocs(GEP.Members), Store->getFullDebugLoc());
   if (Store->isUnordered()) {
     Call->setOnlyWritesMemory();
     Call->setOnlyAccessesArgMemory();
@@ -394,10 +394,10 @@ static void reportNonStaticGEPChain(Instruction *Insn) {
       *Insn->getFunction(),
       Twine("Non-constant offset in access to a field of a type marked "
             "with preserve_static_offset might be rejected by BPF verifier")
-          .concat(Insn->getDebugLoc()
+          .concat(Insn->getFullDebugLoc()
                       ? ""
                       : " (pass -g option to get exact location)"),
-      Insn->getDebugLoc(), DS_Warning));
+      Insn->getFullDebugLoc(), DS_Warning));
 }
 
 static bool allZeroIndices(SmallVector<GetElementPtrInst *> &GEPs) {

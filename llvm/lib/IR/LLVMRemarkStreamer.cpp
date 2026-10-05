@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/IR/LLVMRemarkStreamer.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalValue.h"
@@ -47,12 +48,12 @@ static remarks::Type toRemarkType(enum DiagnosticKind Kind) {
 
 /// DiagnosticLocation -> remarks::RemarkLocation.
 static std::optional<remarks::RemarkLocation>
-toRemarkLocation(const DiagnosticLocation &DL) {
+toRemarkLocation(const DiagnosticLocation &DL, DebugLocContext Ctx) {
   if (!DL.isValid())
     return std::nullopt;
-  StringRef File = DL.getRelativePath();
-  unsigned Line = DL.getLine();
-  unsigned Col = DL.getColumn();
+  StringRef File = DL.getRelativePath(Ctx);
+  unsigned Line = DL.getLine(Ctx);
+  unsigned Col = DL.getColumn(Ctx);
   return remarks::RemarkLocation{File, Line, Col};
 }
 
@@ -65,14 +66,14 @@ LLVMRemarkStreamer::toRemark(const DiagnosticInfoOptimizationBase &Diag) const {
   R.RemarkName = Diag.getRemarkName();
   R.FunctionName =
       GlobalValue::dropLLVMManglingEscape(Diag.getFunction().getName());
-  R.Loc = toRemarkLocation(Diag.getLocation());
+  R.Loc = toRemarkLocation(Diag.getLocation(), &Diag.getFunction());
   R.Hotness = Diag.getHotness();
 
   for (const DiagnosticInfoOptimizationBase::Argument &Arg : Diag.getArgs()) {
     R.Args.emplace_back();
     R.Args.back().Key = Arg.Key;
     R.Args.back().Val = Arg.Val;
-    R.Args.back().Loc = toRemarkLocation(Arg.Loc);
+    R.Args.back().Loc = toRemarkLocation(Arg.Loc, &Diag.getFunction());
   }
 
   return R;

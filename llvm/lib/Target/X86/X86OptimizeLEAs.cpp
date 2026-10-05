@@ -577,7 +577,7 @@ MachineInstr *X86OptimizeLEAsImpl::replaceDebugValue(MachineInstr &MI,
 
   // Replace DBG_VALUE instruction with modified version.
   MachineBasicBlock *MBB = MI.getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   bool IsIndirect = MI.isIndirectDebugValue();
   const MDNode *Var = MI.getDebugVariable();
   unsigned Opcode = MI.isNonListDebugValue() ? TargetOpcode::DBG_VALUE

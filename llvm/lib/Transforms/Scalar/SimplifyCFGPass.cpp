@@ -141,10 +141,10 @@ performBlockTailMerging(Function &F, ArrayRef<BasicBlock *> BBs,
 
     // Compute the debug location common to all the original terminators.
     if (!CommonDebugLoc)
-      CommonDebugLoc = Term->getDebugLoc();
+      CommonDebugLoc = Term->getFullDebugLoc();
     else
       CommonDebugLoc =
-          DebugLoc::getMergedLocation(CommonDebugLoc, Term->getDebugLoc());
+          DebugLoc::getMergedLocation(CommonDebugLoc, Term->getFullDebugLoc());
 
     // And turn BB into a block that just unconditionally branches
     // to the canonical block.

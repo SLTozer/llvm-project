@@ -105,7 +105,7 @@ static bool needsDwarfCFI(const MachineFunction &MF) {
 // User should not use x3 in their asm.
 static void emitSCSPrologue(MachineFunction &MF, MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MI,
-                            const DebugLoc &DL) {
+                            DebugLoc DL) {
   const auto &STI = MF.getSubtarget<RISCVSubtarget>();
   // We check Zimop instead of (Zimop || Zcmop) to determine whether HW shadow
   // stack is available despite the fact that sspush/sspopchk both have a
@@ -178,7 +178,7 @@ static void emitSCSPrologue(MachineFunction &MF, MachineBasicBlock &MBB,
 
 static void emitSCSEpilogue(MachineFunction &MF, MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MI,
-                            const DebugLoc &DL) {
+                            DebugLoc DL) {
   const auto &STI = MF.getSubtarget<RISCVSubtarget>();
   bool HasHWShadowStack = MF.getFunction().hasFnAttribute("hw-shadow-stack") &&
                           STI.hasStdExtZimop();
@@ -227,7 +227,7 @@ static void emitSCSEpilogue(MachineFunction &MF, MachineBasicBlock &MBB,
 // Insert instruction to swap mscratchsw with sp
 static void emitSiFiveCLICStackSwap(MachineFunction &MF, MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator MBBI,
-                                    const DebugLoc &DL) {
+                                    DebugLoc DL) {
   auto *RVFI = MF.getInfo<RISCVMachineFunctionInfo>();
 
   if (!RVFI->isSiFiveStackSwapInterrupt(MF))
@@ -271,7 +271,7 @@ createSiFivePreemptibleInterruptFrameEntries(MachineFunction &MF,
 static void emitSiFiveCLICPreemptibleSaves(MachineFunction &MF,
                                            MachineBasicBlock &MBB,
                                            MachineBasicBlock::iterator MBBI,
-                                           const DebugLoc &DL) {
+                                           DebugLoc DL) {
   auto *RVFI = MF.getInfo<RISCVMachineFunctionInfo>();
 
   if (!RVFI->isSiFivePreemptibleInterrupt(MF))
@@ -323,7 +323,7 @@ static void emitSiFiveCLICPreemptibleSaves(MachineFunction &MF,
 static void emitSiFiveCLICPreemptibleRestores(MachineFunction &MF,
                                               MachineBasicBlock &MBB,
                                               MachineBasicBlock::iterator MBBI,
-                                              const DebugLoc &DL) {
+                                              DebugLoc DL) {
   auto *RVFI = MF.getInfo<RISCVMachineFunctionInfo>();
 
   if (!RVFI->isSiFivePreemptibleInterrupt(MF))
@@ -649,7 +649,7 @@ getQCISavedInfo(const MachineFunction &MF,
 
 void RISCVFrameLowering::allocateAndProbeStackForRVV(
     MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL, int64_t Amount,
+    MachineBasicBlock::iterator MBBI, DebugLoc DL, int64_t Amount,
     MachineInstr::MIFlag Flag, bool EmitCFI, bool DynAllocation) const {
   assert(Amount != 0 && "Did not need to adjust stack pointer for RVV.");
 
@@ -1232,7 +1232,7 @@ void RISCVFrameLowering::emitPrologue(MachineFunction &MF,
 void RISCVFrameLowering::deallocateStack(MachineFunction &MF,
                                          MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator MBBI,
-                                         const DebugLoc &DL,
+                                         DebugLoc DL,
                                          uint64_t &StackSize,
                                          int64_t CFAOffset) const {
   const RISCVRegisterInfo *RI = STI.getRegisterInfo();
@@ -1265,7 +1265,7 @@ void RISCVFrameLowering::emitEpilogue(MachineFunction &MF,
   if (!MBB.empty()) {
     MBBI = MBB.getLastNonDebugInstr();
     if (MBBI != MBB.end())
-      DL = MBBI->getDebugLoc();
+      DL = MBBI->getFullDebugLoc();
 
     MBBI = MBB.getFirstTerminator();
 
@@ -1492,7 +1492,7 @@ void RISCVFrameLowering::emitZeroCallUsedRegs(BitVector RegsToZero,
   // Fake a debug loc.
   DebugLoc DL;
   if (MBBI != MBB.end())
-    DL = MBBI->getDebugLoc();
+    DL = MBBI->getFullDebugLoc();
 
   const MachineFunction &MF = *MBB.getParent();
   const RISCVRegisterInfo &TRI = *STI.getRegisterInfo();
@@ -2089,7 +2089,7 @@ bool RISCVFrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
 MachineBasicBlock::iterator RISCVFrameLowering::eliminateCallFramePseudoInstr(
     MachineFunction &MF, MachineBasicBlock &MBB,
     MachineBasicBlock::iterator MI) const {
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   if (!hasReservedCallFrame(MF)) {
     // If space has not been reserved for a call frame, ADJCALLSTACKDOWN and
@@ -2344,7 +2344,7 @@ bool RISCVFrameLowering::spillCalleeSavedRegisters(
   const TargetInstrInfo &TII = *MF->getSubtarget().getInstrInfo();
   DebugLoc DL;
   if (MI != MBB.end() && !MI->isDebugInstr())
-    DL = MI->getDebugLoc();
+    DL = MI->getFullDebugLoc();
 
   RISCVMachineFunctionInfo *RVFI = MF->getInfo<RISCVMachineFunctionInfo>();
   if (RVFI->useQCIInterrupt(*MF)) {
@@ -2479,7 +2479,7 @@ bool RISCVFrameLowering::restoreCalleeSavedRegisters(
   const TargetInstrInfo &TII = *MF->getSubtarget().getInstrInfo();
   DebugLoc DL;
   if (MI != MBB.end() && !MI->isDebugInstr())
-    DL = MI->getDebugLoc();
+    DL = MI->getFullDebugLoc();
 
   // Manually restore values not restored by libcall & Push/Pop.
   // Reverse the restore order in epilog.  In addition, the return

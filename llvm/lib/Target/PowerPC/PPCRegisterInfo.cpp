@@ -747,7 +747,7 @@ void PPCRegisterInfo::lowerDynamicAlloc(MachineBasicBlock::iterator II) const {
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   // Determine whether 64-bit pointers are used.
   bool LP64 = TM.isPPC64();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   // Get the maximum call stack size.
   unsigned maxCallFrameSize = MFI.getMaxCallFrameSize();
@@ -807,7 +807,7 @@ void PPCRegisterInfo::prepareDynamicAlloca(MachineBasicBlock::iterator II,
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   // Determine whether 64-bit pointers are used.
   bool LP64 = TM.isPPC64();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   // Get the total frame size.
   unsigned FrameSize = MFI.getStackSize();
 
@@ -893,7 +893,7 @@ void PPCRegisterInfo::lowerPrepareProbedAlloca(
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   // Determine whether 64-bit pointers are used.
   bool LP64 = TM.isPPC64();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   Register FramePointer = MI.getOperand(0).getReg();
   const Register ActualNegSizeReg = MI.getOperand(1).getReg();
   bool KillNegSizeReg = MI.getOperand(2).isKill();
@@ -938,7 +938,7 @@ void PPCRegisterInfo::lowerDynamicAreaOffset(
 
   unsigned maxCallFrameSize = MFI.getMaxCallFrameSize();
   bool is64Bit = TM.isPPC64();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   BuildMI(MBB, II, dl, TII.get(is64Bit ? PPC::LI8 : PPC::LI),
           MI.getOperand(0).getReg())
       .addImm(maxCallFrameSize);
@@ -962,7 +962,7 @@ void PPCRegisterInfo::lowerCRSpilling(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   bool LP64 = TM.isPPC64();
   const TargetRegisterClass *G8RC = &PPC::G8RCRegClass;
@@ -1007,7 +1007,7 @@ void PPCRegisterInfo::lowerCRRestore(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   bool LP64 = TM.isPPC64();
   const TargetRegisterClass *G8RC = &PPC::G8RCRegClass;
@@ -1051,7 +1051,7 @@ void PPCRegisterInfo::lowerCRBitSpilling(MachineBasicBlock::iterator II,
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   const TargetRegisterInfo* TRI = Subtarget.getRegisterInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   bool LP64 = TM.isPPC64();
   const TargetRegisterClass *G8RC = &PPC::G8RCRegClass;
@@ -1174,7 +1174,7 @@ void PPCRegisterInfo::lowerCRBitRestore(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   bool LP64 = TM.isPPC64();
   const TargetRegisterClass *G8RC = &PPC::G8RCRegClass;
@@ -1278,7 +1278,7 @@ void PPCRegisterInfo::lowerOctWordSpilling(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register SrcReg = MI.getOperand(0).getReg();
   bool IsLittleEndian = Subtarget.isLittleEndian();
   bool IsKilled = MI.getOperand(0).isKill();
@@ -1314,7 +1314,7 @@ void PPCRegisterInfo::lowerACCSpilling(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register SrcReg = MI.getOperand(0).getReg();
   bool IsKilled = MI.getOperand(0).isKill();
 
@@ -1363,7 +1363,7 @@ void PPCRegisterInfo::lowerACCRestore(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register DestReg = MI.getOperand(0).getReg();
   assert(MI.definesRegister(DestReg, /*TRI=*/nullptr) &&
@@ -1398,7 +1398,7 @@ void PPCRegisterInfo::lowerWACCSpilling(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   bool IsLittleEndian = Subtarget.isLittleEndian();
 
   emitWAccSpillRestoreInfo(MBB, false);
@@ -1432,7 +1432,7 @@ void PPCRegisterInfo::lowerWACCRestore(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   bool IsLittleEndian = Subtarget.isLittleEndian();
 
   emitWAccSpillRestoreInfo(MBB, true);
@@ -1464,7 +1464,7 @@ void PPCRegisterInfo::lowerQuadwordSpilling(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register SrcReg = MI.getOperand(0).getReg();
   bool IsKilled = MI.getOperand(0).isKill();
@@ -1491,7 +1491,7 @@ void PPCRegisterInfo::lowerQuadwordRestore(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register DestReg = MI.getOperand(0).getReg();
   assert(MI.definesRegister(DestReg, /*TRI=*/nullptr) &&
@@ -1517,7 +1517,7 @@ void PPCRegisterInfo::lowerDMRSpilling(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   bool IsLittleEndian = Subtarget.isLittleEndian();
 
   // DMR is made up of WACC and WACC_HI, so DMXXEXTFDMR512 to spill
@@ -1562,7 +1562,7 @@ void PPCRegisterInfo::lowerDMRRestore(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   bool IsLittleEndian = Subtarget.isLittleEndian();
 
   const TargetRegisterClass *RC = &PPC::VSRpRCRegClass;
@@ -1686,7 +1686,7 @@ PPCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   const PPCInstrInfo &TII = *Subtarget.getInstrInfo();
   // Get the frame info.
   MachineFrameInfo &MFI = MF.getFrameInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   unsigned OffsetOperandNo = getOffsetONFromFION(MI, FIOperandNum);
 
@@ -2014,7 +2014,7 @@ Register PPCRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
   MachineBasicBlock::iterator Ins = MBB->begin();
   DebugLoc DL;                  // Defaults to "unknown"
   if (Ins != MBB->end())
-    DL = Ins->getDebugLoc();
+    DL = Ins->getFullDebugLoc();
 
   const MachineFunction &MF = *MBB->getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();

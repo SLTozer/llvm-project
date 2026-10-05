@@ -6909,8 +6909,8 @@ static void replaceUsesOfNonProtoConstant(llvm::Constant *old,
       callSite->replaceAllUsesWith(newCall);
 
     // Copy debug location attached to CI.
-    if (callSite->getDebugLoc())
-      newCall->setDebugLoc(callSite->getDebugLoc());
+    if (callSite->getFullDebugLoc())
+      newCall->setDebugLoc(callSite->getFullDebugLoc());
 
     callSitesToBeRemovedFromParent.push_back(callSite);
   }

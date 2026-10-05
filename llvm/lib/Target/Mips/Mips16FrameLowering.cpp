@@ -74,7 +74,7 @@ void Mips16FrameLowering::emitEpilogue(MachineFunction &MF,
   MachineFrameInfo &MFI = MF.getFrameInfo();
   const Mips16InstrInfo &TII =
       *static_cast<const Mips16InstrInfo *>(STI.getInstrInfo());
-  DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc dl = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
   uint64_t StackSize = MFI.getStackSize();
 
   if (!StackSize)

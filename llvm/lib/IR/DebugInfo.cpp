@@ -158,7 +158,7 @@ DISubprogram *llvm::getDISubprogram(const MDNode *Scope) {
 
 DebugLoc llvm::getDebugValueLoc(DbgVariableRecord *DVR) {
   // Original dbg.declare must have a location.
-  const DebugLoc &DeclareLoc = DVR->getDebugLoc();
+  DebugLoc DeclareLoc = DVR->getFullDebugLoc();
   MDNode *Scope = DeclareLoc.getScope();
   DebugLoc InlinedAt = DeclareLoc.getInlinedAt();
   // Because no machine insts can come from debug intrinsics, only the scope
@@ -224,7 +224,7 @@ void DebugInfoFinder::processInstruction(const Module &M,
   if (auto *DVI = dyn_cast<DbgVariableIntrinsic>(&I))
     processVariable(DVI->getVariable());
 
-  if (auto DbgLoc = I.getDebugLoc())
+  if (auto DbgLoc = I.getFullDebugLoc())
     processLocation(M, DbgLoc);
 
   for (const DbgRecord &DPR : I.getDbgRecordRange())
@@ -241,7 +241,7 @@ void DebugInfoFinder::processLocation(const Module &M, DebugLoc Loc) {
 void DebugInfoFinder::processDbgRecord(const Module &M, const DbgRecord &DR) {
   if (const DbgVariableRecord *DVR = dyn_cast<const DbgVariableRecord>(&DR))
     processVariable(DVR->getVariable());
-  processLocation(M, DR.getDebugLoc());
+  processLocation(M, DR.getFullDebugLoc());
 }
 
 void DebugInfoFinder::processVariable(DIVariable *DV) {
@@ -679,7 +679,7 @@ bool llvm::stripDebugInfo(Function &F) {
   DenseMap<MDNode *, MDNode *> LoopIDsMap;
   for (BasicBlock &BB : F) {
     for (Instruction &I : llvm::make_early_inc_range(BB)) {
-      if (I.getDebugLoc()) {
+      if (I.getFullDebugLoc()) {
         Changed = true;
         I.setDebugLoc(DebugLoc());
       }
@@ -1010,7 +1010,7 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
     }
     for (auto &BB : F) {
       for (auto &I : BB) {
-        auto remapDebugLoc = [&](const DebugLoc &DL) -> DebugLoc {
+        auto remapDebugLoc = [&](DebugLoc DL) -> DebugLoc {
           MDNode *Scope = DL.getScope();
           MDNode *InlinedAt = DL.getInlinedAt().getAsMDNode();
           Scope = remap(Scope);
@@ -1020,8 +1020,8 @@ bool llvm::stripNonLineTableDebugInfo(Module &M) {
             DebugLoc::getFromDILocation(cast_or_null<DILocation>(InlinedAt)));
         };
 
-        if (I.getDebugLoc() != DebugLoc())
-          I.setDebugLoc(remapDebugLoc(I.getDebugLoc()));
+        if (I.getFullDebugLoc() != DebugLoc())
+          I.setDebugLoc(remapDebugLoc(I.getFullDebugLoc()));
 
         // Remap DILocations in llvm.loop attachments.
         updateLoopMetadataDebugLocations(I, [&](Metadata *MD) -> Metadata * {
@@ -1101,7 +1101,7 @@ void Instruction::mergeDIAssignID(
 void Instruction::updateLocationAfterHoist() { dropLocation(); }
 
 void Instruction::dropLocation() {
-  const DebugLoc &DL = getDebugLoc();
+  DebugLoc DL = getFullDebugLoc();
   if (!DL) {
     setDebugLoc(DebugLoc::getDropped());
     return;
@@ -2070,7 +2070,7 @@ void LLVMDISubprogramReplaceType(LLVMMetadataRef Subprogram,
 }
 
 LLVMMetadataRef LLVMInstructionGetDebugLoc(LLVMValueRef Inst) {
-  return wrap(unwrap<Instruction>(Inst)->getDebugLoc().getAsMDNode());
+  return wrap(unwrap<Instruction>(Inst)->getFullDebugLoc().getAsMDNode());
 }
 
 void LLVMInstructionSetDebugLoc(LLVMValueRef Inst, LLVMMetadataRef Loc) {

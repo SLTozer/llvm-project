@@ -461,7 +461,7 @@ public:
   MDNode *getMetadata(unsigned KindID) const {
     // Handle 'dbg' as a special case since it is not stored in the hash table.
     if (KindID == LLVMContext::MD_dbg)
-      return getDebugLoc().getAsMDNode();
+      return getFullDebugLoc().getAsMDNode();
     return hasMetadataOtherThanDebugLoc() ? Value::getMetadataImpl(KindID)
                                           : nullptr;
   }
@@ -561,13 +561,14 @@ public:
   bool hasDebugLoc() const {
     return (bool)DbgLoc;
   }
-  DebugLoc getDebugLoc() const;
+  DbgLocStorage getDebugLoc() const { return DbgLoc; }
+  DebugLoc getFullDebugLoc() const;
   DbgLocStorage getDebugLocStorage() const { return DbgLoc; }
   /// Return the debug location for this node as a DebugLoc, using the provided
   /// Function's FLMD context for FLMD builds. This is only needed, and should
   /// only be used, for instructions that have not been inserted into a function
   /// yet.
-  DebugLoc getDebugLoc(const Function *ContextFunction) const;
+  DebugLoc getFullDebugLoc(const Function *ContextFunction) const;
 
   /// Fetch the debug location for this node, unless this is a debug intrinsic,
   /// in which case fetch the debug location of the next non-debug node.

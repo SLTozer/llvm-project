@@ -671,7 +671,7 @@ static MachineInstr *moveAndTeeForMultiUse(
 
   // Create the Tee and attach the registers.
   MachineOperand &DefMO = Def->getOperand(0);
-  MachineInstr *Tee = BuildMI(MBB, Insert, Insert->getDebugLoc(),
+  MachineInstr *Tee = BuildMI(MBB, Insert, Insert->getFullDebugLoc(),
                               TII->get(getTeeOpcode(RegClass)), TeeReg)
                           .addReg(Reg, RegState::Define)
                           .addReg(DefReg, getUndefRegState(DefMO.isDead()));

@@ -172,7 +172,7 @@ static bool callHasRegMask(MachineInstr &MI) {
 static bool insertVZeroUpper(MachineBasicBlock::iterator I,
                              MachineBasicBlock &MBB,
                              const TargetInstrInfo *TII) {
-  BuildMI(MBB, I, I->getDebugLoc(), TII->get(X86::VZEROUPPER));
+  BuildMI(MBB, I, I->getFullDebugLoc(), TII->get(X86::VZEROUPPER));
   ++NumVZU;
   return true;
 }

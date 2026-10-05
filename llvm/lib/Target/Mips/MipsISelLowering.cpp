@@ -1291,7 +1291,7 @@ static MachineBasicBlock *insertDivByZeroTrap(MachineInstr &MI,
   MachineBasicBlock::iterator I(MI);
   MachineInstrBuilder MIB;
   MachineOperand &Divisor = MI.getOperand(2);
-  MIB = BuildMI(MBB, std::next(I), MI.getDebugLoc(),
+  MIB = BuildMI(MBB, std::next(I), MI.getFullDebugLoc(),
                 TII.get(IsMicroMips ? Mips::TEQ_MM : Mips::TEQ))
             .addReg(Divisor.getReg(), getKillRegState(Divisor.isKill()))
             .addReg(Mips::ZERO)
@@ -1490,7 +1490,7 @@ MipsTargetLowering::emitAtomicBinary(MachineInstr &MI,
   MachineFunction *MF = BB->getParent();
   MachineRegisterInfo &RegInfo = MF->getRegInfo();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   unsigned AtomicOp;
   bool NeedsAdditionalReg = false;
@@ -1644,7 +1644,7 @@ MachineBasicBlock *MipsTargetLowering::emitSignExtendToI32InReg(
     MachineInstr &MI, MachineBasicBlock *BB, unsigned Size, unsigned DstReg,
     unsigned SrcReg) const {
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (Subtarget.hasMips32r2() && Size == 1) {
     BuildMI(BB, DL, TII->get(Mips::SEB), DstReg).addReg(SrcReg);
@@ -1682,7 +1682,7 @@ MachineBasicBlock *MipsTargetLowering::emitAtomicBinaryPartword(
   const TargetRegisterClass *RCp =
     getRegClassFor(ArePtrs64bit ? MVT::i64 : MVT::i32);
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register Dest = MI.getOperand(0).getReg();
   Register Ptr = MI.getOperand(1).getReg();
@@ -1876,7 +1876,7 @@ MipsTargetLowering::emitAtomicCmpSwap(MachineInstr &MI,
   MachineRegisterInfo &MRI = MF->getRegInfo();
   const TargetRegisterClass *RC = getRegClassFor(MVT::getIntegerVT(Size * 8));
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   unsigned AtomicOp = MI.getOpcode() == Mips::ATOMIC_CMP_SWAP_I32
                           ? Mips::ATOMIC_CMP_SWAP_I32_POSTRA
@@ -1931,7 +1931,7 @@ MachineBasicBlock *MipsTargetLowering::emitAtomicCmpSwapPartword(
   const TargetRegisterClass *RCp =
     getRegClassFor(ArePtrs64bit ? MVT::i64 : MVT::i32);
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register Dest = MI.getOperand(0).getReg();
   Register Ptr = MI.getOperand(1).getReg();
@@ -4771,7 +4771,7 @@ MachineBasicBlock *MipsTargetLowering::emitPseudoSELECT(MachineInstr &MI,
 
   const TargetInstrInfo *TII =
       Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // To "insert" a SELECT instruction, we actually have to insert the
   // diamond control-flow pattern.  The incoming instruction knows the
@@ -4847,7 +4847,7 @@ MipsTargetLowering::emitPseudoD_SELECT(MachineInstr &MI,
          "conditional-move instructions.");
 
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // D_SELECT substitutes two SELECT nodes that goes one after another and
   // have the same condition operand. On machines which don't have
@@ -5018,7 +5018,7 @@ MachineBasicBlock *MipsTargetLowering::emitLDR_W(MachineInstr &MI,
   MachineRegisterInfo &MRI = MF->getRegInfo();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const bool IsLittle = Subtarget.isLittle();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register Dest = MI.getOperand(0).getReg();
   Register Address = MI.getOperand(1).getReg();
@@ -5064,7 +5064,7 @@ MachineBasicBlock *MipsTargetLowering::emitLDR_D(MachineInstr &MI,
   MachineRegisterInfo &MRI = MF->getRegInfo();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const bool IsLittle = Subtarget.isLittle();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register Dest = MI.getOperand(0).getReg();
   Register Address = MI.getOperand(1).getReg();
@@ -5148,7 +5148,7 @@ MachineBasicBlock *MipsTargetLowering::emitSTR_W(MachineInstr &MI,
   MachineRegisterInfo &MRI = MF->getRegInfo();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const bool IsLittle = Subtarget.isLittle();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register StoreVal = MI.getOperand(0).getReg();
   Register Address = MI.getOperand(1).getReg();
@@ -5198,7 +5198,7 @@ MachineBasicBlock *MipsTargetLowering::emitSTR_D(MachineInstr &MI,
   MachineRegisterInfo &MRI = MF->getRegInfo();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const bool IsLittle = Subtarget.isLittle();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register StoreVal = MI.getOperand(0).getReg();
   Register Address = MI.getOperand(1).getReg();

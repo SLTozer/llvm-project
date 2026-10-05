@@ -99,7 +99,7 @@ static bool maybeRewriteToFallthrough(MachineInstr &MI, MachineBasicBlock &MBB,
       const TargetRegisterClass *RegClass = MRI.getRegClass(Reg);
       CopyLocalOpc = WebAssembly::getCopyOpcodeForRegClass(RegClass);
       Register NewReg = MRI.createVirtualRegister(RegClass);
-      BuildMI(MBB, MI, MI.getDebugLoc(), TII.get(CopyLocalOpc), NewReg)
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), TII.get(CopyLocalOpc), NewReg)
           .addReg(Reg);
       MO.setReg(NewReg);
       MFI.stackifyVReg(MRI, NewReg);

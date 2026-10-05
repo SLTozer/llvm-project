@@ -1127,7 +1127,7 @@ private:
 
       assert(ParentBB->getUniqueSuccessor() == SeqStartBB &&
              "Expected a different CFG");
-      const DebugLoc DL = ParentBB->getTerminator()->getDebugLoc();
+      const DebugLoc DL = ParentBB->getTerminator()->getFullDebugLoc();
       ParentBB->getTerminator()->eraseFromParent();
 
       auto BodyGenCB = [&](InsertPointTy AllocaIP, InsertPointTy CodeGenIP,
@@ -1212,7 +1212,7 @@ private:
         OR << "Parallel region merged with parallel region"
            << (MergableCIs.size() > 2 ? "s" : "") << " at ";
         for (auto *CI : llvm::drop_begin(MergableCIs)) {
-          OR << ore::NV("OpenMPParallelMerge", CI->getDebugLoc());
+          OR << ore::NV("OpenMPParallelMerge", CI->getFullDebugLoc());
           if (CI != MergableCIs.back())
             OR << ", ";
         }
@@ -1234,7 +1234,7 @@ private:
                            "omp.par.merged");
 
       assert(BB->getUniqueSuccessor() == StartBB && "Expected a different CFG");
-      const DebugLoc DL = BB->getTerminator()->getDebugLoc();
+      const DebugLoc DL = BB->getTerminator()->getFullDebugLoc();
       BB->getTerminator()->eraseFromParent();
 
       // Create sequential regions for sequential instructions that are
@@ -1286,7 +1286,7 @@ private:
 
         CallInst *NewCI =
             CallInst::Create(FT, Callee, Args, "", CI->getIterator());
-        if (CI->getDebugLoc())
+        if (CI->getFullDebugLoc())
           NewCI->copyDebugLocFrom(CI);
 
         // Forward parameter attributes from the callback to the callee.
@@ -1897,7 +1897,7 @@ private:
         return OR << "OpenMP runtime call "
                   << ore::NV("OpenMPOptRuntime", RFI.Name) << " deduplicated.";
       };
-      if (CI->getDebugLoc())
+      if (CI->getFullDebugLoc())
         emitRemark<OptimizationRemark>(CI, "OMP170", Remark);
       else
         emitRemark<OptimizationRemark>(&F, "OMP170", Remark);
@@ -4057,7 +4057,7 @@ struct AAKernelInfoFunction : AAKernelInfo {
       auto &OMPInfoCache = static_cast<OMPInformationCache &>(A.getInfoCache());
 
       // Go to tid check BB in ParentBB.
-      const DebugLoc DL = ParentBB->getTerminator()->getDebugLoc();
+      const DebugLoc DL = ParentBB->getTerminator()->getFullDebugLoc();
       ParentBB->getTerminator()->eraseFromParent();
       OpenMPIRBuilder::LocationDescription Loc(
           InsertPointTy(ParentBB, ParentBB->end()), DL);
@@ -4204,7 +4204,7 @@ struct AAKernelInfoFunction : AAKernelInfo {
     A.registerManifestAddedBasicBlock(*ReturnBB);
 
     // Debug location:
-    const DebugLoc &DLoc = KernelInitCB->getDebugLoc();
+    DebugLoc DLoc = KernelInitCB->getFullDebugLoc();
     ReturnInst::Create(Ctx, ReturnBB)->setDebugLoc(DLoc);
     InitBB->getTerminator()->eraseFromParent();
 
@@ -4460,7 +4460,7 @@ struct AAKernelInfoFunction : AAKernelInfo {
     A.registerManifestAddedBasicBlock(*StateMachineEndParallelBB);
     A.registerManifestAddedBasicBlock(*StateMachineDoneBarrierBB);
 
-    const DebugLoc &DLoc = KernelInitCB->getDebugLoc();
+    DebugLoc DLoc = KernelInitCB->getFullDebugLoc();
     ReturnInst::Create(Ctx, StateMachineFinishedBB)->setDebugLoc(DLoc);
     InitBB->getTerminator()->eraseFromParent();
 

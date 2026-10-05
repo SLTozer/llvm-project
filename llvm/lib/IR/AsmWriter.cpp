@@ -4554,9 +4554,9 @@ void AssemblyWriter::printInfoComment(const Value &V, bool isMaterializable) {
 
   if (PrintInstDebugLocs) {
     if (auto *I = dyn_cast<Instruction>(&V)) {
-      if (I->getDebugLoc()) {
+      if (I->getFullDebugLoc()) {
         Out << " ; ";
-        I->getDebugLoc().print(Out);
+        I->getFullDebugLoc().print(Out);
       }
     }
   }
@@ -5048,7 +5048,7 @@ void AssemblyWriter::printInstruction(const Instruction &I) {
 
   // Print Metadata info.
   SmallVector<std::pair<unsigned, MDNode *>, 4> InstMD;
-  if (auto DL = I.getDebugLoc()) {
+  if (auto DL = I.getFullDebugLoc()) {
     if (PrintFLMD == PrintFLMDMode::Normal) {
       // Print !!dbgLoc
       Out << ", ";
@@ -5136,7 +5136,7 @@ void AssemblyWriter::printDbgVariableRecord(const DbgVariableRecord &DVR) {
     Out << ", ";
   }
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  writeFLDebugLoc(Out, DVR.getDebugLoc().getUnderlyingStorage(), WriterCtx);
+  writeFLDebugLoc(Out, DVR.getFullDebugLoc().getUnderlyingStorage(), WriterCtx);
 #else
   PrintOrNull(DVR.getDebugLoc().getAsDILocation());
 #endif
@@ -5158,7 +5158,7 @@ void AssemblyWriter::printDbgLabelRecord(const DbgLabelRecord &Label) {
   writeAsOperandInternal(Out, Label.getRawLabel(), WriterCtx, true);
   Out << ", ";
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  writeFLDebugLoc(Out, Label.getDebugLoc().getUnderlyingStorage(), WriterCtx);
+  writeFLDebugLoc(Out, Label.getFullDebugLoc().getUnderlyingStorage(), WriterCtx);
 #else
   writeAsOperandInternal(Out, Label.getDebugLoc().getAsDILocation(), WriterCtx, true);
 #endif

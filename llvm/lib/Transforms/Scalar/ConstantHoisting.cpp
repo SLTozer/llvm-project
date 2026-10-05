@@ -891,7 +891,7 @@ bool ConstantHoistingPass::emitBaseConstants(GlobalVariable *BaseGV) {
         ReBasesNum++;
         // Use the same debug location as the last user of the constant.
         Base->setDebugLoc(DebugLoc::getMergedLocation(
-            Base->getDebugLoc(), R.User.Inst->getDebugLoc()));
+            Base->getFullDebugLoc(), R.User.Inst->getFullDebugLoc()));
       }
       assert(!Base->use_empty() && "The use list is empty!?");
       assert(isa<Instruction>(Base->user_back()) &&

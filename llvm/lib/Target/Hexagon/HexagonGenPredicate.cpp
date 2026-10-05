@@ -239,7 +239,7 @@ RegSubRegPair HexagonGenPredicate::getPredRegFor(const RegSubRegPair &Reg) {
   }
 
   MachineBasicBlock &B = *DefI->getParent();
-  DebugLoc DL = DefI->getDebugLoc();
+  DebugLoc DL = DefI->getFullDebugLoc();
   const TargetRegisterClass *PredRC = &Hexagon::PredRegsRegClass;
   Register NewPR = MRI->createVirtualRegister(PredRC);
 
@@ -358,7 +358,7 @@ bool HexagonGenPredicate::convertToPredForm(MachineInstr *MI) {
   }
 
   MachineBasicBlock &B = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   unsigned NewOpc = getPredForm(Opc);
   // Special case for comparisons against 0.

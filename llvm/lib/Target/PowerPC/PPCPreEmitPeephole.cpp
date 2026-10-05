@@ -562,7 +562,7 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
           if (!MBB.isLayoutSuccessor(Br->getOperand(1).getMBB())) {
             ArrayRef<MachineOperand> NoCond;
             TII->insertBranch(MBB, Br->getOperand(1).getMBB(), nullptr,
-                              NoCond, Br->getDebugLoc());
+                              NoCond, Br->getFullDebugLoc());
           }
           for (auto &Succ : MBB.successors())
             if (Succ != Br->getOperand(1).getMBB()) {

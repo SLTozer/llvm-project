@@ -2013,7 +2013,7 @@ bool IfConverter::IfConvertForkedDiamond(
   DebugLoc dl;
   MachineBasicBlock::iterator TIE = TrueBBI.BB->getFirstTerminator();
   if (TIE != TrueBBI.BB->end())
-    dl = TIE->getDebugLoc();
+    dl = TIE->getFullDebugLoc();
   // Removing branches from both blocks is safe, because we have already
   // determined that both blocks have the same branch instructions. The branch
   // will be added back at the end, unpredicated.

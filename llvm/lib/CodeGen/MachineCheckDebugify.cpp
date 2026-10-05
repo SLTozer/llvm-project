@@ -60,7 +60,7 @@ bool checkDebugMachineModuleImpl(
       for (MachineInstr &MI : MBB) {
         if (MI.isDebugValue())
           continue;
-        const DebugLoc DL = MI.getDebugLoc();
+        const DebugLoc DL = MI.getFullDebugLoc();
         if (DL && DL.getLine() != 0) {
           MissingLines.reset(DL.getLine() - 1);
           continue;

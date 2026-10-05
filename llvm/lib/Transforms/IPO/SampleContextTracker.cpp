@@ -227,7 +227,7 @@ FunctionSamples *
 SampleContextTracker::getCalleeContextSamplesFor(const CallBase &Inst,
                                                  StringRef CalleeName) {
   LLVM_DEBUG(dbgs() << "Getting callee context for instr: " << Inst << "\n");
-  DebugLoc DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getFullDebugLoc();
   if (!DIL)
     return nullptr;
 
@@ -372,7 +372,7 @@ void SampleContextTracker::promoteMergeContextSamplesTree(
                     << Inst << "\n");
   // Get the caller context for the call instruction, we don't use callee
   // name from call because there can be context from indirect calls too.
-  DebugLoc DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getFullDebugLoc();
   ContextTrieNode *CallerNode = getContextFor(DIL);
   if (!CallerNode)
     return;

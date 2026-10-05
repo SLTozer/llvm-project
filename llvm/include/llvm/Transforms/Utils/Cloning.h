@@ -142,7 +142,7 @@ CloneBasicBlock(const BasicBlock *BB, ValueToValueMapTy &VMap,
 
 /// Mark a cloned instruction as a new instance so that its source loc can
 /// be updated when remapped.
-LLVM_ABI void mapAtomInstance(const DebugLoc &DL, ValueToValueMapTy &VMap);
+LLVM_ABI void mapAtomInstance(DebugLoc DL, ValueToValueMapTy &VMap);
 
 /// Return a copy of the specified function and add it to that
 /// function's module.  Also, any references specified in the VMap are changed

@@ -999,8 +999,8 @@ TEST(CloneFunction, CloneFunctionWithInlinedSubprograms) {
   auto DbgDeclareI = Func->begin()->begin()->getDbgRecordRange().begin();
   auto ClonedDbgDeclareI =
       ClonedFunc->begin()->begin()->getDbgRecordRange().begin();
-  const DebugLoc &DbgLoc = DbgDeclareI->getDebugLoc();
-  const DebugLoc &ClonedDbgLoc = ClonedDbgDeclareI->getDebugLoc();
+  DebugLoc DbgLoc = DbgDeclareI->getDebugLoc();
+  DebugLoc ClonedDbgLoc = ClonedDbgDeclareI->getDebugLoc();
   EXPECT_NE(DbgLoc, ClonedDbgLoc);
   EXPECT_EQ(cast<DILexicalBlock>(DbgLoc.getScope()),
             cast<DILexicalBlock>(ClonedDbgLoc.getScope()));

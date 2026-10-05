@@ -759,7 +759,7 @@ void FalkorHWPFFix::runOnLoop(MachineLoop &L, MachineFunction &Fn) {
         // to:
         //   Xc = MOV Xb
         //   Xd = LOAD Xc, off
-        DebugLoc DL = MI.getDebugLoc();
+        DebugLoc DL = MI.getFullDebugLoc();
         BuildMI(*MBB, &MI, DL, TII->get(AArch64::ORRXrs), ScratchReg)
             .addReg(AArch64::XZR)
             .addReg(LdI.BaseReg)

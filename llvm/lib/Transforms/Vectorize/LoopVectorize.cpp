@@ -725,16 +725,16 @@ static DebugLoc getDebugLocFromInstOrOperands(Instruction *I) {
     return DebugLoc::getUnknown();
 
   DebugLoc Empty;
-  if (I->getDebugLoc() != Empty)
-    return I->getDebugLoc();
+  if (I->getFullDebugLoc() != Empty)
+    return I->getFullDebugLoc();
 
   for (Use &Op : I->operands()) {
     if (Instruction *OpInst = dyn_cast<Instruction>(Op))
-      if (OpInst->getDebugLoc() != Empty)
-        return OpInst->getDebugLoc();
+      if (OpInst->getFullDebugLoc() != Empty)
+        return OpInst->getFullDebugLoc();
   }
 
-  return I->getDebugLoc();
+  return I->getFullDebugLoc();
 }
 
 namespace llvm {
@@ -6203,12 +6203,12 @@ VPRecipeBase *VPRecipeBuilder::tryToWidenMemory(VPInstruction *VPI,
   }
 
   if (Reverse && Mask)
-    Mask = Builder.createNaryOp(VPInstruction::Reverse, Mask, I->getDebugLoc());
+    Mask = Builder.createNaryOp(VPInstruction::Reverse, Mask, I->getFullDebugLoc());
 
   if (VPI->getOpcode() == Instruction::Load) {
     auto *Load = cast<LoadInst>(I);
     auto *LoadR = new VPWidenLoadRecipe(*Load, Ptr, Mask, Consecutive, *VPI,
-                                        Load->getDebugLoc());
+                                        Load->getFullDebugLoc());
     if (Reverse) {
       Builder.insert(LoadR);
       return new VPInstruction(VPInstruction::Reverse, LoadR, {}, {},
@@ -6221,9 +6221,9 @@ VPRecipeBase *VPRecipeBuilder::tryToWidenMemory(VPInstruction *VPI,
   VPValue *StoredVal = VPI->getOperand(0);
   if (Reverse)
     StoredVal = Builder.createNaryOp(VPInstruction::Reverse, StoredVal,
-                                     Store->getDebugLoc());
+                                     Store->getFullDebugLoc());
   return new VPWidenStoreRecipe(*Store, Ptr, StoredVal, Mask, Consecutive, *VPI,
-                                Store->getDebugLoc());
+                                Store->getFullDebugLoc());
 }
 
 VPWidenIntOrFpInductionRecipe *
@@ -6914,7 +6914,7 @@ void LoopVectorizationPlanner::addReductionResultComputation(
     // predecessors which terminate on this line. This is the easiest way to
     // ensure we don't accidentally cause an extra step back into the loop while
     // debugging.
-    DebugLoc ExitDL = OrigLoop->getLoopLatch()->getTerminator()->getDebugLoc();
+    DebugLoc ExitDL = OrigLoop->getLoopLatch()->getTerminator()->getFullDebugLoc();
 
     // TODO: At the moment ComputeReductionResult also drives creation of the
     // bc.merge.rdx phi nodes, hence it needs to be created unconditionally here
@@ -7141,7 +7141,7 @@ void LoopVectorizationPlanner::addMinimumIterationCheck(
   RUN_VPLAN_PASS(VPlanTransforms::addMinimumIterationCheck, Plan, VF, UF,
                  MinProfitableTripCount, requiresScalarEpilogue(Plan, VF),
                  hasTailFolded(Plan), OrigLoop, BranchWeights,
-                 OrigLoop->getLoopPredecessor()->getTerminator()->getDebugLoc(),
+                 OrigLoop->getLoopPredecessor()->getTerminator()->getFullDebugLoc(),
                  PSE, Plan.getEntry());
 }
 
@@ -7263,7 +7263,7 @@ static void checkMixedPrecision(Loop *L, OptimizationRemarkEmitter *ORE) {
     if (isa<FPExtInst>(I) && EmittedRemark.insert(I).second)
       ORE->emit([&]() {
         return OptimizationRemarkAnalysis(LV_NAME, "VectorMixedPrecision",
-                                          I->getDebugLoc(), L->getHeader())
+                                          I->getFullDebugLoc(), L->getHeader())
                << "floating point conversion changes vector width. "
                << "Mixed floating point precision requires an up/down "
                << "cast that will negatively impact performance.";
@@ -8029,7 +8029,7 @@ bool LoopVectorizePass::processLoop(Loop *L) {
     ORE->emit([&]() {
       auto *ExactFPMathInst = Requirements.getExactFPInst();
       return OptimizationRemarkAnalysisFPCommute(DEBUG_TYPE, "CantReorderFPOps",
-                                                 ExactFPMathInst->getDebugLoc(),
+                                                 ExactFPMathInst->getFullDebugLoc(),
                                                  ExactFPMathInst->getParent())
              << "loop not vectorized: cannot prove it is safe to reorder "
                 "floating-point operations";
@@ -8303,7 +8303,7 @@ bool LoopVectorizePass::processLoop(Loop *L) {
                    EPI.MainLoopVF, EPI.MainLoopUF,
                    LVP.requiresScalarEpilogue(BestMainPlan, EPI.MainLoopVF), L,
                    HasBranchWeights ? MinItersBypassWeights : nullptr,
-                   L->getLoopPredecessor()->getTerminator()->getDebugLoc(),
+                   L->getLoopPredecessor()->getTerminator()->getFullDebugLoc(),
                    PSE);
 
     EpilogueVectorizerMainLoop MainILV(L, PSE, LI, DT, TTI, AC, EPI, &CM,

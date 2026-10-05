@@ -925,7 +925,7 @@ bool PeepholeOptimizer::optimizeExtInstr(
         RC = MRI->getRegClass(UseMI->getOperand(0).getReg());
 
       Register NewVR = MRI->createVirtualRegister(RC);
-      BuildMI(*UseMBB, UseMI, UseMI->getDebugLoc(),
+      BuildMI(*UseMBB, UseMI, UseMI->getFullDebugLoc(),
               TII->get(TargetOpcode::COPY), NewVR)
           .addReg(DstReg, {}, SubIdx);
       if (UseSrcSubIdx)
@@ -1117,7 +1117,7 @@ static MachineInstr &insertPHI(MachineRegisterInfo &MRI,
   assert(SrcRegs[0].SubReg == 0 && "should not have subreg operand");
   Register NewVR = MRI.createVirtualRegister(NewRC);
   MachineBasicBlock *MBB = OrigPHI.getParent();
-  MachineInstrBuilder MIB = BuildMI(*MBB, &OrigPHI, OrigPHI.getDebugLoc(),
+  MachineInstrBuilder MIB = BuildMI(*MBB, &OrigPHI, OrigPHI.getFullDebugLoc(),
                                     TII.get(TargetOpcode::PHI), NewVR);
 
   unsigned MBBOpIdx = 2;
@@ -1316,7 +1316,7 @@ MachineInstr &PeepholeOptimizer::rewriteSource(MachineInstr &CopyLike,
   }
 
   MachineInstr *NewCopy =
-      BuildMI(*CopyLike.getParent(), &CopyLike, CopyLike.getDebugLoc(),
+      BuildMI(*CopyLike.getParent(), &CopyLike, CopyLike.getFullDebugLoc(),
               TII->get(TargetOpcode::COPY), NewVReg)
           .addReg(NewSrc.Reg, {}, NewSrc.SubReg);
 

@@ -331,7 +331,7 @@ llvm::DebugLoc CodeGenFunction::EmitReturnBlock() {
     if (BI && BI->getSuccessor(0) == ReturnBlock.getBlock()) {
       // Record/return the DebugLoc of the simple 'return' expression to be used
       // later by the actual 'ret' instruction.
-      llvm::DebugLoc Loc = BI->getDebugLoc();
+      llvm::DebugLoc Loc = BI->getFullDebugLoc();
       Builder.SetInsertPoint(BI->getParent());
       BI->eraseFromParent();
       delete ReturnBlock.getBlock();

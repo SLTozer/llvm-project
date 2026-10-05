@@ -329,7 +329,7 @@ public:
   }
 
   DebugLoc getCurDebugLoc() const {
-    return CurInst ? CurInst->getDebugLoc() : DebugLoc();
+    return CurInst ? CurInst->getFullDebugLoc() : DebugLoc();
   }
 
   void CopyValueToVirtualRegister(const Value *V, Register Reg,
@@ -730,7 +730,7 @@ private:
 
   /// Return the appropriate SDDbgValue based on N.
   SDDbgValue *getDbgValue(SDValue N, DILocalVariable *Variable,
-                          DIExpression *Expr, const DebugLoc &dl,
+                          DIExpression *Expr, DebugLoc dl,
                           unsigned DbgSDNodeOrder);
 
 public:

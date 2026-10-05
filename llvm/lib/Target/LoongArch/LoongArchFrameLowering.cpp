@@ -51,7 +51,7 @@ bool LoongArchFrameLowering::hasBP(const MachineFunction &MF) const {
 
 void LoongArchFrameLowering::adjustReg(MachineBasicBlock &MBB,
                                        MachineBasicBlock::iterator MBBI,
-                                       const DebugLoc &DL, Register DestReg,
+                                       DebugLoc DL, Register DestReg,
                                        Register SrcReg, int64_t Val,
                                        MachineInstr::MIFlag Flag) const {
   const LoongArchInstrInfo *TII = STI.getInstrInfo();
@@ -425,7 +425,7 @@ void LoongArchFrameLowering::emitEpilogue(MachineFunction &MF,
   if (MF.getFunction().getCallingConv() == CallingConv::GHC)
     return;
   MachineBasicBlock::iterator MBBI = MBB.getFirstTerminator();
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
 
   const auto &CSI = MFI.getCalleeSavedInfo();
   // Skip to before the restores of callee-saved registers.
@@ -597,7 +597,7 @@ LoongArchFrameLowering::eliminateCallFramePseudoInstr(
     MachineFunction &MF, MachineBasicBlock &MBB,
     MachineBasicBlock::iterator MI) const {
   Register SPReg = LoongArch::R3;
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   if (!hasReservedCallFrame(MF)) {
     // If space has not been reserved for a call frame, ADJCALLSTACKDOWN and

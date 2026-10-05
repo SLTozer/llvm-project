@@ -1792,7 +1792,7 @@ void BTFDebug::beginInstruction(const MachineInstr *MI) {
 
   // Skip this instruction if no DebugLoc, the DebugLoc
   // is the same as the previous instruction or Line is 0.
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   if (!DL || PrevInstLoc == DL || DL.getLine() == 0) {
     // This instruction will be skipped, no LineInfo has
     // been generated, construct one based on function signature.

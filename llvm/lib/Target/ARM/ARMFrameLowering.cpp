@@ -432,7 +432,7 @@ static MachineBasicBlock::iterator insertSEH(MachineBasicBlock::iterator MBBI,
   unsigned Opc = MBBI->getOpcode();
   MachineBasicBlock *MBB = MBBI->getParent();
   MachineFunction &MF = *MBB->getParent();
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   MachineInstrBuilder MIB;
   const ARMSubtarget &Subtarget = MF.getSubtarget<ARMSubtarget>();
   const ARMBaseRegisterInfo *RegInfo = Subtarget.getRegisterInfo();
@@ -675,7 +675,7 @@ static void insertSEHRange(MachineBasicBlock &MBB,
 
 static void emitRegPlusImmediate(
     bool isARM, MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-    const DebugLoc &dl, const ARMBaseInstrInfo &TII, unsigned DestReg,
+    DebugLoc dl, const ARMBaseInstrInfo &TII, unsigned DestReg,
     unsigned SrcReg, int NumBytes, unsigned MIFlags = MachineInstr::NoFlags,
     ARMCC::CondCodes Pred = ARMCC::AL, unsigned PredReg = 0) {
   if (isARM)
@@ -687,7 +687,7 @@ static void emitRegPlusImmediate(
 }
 
 static void emitSPUpdate(bool isARM, MachineBasicBlock &MBB,
-                         MachineBasicBlock::iterator &MBBI, const DebugLoc &dl,
+                         MachineBasicBlock::iterator &MBBI, DebugLoc dl,
                          const ARMBaseInstrInfo &TII, int NumBytes,
                          unsigned MIFlags = MachineInstr::NoFlags,
                          ARMCC::CondCodes Pred = ARMCC::AL,
@@ -800,7 +800,7 @@ static void emitAligningInstructions(MachineFunction &MF, ARMFunctionInfo *AFI,
                                      const TargetInstrInfo &TII,
                                      MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator MBBI,
-                                     const DebugLoc &DL, const unsigned Reg,
+                                     DebugLoc DL, const unsigned Reg,
                                      const Align Alignment,
                                      const bool MustBeSingleInstruction) {
   const ARMSubtarget &AST = MF.getSubtarget<ARMSubtarget>();
@@ -1432,7 +1432,7 @@ void ARMFrameLowering::emitEpilogue(MachineFunction &MF,
 
   // First put ourselves on the first (from top) terminator instructions.
   MachineBasicBlock::iterator MBBI = MBB.getFirstTerminator();
-  DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc dl = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
 
   MachineBasicBlock::iterator RangeStart;
   if (!AFI->hasStackFrame()) {
@@ -1767,7 +1767,7 @@ void ARMFrameLowering::emitPopInst(MachineBasicBlock &MBB,
   ARMSubtarget::PushPopSplitVariation PushPopSplit =
       STI.getPushPopSplitVariation(MF);
   if (MBB.end() != MI) {
-    DL = MI->getDebugLoc();
+    DL = MI->getFullDebugLoc();
     unsigned RetOpcode = MI->getOpcode();
     isTailCall =
         (RetOpcode == ARM::TCRETURNdi || RetOpcode == ARM::TCRETURNri ||
@@ -1970,7 +1970,7 @@ static void emitAlignedDPRCS2Spills(MachineBasicBlock &MBB,
                                     const TargetRegisterInfo *TRI) {
   MachineFunction &MF = *MBB.getParent();
   ARMFunctionInfo *AFI = MF.getInfo<ARMFunctionInfo>();
-  DebugLoc DL = MI != MBB.end() ? MI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MI != MBB.end() ? MI->getFullDebugLoc() : DebugLoc();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
   MachineFrameInfo &MFI = MF.getFrameInfo();
 
@@ -2143,7 +2143,7 @@ static void emitAlignedDPRCS2Restores(MachineBasicBlock &MBB,
                                       const TargetRegisterInfo *TRI) {
   MachineFunction &MF = *MBB.getParent();
   ARMFunctionInfo *AFI = MF.getInfo<ARMFunctionInfo>();
-  DebugLoc DL = MI != MBB.end() ? MI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MI != MBB.end() ? MI->getFullDebugLoc() : DebugLoc();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
 
   // Find the frame index assigned to d8.
@@ -3198,7 +3198,7 @@ MachineBasicBlock::iterator ARMFrameLowering::eliminateCallFramePseudoInstr(
       *static_cast<const ARMBaseInstrInfo *>(MF.getSubtarget().getInstrInfo());
   ARMFunctionInfo *AFI = MF.getInfo<ARMFunctionInfo>();
   bool isARM = !AFI->isThumbFunction();
-  DebugLoc dl = I->getDebugLoc();
+  DebugLoc dl = I->getFullDebugLoc();
   unsigned Opc = I->getOpcode();
   bool IsDestroy = Opc == TII.getCallFrameDestroyOpcode();
   unsigned CalleePopAmount = IsDestroy ? I->getOperand(1).getImm() : 0;

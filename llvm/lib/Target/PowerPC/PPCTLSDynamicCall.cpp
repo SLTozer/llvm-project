@@ -94,7 +94,7 @@ protected:
         Register GPR4 = Is64Bit ? PPC::X4 : PPC::R4;
         if (!IsPCREL && !IsTLSTPRelMI)
           InReg = MI.getOperand(1).getReg();
-        DebugLoc DL = MI.getDebugLoc();
+        DebugLoc DL = MI.getFullDebugLoc();
 
         unsigned Opc1, Opc2;
         switch (MI.getOpcode()) {

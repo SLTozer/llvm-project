@@ -638,7 +638,7 @@ void SSAIfConv::replacePHIInstrs() {
   assert(Tail->pred_size() == 2 && "Cannot replace PHIs");
   MachineBasicBlock::iterator FirstTerm = Head->getFirstTerminator();
   assert(FirstTerm != Head->end() && "No terminators");
-  DebugLoc HeadDL = FirstTerm->getDebugLoc();
+  DebugLoc HeadDL = FirstTerm->getFullDebugLoc();
 
   // Convert all PHIs to select instructions inserted before FirstTerm.
   for (PHIInfo &PI : PHIs) {
@@ -665,7 +665,7 @@ void SSAIfConv::replacePHIInstrs() {
 void SSAIfConv::rewritePHIOperands() {
   MachineBasicBlock::iterator FirstTerm = Head->getFirstTerminator();
   assert(FirstTerm != Head->end() && "No terminators");
-  DebugLoc HeadDL = FirstTerm->getDebugLoc();
+  DebugLoc HeadDL = FirstTerm->getFullDebugLoc();
 
   // Convert all PHIs to select instructions inserted before FirstTerm.
   for (PHIInfo &PI : PHIs) {
@@ -774,7 +774,7 @@ void SSAIfConv::convertIf(SmallVectorImpl<MachineBasicBlock *> &RemoveBlocks,
 
   // Fix up Head's terminators.
   // It should become a single branch or a fallthrough.
-  DebugLoc HeadDL = Head->getFirstTerminator()->getDebugLoc();
+  DebugLoc HeadDL = Head->getFirstTerminator()->getFullDebugLoc();
   TII->removeBranch(*Head);
 
   // Mark the now empty conditional blocks for removal and move them to the end.
@@ -1110,7 +1110,7 @@ bool EarlyIfConverter::shouldConvertIf() {
     MORE.emit([&]() {
       return MachineOptimizationRemarkAnalysis(DEBUG_TYPE,
                                                "DataDependentCondition",
-                                               MBB.back().getDebugLoc(), &MBB)
+                                               MBB.back().getFullDebugLoc(), &MBB)
              << "branch condition is data-dependent (from memory load), "
              << "using higher CritLimit of " << ore::NV("CritLimit", CritLimit)
              << " cycles";
@@ -1215,7 +1215,7 @@ bool EarlyIfConverter::shouldConvertIf() {
   if (ShouldConvert) {
     MORE.emit([&]() {
       MachineOptimizationRemark R(DEBUG_TYPE, "IfConversion",
-                                  MBB.back().getDebugLoc(), &MBB);
+                                  MBB.back().getFullDebugLoc(), &MBB);
       R << "performing if-conversion on branch: the condition adds "
         << Cycles{"CondCycles", Cond.Extra} << " to the critical path";
       if (Short.Extra > 0)
@@ -1231,7 +1231,7 @@ bool EarlyIfConverter::shouldConvertIf() {
   } else {
     MORE.emit([&]() {
       MachineOptimizationRemarkMissed R(DEBUG_TYPE, "IfConversion",
-                                        MBB.back().getDebugLoc(), &MBB);
+                                        MBB.back().getFullDebugLoc(), &MBB);
       R << "did not if-convert branch: the condition would add "
         << Cycles{"CondCycles", Cond.Extra} << " to the critical path";
       if (Cond.Extra > CritLimit)

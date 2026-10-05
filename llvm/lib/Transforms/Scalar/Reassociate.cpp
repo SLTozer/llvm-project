@@ -1756,7 +1756,7 @@ Value *ReassociatePass::OptimizeAdd(Instruction *I,
         continue;
 
       if (Value *V = RemoveFactorFromExpression(Ops[i].Op, MaxOccVal,
-                                                I->getDebugLoc())) {
+                                                I->getFullDebugLoc())) {
         // The factorized operand may occur several times.  Convert them all in
         // one fell swoop.
         for (unsigned j = Ops.size(); j != i;) {
@@ -2415,7 +2415,7 @@ void ReassociatePass::ReassociateExpression(BinaryOperator *I) {
     LLVM_DEBUG(dbgs() << "Reassoc to scalar: " << *V << '\n');
     I->replaceAllUsesWith(V);
     if (Instruction *VI = dyn_cast<Instruction>(V))
-      if (I->getDebugLoc())
+      if (I->getFullDebugLoc())
         VI->copyDebugLocFrom(I);
     RedoInsts.insert(I);
     ++NumAnnihil;

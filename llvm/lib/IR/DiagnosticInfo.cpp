@@ -19,9 +19,11 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/DiagnosticPrinter.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
@@ -148,28 +150,23 @@ void DiagnosticInfoStackSize::anchor() {}
 void DiagnosticInfoWithLocationBase::anchor() {}
 void DiagnosticInfoIROptimization::anchor() {}
 
-DiagnosticLocation::DiagnosticLocation(const DebugLoc &DL) {
-  if (!DL)
-    return;
-  File = DL.getFile();
-  Line = DL.getLine();
-  Column = DL.getColumn();
-}
-
 DiagnosticLocation::DiagnosticLocation(const DISubprogram *SP) {
   if (!SP)
     return;
 
-  File = SP->getFile();
-  Line = SP->getScopeLine();
-  Column = 0;
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  DL = FLDebugLoc(DIFunctionLocalMetadata::SPScopeLineSrcLocIdx, {});
+#else
+  DL = DILocation::get(SP->getContext(), SP->getLine(), SP->getColumn(), SP);
+#endif
 }
 
-StringRef DiagnosticLocation::getRelativePath() const {
-  return File->getFilename();
+StringRef DiagnosticLocation::getRelativePath(DebugLocContext Ctx) const {
+  return DL.withContext(Ctx).getFile()->getFilename();
 }
 
-std::string DiagnosticLocation::getAbsolutePath() const {
+std::string DiagnosticLocation::getAbsolutePath(DebugLocContext Ctx) const {
+  DIFile *File = DL.withContext(Ctx).getFile();
   StringRef Name = File->getFilename();
   if (sys::path::is_absolute(Name))
     return std::string(Name);
@@ -179,16 +176,23 @@ std::string DiagnosticLocation::getAbsolutePath() const {
   return sys::path::remove_leading_dotslash(Path).str();
 }
 
+unsigned DiagnosticLocation::getLine(DebugLocContext Ctx) const {
+  return DL.withContext(Ctx).getLine();
+}
+unsigned DiagnosticLocation::getColumn(DebugLocContext Ctx) const {
+  return DL.withContext(Ctx).getColumn();
+}
+
 std::string DiagnosticInfoWithLocationBase::getAbsolutePath() const {
-  return Loc.getAbsolutePath();
+  return Loc.getAbsolutePath(&Fn);
 }
 
 void DiagnosticInfoWithLocationBase::getLocation(StringRef &RelativePath,
                                                  unsigned &Line,
                                                  unsigned &Column) const {
-  RelativePath = Loc.getRelativePath();
-  Line = Loc.getLine();
-  Column = Loc.getColumn();
+  RelativePath = Loc.getRelativePath(&Fn);
+  Line = Loc.getLine(&Fn);
+  Column = Loc.getColumn(&Fn);
 }
 
 std::string DiagnosticInfoWithLocationBase::getLocationStr() const {
@@ -208,7 +212,7 @@ DiagnosticInfoOptimizationBase::Argument::Argument(StringRef Key,
       Loc = SP;
   }
   else if (auto *I = dyn_cast<Instruction>(V))
-    Loc = I->getDebugLoc();
+    Loc = I->getFullDebugLoc();
 
   // Only include names that correspond to user variables.  FIXME: We should use
   // debug info if available to get the name of the user variable.
@@ -308,7 +312,7 @@ OptimizationRemark::OptimizationRemark(const char *PassName,
                                        const Instruction *Inst)
     : DiagnosticInfoIROptimization(DK_OptimizationRemark, DS_Remark, PassName,
                                    RemarkName, *Inst->getParent()->getParent(),
-                                   Inst->getDebugLoc(), Inst->getParent()) {}
+                                   Inst->getFullDebugLoc(), Inst->getParent()) {}
 
 static const BasicBlock *getFirstFunctionBlock(const Function *Func) {
   return Func->empty() ? nullptr : &Func->front();
@@ -340,7 +344,7 @@ OptimizationRemarkMissed::OptimizationRemarkMissed(const char *PassName,
     : DiagnosticInfoIROptimization(DK_OptimizationRemarkMissed, DS_Remark,
                                    PassName, RemarkName,
                                    *Inst->getParent()->getParent(),
-                                   Inst->getDebugLoc(), Inst->getParent()) {}
+                                   Inst->getFullDebugLoc(), Inst->getParent()) {}
 
 OptimizationRemarkMissed::OptimizationRemarkMissed(const char *PassName,
                                                    StringRef RemarkName,
@@ -368,7 +372,7 @@ OptimizationRemarkAnalysis::OptimizationRemarkAnalysis(const char *PassName,
     : DiagnosticInfoIROptimization(DK_OptimizationRemarkAnalysis, DS_Remark,
                                    PassName, RemarkName,
                                    *Inst->getParent()->getParent(),
-                                   Inst->getDebugLoc(), Inst->getParent()) {}
+                                   Inst->getFullDebugLoc(), Inst->getParent()) {}
 
 OptimizationRemarkAnalysis::OptimizationRemarkAnalysis(
     enum DiagnosticKind Kind, const char *PassName, StringRef RemarkName,
@@ -488,7 +492,7 @@ DiagnosticInfoMisExpect::DiagnosticInfoMisExpect(const Instruction *Inst,
                                                  const Twine &Msg)
     : DiagnosticInfoWithLocationBase(DK_MisExpect, DS_Warning,
                                      *Inst->getParent()->getParent(),
-                                     Inst->getDebugLoc()),
+                                     Inst->getFullDebugLoc()),
       Msg(Msg) {}
 
 void DiagnosticInfoMisExpect::print(DiagnosticPrinter &DP) const {
@@ -519,7 +523,7 @@ void llvm::diagnoseDontCall(const CallInst &CI) {
       DiagnosticInfoDontCall D(F->getName(), A.getValueAsString(), Sev,
                                LocCookie, InlinedFromMD);
 
-      if (const DebugLoc &DL = CI.getDebugLoc()) {
+      if (DebugLoc DL = CI.getFullDebugLoc()) {
         SmallVector<DebugInlineInfo, 4> DebugChain;
         auto AddLocation = [&](DebugLoc Loc) {
           if (auto *Scope = Loc.getScope())

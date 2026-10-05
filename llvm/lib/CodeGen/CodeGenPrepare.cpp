@@ -1332,7 +1332,7 @@ simplifyRelocatesOffABase(GCRelocateInst *RelocatedBase,
 
     // Insert after RelocatedBase
     IRBuilder<> Builder(RelocatedBase->getNextNode());
-    Builder.SetCurrentDebugLocation(ToReplace->getDebugLoc());
+    Builder.SetCurrentDebugLocation(ToReplace->getFullDebugLoc());
 
     // If gc_relocate does not match the actual type, cast it to the right type.
     // In theory, there must be a bitcast after gc_relocate if the type does not
@@ -2636,7 +2636,7 @@ static bool despeculateCountZeros(IntrinsicInst *CountZeros,
   // Set up a builder to create a compare, conditional branch, and PHI.
   IRBuilder<> Builder(CountZeros->getContext());
   Builder.SetInsertPoint(StartBlock->getTerminator());
-  Builder.SetCurrentDebugLocation(CountZeros->getDebugLoc());
+  Builder.SetCurrentDebugLocation(CountZeros->getFullDebugLoc());
 
   // Replace the unconditional branch that was created by the first split with
   // a compare against zero and a conditional branch.

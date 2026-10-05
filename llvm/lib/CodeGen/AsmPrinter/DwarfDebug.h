@@ -732,7 +732,7 @@ protected:
   virtual bool shouldAttachCompileUnitRanges() const { return true; }
 
   /// Target-specific source line recording.
-  virtual void recordTargetSourceLine(const DebugLoc &DL, unsigned Flags);
+  virtual void recordTargetSourceLine(DebugLoc DL, unsigned Flags);
 
   /// Target-specific compile unit attribute finalization.
   virtual void finishTargetUnitAttributes(const DICompileUnit &DIUnit,

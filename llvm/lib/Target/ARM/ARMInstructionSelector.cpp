@@ -484,7 +484,7 @@ struct ARMInstructionSelector::CmpConstants {
 struct ARMInstructionSelector::InsertInfo {
   InsertInfo(MachineInstrBuilder &MIB)
       : MBB(*MIB->getParent()), InsertBefore(std::next(MIB->getIterator())),
-        DbgLoc(MIB->getDebugLoc()) {}
+        DbgLoc(MIB->getFullDebugLoc()) {}
 
   MachineBasicBlock &MBB;
   const MachineBasicBlock::instr_iterator InsertBefore;
@@ -690,7 +690,7 @@ bool ARMInstructionSelector::selectGlobal(MachineInstrBuilder &MIB,
         MIB->getOperand(0).setReg(AddressReg);
 
         auto InsertBefore = std::next(MIB->getIterator());
-        auto MIBLoad = BuildMI(MBB, InsertBefore, MIB->getDebugLoc(),
+        auto MIBLoad = BuildMI(MBB, InsertBefore, MIB->getFullDebugLoc(),
                                TII.get(Opcodes.LOAD32))
                            .addDef(ResultReg)
                            .addReg(AddressReg)
@@ -719,12 +719,12 @@ bool ARMInstructionSelector::selectGlobal(MachineInstrBuilder &MIB,
     auto Offset = MRI.createVirtualRegister(&ARM::GPRRegClass);
     MachineInstrBuilder OffsetMIB;
     if (UseMovt) {
-      OffsetMIB = BuildMI(MBB, *MIB, MIB->getDebugLoc(),
+      OffsetMIB = BuildMI(MBB, *MIB, MIB->getFullDebugLoc(),
                           TII.get(Opcodes.MOVi32imm), Offset);
       OffsetMIB.addGlobalAddress(GV, /*Offset*/ 0, ARMII::MO_SBREL);
     } else {
       // Load the offset from the constant pool.
-      OffsetMIB = BuildMI(MBB, *MIB, MIB->getDebugLoc(),
+      OffsetMIB = BuildMI(MBB, *MIB, MIB->getFullDebugLoc(),
                           TII.get(Opcodes.ConstPoolLoad), Offset);
       addOpsForConstantPoolLoad(OffsetMIB, GV, /*IsSBREL*/ true);
     }
@@ -769,7 +769,7 @@ bool ARMInstructionSelector::selectSelect(MachineInstrBuilder &MIB,
                                           MachineRegisterInfo &MRI) const {
   auto &MBB = *MIB->getParent();
   auto InsertBefore = std::next(MIB->getIterator());
-  auto DbgLoc = MIB->getDebugLoc();
+  auto DbgLoc = MIB->getFullDebugLoc();
 
   // Compare the condition to 1.
   auto CondReg = MIB.getReg(1);
@@ -892,7 +892,7 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
 
         auto InsertBefore = std::next(I.getIterator());
         auto SubI =
-            BuildMI(MBB, InsertBefore, I.getDebugLoc(), TII.get(Opcodes.RSB))
+            BuildMI(MBB, InsertBefore, I.getFullDebugLoc(), TII.get(Opcodes.RSB))
                 .addDef(SExtResult)
                 .addUse(AndResult)
                 .addImm(0)
@@ -940,7 +940,7 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
       Register IgnoredBits = MRI.createVirtualRegister(&ARM::GPRRegClass);
       auto InsertBefore = std::next(I.getIterator());
       auto MovI =
-          BuildMI(MBB, InsertBefore, I.getDebugLoc(), TII.get(ARM::VMOVRRD))
+          BuildMI(MBB, InsertBefore, I.getFullDebugLoc(), TII.get(ARM::VMOVRRD))
               .addDef(DstReg)
               .addDef(IgnoredBits)
               .addUse(SrcReg)
@@ -1106,7 +1106,7 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
         const MachineOperand &Index = Ptr->getOperand(1);
         unsigned Opcode = Subtarget->isThumb() ? ARM::tLDRpci : ARM::LDRcp;
 
-        auto Instr = BuildMI(MBB, I, I.getDebugLoc(), TII.get(Opcode))
+        auto Instr = BuildMI(MBB, I, I.getFullDebugLoc(), TII.get(Opcode))
                          .addDef(Reg)
                          .add(Index)
                          .addImm(0)
@@ -1148,7 +1148,7 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
 
     // Set the flags.
     auto Test =
-        BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(Opcodes.TSTri))
+        BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(Opcodes.TSTri))
             .addReg(I.getOperand(0).getReg())
             .addImm(1)
             .add(predOps(ARMCC::AL));
@@ -1156,7 +1156,7 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
 
     // Branch conditionally.
     auto Branch =
-        BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(Opcodes.Bcc))
+        BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(Opcodes.Bcc))
             .add(I.getOperand(1))
             .add(predOps(ARMCC::NE, ARM::CPSR));
     constrainSelectedInstRegOperands(*Branch, TII, TRI, RBI);

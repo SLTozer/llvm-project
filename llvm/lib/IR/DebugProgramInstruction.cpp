@@ -33,7 +33,7 @@ template class LLVM_EXPORT_TEMPLATE DbgRecordParamRef<DILocalVariable>;
 } // namespace llvm
 
 DbgVariableRecord::DbgVariableRecord(const DbgVariableIntrinsic *DVI)
-    : DbgRecord(ValueKind, DVI->getDebugLoc()),
+    : DbgRecord(ValueKind, DVI->getFullDebugLoc()),
       DebugValueUser({DVI->getRawLocation(), nullptr, nullptr}),
       Variable(DVI->getVariable()), Expression(DVI->getExpression()),
       AddressExpression() {
@@ -60,7 +60,7 @@ DbgVariableRecord::DbgVariableRecord(const DbgVariableIntrinsic *DVI)
 }
 
 DbgVariableRecord::DbgVariableRecord(const DbgVariableRecord &DVR)
-    : DbgRecord(ValueKind, DVR.getDebugLoc()), DebugValueUser(DVR.DebugValues),
+    : DbgRecord(ValueKind, DVR.getFullDebugLoc()), DebugValueUser(DVR.DebugValues),
       Type(DVR.getType()), Variable(DVR.getVariable()),
       Expression(DVR.getExpression()),
       AddressExpression(DVR.AddressExpression) {}
@@ -132,7 +132,7 @@ bool DbgRecord::isIdenticalToWhenDefined(const DbgRecord &R) const {
 }
 
 bool DbgRecord::isEquivalentTo(const DbgRecord &R) const {
-  return getDebugLoc() == R.getDebugLoc() && isIdenticalToWhenDefined(R);
+  return getFullDebugLoc() == R.getFullDebugLoc() && isIdenticalToWhenDefined(R);
 }
 
 DbgInfoIntrinsic *
@@ -415,18 +415,18 @@ DbgVariableRecord *DbgVariableRecord::clone() const {
 }
 
 DbgLabelRecord *DbgLabelRecord::clone() const {
-  return new DbgLabelRecord(getLabel(), getDebugLoc());
+  return new DbgLabelRecord(getLabel(), getFullDebugLoc());
 }
 
 DbgVariableIntrinsic *
 DbgVariableRecord::createDebugIntrinsic(Module *M,
                                         Instruction *InsertBefore) const {
   [[maybe_unused]] DICompileUnit *Unit =
-      getDebugLoc().getScope()->getSubprogram()->getUnit();
+      getFullDebugLoc().getScope()->getSubprogram()->getUnit();
   assert(M && Unit &&
          "Cannot clone from BasicBlock that is not part of a Module or "
          "DICompileUnit!");
-  LLVMContext &Context = getDebugLoc().getContext();
+  LLVMContext &Context = getFullDebugLoc().getContext();
   Function *IntrinsicFn;
 
   // Work out what sort of intrinsic we're going to produce.
@@ -472,7 +472,7 @@ DbgVariableRecord::createDebugIntrinsic(Module *M,
         CallInst::Create(IntrinsicFn->getFunctionType(), IntrinsicFn, Args));
   }
   DVI->setTailCall();
-  DVI->setDebugLoc(getDebugLoc());
+  DVI->setDebugLoc(getFullDebugLoc());
   if (InsertBefore)
     DVI->insertBefore(InsertBefore->getIterator());
 
@@ -484,11 +484,11 @@ DbgLabelRecord::createDebugIntrinsic(Module *M,
                                      Instruction *InsertBefore) const {
   auto *LabelFn = Intrinsic::getOrInsertDeclaration(M, Intrinsic::dbg_label);
   Value *Args[] = {
-      MetadataAsValue::get(getDebugLoc().getContext(), getLabel())};
+      MetadataAsValue::get(getFullDebugLoc().getContext(), getLabel())};
   DbgLabelInst *DbgLabel = cast<DbgLabelInst>(
       CallInst::Create(LabelFn->getFunctionType(), LabelFn, Args));
   DbgLabel->setTailCall();
-  DbgLabel->setDebugLoc(getDebugLoc());
+  DbgLabel->setDebugLoc(getFullDebugLoc());
   if (InsertBefore)
     DbgLabel->insertBefore(InsertBefore->getIterator());
   return DbgLabel;

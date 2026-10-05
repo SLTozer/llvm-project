@@ -139,7 +139,7 @@ static bool isOnlyReadsBySEL(MachineBasicBlock::iterator I, Register Reg) {
 
 void MipsSEInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator I,
-                                  const DebugLoc &DL, Register DestReg,
+                                  DbgLocStorage DL, Register DestReg,
                                   Register SrcReg, bool KillSrc,
                                   bool RenamableDest, bool RenamableSrc) const {
   unsigned Opc = 0, ZeroReg = 0;
@@ -306,7 +306,7 @@ void MipsSEInstrInfo::storeRegToStack(MachineBasicBlock &MBB,
                                       const TargetRegisterClass *RC,
                                       int64_t Offset,
                                       MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOStore);
 
   unsigned Opc = 0;
@@ -381,8 +381,8 @@ void MipsSEInstrInfo::loadRegFromStack(MachineBasicBlock &MBB,
                                        const TargetRegisterClass *RC,
                                        int64_t Offset,
                                        MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
-  if (I != MBB.end()) DL = I->getDebugLoc();
+  DbgLocStorage DL;
+  if (I != MBB.end()) DL = I->getFullDebugLoc();
   MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOLoad);
   unsigned Opc = 0;
 
@@ -652,7 +652,7 @@ void MipsSEInstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
                                      MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator I) const {
   MipsABIInfo ABI = Subtarget.getABI();
-  DebugLoc DL;
+  DbgLocStorage DL;
   unsigned ADDiu = ABI.GetPtrAddiuOp();
 
   if (Amount == 0)
@@ -678,7 +678,7 @@ void MipsSEInstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
 /// result of adding register REG and immediate IMM.
 unsigned MipsSEInstrInfo::loadImmediate(int64_t Imm, MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator II,
-                                        const DebugLoc &DL,
+                                        DbgLocStorage DL,
                                         unsigned *NewImm) const {
   MipsAnalyzeImmediate AnalyzeImm;
   const MipsSubtarget &STI = Subtarget;
@@ -750,10 +750,10 @@ void MipsSEInstrInfo::expandRetRA(MachineBasicBlock &MBB,
 
   MachineInstrBuilder MIB;
   if (Subtarget.isGP64bit())
-    MIB = BuildMI(MBB, I, I->getDebugLoc(), get(Mips::PseudoReturn64))
+    MIB = BuildMI(MBB, I, I->getFullDebugLoc(), get(Mips::PseudoReturn64))
               .addReg(Mips::RA_64, RegState::Undef);
   else
-    MIB = BuildMI(MBB, I, I->getDebugLoc(), get(Mips::PseudoReturn))
+    MIB = BuildMI(MBB, I, I->getFullDebugLoc(), get(Mips::PseudoReturn))
               .addReg(Mips::RA, RegState::Undef);
 
   // Retain any imp-use flags.
@@ -765,7 +765,7 @@ void MipsSEInstrInfo::expandRetRA(MachineBasicBlock &MBB,
 
 void MipsSEInstrInfo::expandERet(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator I) const {
-  BuildMI(MBB, I, I->getDebugLoc(), get(Mips::ERET));
+  BuildMI(MBB, I, I->getFullDebugLoc(), get(Mips::ERET));
 }
 
 std::pair<bool, bool>
@@ -783,7 +783,7 @@ MipsSEInstrInfo::compareOpndSize(unsigned Opc,
 void MipsSEInstrInfo::expandPseudoMFHiLo(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator I,
                                          unsigned NewOpc) const {
-  BuildMI(MBB, I, I->getDebugLoc(), get(NewOpc), I->getOperand(0).getReg());
+  BuildMI(MBB, I, I->getFullDebugLoc(), get(NewOpc), I->getOperand(0).getReg());
 }
 
 void MipsSEInstrInfo::expandPseudoMTLoHi(MachineBasicBlock &MBB,
@@ -797,7 +797,7 @@ void MipsSEInstrInfo::expandPseudoMTLoHi(MachineBasicBlock &MBB,
   //  mtlo $gpr0
   //  mthi $gpr1
 
-  DebugLoc DL = I->getDebugLoc();
+  DbgLocStorage DL = I->getDebugLoc();
   const MachineOperand &SrcLo = I->getOperand(1), &SrcHi = I->getOperand(2);
   MachineInstrBuilder LoInst = BuildMI(MBB, I, DL, get(LoOpc));
   MachineInstrBuilder HiInst = BuildMI(MBB, I, DL, get(HiOpc));
@@ -824,7 +824,7 @@ void MipsSEInstrInfo::expandCvtFPInt(MachineBasicBlock &MBB,
   const MachineOperand &Dst = I->getOperand(0), &Src = I->getOperand(1);
   unsigned DstReg = Dst.getReg(), SrcReg = Src.getReg(), TmpReg = DstReg;
   RegState KillSrc = getKillRegState(Src.isKill());
-  DebugLoc DL = I->getDebugLoc();
+  DbgLocStorage DL = I->getDebugLoc();
   bool DstIsLarger, SrcIsLarger;
 
   std::tie(DstIsLarger, SrcIsLarger) =
@@ -847,7 +847,7 @@ void MipsSEInstrInfo::expandExtractElementF64(MachineBasicBlock &MBB,
   Register DstReg = I->getOperand(0).getReg();
   Register SrcReg = I->getOperand(1).getReg();
   unsigned N = I->getOperand(2).getImm();
-  DebugLoc dl = I->getDebugLoc();
+  DbgLocStorage dl = I->getDebugLoc();
 
   assert(N < 2 && "Invalid immediate");
   unsigned SubIdx = N ? Mips::sub_hi : Mips::sub_lo;
@@ -889,7 +889,7 @@ void MipsSEInstrInfo::expandBuildPairF64(MachineBasicBlock &MBB,
   Register DstReg = I->getOperand(0).getReg();
   unsigned LoReg = I->getOperand(1).getReg(), HiReg = I->getOperand(2).getReg();
   const MCInstrDesc& Mtc1Tdd = get(Mips::MTC1);
-  DebugLoc dl = I->getDebugLoc();
+  DbgLocStorage dl = I->getDebugLoc();
   const TargetRegisterInfo &TRI = getRegisterInfo();
 
   // When mthc1 is available, use:
@@ -962,13 +962,13 @@ void MipsSEInstrInfo::expandEhReturn(MachineBasicBlock &MBB,
   // jr   $ra (via RetRA)
   const TargetMachine &TM = MBB.getParent()->getTarget();
   if (TM.isPositionIndependent())
-    BuildMI(MBB, I, I->getDebugLoc(), get(ADDU), T9)
+    BuildMI(MBB, I, I->getFullDebugLoc(), get(ADDU), T9)
         .addReg(TargetReg)
         .addReg(ZERO);
-  BuildMI(MBB, I, I->getDebugLoc(), get(ADDU), RA)
+  BuildMI(MBB, I, I->getFullDebugLoc(), get(ADDU), RA)
       .addReg(TargetReg)
       .addReg(ZERO);
-  BuildMI(MBB, I, I->getDebugLoc(), get(ADDU), SP).addReg(SP).addReg(OffsetReg);
+  BuildMI(MBB, I, I->getFullDebugLoc(), get(ADDU), SP).addReg(SP).addReg(OffsetReg);
   expandRetRA(MBB, I);
 }
 

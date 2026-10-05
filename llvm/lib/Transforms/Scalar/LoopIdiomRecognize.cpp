@@ -279,7 +279,7 @@ private:
   void transformLoopToCountable(Intrinsic::ID IntrinID, BasicBlock *PreCondBB,
                                 Instruction *CntInst, PHINode *CntPhi,
                                 Value *Var, Instruction *DefX,
-                                const DebugLoc &DL, bool ZeroCheck,
+                                DebugLoc DL, bool ZeroCheck,
                                 bool IsCntPhiUsedOutsideLoop,
                                 bool InsertSub = false);
 
@@ -1223,7 +1223,7 @@ bool LoopIdiomRecognize::processLoopStridedStore(
 
   ORE.emit([&]() {
     OptimizationRemark R(DEBUG_TYPE, "ProcessLoopStridedStore",
-                         NewCall->getDebugLoc(), Preheader);
+                         NewCall->getFullDebugLoc(), Preheader);
     R << "Transformed loop-strided store in "
       << ore::NV("Function", TheStore->getFunction())
       << " function into a call to "
@@ -1528,7 +1528,7 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(
 
   ORE.emit([&]() {
     return OptimizationRemark(DEBUG_TYPE, "ProcessLoopStoreOfLoopLoad",
-                              NewCall->getDebugLoc(), Preheader)
+                              NewCall->getFullDebugLoc(), Preheader)
            << "Formed a call to "
            << ore::NV("NewFunction", NewCall->getCalledFunction())
            << "() intrinsic from " << ore::NV("Inst", InstRemark)
@@ -2479,7 +2479,7 @@ bool LoopIdiomRecognize::insertFFSIfProfitable(Intrinsic::ID IntrinID,
     return false;
 
   transformLoopToCountable(IntrinID, PH, CntInst, CntPhi, InitX, DefX,
-                           DefX->getDebugLoc(), ZeroCheck,
+                           DefX->getFullDebugLoc(), ZeroCheck,
                            IsCntPhiUsedOutsideLoop);
   return true;
 }
@@ -2565,7 +2565,7 @@ bool LoopIdiomRecognize::recognizeShiftUntilLessThan() {
 
   // log2(x) = w − 1 − clz(x)
   transformLoopToCountable(IntrinID, PH, CntInst, CntPhi, InitX, DefX,
-                           DefX->getDebugLoc(), ZeroCheck,
+                           DefX->getFullDebugLoc(), ZeroCheck,
                            /*IsCntPhiUsedOutsideLoop=*/false,
                            /*InsertSub=*/true);
   return true;
@@ -2622,7 +2622,7 @@ bool LoopIdiomRecognize::recognizePopcount() {
 }
 
 static Value *createPopcntIntrinsic(IRBuilder<> &IRBuilder, Value *Val,
-                                    const DebugLoc &DL) {
+                                    DebugLoc DL) {
   Value *Ops[] = {Val};
   Type *Tys[] = {Val->getType()};
 
@@ -2631,7 +2631,7 @@ static Value *createPopcntIntrinsic(IRBuilder<> &IRBuilder, Value *Val,
 }
 
 static Value *createFFSIntrinsic(IRBuilder<> &IRBuilder, Value *Val,
-                                 const DebugLoc &DL, bool ZeroCheck,
+                                 DebugLoc DL, bool ZeroCheck,
                                  Intrinsic::ID IID) {
   Value *Ops[] = {Val, IRBuilder.getInt1(ZeroCheck)};
   Type *Tys[] = {Val->getType()};
@@ -2673,7 +2673,7 @@ static Value *createFFSIntrinsic(IRBuilder<> &IRBuilder, Value *Val,
 /// If CntInst and DefX are not used in LOOP_BODY they will be removed.
 void LoopIdiomRecognize::transformLoopToCountable(
     Intrinsic::ID IntrinID, BasicBlock *Preheader, Instruction *CntInst,
-    PHINode *CntPhi, Value *InitX, Instruction *DefX, const DebugLoc &DL,
+    PHINode *CntPhi, Value *InitX, Instruction *DefX, DebugLoc DL,
     bool ZeroCheck, bool IsCntPhiUsedOutsideLoop, bool InsertSub) {
   // Step 1: Insert the CTLZ/CTTZ instruction at the end of the preheader block
   IRBuilder<> Builder(Preheader->getTerminator());
@@ -2768,7 +2768,7 @@ void LoopIdiomRecognize::transformLoopToPopcount(BasicBlock *PreCondBB,
                                                  PHINode *CntPhi, Value *Var) {
   BasicBlock *PreHead = CurLoop->getLoopPreheader();
   auto *PreCondBr = cast<CondBrInst>(PreCondBB->getTerminator());
-  const DebugLoc &DL = CntInst->getDebugLoc();
+  DebugLoc DL = CntInst->getFullDebugLoc();
 
   // Assuming before transformation, the loop is following:
   //  if (x) // the precondition
@@ -3089,7 +3089,7 @@ bool LoopIdiomRecognize::recognizeShiftUntilBitTest() {
   assert(SuccessorBB && "There is only a single successor.");
 
   IRBuilder<> Builder(LoopPreheaderBB->getTerminator());
-  Builder.SetCurrentDebugLocation(cast<Instruction>(XCurr)->getDebugLoc());
+  Builder.SetCurrentDebugLocation(cast<Instruction>(XCurr)->getFullDebugLoc());
 
   Intrinsic::ID IntrID = Intrinsic::ctlz;
   Type *Ty = X->getType();
@@ -3476,7 +3476,7 @@ bool LoopIdiomRecognize::recognizeShiftUntilZero() {
   assert(SuccessorBB && "There is only a single successor.");
 
   IRBuilder<> Builder(LoopPreheaderBB->getTerminator());
-  Builder.SetCurrentDebugLocation(IV->getDebugLoc());
+  Builder.SetCurrentDebugLocation(IV->getFullDebugLoc());
 
   Type *Ty = Val->getType();
   unsigned Bitwidth = Ty->getScalarSizeInBits();

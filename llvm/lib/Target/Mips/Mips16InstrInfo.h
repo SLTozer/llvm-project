@@ -49,7 +49,7 @@ public:
                               int &FrameIndex) const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -86,7 +86,7 @@ public:
   // This is to adjust some FrameReg. We return the new register to be used
   // in place of FrameReg and the adjusted immediate field (&NewImm)
   unsigned loadImmediate(unsigned FrameReg, int64_t Imm, MachineBasicBlock &MBB,
-                         MachineBasicBlock::iterator II, const DebugLoc &DL,
+                         MachineBasicBlock::iterator II, DbgLocStorage DL,
                          unsigned &NewImm) const;
 
   static bool validImmediate(unsigned Opcode, unsigned Reg, int64_t Amount);

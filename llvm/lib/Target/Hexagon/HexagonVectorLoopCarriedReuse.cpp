@@ -586,7 +586,7 @@ void HexagonVectorLoopCarriedReuse::reuseValue() {
   ++HexagonNumVectorLoopCarriedReuse;
   ORE.emit([&]() {
     return OptimizationRemark(DEBUG_TYPE, "VectorReuse",
-                              Inst2Replace->getDebugLoc(),
+                              Inst2Replace->getFullDebugLoc(),
                               Inst2Replace->getParent())
            << "reused loop-carried vector value";
   });

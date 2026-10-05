@@ -72,7 +72,7 @@ public:
   void replaceDstReg(Register NewReg, Register OldReg,
                      MachineBasicBlock *MBB) override;
   void buildMergeLaneMasks(MachineBasicBlock &MBB,
-                           MachineBasicBlock::iterator I, const DebugLoc &DL,
+                           MachineBasicBlock::iterator I, DebugLoc DL,
                            Register DstReg, Register PrevReg,
                            Register CurReg) override;
   void constrainAsLaneMask(AMDGPU::Incoming &In) override;
@@ -167,7 +167,7 @@ Register DivergenceLoweringHelper::buildRegCopyToLaneMask(Register Reg) {
 //
 // DstReg = for active lanes rewrite bit in PrevReg with bit from CurReg
 void DivergenceLoweringHelper::buildMergeLaneMasks(
-    MachineBasicBlock &MBB, MachineBasicBlock::iterator I, const DebugLoc &DL,
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator I, DebugLoc DL,
     Register DstReg, Register PrevReg, Register CurReg) {
   // DstReg = (PrevReg & !EXEC) | (CurReg & EXEC)
   // TODO: check if inputs are constants or results of a compare.

@@ -3243,7 +3243,7 @@ MipsSETargetLowering::emitBPOSGE32(MachineInstr &MI,
   MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const TargetRegisterClass *RC = &Mips::GPR32RegClass;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
   MachineFunction::iterator It = std::next(MachineFunction::iterator(BB));
   MachineFunction *F = BB->getParent();
@@ -3312,7 +3312,7 @@ MachineBasicBlock *MipsSETargetLowering::emitMSACBranchPseudo(
   MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const TargetRegisterClass *RC = &Mips::GPR32RegClass;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
   MachineFunction::iterator It = std::next(MachineFunction::iterator(BB));
   MachineFunction *F = BB->getParent();
@@ -3377,7 +3377,7 @@ MipsSETargetLowering::emitCOPY_FW(MachineInstr &MI,
                                   MachineBasicBlock *BB) const {
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Fd = MI.getOperand(0).getReg();
   Register Ws = MI.getOperand(1).getReg();
   unsigned Lane = MI.getOperand(2).getImm();
@@ -3426,7 +3426,7 @@ MipsSETargetLowering::emitCOPY_FD(MachineInstr &MI,
   Register Fd = MI.getOperand(0).getReg();
   Register Ws = MI.getOperand(1).getReg();
   unsigned Lane = MI.getOperand(2).getImm() * 2;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (Lane == 0)
     BuildMI(*BB, MI, DL, TII->get(Mips::COPY), Fd).addReg(Ws, {}, Mips::sub_64);
@@ -3452,7 +3452,7 @@ MipsSETargetLowering::emitINSERT_FW(MachineInstr &MI,
                                     MachineBasicBlock *BB) const {
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Wd = MI.getOperand(0).getReg();
   Register Wd_in = MI.getOperand(1).getReg();
   unsigned Lane = MI.getOperand(2).getImm();
@@ -3487,7 +3487,7 @@ MipsSETargetLowering::emitINSERT_FD(MachineInstr &MI,
 
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Wd = MI.getOperand(0).getReg();
   Register Wd_in = MI.getOperand(1).getReg();
   unsigned Lane = MI.getOperand(2).getImm();
@@ -3532,7 +3532,7 @@ MachineBasicBlock *MipsSETargetLowering::emitINSERT_DF_VIDX(
     bool IsFP) const {
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Wd = MI.getOperand(0).getReg();
   Register SrcVecReg = MI.getOperand(1).getReg();
   Register LaneReg = MI.getOperand(2).getReg();
@@ -3645,7 +3645,7 @@ MipsSETargetLowering::emitFILL_FW(MachineInstr &MI,
                                   MachineBasicBlock *BB) const {
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Wd = MI.getOperand(0).getReg();
   Register Fs = MI.getOperand(1).getReg();
   Register Wt1 = RegInfo.createVirtualRegister(
@@ -3680,7 +3680,7 @@ MipsSETargetLowering::emitFILL_FD(MachineInstr &MI,
 
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   MachineRegisterInfo &RegInfo = BB->getParent()->getRegInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register Wd = MI.getOperand(0).getReg();
   Register Fs = MI.getOperand(1).getReg();
   Register Wt1 = RegInfo.createVirtualRegister(&Mips::MSA128DRegClass);
@@ -3711,7 +3711,7 @@ MipsSETargetLowering::emitFEXP2_W_1(MachineInstr &MI,
   const TargetRegisterClass *RC = &Mips::MSA128WRegClass;
   Register Ws1 = RegInfo.createVirtualRegister(RC);
   Register Ws2 = RegInfo.createVirtualRegister(RC);
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // Splat 1.0 into a vector
   BuildMI(*BB, MI, DL, TII->get(Mips::LDI_W), Ws1).addImm(1);
@@ -3740,7 +3740,7 @@ MipsSETargetLowering::emitFEXP2_D_1(MachineInstr &MI,
   const TargetRegisterClass *RC = &Mips::MSA128DRegClass;
   Register Ws1 = RegInfo.createVirtualRegister(RC);
   Register Ws2 = RegInfo.createVirtualRegister(RC);
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   // Splat 1.0 into a vector
   BuildMI(*BB, MI, DL, TII->get(Mips::LDI_D), Ws1).addImm(1);

@@ -124,7 +124,7 @@ bool VPlanTransforms::tryToConvertVPInstructionsToVPRecipes(
           } else {
             NewRecipe = new VPWidenIntrinsicRecipe(
                 *CI, VectorID, drop_end(Ingredient.operands()), CI->getType(),
-                VPIRFlags(*CI), *VPI, CI->getDebugLoc());
+                VPIRFlags(*CI), *VPI, CI->getFullDebugLoc());
           }
         } else if (auto *CI = dyn_cast<CastInst>(Inst)) {
           NewRecipe = new VPWidenCastRecipe(
@@ -5772,7 +5772,7 @@ void VPlanTransforms::expandSCEVsToVPInstructions(VPlan &Plan,
   DebugLoc DL = cast<VPIRBasicBlock>(Entry)
                     ->getIRBasicBlock()
                     ->getTerminator()
-                    ->getDebugLoc();
+                    ->getFullDebugLoc();
   VPSCEVExpander Expander(Builder, SE, DL);
 
   // Expand VPExpandSCEVRecipes to VPInstructions using VPSCEVExpander. During

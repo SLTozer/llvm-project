@@ -59,7 +59,7 @@ void DroppedVariableStatsMIR::visitEveryInstruction(
   for (const auto &MBB : *MFunc) {
     for (const auto &MI : MBB) {
       if (!MI.isDebugInstr()) {
-        auto DbgLoc = MI.getDebugLoc();
+        auto DbgLoc = MI.getFullDebugLoc();
         if (!DbgLoc)
           continue;
 
@@ -86,7 +86,7 @@ void DroppedVariableStatsMIR::visitEveryDebugRecord(
         auto *DbgVar = MI.getDebugVariable();
         if (!DbgVar)
           continue;
-        auto DbgLoc = MI.getDebugLoc();
+        auto DbgLoc = MI.getFullDebugLoc();
         populateVarIDSetAndInlinedMap(DbgVar, DbgLoc, VarIDSet, InlinedAtsMap,
                                       FuncName, Before);
       }

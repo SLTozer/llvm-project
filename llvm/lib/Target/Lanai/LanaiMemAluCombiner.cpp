@@ -256,7 +256,7 @@ void LanaiMemAluCombinerImpl::insertMergedInstruction(
 
   // Build and insert new machine instruction
   MachineInstrBuilder InstrBuilder =
-      BuildMI(*BB, MemInstr, MemInstr->getDebugLoc(), TII->get(NewOpc));
+      BuildMI(*BB, MemInstr, MemInstr->getFullDebugLoc(), TII->get(NewOpc));
   InstrBuilder.addReg(Dest.getReg(), getDefRegState(true));
   InstrBuilder.addReg(Base.getReg(), getKillRegState(true));
 

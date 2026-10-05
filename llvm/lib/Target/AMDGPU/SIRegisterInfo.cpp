@@ -53,7 +53,7 @@ static const std::array<unsigned, 17> SubRegFromChannelTableWidthMap = {
 static void emitUnsupportedError(const Function &Fn, const MachineInstr &MI,
                                  const Twine &ErrMsg) {
   Fn.getContext().diagnose(
-      DiagnosticInfoUnsupported(Fn, ErrMsg, MI.getDebugLoc()));
+      DiagnosticInfoUnsupported(Fn, ErrMsg, MI.getFullDebugLoc()));
 }
 
 namespace llvm {
@@ -129,7 +129,7 @@ struct SGPRSpillBuilder {
   SGPRSpillBuilder(const SIRegisterInfo &TRI, const SIInstrInfo &TII,
                    bool IsWave32, MachineBasicBlock::iterator MI, Register Reg,
                    bool IsKill, int Index, RegScavenger *RS)
-      : SuperReg(Reg), MI(MI), IsKill(IsKill), DL(MI->getDebugLoc()),
+      : SuperReg(Reg), MI(MI), IsKill(IsKill), DL(MI->getFullDebugLoc()),
         Index(Index), RS(RS), MBB(MI->getParent()), MF(*MBB->getParent()),
         MFI(*MF.getInfo<SIMachineFunctionInfo>()), TII(TII), TRI(TRI),
         IsWave32(IsWave32) {
@@ -921,7 +921,7 @@ Register SIRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
   DebugLoc DL; // Defaults to "unknown"
 
   if (Ins != MBB->end())
-    DL = Ins->getDebugLoc();
+    DL = Ins->getFullDebugLoc();
 
   MachineFunction *MF = MBB->getParent();
   const SIInstrInfo *TII = ST.getInstrInfo();
@@ -1009,7 +1009,7 @@ void SIRegisterInfo::resolveFrameIndex(MachineInstr &MI, Register BaseReg,
     if (isSGPRReg(MRI, BaseReg)) {
       Register BaseRegVGPR =
           MRI.createVirtualRegister(&AMDGPU::VGPR_32RegClass);
-      BuildMI(*MBB, MI, MI.getDebugLoc(), TII->get(AMDGPU::COPY), BaseRegVGPR)
+      BuildMI(*MBB, MI, MI.getFullDebugLoc(), TII->get(AMDGPU::COPY), BaseRegVGPR)
           .addReg(BaseReg);
       MI.getOperand(2).ChangeToRegister(BaseRegVGPR, false);
     } else {
@@ -1462,7 +1462,7 @@ spillVGPRtoAGPR(const GCNSubtarget &ST, MachineBasicBlock &MBB,
   unsigned Dst = IsStore ? Reg : ValueReg;
   unsigned Src = IsStore ? ValueReg : Reg;
   bool IsVGPR = TRI->isVGPR(MRI, Reg);
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   if (IsVGPR == TRI->isVGPR(MRI, ValueReg)) {
     // Spiller during regalloc may restore a spilled register to its superclass.
     // It could result in AGPR spills restored to VGPRs or the other way around,
@@ -1495,7 +1495,7 @@ static bool buildMUBUFOffsetLoadStore(const GCNSubtarget &ST,
                                       int64_t Offset) {
   const SIInstrInfo *TII = ST.getInstrInfo();
   MachineBasicBlock *MBB = MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   bool IsStore = MI->mayStore();
 
   unsigned Opc = MI->getOpcode();
@@ -1568,7 +1568,7 @@ static unsigned getFlatScratchSpillOpcode(const SIInstrInfo *TII,
 }
 
 void SIRegisterInfo::buildSpillLoadStore(
-    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, const DebugLoc &DL,
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator MI, DebugLoc DL,
     unsigned LoadStoreOp, int Index, Register ValueReg, bool IsKill,
     MCRegister ScratchOffsetReg, int64_t InstOffset, MachineMemOperand *MMO,
     RegScavenger *RS, LiveRegUnits *LiveUnits, bool NeedsCFI) const {
@@ -2525,7 +2525,7 @@ bool SIRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
   SIMachineFunctionInfo *MFI = MF->getInfo<SIMachineFunctionInfo>();
   MachineFrameInfo &FrameInfo = MF->getFrameInfo();
   const SIInstrInfo *TII = ST.getInstrInfo();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   assert(SPAdj == 0 && "unhandled SP adjustment in call sequence?");
 
@@ -2681,7 +2681,7 @@ bool SIRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
 
       if (MI->getOpcode() == AMDGPU::SI_BLOCK_SPILL_V1024_CFI_SAVE)
         // Put mask into M0.
-        BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(AMDGPU::S_MOV_B32),
+        BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(AMDGPU::S_MOV_B32),
                 AMDGPU::M0)
             .add(*TII->getNamedOperand(*MI, AMDGPU::OpName::mask));
 
@@ -2725,7 +2725,7 @@ bool SIRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
     }
     case AMDGPU::SI_BLOCK_SPILL_V1024_RESTORE: {
       // Put mask into M0.
-      BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(AMDGPU::S_MOV_B32),
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(AMDGPU::S_MOV_B32),
               AMDGPU::M0)
           .add(*TII->getNamedOperand(*MI, AMDGPU::OpName::mask));
       [[fallthrough]];
@@ -3038,7 +3038,7 @@ bool SIRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
       assert(FrameReg || MFI->isBottomOfStack());
 
       MachineOperand &DstOp = MI->getOperand(0);
-      const DebugLoc &DL = MI->getDebugLoc();
+      DebugLoc DL = MI->getFullDebugLoc();
       Register MaterializedReg = FrameReg;
 
       // Defend against live scc, which should never happen in practice.

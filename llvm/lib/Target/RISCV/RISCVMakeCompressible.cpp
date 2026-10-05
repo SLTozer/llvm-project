@@ -500,18 +500,18 @@ bool RISCVMakeCompressibleOpt::runOnMachineFunction(MachineFunction &Fn) {
       // Create the appropriate copy and/or offset.
       if (RISCV::GPRRegClass.contains(RegImm.Reg)) {
         if (isInt<12>(RegImm.Imm)) {
-          BuildMI(MBB, MI, MI.getDebugLoc(), TII.get(RISCV::ADDI), NewReg)
+          BuildMI(MBB, MI, MI.getFullDebugLoc(), TII.get(RISCV::ADDI), NewReg)
               .addReg(RegImm.Reg)
               .addImm(RegImm.Imm);
         } else {
           assert(STI.hasVendorXqcilia() && isInt<26>(RegImm.Imm));
-          BuildMI(MBB, MI, MI.getDebugLoc(), TII.get(RISCV::QC_E_ADDI), NewReg)
+          BuildMI(MBB, MI, MI.getFullDebugLoc(), TII.get(RISCV::QC_E_ADDI), NewReg)
               .addReg(RegImm.Reg)
               .addImm(RegImm.Imm);
         }
       } else {
         assert(RegImm.Imm == 0);
-        TII.copyPhysReg(MBB, MI, MI.getDebugLoc(), NewReg, RegImm.Reg,
+        TII.copyPhysReg(MBB, MI, MI.getFullDebugLoc(), NewReg, RegImm.Reg,
                         /*KillSrc*/ false);
       }
 

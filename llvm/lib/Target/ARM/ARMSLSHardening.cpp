@@ -117,7 +117,7 @@ bool ARMSLSHardening::hardenReturnsAndBRs(MachineBasicBlock &MBB) const {
     if (isIndirectControlFlowNotComingBack(MI)) {
       assert(MI.isTerminator());
       assert(!TII->isPredicated(MI));
-      insertSpeculationBarrier(ST, MBB, std::next(MBBI), MI.getDebugLoc());
+      insertSpeculationBarrier(ST, MBB, std::next(MBBI), MI.getFullDebugLoc());
       Modified = true;
     }
   }
@@ -303,7 +303,7 @@ MachineBasicBlock &ARMSLSHardening::ConvertIndirectCallToIndirectJump(
   assert(Reg != ARM::R12 && Reg != ARM::LR);
   bool RegIsKilled = IndirectCall.getOperand(RegOpIdxOnIndirectCall).isKill();
 
-  DebugLoc DL = IndirectCall.getDebugLoc();
+  DebugLoc DL = IndirectCall.getFullDebugLoc();
 
   MachineFunction &MF = *MBBI->getMF();
   auto ThunkIt = llvm::find_if(SLSBLRThunks, [Reg, isThumb](auto T) {

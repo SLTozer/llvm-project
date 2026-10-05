@@ -10780,7 +10780,7 @@ void ARMTargetLowering::SetupEntryBlockForSjLj(MachineInstr &MI,
   assert(!Subtarget->isROPI() && !Subtarget->isRWPI() &&
          "ROPI/RWPI not currently supported with SjLj");
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   MachineFunction *MF = MBB->getParent();
   MachineRegisterInfo *MRI = &MF->getRegInfo();
   MachineConstantPool *MCP = MF->getConstantPool();
@@ -10904,7 +10904,7 @@ void ARMTargetLowering::SetupEntryBlockForSjLj(MachineInstr &MI,
 void ARMTargetLowering::EmitSjLjDispatchBlock(MachineInstr &MI,
                                               MachineBasicBlock *MBB) const {
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   MachineFunction *MF = MBB->getParent();
   MachineRegisterInfo *MRI = &MF->getRegInfo();
   MachineFrameInfo &MFI = MF->getFrameInfo();
@@ -11349,7 +11349,7 @@ static unsigned getStOpcode(unsigned StSize, bool IsThumb1, bool IsThumb2) {
 /// Emit a post-increment load operation with given size. The instructions
 /// will be added to BB at Pos.
 static void emitPostLd(MachineBasicBlock *BB, MachineBasicBlock::iterator Pos,
-                       const TargetInstrInfo *TII, const DebugLoc &dl,
+                       const TargetInstrInfo *TII, DebugLoc dl,
                        unsigned LdSize, unsigned Data, unsigned AddrIn,
                        unsigned AddrOut, bool IsThumb1, bool IsThumb2) {
   unsigned LdOpc = getLdOpcode(LdSize, IsThumb1, IsThumb2);
@@ -11390,7 +11390,7 @@ static void emitPostLd(MachineBasicBlock *BB, MachineBasicBlock::iterator Pos,
 /// Emit a post-increment store operation with given size. The instructions
 /// will be added to BB at Pos.
 static void emitPostSt(MachineBasicBlock *BB, MachineBasicBlock::iterator Pos,
-                       const TargetInstrInfo *TII, const DebugLoc &dl,
+                       const TargetInstrInfo *TII, DebugLoc dl,
                        unsigned StSize, unsigned Data, unsigned AddrIn,
                        unsigned AddrOut, bool IsThumb1, bool IsThumb2) {
   unsigned StOpc = getStOpcode(StSize, IsThumb1, IsThumb2);
@@ -11443,7 +11443,7 @@ ARMTargetLowering::EmitStructByval(MachineInstr &MI,
   Register src = MI.getOperand(1).getReg();
   unsigned SizeVal = MI.getOperand(2).getImm();
   unsigned Alignment = MI.getOperand(3).getImm();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   MachineFunction *MF = BB->getParent();
   MachineRegisterInfo &MRI = MF->getRegInfo();
@@ -11678,7 +11678,7 @@ ARMTargetLowering::EmitLowered__chkstk(MachineInstr &MI,
                                        MachineBasicBlock *MBB) const {
   const TargetMachine &TM = getTargetMachine();
   const TargetInstrInfo &TII = *Subtarget->getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   assert(TM.getTargetTriple().isOSWindows() &&
          "__chkstk is only supported on Windows");
@@ -11756,7 +11756,7 @@ ARMTargetLowering::EmitLowered__chkstk(MachineInstr &MI,
 MachineBasicBlock *
 ARMTargetLowering::EmitLowered__dbzchk(MachineInstr &MI,
                                        MachineBasicBlock *MBB) const {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction *MF = MBB->getParent();
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
 
@@ -12018,7 +12018,7 @@ ARMTargetLowering::EmitKCFICheck(MachineBasicBlock &MBB,
     KCFICheckOpcode = ARM::KCFI_CHECK_ARM;
   }
 
-  return BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII->get(KCFICheckOpcode))
+  return BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII->get(KCFICheckOpcode))
       .addReg(TargetOp->getReg())
       .addImm(MBBI->getCFIType())
       .getInstr();
@@ -12028,7 +12028,7 @@ MachineBasicBlock *
 ARMTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
                                                MachineBasicBlock *BB) const {
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   bool isThumb2 = Subtarget->isThumb2();
   switch (MI.getOpcode()) {
   default: {

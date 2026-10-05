@@ -1523,12 +1523,12 @@ static bool mergeConsecutivePartStores(ArrayRef<PartStore> Parts,
   AAMDNodes AATags = First.Store->getAAMetadata();
   SmallVector<Instruction *> Stores = {First.Store};
   Stores.reserve(Parts.size());
-  SmallVector<DebugLoc> DbgLocs = {First.Store->getDebugLoc()};
+  SmallVector<DebugLoc> DbgLocs = {First.Store->getFullDebugLoc()};
   DbgLocs.reserve(Parts.size());
   for (const PartStore &Part : drop_begin(Parts)) {
     AATags = AATags.concat(Part.Store->getAAMetadata());
     Stores.push_back(Part.Store);
-    DbgLocs.push_back(Part.Store->getDebugLoc());
+    DbgLocs.push_back(Part.Store->getFullDebugLoc());
   }
   Store->setAAMetadata(AATags);
   Store->mergeDIAssignID(Stores);
@@ -1895,7 +1895,7 @@ void StrNCmpInliner::inlineCompare(Value *LHS, StringRef RHS, uint64_t N,
   // code is a viable point for a memory access error, we make the pragmatic
   // choice here to directly use CI's location so that we have useful
   // attribution for the generated code.
-  B.SetCurrentDebugLocation(CI->getDebugLoc());
+  B.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
   BasicBlock *BBCI = CI->getParent();
   BasicBlock *BBTail =
@@ -1984,7 +1984,7 @@ static bool foldMemChr(CallInst *Call, DomTreeUpdater *DTU,
   BasicBlock *BB = Call->getParent();
   BasicBlock *BBNext = SplitBlock(BB, Call, DTU);
   IRBuilder<> IRB(BB);
-  IRB.SetCurrentDebugLocation(Call->getDebugLoc());
+  IRB.SetCurrentDebugLocation(Call->getFullDebugLoc());
   IntegerType *ByteTy = IRB.getInt8Ty();
   BB->getTerminator()->eraseFromParent();
   SwitchInst *SI = IRB.CreateSwitch(

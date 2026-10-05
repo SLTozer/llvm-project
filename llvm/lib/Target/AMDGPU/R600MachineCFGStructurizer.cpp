@@ -189,15 +189,15 @@ protected:
 
   // Function originally from CFGStructTraits
   void insertInstrEnd(MachineBasicBlock *MBB, int NewOpcode,
-                      const DebugLoc &DL = DebugLoc());
+                      DebugLoc DL = DebugLoc());
   MachineInstr *insertInstrBefore(MachineBasicBlock *MBB, int NewOpcode,
-                                  const DebugLoc &DL = DebugLoc());
+                                  DebugLoc DL = DebugLoc());
   MachineInstr *insertInstrBefore(MachineBasicBlock::iterator I, int NewOpcode);
   void insertCondBranchBefore(MachineBasicBlock::iterator I, int NewOpcode,
-                              const DebugLoc &DL);
+                              DebugLoc DL);
   void insertCondBranchBefore(MachineBasicBlock *MBB,
                               MachineBasicBlock::iterator I, int NewOpcode,
-                              int RegNum, const DebugLoc &DL);
+                              int RegNum, DebugLoc DL);
 
   static int getBranchNzeroOpcode(int OldOpcode);
   static int getBranchZeroOpcode(int OldOpcode);
@@ -423,7 +423,7 @@ void R600MachineCFGStructurizer::reversePredicateSetter(
 }
 
 void R600MachineCFGStructurizer::insertInstrEnd(MachineBasicBlock *MBB,
-                                           int NewOpcode, const DebugLoc &DL) {
+                                           int NewOpcode, DebugLoc DL) {
   MachineInstr *MI =
       MBB->getParent()->CreateMachineInstr(TII->get(NewOpcode), DL);
   MBB->push_back(MI);
@@ -433,7 +433,7 @@ void R600MachineCFGStructurizer::insertInstrEnd(MachineBasicBlock *MBB,
 
 MachineInstr *R600MachineCFGStructurizer::insertInstrBefore(MachineBasicBlock *MBB,
                                                        int NewOpcode,
-                                                       const DebugLoc &DL) {
+                                                       DebugLoc DL) {
   MachineInstr *MI =
       MBB->getParent()->CreateMachineInstr(TII->get(NewOpcode), DL);
   if (!MBB->empty())
@@ -457,7 +457,7 @@ MachineInstr *R600MachineCFGStructurizer::insertInstrBefore(
 }
 
 void R600MachineCFGStructurizer::insertCondBranchBefore(
-    MachineBasicBlock::iterator I, int NewOpcode, const DebugLoc &DL) {
+    MachineBasicBlock::iterator I, int NewOpcode, DebugLoc DL) {
   MachineInstr *OldMI = &(*I);
   MachineBasicBlock *MBB = OldMI->getParent();
   MachineFunction *MF = MBB->getParent();
@@ -471,7 +471,7 @@ void R600MachineCFGStructurizer::insertCondBranchBefore(
 
 void R600MachineCFGStructurizer::insertCondBranchBefore(
     MachineBasicBlock *blk, MachineBasicBlock::iterator I, int NewOpcode,
-    int RegNum, const DebugLoc &DL) {
+    int RegNum, DebugLoc DL) {
   MachineFunction *MF = blk->getParent();
   MachineInstr *NewInstr = MF->CreateMachineInstr(TII->get(NewOpcode), DL);
   //insert before
@@ -566,8 +566,8 @@ DebugLoc R600MachineCFGStructurizer::getLastDebugLocInBB(MachineBasicBlock *MBB)
   //get DebugLoc from the first MachineBasicBlock instruction with debug info
   DebugLoc DL;
   for (MachineInstr &MI : *MBB)
-    if (MI.getDebugLoc())
-      DL = MI.getDebugLoc();
+    if (MI.getFullDebugLoc())
+      DL = MI.getFullDebugLoc();
   return DL;
 }
 
@@ -1343,7 +1343,7 @@ void R600MachineCFGStructurizer::mergeIfthenelseBlock(MachineInstr *BranchMI,
              } dbgs() << "\n";);
 
   int OldOpcode = BranchMI->getOpcode();
-  DebugLoc BranchDL = BranchMI->getDebugLoc();
+  DebugLoc BranchDL = BranchMI->getFullDebugLoc();
 
 //    transform to
 //    if cond
@@ -1401,7 +1401,7 @@ void R600MachineCFGStructurizer::mergeLoopbreakBlock(MachineBasicBlock *ExitingM
                     << LandMBB->getNumber() << "\n";);
   MachineInstr *BranchMI = getLoopendBlockBranchInstr(ExitingMBB);
   assert(BranchMI && isCondBranch(BranchMI));
-  const DebugLoc &DL = BranchMI->getDebugLoc();
+  DebugLoc DL = BranchMI->getFullDebugLoc();
   MachineBasicBlock *TrueBranch = getTrueBranch(BranchMI);
   MachineBasicBlock::iterator I = BranchMI;
   if (TrueBranch != LandMBB)
@@ -1427,7 +1427,7 @@ void R600MachineCFGStructurizer::settleLoopcontBlock(MachineBasicBlock *ContingM
     MachineBasicBlock::iterator I = MI;
     MachineBasicBlock *TrueBranch = getTrueBranch(MI);
     int OldOpcode = MI->getOpcode();
-    const DebugLoc &DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
 
     bool UseContinueLogical = ((&*ContingMBB->rbegin()) == MI);
 

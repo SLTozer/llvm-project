@@ -351,7 +351,7 @@ InstrEmitter::AddRegisterOperand(MachineInstrBuilder &MIB,
         OpRC = TRI->getAllocatableClass(OpRC);
         assert(OpRC && "Constraints cannot be fulfilled for allocation");
         Register NewVReg = MRI->createVirtualRegister(OpRC);
-        BuildMI(*MBB, InsertPos, MIB->getDebugLoc(),
+        BuildMI(*MBB, InsertPos, MIB->getFullDebugLoc(),
                 TII->get(TargetOpcode::COPY), NewVReg)
             .addReg(VReg);
         VReg = NewVReg;
@@ -475,7 +475,7 @@ void InstrEmitter::AddOperand(MachineInstrBuilder &MIB, SDValue Op,
 }
 
 Register InstrEmitter::ConstrainForSubReg(Register VReg, unsigned SubIdx,
-                                          MVT VT, bool isDivergent, const DebugLoc &DL) {
+                                          MVT VT, bool isDivergent, DebugLoc DL) {
   const TargetRegisterClass *VRC = MRI->getRegClass(VReg);
   const TargetRegisterClass *RC = TRI->getSubClassWithSubReg(VRC, SubIdx);
 

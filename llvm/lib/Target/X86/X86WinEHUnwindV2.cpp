@@ -111,8 +111,8 @@ FunctionPass *llvm::createX86WinEHUnwindV2LegacyPass() {
 
 DebugLoc findDebugLoc(const MachineBasicBlock &MBB) {
   for (const MachineInstr &MI : MBB)
-    if (MI.getDebugLoc())
-      return MI.getDebugLoc();
+    if (MI.getFullDebugLoc())
+      return MI.getFullDebugLoc();
 
   return DebugLoc::getUnknown();
 }
@@ -410,7 +410,7 @@ bool runX86WinEHUnwindV2(MachineFunction &MF) {
     unsigned UnwindCodeCount = FI.ApproximatePrologCodeCount + 1;
     for (auto &Info : llvm::reverse(FI.EpilogInfos)) {
       MachineBasicBlock &MBB = *Info.UnwindV2StartLocation->getParent();
-      const DebugLoc &DL = Info.UnwindV2StartLocation->getDebugLoc();
+      DebugLoc DL = Info.UnwindV2StartLocation->getFullDebugLoc();
       BuildMI(MBB, Info.UnwindV2StartLocation, DL,
               TII->get(X86::SEH_UnwindV2Start));
 

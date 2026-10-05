@@ -1735,7 +1735,7 @@ MachineBasicBlock *AVRTargetLowering::insertShift(MachineInstr &MI,
   MachineFunction *F = BB->getParent();
   MachineRegisterInfo &RI = F->getRegInfo();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   switch (MI.getOpcode()) {
   default:
@@ -1876,7 +1876,7 @@ static void insertMultibyteShift(MachineInstr &MI, MachineBasicBlock *BB,
   const TargetInstrInfo &TII = *BB->getParent()->getSubtarget().getInstrInfo();
   const AVRSubtarget &STI = BB->getParent()->getSubtarget<AVRSubtarget>();
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
-  const DebugLoc &dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   const bool ShiftLeft = Opc == ISD::SHL;
   const bool ArithmeticShift = Opc == ISD::SRA;
@@ -2140,7 +2140,7 @@ MachineBasicBlock *
 AVRTargetLowering::insertWideShift(MachineInstr &MI,
                                    MachineBasicBlock *BB) const {
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  const DebugLoc &dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   // How much to shift to the right (meaning: a negative number indicates a left
   // shift).
@@ -2233,7 +2233,7 @@ MachineBasicBlock *AVRTargetLowering::insertMul(MachineInstr &MI,
     ++I;
   if (isCopyMulResult(I))
     ++I;
-  BuildMI(*BB, I, MI.getDebugLoc(), TII.get(AVR::EORRdRr), AVR::R1)
+  BuildMI(*BB, I, MI.getFullDebugLoc(), TII.get(AVR::EORRdRr), AVR::R1)
       .addReg(AVR::R1)
       .addReg(AVR::R1);
   return BB;
@@ -2245,7 +2245,7 @@ AVRTargetLowering::insertCopyZero(MachineInstr &MI,
                                   MachineBasicBlock *BB) const {
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   MachineBasicBlock::iterator I(MI);
-  BuildMI(*BB, I, MI.getDebugLoc(), TII.get(AVR::COPY))
+  BuildMI(*BB, I, MI.getFullDebugLoc(), TII.get(AVR::COPY))
       .add(MI.getOperand(0))
       .addReg(Subtarget.getZeroRegister());
   MI.eraseFromParent();
@@ -2259,7 +2259,7 @@ MachineBasicBlock *AVRTargetLowering::insertAtomicArithmeticOp(
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   MachineBasicBlock::iterator I(MI);
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   // Example instruction sequence, for an atomic 8-bit add:
   //   ldi r25, 5
@@ -2363,7 +2363,7 @@ AVRTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
                                 ->getParent()
                                 ->getSubtarget()
                                 .getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   // To "insert" a SELECT instruction, we insert the diamond
   // control-flow pattern. The incoming instruction knows the

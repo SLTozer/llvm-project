@@ -541,8 +541,8 @@ bool AMDGPULowerVGPREncoding::handleSetregMode(MachineInstr &MI) {
   // to avoid the GFX1250 hazard where S_SET_VGPR_MSB immediately after
   // S_SETREG_IMM32_B32(MODE) is silently dropped.
   MachineBasicBlock::iterator InsertPt = std::next(MI.getIterator());
-  BuildMI(*MBB, InsertPt, MI.getDebugLoc(), TII->get(AMDGPU::S_NOP)).addImm(0);
-  MostRecentModeSet = BuildMI(*MBB, InsertPt, MI.getDebugLoc(),
+  BuildMI(*MBB, InsertPt, MI.getFullDebugLoc(), TII->get(AMDGPU::S_NOP)).addImm(0);
+  MostRecentModeSet = BuildMI(*MBB, InsertPt, MI.getFullDebugLoc(),
                               TII->get(AMDGPU::S_SET_VGPR_MSB))
                           .addImm(ModeValue | (ModeValue << ModeWidth));
   LLVM_DEBUG(dbgs() << "    -> inserted S_SET_VGPR_MSB after setreg: "

@@ -105,11 +105,11 @@ public:
   }
 
   void copyPhysRegVector(MachineBasicBlock &MBB,
-                         MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+                         MachineBasicBlock::iterator MBBI, DbgLocStorage DL,
                          MCRegister DstReg, MCRegister SrcReg, bool KillSrc,
                          const TargetRegisterClass *RegClass) const;
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                   const DebugLoc &DL, Register DstReg, Register SrcReg,
+                   DbgLocStorage DL, Register DstReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -142,7 +142,7 @@ public:
 
   // Materializes the given integer Val into DstReg.
   void movImm(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-              const DebugLoc &DL, Register DstReg, uint64_t Val,
+              DbgLocStorage DL, Register DstReg, uint64_t Val,
               MachineInstr::MIFlag Flag = MachineInstr::NoFlags,
               bool DstRenamable = false, bool DstIsDead = false) const;
 
@@ -155,12 +155,12 @@ public:
 
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &dl,
+                        DbgLocStorage dl,
                         int *BytesAdded = nullptr) const override;
 
   void insertIndirectBranch(MachineBasicBlock &MBB,
                             MachineBasicBlock &NewDestBB,
-                            MachineBasicBlock &RestoreBB, const DebugLoc &DL,
+                            MachineBasicBlock &RestoreBB, DbgLocStorage DL,
                             int64_t BrOffset, RegScavenger *RS) const override;
 
   unsigned removeBranch(MachineBasicBlock &MBB,
@@ -258,7 +258,7 @@ public:
                      outliner::Candidate &C) const override;
 
   void buildClearRegister(Register Reg, MachineBasicBlock &MBB,
-                          MachineBasicBlock::iterator Iter, DebugLoc &DL,
+                          MachineBasicBlock::iterator Iter, DbgLocStorage DL,
                           bool AllowSideEffects = true) const override;
 
   std::optional<RegImmPair> isAddImmediate(const MachineInstr &MI,
@@ -285,7 +285,7 @@ public:
   /// the common optimizations for this idiom, and supports fallback for
   /// subtargets which don't support multiply instructions.
   void mulImm(MachineFunction &MF, MachineBasicBlock &MBB,
-              MachineBasicBlock::iterator II, const DebugLoc &DL,
+              MachineBasicBlock::iterator II, DbgLocStorage DL,
               Register DestReg, uint32_t Amt, MachineInstr::MIFlag Flag) const;
 
   bool useMachineCombiner() const override { return true; }

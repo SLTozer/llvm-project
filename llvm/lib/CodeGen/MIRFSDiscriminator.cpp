@@ -140,7 +140,7 @@ bool MIRAddFSDiscriminators::runOnMachineFunction(MachineFunction &MF) {
       } else if (ImprovedFSDiscriminator && I.isMetaInstruction()) {
         continue;
       }
-      DebugLoc DIL = I.getDebugLoc();
+      DebugLoc DIL = I.getFullDebugLoc();
       if (!DIL)
         continue;
 

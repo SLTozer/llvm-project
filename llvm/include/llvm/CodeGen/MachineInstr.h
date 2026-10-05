@@ -327,9 +327,6 @@ private:
       Info;
 
   DbgLocStorage DbgLoc; // Source line information.
-#if LLVM_USE_FLMD_SOURCE_LOCS
-  DIFunctionLocalMetadata *FLMDContext = nullptr;
-#endif
 
   // Intrusive list support
   friend struct ilist_traits<MachineInstr>;
@@ -343,7 +340,7 @@ private:
   /// This constructor create a MachineInstr and add the implicit operands.
   /// It reserves space for number of operands specified by
   /// MCInstrDesc.  An explicit DebugLoc is supplied.
-  MachineInstr(MachineFunction &, const MCInstrDesc &TID, DebugLoc DL,
+  MachineInstr(MachineFunction &, const MCInstrDesc &TID, DbgLocStorage DL,
                bool NoImp = false);
 
   // MachineInstrs are pool-allocated and owned by MachineFunction.
@@ -526,8 +523,9 @@ public:
   LLVM_ABI void unbundleFromSucc();
 
   /// Returns the debug location id of this MachineInstr.
-  DebugLoc getDebugLoc() const;
-  DebugLoc getDebugLoc(Function *FunctionContext) const {
+  DbgLocStorage getDebugLoc() const { return DbgLoc; }
+  DebugLoc getFullDebugLoc() const;
+  DebugLoc getFullDebugLoc(Function *FunctionContext) const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
     return DebugLoc(DbgLoc, getFLMDForFunction(FunctionContext));
 #else
@@ -1931,34 +1929,23 @@ public:
 
   /// Replace current source information with new such.
   /// Avoid using this, the constructor argument is preferable.
-  void updateFLContext(DebugLoc Loc) {
-#if LLVM_USE_FLMD_SOURCE_LOCS
-    if (Loc)
-      FLMDContext = Loc.getFLContext();
-#endif
-  }
-  void copyFLContext(const MachineInstr *Other) {
-#if LLVM_USE_FLMD_SOURCE_LOCS
-    FLMDContext = Other->FLMDContext;
-#endif
-  }
   void setDebugLoc(DebugLoc DL) {
     DbgLoc = DL.getStorage();
-    updateFLContext(DL);
+    assert(!DbgLoc || DbgLoc.get().isInstrLoc());
   }
-  void setDebugLoc(DbgLocStorage Loc) { DbgLoc = Loc.getCopied(); }
+  void setDebugLoc(DbgLocStorage Loc) {
+    DbgLoc = Loc.getCopied();
+    assert(!DbgLoc || DbgLoc.get().isInstrLoc());
+  }
   void setDebugLocIfPresent(DebugLoc Loc) {
     DbgLoc = Loc.getStorage().orElse(DbgLoc);
-    updateFLContext(Loc);
   }
   void setDebugLocIfPresent(DbgLocStorage Loc) { DbgLoc = Loc.orElse(DbgLoc); }
   void copyDebugLocFrom(const MachineInstr *Other) {
     DbgLoc = Other->DbgLoc;
-    copyFLContext(Other);
   }
   void copyDebugLocFromIfPresent(const MachineInstr *Other) {
     DbgLoc = Other->DbgLoc.orElse(DbgLoc);
-    copyFLContext(Other);
   }
 
   /// Erase an operand from an instruction, leaving it with one

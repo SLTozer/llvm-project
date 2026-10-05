@@ -97,8 +97,8 @@ createHWLoopAnalysis(StringRef RemarkName, Loop *L, Instruction *I) {
     CodeRegion = I->getParent();
     // If there is no debug location attached to the instruction, revert back to
     // using the loop's.
-    if (I->getDebugLoc())
-      DL = I->getDebugLoc();
+    if (I->getFullDebugLoc())
+      DL = I->getFullDebugLoc();
   }
 
   OptimizationRemarkAnalysis R(DEBUG_TYPE, RemarkName, DL, CodeRegion);

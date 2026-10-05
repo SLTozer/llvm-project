@@ -630,7 +630,7 @@ MachineInstr *HexagonExpandCondsets::genCondTfrFor(MachineOperand &SrcOp,
       bool PredSense, bool ReadUndef, bool ImpUse) {
   MachineInstr *MI = SrcOp.getParent();
   MachineBasicBlock &B = *At->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   // Don't avoid identity copies here (i.e. if the source and the destination
   // are the same registers). It is actually better to generate them here,
@@ -874,7 +874,7 @@ void HexagonExpandCondsets::predicateAt(const MachineOperand &DefOp,
   // and (4) update liveness again.
 
   MachineBasicBlock &B = *MI.getParent();
-  DebugLoc DL = Where->getDebugLoc();  // "Where" points to an instruction.
+  DebugLoc DL = Where->getFullDebugLoc();  // "Where" points to an instruction.
   unsigned Opc = MI.getOpcode();
   unsigned PredOpc = HII->getCondOpcode(Opc, !Cond);
   MachineInstrBuilder MB = BuildMI(B, Where, DL, HII->get(PredOpc));

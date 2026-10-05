@@ -94,21 +94,21 @@ private:
 
   Register promoteCondToReg(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator TestPos,
-                            const DebugLoc &TestLoc, X86::CondCode Cond);
+                            DebugLoc TestLoc, X86::CondCode Cond);
   std::pair<Register, bool> getCondOrInverseInReg(
       MachineBasicBlock &TestMBB, MachineBasicBlock::iterator TestPos,
-      const DebugLoc &TestLoc, X86::CondCode Cond, CondRegArray &CondRegs);
+      DebugLoc TestLoc, X86::CondCode Cond, CondRegArray &CondRegs);
   void insertTest(MachineBasicBlock &MBB, MachineBasicBlock::iterator Pos,
-                  const DebugLoc &Loc, Register Reg);
+                  DebugLoc Loc, Register Reg);
 
   void rewriteSetCC(MachineBasicBlock &MBB, MachineBasicBlock::iterator Pos,
-                    const DebugLoc &Loc, MachineInstr &MI,
+                    DebugLoc Loc, MachineInstr &MI,
                     CondRegArray &CondRegs);
   void rewriteArithmetic(MachineBasicBlock &MBB,
-                         MachineBasicBlock::iterator Pos, const DebugLoc &Loc,
+                         MachineBasicBlock::iterator Pos, DebugLoc Loc,
                          MachineInstr &MI, CondRegArray &CondRegs);
   void rewriteMI(MachineBasicBlock &MBB, MachineBasicBlock::iterator Pos,
-                 const DebugLoc &Loc, MachineInstr &MI, CondRegArray &CondRegs);
+                 DebugLoc Loc, MachineInstr &MI, CondRegArray &CondRegs);
 };
 
 class X86FlagsCopyLoweringLegacy : public MachineFunctionPass {
@@ -447,7 +447,7 @@ bool X86FlagsCopyLoweringImpl::runOnMachineFunction(MachineFunction &MF) {
 
     MachineBasicBlock *TestMBB = CopyDefI.getParent();
     auto TestPos = CopyDefI.getIterator();
-    DebugLoc TestLoc = CopyDefI.getDebugLoc();
+    DebugLoc TestLoc = CopyDefI.getFullDebugLoc();
 
     LLVM_DEBUG(dbgs() << "Rewriting copy: "; CopyI->dump());
 
@@ -750,7 +750,7 @@ CondRegArray X86FlagsCopyLoweringImpl::collectCondsInRegs(
 
 Register X86FlagsCopyLoweringImpl::promoteCondToReg(
     MachineBasicBlock &TestMBB, MachineBasicBlock::iterator TestPos,
-    const DebugLoc &TestLoc, X86::CondCode Cond) {
+    DebugLoc TestLoc, X86::CondCode Cond) {
   Register Reg = MRI->createVirtualRegister(PromoteRC);
   auto SetI =
       BuildMI(TestMBB, TestPos, TestLoc,
@@ -767,7 +767,7 @@ Register X86FlagsCopyLoweringImpl::promoteCondToReg(
 
 std::pair<Register, bool> X86FlagsCopyLoweringImpl::getCondOrInverseInReg(
     MachineBasicBlock &TestMBB, MachineBasicBlock::iterator TestPos,
-    const DebugLoc &TestLoc, X86::CondCode Cond, CondRegArray &CondRegs) {
+    DebugLoc TestLoc, X86::CondCode Cond, CondRegArray &CondRegs) {
   Register &CondReg = CondRegs[Cond];
   Register &InvCondReg = CondRegs[X86::GetOppositeBranchCondition(Cond)];
   if (!CondReg && !InvCondReg)
@@ -781,7 +781,7 @@ std::pair<Register, bool> X86FlagsCopyLoweringImpl::getCondOrInverseInReg(
 
 void X86FlagsCopyLoweringImpl::insertTest(MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator Pos,
-                                          const DebugLoc &Loc, Register Reg) {
+                                          DebugLoc Loc, Register Reg) {
   auto TestI =
       BuildMI(MBB, Pos, Loc, TII->get(X86::TEST8rr)).addReg(Reg).addReg(Reg);
   (void)TestI;
@@ -791,7 +791,7 @@ void X86FlagsCopyLoweringImpl::insertTest(MachineBasicBlock &MBB,
 
 void X86FlagsCopyLoweringImpl::rewriteSetCC(MachineBasicBlock &MBB,
                                             MachineBasicBlock::iterator Pos,
-                                            const DebugLoc &Loc,
+                                            DebugLoc Loc,
                                             MachineInstr &MI,
                                             CondRegArray &CondRegs) {
   X86::CondCode Cond = X86::getCondFromSETCC(MI);
@@ -817,7 +817,7 @@ void X86FlagsCopyLoweringImpl::rewriteSetCC(MachineBasicBlock &MBB,
   }
 
   // Otherwise, we need to emit a store.
-  auto MIB = BuildMI(*MI.getParent(), MI.getIterator(), MI.getDebugLoc(),
+  auto MIB = BuildMI(*MI.getParent(), MI.getIterator(), MI.getFullDebugLoc(),
                      TII->get(X86::MOV8mr));
   // Copy the address operands.
   for (int i = 0; i < X86::AddrNumOperands; ++i)
@@ -830,7 +830,7 @@ void X86FlagsCopyLoweringImpl::rewriteSetCC(MachineBasicBlock &MBB,
 
 void X86FlagsCopyLoweringImpl::rewriteArithmetic(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator Pos,
-    const DebugLoc &Loc, MachineInstr &MI, CondRegArray &CondRegs) {
+    DebugLoc Loc, MachineInstr &MI, CondRegArray &CondRegs) {
   // Arithmetic is either reading CF or OF.
   X86::CondCode Cond = X86::COND_B; // CF == 1
   // The addend to use to reset CF or OF when added to the flag value.
@@ -848,7 +848,7 @@ void X86FlagsCopyLoweringImpl::rewriteArithmetic(
   // Insert an instruction that will set the flag back to the desired value.
   Register TmpReg = MRI->createVirtualRegister(PromoteRC);
   auto AddI =
-      BuildMI(*MI.getParent(), MI.getIterator(), MI.getDebugLoc(),
+      BuildMI(*MI.getParent(), MI.getIterator(), MI.getFullDebugLoc(),
               TII->get(Subtarget->hasNDD() ? X86::ADD8ri_ND : X86::ADD8ri))
           .addDef(TmpReg, RegState::Dead)
           .addReg(CondReg)
@@ -905,7 +905,7 @@ static unsigned getOpcodeWithCC(unsigned Opc, X86::CondCode CC) {
 
 void X86FlagsCopyLoweringImpl::rewriteMI(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator Pos,
-                                         const DebugLoc &Loc, MachineInstr &MI,
+                                         DebugLoc Loc, MachineInstr &MI,
                                          CondRegArray &CondRegs) {
   // First get the register containing this specific condition.
   bool IsImplicitCC = false;
@@ -921,7 +921,7 @@ void X86FlagsCopyLoweringImpl::rewriteMI(MachineBasicBlock &MBB,
       getCondOrInverseInReg(MBB, Pos, Loc, CC, CondRegs);
 
   // Insert a direct test of the saved register.
-  insertTest(*MI.getParent(), MI.getIterator(), MI.getDebugLoc(), CondReg);
+  insertTest(*MI.getParent(), MI.getIterator(), MI.getFullDebugLoc(), CondReg);
 
   // Rewrite the instruction to use the !ZF flag from the test, and then kill
   // its use of the flags afterward.

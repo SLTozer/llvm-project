@@ -152,7 +152,7 @@ private:
   void initMBBInfo();
   int64_t computeOffset(const MachineInstr *Br);
   uint64_t computeOffsetFromTheBeginning(int MBB);
-  void replaceBranch(MachineBasicBlock &MBB, Iter Br, const DebugLoc &DL,
+  void replaceBranch(MachineBasicBlock &MBB, Iter Br, DebugLoc DL,
                      MachineBasicBlock *MBBOpnd);
   bool buildProperJumpMI(MachineBasicBlock *MBB,
                          MachineBasicBlock::iterator Pos, DebugLoc DL);
@@ -335,7 +335,7 @@ uint64_t MipsBranchExpansion::computeOffsetFromTheBeginning(int MBB) {
 // Replace Br with a branch which has the opposite condition code and a
 // MachineBasicBlock operand MBBOpnd.
 void MipsBranchExpansion::replaceBranch(MachineBasicBlock &MBB, Iter Br,
-                                        const DebugLoc &DL,
+                                        DebugLoc DL,
                                         MachineBasicBlock *MBBOpnd) {
   unsigned NewOpc = TII->getOppositeBranchOpc(Br->getOpcode());
   const MCInstrDesc &NewDesc = TII->get(NewOpc);
@@ -411,7 +411,7 @@ bool MipsBranchExpansion::buildProperJumpMI(MachineBasicBlock *MBB,
 void MipsBranchExpansion::expandToLongBranch(MBBInfo &I) {
   MachineBasicBlock::iterator Pos;
   MachineBasicBlock *MBB = I.Br->getParent(), *TgtMBB = getTargetMBB(*I.Br);
-  DebugLoc DL = I.Br->getDebugLoc();
+  DebugLoc DL = I.Br->getFullDebugLoc();
   const BasicBlock *BB = MBB->getBasicBlock();
   MachineFunction::iterator FallThroughMBB = ++MachineFunction::iterator(MBB);
   MachineBasicBlock *LongBrMBB = MFp->CreateMachineBasicBlock(BB);
@@ -760,11 +760,11 @@ bool MipsBranchExpansion::handleMFLOSlot(Pred Predicate, Safe SafeInSlot) {
           continue;
         if (!SafeInSlot(*IInSlot, *I)) {
           Changed = true;
-          TII->insertNop(*(I->getParent()), std::next(I), I->getDebugLoc())
+          TII->insertNop(*(I->getParent()), std::next(I), I->getFullDebugLoc())
               ->bundleWithPred();
           NumInsertedNops++;
           if (IsMFLOMFHI(I->getOpcode())) {
-            TII->insertNop(*(I->getParent()), std::next(I), I->getDebugLoc())
+            TII->insertNop(*(I->getParent()), std::next(I), I->getFullDebugLoc())
                 ->bundleWithPred();
             NumInsertedNops++;
           }
@@ -806,7 +806,7 @@ bool MipsBranchExpansion::handleSlot(Pred Predicate, Safe SafeInSlot) {
         if (std::next(Iit) == FI->end() ||
             std::next(Iit)->getOpcode() != Mips::NOP) {
           Changed = true;
-          TII->insertNop(*(I->getParent()), std::next(I), I->getDebugLoc())
+          TII->insertNop(*(I->getParent()), std::next(I), I->getFullDebugLoc())
               ->bundleWithPred();
           NumInsertedNops++;
         }

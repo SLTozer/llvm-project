@@ -2139,7 +2139,7 @@ bool GVNPass::processNonLocalLoad(LoadInst *Load,
       // If instruction I has debug info, then we should not update it.
       // Also, if I has a null DebugLoc, then it is still potentially incorrect
       // to propagate Load's DebugLoc because Load may not post-dominate I.
-      if (Load->getDebugLoc() && Load->getParent() == I->getParent())
+      if (Load->getFullDebugLoc() && Load->getParent() == I->getParent())
         I->copyDebugLocFrom(Load);
     if (MD && V->getType()->isPtrOrPtrVectorTy())
       MD->invalidateCachedPointerInfo(V);

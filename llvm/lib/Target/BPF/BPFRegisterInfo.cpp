@@ -63,8 +63,8 @@ static void WarnSize(int Offset, MachineFunction &MF, DebugLoc& DL,
     if (!DL)
       /* try harder to get some debug loc */
       for (auto &I : MBB)
-        if (I.getDebugLoc()) {
-          DL = I.getDebugLoc();
+        if (I.getFullDebugLoc()) {
+          DL = I.getFullDebugLoc();
           break;
         }
 
@@ -88,7 +88,7 @@ bool BPFRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
   MachineFunction &MF = *MBB.getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   while (!MI.getOperand(i).isFI()) {
     ++i;

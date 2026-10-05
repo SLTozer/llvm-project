@@ -5711,7 +5711,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
     for (DbgVariableRecord *DVR : DbgVariableRecordsToSink) {
       DebugVariable DbgUserVariable =
           DebugVariable(DVR->getVariable(), DVR->getExpression(),
-                        DVR->getDebugLoc().getInlinedAt());
+                        DVR->getFullDebugLoc().getInlinedAt());
       CountMap[std::make_pair(DVR->getInstruction(), DbgUserVariable)] += 1;
     }
 
@@ -5732,7 +5732,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
            llvm::reverse(filterDbgVars(Inst->getDbgRecordRange()))) {
         DebugVariable DbgUserVariable =
             DebugVariable(DVR.getVariable(), DVR.getExpression(),
-                          DVR.getDebugLoc().getInlinedAt());
+                          DVR.getFullDebugLoc().getInlinedAt());
         auto FilterIt =
             FilterOutMap.find(std::make_pair(Inst, DbgUserVariable));
         if (FilterIt == FilterOutMap.end())
@@ -5754,7 +5754,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
 
     DebugVariable DbgUserVariable =
         DebugVariable(DVR->getVariable(), DVR->getExpression(),
-                      DVR->getDebugLoc().getInlinedAt());
+                      DVR->getFullDebugLoc().getInlinedAt());
 
     // For any variable where there were multiple assignments in the same place,
     // ignore all but the last assignment.
@@ -5919,7 +5919,7 @@ bool InstCombinerImpl::run() {
 
     // Now that we have an instruction, try combining it to simplify it.
     Builder.SetInsertPoint(I);
-    Builder.SetCurrentDebugLocation(I->getDebugLoc());
+    Builder.SetCurrentDebugLocation(I->getFullDebugLoc());
     // Used by our IRBuilder inserter to copy annotation metadata.
     AnnotationMetadataSource = I;
 
@@ -5939,7 +5939,7 @@ bool InstCombinerImpl::run() {
         // We copy the old instruction's DebugLoc to the new instruction, unless
         // InstCombine already assigned a DebugLoc to it, in which case we
         // should trust the more specifically selected DebugLoc.
-        Result->setDebugLoc(Result->getDebugLoc(I->getFunction()).orElse(I->getDebugLoc()));
+        Result->setDebugLoc(Result->getFullDebugLoc(I->getFunction()).orElse(I->getFullDebugLoc()));
         // We also copy annotation metadata to the new instruction.
         Result->copyMetadata(*I, LLVMContext::MD_annotation);
         // Everything uses the new instruction now.

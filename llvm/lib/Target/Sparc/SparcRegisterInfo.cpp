@@ -119,7 +119,7 @@ SparcRegisterInfo::getPointerRegClass(unsigned Kind) const {
 }
 
 static void replaceFI(MachineFunction &MF, MachineBasicBlock::iterator II,
-                      MachineInstr &MI, const DebugLoc &dl,
+                      MachineInstr &MI, DebugLoc dl,
                       unsigned FIOperandNum, int Offset, unsigned FramePtr) {
   // Replace frame index with a frame pointer reference.
   if (Offset >= -4096 && Offset <= 4095) {
@@ -177,7 +177,7 @@ SparcRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   assert(SPAdj == 0 && "Unexpected");
 
   MachineInstr &MI = *II;
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   MachineFunction &MF = *MI.getParent()->getParent();
   const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();

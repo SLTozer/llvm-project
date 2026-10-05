@@ -97,7 +97,7 @@ void SampleProfileMatcher::findIRAnchors(const Function &F,
   // Extract profile matching anchors in the IR.
   for (auto &BB : F) {
     for (auto &I : BB) {
-      DebugLoc DIL = I.getDebugLoc();
+      DebugLoc DIL = I.getFullDebugLoc();
       if (!DIL)
         continue;
 

@@ -80,12 +80,12 @@ Register llvm::constrainOperandRegClass(
     // FIXME: The copy needs to have the classes constrained for its operands.
     // Use operand's regbank to get the class for old register (Reg).
     if (RegMO.isUse()) {
-      BuildMI(MBB, InsertIt, InsertPt.getDebugLoc(),
+      BuildMI(MBB, InsertIt, InsertPt.getFullDebugLoc(),
               TII.get(TargetOpcode::COPY), ConstrainedReg)
           .addReg(Reg);
     } else {
       assert(RegMO.isDef() && "Must be a definition");
-      BuildMI(MBB, std::next(InsertIt), InsertPt.getDebugLoc(),
+      BuildMI(MBB, std::next(InsertIt), InsertPt.getFullDebugLoc(),
               TII.get(TargetOpcode::COPY), Reg)
           .addReg(ConstrainedReg);
     }
@@ -270,7 +270,7 @@ void llvm::reportGISelFailure(MachineFunction &MF,
                               const char *PassName, StringRef Msg,
                               const MachineInstr &MI) {
   MachineOptimizationRemarkMissed R(PassName, "GISelFailure: ",
-                                    MI.getDebugLoc(), MI.getParent());
+                                    MI.getFullDebugLoc(), MI.getParent());
   R << Msg;
   // Printing MI is expensive;  only do it if expensive remarks are enabled.
   if (MF.getTarget().Options.GlobalISelAbort == GlobalISelAbortMode::Enable ||
@@ -862,7 +862,7 @@ Register llvm::getFunctionLiveInPhysReg(MachineFunction &MF,
                                         const TargetInstrInfo &TII,
                                         MCRegister PhysReg,
                                         const TargetRegisterClass &RC,
-                                        const DebugLoc &DL, LLT RegTy) {
+                                        DebugLoc DL, LLT RegTy) {
   MachineBasicBlock &EntryMBB = MF.front();
   MachineRegisterInfo &MRI = MF.getRegInfo();
   Register LiveIn = MRI.getLiveInVirtReg(PhysReg);

@@ -1119,7 +1119,7 @@ static void insertSpills(const FrameDataInfo &FrameData, coro::Shape &Shape) {
           // processed by coro::salvageDebugInfo() by the Cloner.
           DbgVariableRecord *NewDVR = new DbgVariableRecord(
               ValueAsMetadata::get(CurrentReload), DDI->getVariable(),
-              DDI->getExpression(), DDI->getDebugLoc(),
+              DDI->getExpression(), DDI->getFullDebugLoc(),
               DbgVariableRecord::LocationType::Declare);
           Builder.GetInsertPoint()->getParent()->insertDbgRecordBefore(
               NewDVR, Builder.GetInsertPoint());
@@ -1145,7 +1145,7 @@ static void insertSpills(const FrameDataInfo &FrameData, coro::Shape &Shape) {
         // If the metadata type is not a pointer, emit a dbg.value instead.
         DbgVariableRecord *NewDVR = new DbgVariableRecord(
             ValueAsMetadata::get(CurrentReload), DDI->getVariable(),
-            DDI->getExpression(), DDI->getDebugLoc(),
+            DDI->getExpression(), DDI->getFullDebugLoc(),
             Ty->isPointerTy() ? DbgVariableRecord::LocationType::Declare
                               : DbgVariableRecord::LocationType::Value);
         Builder.GetInsertPoint()->getParent()->insertDbgRecordBefore(
@@ -1923,8 +1923,8 @@ void coro::salvageDebugInfo(
     if (auto *I = dyn_cast<Instruction>(Storage)) {
       InsertPt = I->getInsertionPointAfterDef();
       // Update DILocation only if variable was not inlined.
-      DebugLoc ILoc = I->getDebugLoc();
-      DebugLoc DVRLoc = DVR.getDebugLoc();
+      DebugLoc ILoc = I->getFullDebugLoc();
+      DebugLoc DVRLoc = DVR.getFullDebugLoc();
       if (ILoc && DVRLoc &&
           DVRLoc.getScope()->getSubprogram() ==
               ILoc.getScope()->getSubprogram())
@@ -1987,7 +1987,7 @@ void coro::normalizeCoroutine(Function &F, coro::Shape &Shape,
       SmallVector<Value *, 8> Args(AsyncEnd->args());
       auto Arguments = ArrayRef<Value *>(Args).drop_front(3);
       auto *Call = coro::createMustTailCall(
-          AsyncEnd->getDebugLoc(), MustTailCallFn, TTI, Arguments, Builder);
+          AsyncEnd->getFullDebugLoc(), MustTailCallFn, TTI, Arguments, Builder);
       splitAround(Call, "MustTailCall.Before.CoroEnd");
     }
   }

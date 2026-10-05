@@ -366,7 +366,7 @@ LLVM_ABI Align inferAlignFromPtrInfo(MachineFunction &MF,
 /// This will also ensure there is a valid copy
 LLVM_ABI Register getFunctionLiveInPhysReg(
     MachineFunction &MF, const TargetInstrInfo &TII, MCRegister PhysReg,
-    const TargetRegisterClass &RC, const DebugLoc &DL, LLT RegTy = LLT());
+    const TargetRegisterClass &RC, DebugLoc DL, LLT RegTy = LLT());
 
 /// Return the least common multiple type of \p OrigTy and \p TargetTy, by
 /// changing the number of vector elements or scalar bitwidth. The intent is a

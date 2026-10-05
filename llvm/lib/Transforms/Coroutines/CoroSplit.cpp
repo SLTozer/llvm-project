@@ -756,7 +756,7 @@ Value *coro::BaseCloner::deriveNewFramePointer() {
     auto *ProjectionFunc =
         ActiveAsyncSuspend->getAsyncContextProjectionFunction();
     auto DbgLoc =
-        cast<CoroSuspendAsyncInst>(VMap[ActiveSuspend])->getDebugLoc();
+        cast<CoroSuspendAsyncInst>(VMap[ActiveSuspend])->getFullDebugLoc();
     // Calling i8* (i8*)
     auto *CallerContext = Builder.CreateCall(ProjectionFunc->getFunctionType(),
                                              ProjectionFunc, CalleeContext);
@@ -806,7 +806,7 @@ static void updateScopeLine(Instruction *ActiveSuspend,
 
   // No subsequent instruction -> fallback to the location of ActiveSuspend.
   if (!ActiveSuspend->getNextNode()) {
-    if (auto DL = ActiveSuspend->getDebugLoc())
+    if (auto DL = ActiveSuspend->getFullDebugLoc())
       if (SPToUpdate.getFile() == DL.getFile())
         SPToUpdate.setScopeLine(DL.getLine());
     return;
@@ -828,7 +828,7 @@ static void updateScopeLine(Instruction *ActiveSuspend,
   BasicBlock *PBB = Successor->getParent();
   for (; Successor != PBB->end(); Successor = std::next(Successor)) {
     Successor = skipDebugIntrinsics(Successor);
-    auto DL = Successor->getDebugLoc();
+    auto DL = Successor->getFullDebugLoc();
     if (!DL || DL.getLine() == 0)
       continue;
 
@@ -841,7 +841,7 @@ static void updateScopeLine(Instruction *ActiveSuspend,
   }
 
   // If the search above failed, fallback to the location of ActiveSuspend.
-  if (auto DL = ActiveSuspend->getDebugLoc())
+  if (auto DL = ActiveSuspend->getFullDebugLoc())
     if (SPToUpdate.getFile() == DL.getFile())
       SPToUpdate.setScopeLine(DL.getLine());
 }
@@ -1565,7 +1565,7 @@ private:
       PN->addIncoming(S, ResumeBB);
 
       if (AddDebugLabels) {
-        if (DebugLoc SuspendLoc = S->getDebugLoc()) {
+        if (DebugLoc SuspendLoc = S->getFullDebugLoc()) {
           std::string LabelName =
               ("__coro_resume_" + Twine(SuspendIndex)).str();
           // Take the "inlined at" location recursively, if present. This is
@@ -1790,7 +1790,7 @@ void coro::AsyncABI::splitCoroutine(Function &F, coro::Shape &Shape,
     SmallVector<Value *, 8> Args(Suspend->args());
     auto FnArgs = ArrayRef<Value *>(Args).drop_front(
         CoroSuspendAsyncInst::MustTailCallFuncArg + 1);
-    auto *TailCall = coro::createMustTailCall(Suspend->getDebugLoc(), Fn, TTI,
+    auto *TailCall = coro::createMustTailCall(Suspend->getFullDebugLoc(), Fn, TTI,
                                               FnArgs, Builder);
     Builder.CreateRetVoid();
     InlineFunctionInfo FnInfo;

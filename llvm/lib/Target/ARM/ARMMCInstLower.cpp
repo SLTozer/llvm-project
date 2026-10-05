@@ -190,7 +190,7 @@ void ARMAsmPrinter::EmitSled(const MachineInstr &MI, SledKind Kind)
         Fn,
         "An attempt to perform XRay instrumentation for a Thumb function (not "
         "supported). Detected when emitting a sled.",
-        MI.getDebugLoc()));
+        MI.getFullDebugLoc()));
     return;
   }
   static const int8_t NoopsInSledCount = 6;

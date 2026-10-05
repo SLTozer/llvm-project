@@ -111,7 +111,7 @@ static void remarkAlloca(OptimizationRemarkEmitter &ORE, const Function &Caller,
     if (!DVRs.empty()) {
       const DbgVariableRecord &DVR = **DVRs.begin();
       DbgName = DVR.getVariable()->getName();
-      Loc = DVR.getDebugLoc();
+      Loc = DVR.getFullDebugLoc();
       Artificial = DVR.Variable->isArtificial();
     }
     OptimizationRemark R(DEBUG_TYPE, "Alloca", DiagnosticLocation(Loc),

@@ -278,7 +278,7 @@ bool SMEPeepholeOpt::visitRegSequence(MachineInstr &MI) {
 
   const TargetInstrInfo *TII =
       MI.getMF()->getSubtarget<AArch64Subtarget>().getInstrInfo();
-  MachineInstrBuilder MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  MachineInstrBuilder MIB = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                     TII->get(Opc), MI.getOperand(0).getReg());
   for (unsigned I = 1; I < MI.getNumOperands(); I += 2)
     MIB.addReg(MI.getOperand(I).getReg());

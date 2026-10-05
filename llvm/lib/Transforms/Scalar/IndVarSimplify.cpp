@@ -1129,7 +1129,7 @@ linearFunctionTestReplace(Loop *L, BasicBlock *ExitingBB,
   // The new loop exit condition should reuse the debug location of the
   // original loop exit condition.
   if (auto *Cond = dyn_cast<Instruction>(BI->getCondition()))
-    Builder.SetCurrentDebugLocation(Cond->getDebugLoc());
+    Builder.SetCurrentDebugLocation(Cond->getFullDebugLoc());
 
   // For integer IVs, if we evaluated the limit in the narrower bitwidth to
   // avoid the expensive expansion of the limit expression in the wider type,

@@ -290,7 +290,7 @@ void DebugHandlerBase::beginFunction(const MachineFunction *MF) {
   InstOrdering.initialize(*MF);
   if (TrimVarLocs)
     DbgValues.trimLocationRanges(*MF, LScopes, InstOrdering);
-  LLVM_DEBUG(DbgValues.dump(MF->getName()));
+  LLVM_DEBUG(DbgValues.dump(*MF));
 
   // Request labels for the full history.
   for (const auto &I : DbgValues) {

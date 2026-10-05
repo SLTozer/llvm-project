@@ -217,7 +217,10 @@ public:
   inline bool isUndef() const;
   inline bool isAnyAdd() const;
   inline unsigned getMachineOpcode() const;
-  inline const DebugLoc &getDebugLoc() const;
+  inline DebugLoc getDebugLoc() const;
+  inline DebugLoc getFullDebugLoc(DebugLoc::DebugLocContext Context) const {
+    return getDebugLoc();
+  }
   inline void dump() const;
   inline void dump(const SelectionDAG *G) const;
   inline void dumpr() const;
@@ -807,7 +810,10 @@ public:
   void setIROrder(unsigned Order) { IROrder = Order; }
 
   /// Return the source location info.
-  const DebugLoc &getDebugLoc() const { return debugLoc; }
+  DebugLoc getDebugLoc() const { return debugLoc; }
+  DebugLoc getFullDebugLoc(DebugLoc::DebugLocContext Context) const {
+    return debugLoc;
+  }
 
   /// Set source location info.  Try to avoid this, putting
   /// it in the constructor is preferable.
@@ -1254,11 +1260,14 @@ public:
   SDLoc(const Instruction *I, int Order) : IROrder(Order) {
     assert(Order >= 0 && "bad IROrder");
     if (I)
-      DL = I->getDebugLoc();
+      DL = I->getFullDebugLoc();
   }
 
   unsigned getIROrder() const { return IROrder; }
-  const DebugLoc &getDebugLoc() const { return DL; }
+  DebugLoc getDebugLoc() const { return DL; }
+  DebugLoc getFullDebugLoc(DebugLoc::DebugLocContext Context) const {
+    return DL;
+  }
 };
 
 // Define inline functions from the SDValue class.
@@ -1330,7 +1339,7 @@ inline bool SDValue::hasOneUser() const {
   return all_equal(Users);
 }
 
-inline const DebugLoc &SDValue::getDebugLoc() const {
+inline DebugLoc SDValue::getDebugLoc() const {
   return Node->getDebugLoc();
 }
 
@@ -1407,7 +1416,7 @@ private:
   unsigned DestAddrSpace;
 
 public:
-  AddrSpaceCastSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  AddrSpaceCastSDNode(unsigned Order, DebugLoc dl, SDVTList VTs,
                       unsigned SrcAS, unsigned DestAS)
       : SDNode(ISD::ADDRSPACECAST, Order, dl, VTs), SrcAddrSpace(SrcAS),
         DestAddrSpace(DestAS) {}
@@ -1437,7 +1446,7 @@ public:
   /// the MMO pointer directly. For multiple MMOs, pre-allocate storage with
   /// count at offset -1 and pass pointer to array.
   LLVM_ABI
-  MemSDNode(unsigned Opc, unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  MemSDNode(unsigned Opc, unsigned Order, DebugLoc dl, SDVTList VTs,
             EVT memvt,
             PointerUnion<MachineMemOperand *, MachineMemOperand **> memrefs);
 
@@ -1660,7 +1669,7 @@ public:
 /// This is an SDNode representing atomic operations.
 class AtomicSDNode : public MemSDNode {
 public:
-  AtomicSDNode(unsigned Order, const DebugLoc &dl, unsigned Opc, SDVTList VTL,
+  AtomicSDNode(unsigned Order, DebugLoc dl, unsigned Opc, SDVTList VTL,
                EVT MemVT, MachineMemOperand *MMO, ISD::LoadExtType ETy)
       : MemSDNode(Opc, Order, dl, VTL, MemVT, MMO) {
     assert(((Opc != ISD::ATOMIC_LOAD && Opc != ISD::ATOMIC_STORE) ||
@@ -1735,7 +1744,7 @@ public:
 class MemIntrinsicSDNode : public MemSDNode {
 public:
   MemIntrinsicSDNode(
-      unsigned Opc, unsigned Order, const DebugLoc &dl, SDVTList VTs,
+      unsigned Opc, unsigned Order, DebugLoc dl, SDVTList VTs,
       EVT MemoryVT,
       PointerUnion<MachineMemOperand *, MachineMemOperand **> MemRefs)
       : MemSDNode(Opc, Order, dl, VTs, MemoryVT, MemRefs) {
@@ -1766,7 +1775,7 @@ class ShuffleVectorSDNode : public SDNode {
 protected:
   friend class SelectionDAG;
 
-  ShuffleVectorSDNode(SDVTList VTs, unsigned Order, const DebugLoc &dl,
+  ShuffleVectorSDNode(SDVTList VTs, unsigned Order, DebugLoc dl,
                       const int *M)
       : SDNode(ISD::VECTOR_SHUFFLE, Order, dl, VTs), Mask(M) {}
 
@@ -2076,7 +2085,7 @@ class GlobalAddressSDNode : public SDNode {
   int64_t Offset;
   unsigned TargetFlags;
 
-  GlobalAddressSDNode(unsigned Opc, unsigned Order, const DebugLoc &DL,
+  GlobalAddressSDNode(unsigned Opc, unsigned Order, DebugLoc DL,
                       const GlobalValue *GA, SDVTList VTs, int64_t o,
                       unsigned TF)
       : SDNode(Opc, Order, DL, VTs), TheGlobal(GA), Offset(o), TargetFlags(TF) {
@@ -2136,7 +2145,7 @@ public:
 class LifetimeSDNode : public SDNode {
   friend class SelectionDAG;
 
-  LifetimeSDNode(unsigned Opcode, unsigned Order, const DebugLoc &dl,
+  LifetimeSDNode(unsigned Opcode, unsigned Order, DebugLoc dl,
                  SDVTList VTs)
       : SDNode(Opcode, Order, dl, VTs) {}
 
@@ -2162,7 +2171,7 @@ class PseudoProbeSDNode : public SDNode {
   uint64_t Index;
   uint32_t Attributes;
 
-  PseudoProbeSDNode(unsigned Opcode, unsigned Order, const DebugLoc &Dl,
+  PseudoProbeSDNode(unsigned Opcode, unsigned Order, DebugLoc Dl,
                     SDVTList VTs, uint64_t Guid, uint64_t Index, uint32_t Attr)
       : SDNode(Opcode, Order, Dl, VTs), Guid(Guid), Index(Index),
         Attributes(Attr) {}
@@ -2543,7 +2552,7 @@ class LabelSDNode : public SDNode {
 
   MCSymbol *Label;
 
-  LabelSDNode(unsigned Opcode, unsigned Order, const DebugLoc &dl, MCSymbol *L)
+  LabelSDNode(unsigned Opcode, unsigned Order, DebugLoc dl, MCSymbol *L)
       : SDNode(Opcode, Order, dl, getSDVTList(MVT::Other)), Label(L) {
     assert(LabelSDNode::classof(this) && "not a label opcode");
   }
@@ -2634,7 +2643,7 @@ public:
 /// Base class for LoadSDNode and StoreSDNode
 class LSBaseSDNode : public MemSDNode {
 public:
-  LSBaseSDNode(ISD::NodeType NodeTy, unsigned Order, const DebugLoc &dl,
+  LSBaseSDNode(ISD::NodeType NodeTy, unsigned Order, DebugLoc dl,
                SDVTList VTs, ISD::MemIndexedMode AM, EVT MemVT,
                MachineMemOperand *MMO)
       : MemSDNode(NodeTy, Order, dl, VTs, MemVT, MMO) {
@@ -2668,7 +2677,7 @@ public:
 class LoadSDNode : public LSBaseSDNode {
   friend class SelectionDAG;
 
-  LoadSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  LoadSDNode(unsigned Order, DebugLoc dl, SDVTList VTs,
              ISD::MemIndexedMode AM, ISD::LoadExtType ETy, EVT MemVT,
              MachineMemOperand *MMO)
       : LSBaseSDNode(ISD::LOAD, Order, dl, VTs, AM, MemVT, MMO) {
@@ -2696,7 +2705,7 @@ public:
 class StoreSDNode : public LSBaseSDNode {
   friend class SelectionDAG;
 
-  StoreSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  StoreSDNode(unsigned Order, DebugLoc dl, SDVTList VTs,
               ISD::MemIndexedMode AM, bool isTrunc, EVT MemVT,
               MachineMemOperand *MMO)
       : LSBaseSDNode(ISD::STORE, Order, dl, VTs, AM, MemVT, MMO) {
@@ -2727,7 +2736,7 @@ public:
   friend class SelectionDAG;
 
   VPBaseLoadStoreSDNode(ISD::NodeType NodeTy, unsigned Order,
-                        const DebugLoc &DL, SDVTList VTs,
+                        DebugLoc DL, SDVTList VTs,
                         ISD::MemIndexedMode AM, EVT MemVT,
                         MachineMemOperand *MMO)
       : MemSDNode(NodeTy, Order, DL, VTs, MemVT, MMO) {
@@ -2804,7 +2813,7 @@ class VPLoadSDNode : public VPBaseLoadStoreSDNode {
 public:
   friend class SelectionDAG;
 
-  VPLoadSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  VPLoadSDNode(unsigned Order, DebugLoc dl, SDVTList VTs,
                ISD::MemIndexedMode AM, ISD::LoadExtType ETy, bool isExpanding,
                EVT MemVT, MachineMemOperand *MMO)
       : VPBaseLoadStoreSDNode(ISD::VP_LOAD, Order, dl, VTs, AM, MemVT, MMO) {
@@ -2832,7 +2841,7 @@ class VPStridedLoadSDNode : public VPBaseLoadStoreSDNode {
 public:
   friend class SelectionDAG;
 
-  VPStridedLoadSDNode(unsigned Order, const DebugLoc &DL, SDVTList VTs,
+  VPStridedLoadSDNode(unsigned Order, DebugLoc DL, SDVTList VTs,
                       ISD::MemIndexedMode AM, ISD::LoadExtType ETy,
                       bool IsExpanding, EVT MemVT, MachineMemOperand *MMO)
       : VPBaseLoadStoreSDNode(ISD::EXPERIMENTAL_VP_STRIDED_LOAD, Order, DL, VTs,
@@ -2862,7 +2871,7 @@ class VPStoreSDNode : public VPBaseLoadStoreSDNode {
 public:
   friend class SelectionDAG;
 
-  VPStoreSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  VPStoreSDNode(unsigned Order, DebugLoc dl, SDVTList VTs,
                 ISD::MemIndexedMode AM, bool isTrunc, bool isCompressing,
                 EVT MemVT, MachineMemOperand *MMO)
       : VPBaseLoadStoreSDNode(ISD::VP_STORE, Order, dl, VTs, AM, MemVT, MMO) {
@@ -2897,7 +2906,7 @@ class VPStridedStoreSDNode : public VPBaseLoadStoreSDNode {
 public:
   friend class SelectionDAG;
 
-  VPStridedStoreSDNode(unsigned Order, const DebugLoc &DL, SDVTList VTs,
+  VPStridedStoreSDNode(unsigned Order, DebugLoc DL, SDVTList VTs,
                        ISD::MemIndexedMode AM, bool IsTrunc, bool IsCompressing,
                        EVT MemVT, MachineMemOperand *MMO)
       : VPBaseLoadStoreSDNode(ISD::EXPERIMENTAL_VP_STRIDED_STORE, Order, DL,
@@ -2935,7 +2944,7 @@ public:
   friend class SelectionDAG;
 
   MaskedLoadStoreSDNode(ISD::NodeType NodeTy, unsigned Order,
-                        const DebugLoc &dl, SDVTList VTs,
+                        DebugLoc dl, SDVTList VTs,
                         ISD::MemIndexedMode AM, EVT MemVT,
                         MachineMemOperand *MMO)
       : MemSDNode(NodeTy, Order, dl, VTs, MemVT, MMO) {
@@ -2976,7 +2985,7 @@ class MaskedLoadSDNode : public MaskedLoadStoreSDNode {
 public:
   friend class SelectionDAG;
 
-  MaskedLoadSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  MaskedLoadSDNode(unsigned Order, DebugLoc dl, SDVTList VTs,
                    ISD::MemIndexedMode AM, ISD::LoadExtType ETy,
                    bool IsExpanding, EVT MemVT, MachineMemOperand *MMO)
       : MaskedLoadStoreSDNode(ISD::MLOAD, Order, dl, VTs, AM, MemVT, MMO) {
@@ -3005,7 +3014,7 @@ class MaskedStoreSDNode : public MaskedLoadStoreSDNode {
 public:
   friend class SelectionDAG;
 
-  MaskedStoreSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  MaskedStoreSDNode(unsigned Order, DebugLoc dl, SDVTList VTs,
                     ISD::MemIndexedMode AM, bool isTrunc, bool isCompressing,
                     EVT MemVT, MachineMemOperand *MMO)
       : MaskedLoadStoreSDNode(ISD::MSTORE, Order, dl, VTs, AM, MemVT, MMO) {
@@ -3042,7 +3051,7 @@ public:
   friend class SelectionDAG;
 
   VPGatherScatterSDNode(ISD::NodeType NodeTy, unsigned Order,
-                        const DebugLoc &dl, SDVTList VTs, EVT MemVT,
+                        DebugLoc dl, SDVTList VTs, EVT MemVT,
                         MachineMemOperand *MMO, ISD::MemIndexType IndexType)
       : MemSDNode(NodeTy, Order, dl, VTs, MemVT, MMO) {
     LSBaseSDNodeBits.AddressingMode = IndexType;
@@ -3090,7 +3099,7 @@ class VPGatherSDNode : public VPGatherScatterSDNode {
 public:
   friend class SelectionDAG;
 
-  VPGatherSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs, EVT MemVT,
+  VPGatherSDNode(unsigned Order, DebugLoc dl, SDVTList VTs, EVT MemVT,
                  MachineMemOperand *MMO, ISD::MemIndexType IndexType)
       : VPGatherScatterSDNode(ISD::VP_GATHER, Order, dl, VTs, MemVT, MMO,
                               IndexType) {}
@@ -3106,7 +3115,7 @@ class VPScatterSDNode : public VPGatherScatterSDNode {
 public:
   friend class SelectionDAG;
 
-  VPScatterSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs, EVT MemVT,
+  VPScatterSDNode(unsigned Order, DebugLoc dl, SDVTList VTs, EVT MemVT,
                   MachineMemOperand *MMO, ISD::MemIndexType IndexType)
       : VPGatherScatterSDNode(ISD::VP_SCATTER, Order, dl, VTs, MemVT, MMO,
                               IndexType) {}
@@ -3126,7 +3135,7 @@ public:
   friend class SelectionDAG;
 
   MaskedGatherScatterSDNode(ISD::NodeType NodeTy, unsigned Order,
-                            const DebugLoc &dl, SDVTList VTs, EVT MemVT,
+                            DebugLoc dl, SDVTList VTs, EVT MemVT,
                             MachineMemOperand *MMO, ISD::MemIndexType IndexType)
       : MemSDNode(NodeTy, Order, dl, VTs, MemVT, MMO) {
     LSBaseSDNodeBits.AddressingMode = IndexType;
@@ -3163,7 +3172,7 @@ class MaskedGatherSDNode : public MaskedGatherScatterSDNode {
 public:
   friend class SelectionDAG;
 
-  MaskedGatherSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  MaskedGatherSDNode(unsigned Order, DebugLoc dl, SDVTList VTs,
                      EVT MemVT, MachineMemOperand *MMO,
                      ISD::MemIndexType IndexType, ISD::LoadExtType ETy)
       : MaskedGatherScatterSDNode(ISD::MGATHER, Order, dl, VTs, MemVT, MMO,
@@ -3188,7 +3197,7 @@ class MaskedScatterSDNode : public MaskedGatherScatterSDNode {
 public:
   friend class SelectionDAG;
 
-  MaskedScatterSDNode(unsigned Order, const DebugLoc &dl, SDVTList VTs,
+  MaskedScatterSDNode(unsigned Order, DebugLoc dl, SDVTList VTs,
                       EVT MemVT, MachineMemOperand *MMO,
                       ISD::MemIndexType IndexType, bool IsTrunc)
       : MaskedGatherScatterSDNode(ISD::MSCATTER, Order, dl, VTs, MemVT, MMO,
@@ -3212,7 +3221,7 @@ class MaskedHistogramSDNode : public MaskedGatherScatterSDNode {
 public:
   friend class SelectionDAG;
 
-  MaskedHistogramSDNode(unsigned Order, const DebugLoc &DL, SDVTList VTs,
+  MaskedHistogramSDNode(unsigned Order, DebugLoc DL, SDVTList VTs,
                         EVT MemVT, MachineMemOperand *MMO,
                         ISD::MemIndexType IndexType)
       : MaskedGatherScatterSDNode(ISD::EXPERIMENTAL_VECTOR_HISTOGRAM, Order, DL,
@@ -3238,7 +3247,7 @@ class VPLoadFFSDNode : public MemSDNode {
 public:
   friend class SelectionDAG;
 
-  VPLoadFFSDNode(unsigned Order, const DebugLoc &DL, SDVTList VTs, EVT MemVT,
+  VPLoadFFSDNode(unsigned Order, DebugLoc DL, SDVTList VTs, EVT MemVT,
                  MachineMemOperand *MMO)
       : MemSDNode(ISD::VP_LOAD_FF, Order, DL, VTs, MemVT, MMO) {}
 
@@ -3255,7 +3264,7 @@ class FPStateAccessSDNode : public MemSDNode {
 public:
   friend class SelectionDAG;
 
-  FPStateAccessSDNode(unsigned NodeTy, unsigned Order, const DebugLoc &dl,
+  FPStateAccessSDNode(unsigned NodeTy, unsigned Order, DebugLoc dl,
                       SDVTList VTs, EVT MemVT, MachineMemOperand *MMO)
       : MemSDNode(NodeTy, Order, dl, VTs, MemVT, MMO) {
     assert((NodeTy == ISD::GET_FPENV_MEM || NodeTy == ISD::SET_FPENV_MEM) &&
@@ -3279,7 +3288,7 @@ class MachineSDNode : public SDNode {
 private:
   friend class SelectionDAG;
 
-  MachineSDNode(unsigned Opc, unsigned Order, const DebugLoc &DL, SDVTList VTs)
+  MachineSDNode(unsigned Opc, unsigned Order, DebugLoc DL, SDVTList VTs)
       : SDNode(Opc, Order, DL, VTs) {}
 
   // We use a pointer union between a single `MachineMemOperand` pointer and
@@ -3338,7 +3347,7 @@ class AssertAlignSDNode : public SDNode {
   Align Alignment;
 
 public:
-  AssertAlignSDNode(unsigned Order, const DebugLoc &DL, SDVTList VTs, Align A)
+  AssertAlignSDNode(unsigned Order, DebugLoc DL, SDVTList VTs, Align A)
       : SDNode(ISD::AssertAlign, Order, DL, VTs), Alignment(A) {}
 
   Align getAlign() const { return Alignment; }

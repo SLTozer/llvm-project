@@ -30,7 +30,7 @@ NVPTXInstrInfo::NVPTXInstrInfo(const NVPTXSubtarget &STI)
 
 void NVPTXInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator I,
-                                 const DebugLoc &DL, Register DestReg,
+                                 DbgLocStorage DL, Register DestReg,
                                  Register SrcReg, bool KillSrc,
                                  bool RenamableDest, bool RenamableSrc) const {
   const MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
@@ -172,7 +172,7 @@ unsigned NVPTXInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                       MachineBasicBlock *TBB,
                                       MachineBasicBlock *FBB,
                                       ArrayRef<MachineOperand> Cond,
-                                      const DebugLoc &DL,
+                                      DbgLocStorage DL,
                                       int *BytesAdded) const {
   assert(!BytesAdded && "code size not handled");
 
@@ -215,7 +215,7 @@ bool NVPTXInstrInfo::invertPredicateBranchInstr(MachineBasicBlock &MBB) const {
     return false;
   if (reverseBranchCondition(Cond))
     return false;
-  DebugLoc DL = MBB.findBranchDebugLoc();
+  DbgLocStorage DL = MBB.findBranchDebugLoc();
   removeBranch(MBB);
   insertBranch(MBB, TBB, FBB, Cond, DL);
   return true;

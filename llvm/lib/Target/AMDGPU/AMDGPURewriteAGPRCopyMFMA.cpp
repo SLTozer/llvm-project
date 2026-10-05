@@ -430,7 +430,7 @@ bool AMDGPURewriteAGPRCopyMFMAImpl::tryFoldCopiesFromAGPR(
 
 void AMDGPURewriteAGPRCopyMFMAImpl::replaceSpillWithCopyToVReg(
     MachineInstr &SpillMI, int SpillFI, Register VReg) const {
-  const DebugLoc &DL = SpillMI.getDebugLoc();
+  DebugLoc DL = SpillMI.getFullDebugLoc();
   MachineBasicBlock &MBB = *SpillMI.getParent();
   MachineInstr *NewCopy;
   if (SpillMI.mayStore()) {

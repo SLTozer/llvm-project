@@ -56,7 +56,7 @@ bool WebAssemblyInstrInfo::isReMaterializableImpl(
 
 void WebAssemblyInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                        MachineBasicBlock::iterator I,
-                                       const DebugLoc &DL, Register DestReg,
+                                       DbgLocStorage DL, Register DestReg,
                                        Register SrcReg, bool KillSrc,
                                        bool RenamableDest,
                                        bool RenamableSrc) const {
@@ -160,7 +160,7 @@ unsigned WebAssemblyInstrInfo::removeBranch(MachineBasicBlock &MBB,
 
 unsigned WebAssemblyInstrInfo::insertBranch(
     MachineBasicBlock &MBB, MachineBasicBlock *TBB, MachineBasicBlock *FBB,
-    ArrayRef<MachineOperand> Cond, const DebugLoc &DL, int *BytesAdded) const {
+    ArrayRef<MachineOperand> Cond, DbgLocStorage DL, int *BytesAdded) const {
   assert(!BytesAdded && "code size not handled");
 
   if (Cond.empty()) {

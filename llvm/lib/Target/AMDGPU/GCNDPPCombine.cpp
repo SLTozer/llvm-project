@@ -230,7 +230,7 @@ MachineInstr *GCNDPPCombine::createDPPInst(MachineInstr &OrigMI,
          "VOPC cannot form DPP unless mask is full");
 
   auto DPPInst = BuildMI(*OrigMI.getParent(), OrigMI,
-                         OrigMI.getDebugLoc(), TII->get(DPPOp))
+                         OrigMI.getFullDebugLoc(), TII->get(DPPOp))
     .setMIFlags(OrigMI.getFlags());
 
   bool Fail = false;
@@ -662,7 +662,7 @@ bool GCNDPPCombine::combineDPPMov(MachineInstr &MovMI) const {
     const TargetRegisterClass *RC = MRI->getRegClass(DPPMovReg);
     CombOldVGPR = RegSubRegPair(
       MRI->createVirtualRegister(RC));
-    auto UndefInst = BuildMI(*MovMI.getParent(), MovMI, MovMI.getDebugLoc(),
+    auto UndefInst = BuildMI(*MovMI.getParent(), MovMI, MovMI.getFullDebugLoc(),
                              TII->get(AMDGPU::IMPLICIT_DEF), CombOldVGPR.Reg);
     DPPMIs.push_back(UndefInst.getInstr());
   }

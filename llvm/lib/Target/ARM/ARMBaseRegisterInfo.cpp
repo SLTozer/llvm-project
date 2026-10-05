@@ -540,7 +540,7 @@ ARMBaseRegisterInfo::getLocalAddressRegister(const MachineFunction &MF) const {
 /// specified immediate.
 void ARMBaseRegisterInfo::emitLoadConstPool(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-    const DebugLoc &dl, Register DestReg, unsigned SubIdx, int Val,
+    DbgLocStorage dl, Register DestReg, unsigned SubIdx, int Val,
     ARMCC::CondCodes Pred, Register PredReg, unsigned MIFlags) const {
   MachineFunction &MF = *MBB.getParent();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
@@ -715,7 +715,7 @@ ARMBaseRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
     (AFI->isThumb1OnlyFunction() ? ARM::tADDframe : ARM::t2ADDri);
 
   MachineBasicBlock::iterator Ins = MBB->begin();
-  DebugLoc DL;                  // Defaults to "unknown"
+  DbgLocStorage DL;                  // Defaults to "unknown"
   if (Ins != MBB->end())
     DL = Ins->getDebugLoc();
 

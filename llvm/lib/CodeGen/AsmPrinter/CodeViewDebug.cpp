@@ -44,6 +44,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalValue.h"
 #include "llvm/IR/GlobalVariable.h"
@@ -490,10 +491,10 @@ unsigned CodeViewDebug::getPointerSizeInBytes() {
 
 void CodeViewDebug::recordLocalVariable(LocalVariable &&Var,
                                         const LexicalScope *LS) {
-  if (DebugLoc InlinedAt = LS->getInlinedAt()) {
+  if (DbgLocStorage InlinedAt = LS->getInlinedAt()) {
     // This variable was inlined. Associate it with the InlineSite.
     const DISubprogram *Inlinee = Var.DIVar->getScope()->getSubprogram();
-    InlineSite &Site = getInlineSite(InlinedAt, Inlinee);
+    InlineSite &Site = getInlineSite(InlinedAt.withContext(*Asm->DbgLocCtx), Inlinee);
     Site.InlinedLocals.emplace_back(std::move(Var));
   } else {
     // This variable goes into the corresponding lexical scope.
@@ -507,7 +508,7 @@ static void addLocIfNotPresent(SmallVectorImpl<DebugLoc> &Locs,
     Locs.push_back(Loc);
 }
 
-void CodeViewDebug::maybeRecordLocation(const DebugLoc &DL,
+void CodeViewDebug::maybeRecordLocation(DebugLoc DL,
                                         const MachineFunction *MF) {
   // Skip this instruction if it has the same location as the previous one.
   if (!DL || DL == PrevInstLoc)
@@ -1456,7 +1457,7 @@ void CodeViewDebug::collectVariableInfo(const DISubprogram *SP) {
     if (Processed.count(IV))
       continue;
     const DILocalVariable *DIVar = cast<DILocalVariable>(IV.first);
-    DebugLoc InlinedAt = IV.second;
+    DbgLocStorage InlinedAt = IV.second;
 
     // Instruction ranges, specifying where IV is accessible.
     const auto &Entries = I.second;
@@ -1573,8 +1574,8 @@ void CodeViewDebug::beginFunctionImpl(const MachineFunction *MF) {
   for (const auto &MBB : *MF) {
     for (const auto &MI : MBB) {
       if (!MI.isMetaInstruction() && !MI.getFlag(MachineInstr::FrameSetup) &&
-          MI.getDebugLoc()) {
-        PrologEndLoc = MI.getDebugLoc();
+          MI.getFullDebugLoc()) {
+        PrologEndLoc = MI.getFullDebugLoc();
         break;
       } else if (!MI.isMetaInstruction()) {
         EmptyPrologue = false;
@@ -3152,12 +3153,12 @@ void CodeViewDebug::beginInstruction(const MachineInstr *MI) {
 
   // If the first instruction of a new MBB has no location, find the first
   // instruction with a location and use that.
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   if (!isUsableDebugLoc(DL) && MI->getParent() != PrevInstBB) {
     for (const auto &NextMI : *MI->getParent()) {
       if (NextMI.isDebugInstr())
         continue;
-      DL = NextMI.getDebugLoc();
+      DL = NextMI.getFullDebugLoc();
       if (isUsableDebugLoc(DL))
         break;
     }

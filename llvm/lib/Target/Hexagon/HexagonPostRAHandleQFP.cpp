@@ -556,7 +556,7 @@ void HexagonPostRAHandleQFP::insertIEEEToQF(MachineInstr *MI, Register SrcReg,
 
   auto MBB = MI->getParent();
   MachineInstrBuilder MIB;
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   if (HST->useHVXV81Ops()) {
     auto Op = is32bit ? Hexagon::V6_vconv_qf32_sf : Hexagon::V6_vconv_qf16_hf;
@@ -601,7 +601,7 @@ bool HexagonPostRAHandleQFP::HandleRefills() {
     auto MBB = MI->getParent();
     MachineInstrBuilder MIB;
     LLVM_DEBUG(dbgs() << "\nProcessing: "; MI->dump());
-    const DebugLoc &DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
 
     // lambda to handle unary qf operations
     // ieee: True if the 1st operand is sf/hf type, false if qf type
@@ -758,7 +758,7 @@ void HexagonPostRAHandleQFP::insertInstr(MachineInstr *MI, unsigned MIOpcode,
 
   MachineInstrBuilder MIB;
   MachineBasicBlock *MBB = MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   MachineBasicBlock::iterator MIt = MI;
   auto MINext = ++MI->getIterator();
   if (++MIt == MBB->end())
@@ -1225,7 +1225,7 @@ bool HexagonPostRAHandleQFP::HandleMultiReachingDefs() {
                    ReachDefInstr->dump());
 
         auto *MBB = ReachDefInstr->getParent();
-        auto dl = ReachDefInstr->getDebugLoc();
+        auto dl = ReachDefInstr->getFullDebugLoc();
         auto NextReachMI = ++ReachDefInstr->getIterator();
         auto DefOp = ReachDefInstr->getOperand(0);
         Register OpReg = DefOp.getReg();
@@ -1362,7 +1362,7 @@ bool HexagonPostRAHandleQFP::HandleReachDefOfCopies() {
   MachineInstrBuilder MIB;
   for (auto It : ReachDefOfCopies) {
     auto *MBB = It.first->getParent();
-    auto dl = It.first->getDebugLoc();
+    auto dl = It.first->getFullDebugLoc();
     auto NextMI = ++(It.first)->getIterator();
     auto RegOp = It.first->getOperand(0);
     Register OpReg = RegOp.getReg();

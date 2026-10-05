@@ -400,7 +400,7 @@ void RISCVInsertWriteVXRM::emitWriteVXRM(MachineBasicBlock &MBB) {
                 (Info.isStatic() && Info.getVXRMImm() == NewVXRMImm)) &&
                "Pending VXRM insertion mismatch");
         LLVM_DEBUG(dbgs() << "Inserting before "; MI.print(dbgs()));
-        BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(RISCV::WriteVXRMImm))
+        BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(RISCV::WriteVXRMImm))
             .addImm(NewVXRMImm);
         PendingInsert = false;
       }

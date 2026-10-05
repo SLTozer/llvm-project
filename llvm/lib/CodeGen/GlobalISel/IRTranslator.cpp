@@ -160,8 +160,8 @@ public:
     // We allow insts in the entry block to have no debug loc because
     // they could have originated from constants, and we don't want a jumpy
     // debug experience.
-    assert((CurrInst->getDebugLoc() == MI.getDebugLoc() ||
-            (MI.getParent()->isEntryBlock() && !MI.getDebugLoc()) ||
+    assert((CurrInst->getFullDebugLoc() == MI.getFullDebugLoc() ||
+            (MI.getParent()->isEntryBlock() && !MI.getFullDebugLoc()) ||
             (MI.isDebugInstr())) &&
            "Line info was not transferred to all instructions");
   }
@@ -2190,7 +2190,7 @@ std::optional<MCRegister> IRTranslator::getArgPhysReg(Argument &Arg) {
 bool IRTranslator::translateIfEntryValueArgument(bool isDeclare, Value *Val,
                                                  const DILocalVariable *Var,
                                                  const DIExpression *Expr,
-                                                 const DebugLoc &DL,
+                                                 DebugLoc DL,
                                                  MachineIRBuilder &MIRBuilder) {
   auto *Arg = dyn_cast<Argument>(Val);
   if (!Arg)
@@ -2297,7 +2297,7 @@ bool IRTranslator::translateKnownIntrinsic(const CallInst &CI, Intrinsic::ID ID,
     const DbgDeclareInst &DI = cast<DbgDeclareInst>(CI);
     assert(DI.getVariable() && "Missing variable");
     translateDbgDeclareRecord(DI.getAddress(), DI.hasArgList(), DI.getVariable(),
-                       DI.getExpression(), DI.getDebugLoc(), MIRBuilder);
+                       DI.getExpression(), DI.getFullDebugLoc(), MIRBuilder);
     return true;
   }
   case Intrinsic::dbg_label: {
@@ -2337,7 +2337,7 @@ bool IRTranslator::translateKnownIntrinsic(const CallInst &CI, Intrinsic::ID ID,
     // This form of DBG_VALUE is target-independent.
     const DbgValueInst &DI = cast<DbgValueInst>(CI);
     translateDbgValueRecord(DI.getValue(), DI.hasArgList(), DI.getVariable(),
-                       DI.getExpression(), DI.getDebugLoc(), MIRBuilder);
+                       DI.getExpression(), DI.getFullDebugLoc(), MIRBuilder);
     return true;
   }
   case Intrinsic::uadd_with_overflow:
@@ -2881,7 +2881,7 @@ bool IRTranslator::translateCall(const User &U, MachineIRBuilder &MIRBuilder) {
   if (!MF->getSubtarget().isIntrinsicSupported(ID)) {
     const Function &Fn = MF->getFunction();
     Fn.getContext().diagnose(
-        DiagnosticInfoUnsupportedTargetIntrinsic(Fn, ID, CI.getDebugLoc()));
+        DiagnosticInfoUnsupportedTargetIntrinsic(Fn, ID, CI.getFullDebugLoc()));
   }
 
   if (translateKnownIntrinsic(CI, ID, MIRBuilder))
@@ -2900,7 +2900,7 @@ bool IRTranslator::translateIntrinsic(
   if (!MF->getSubtarget().isIntrinsicSupported(ID)) {
     const Function &F = MF->getFunction();
     F.getContext().diagnose(
-        DiagnosticInfoUnsupportedTargetIntrinsic(F, ID, CB.getDebugLoc()));
+        DiagnosticInfoUnsupportedTargetIntrinsic(F, ID, CB.getFullDebugLoc()));
   }
 
   ArrayRef<Register> ResultRegs;
@@ -3723,7 +3723,7 @@ void IRTranslator::finishPendingPhis() {
       continue;
     ArrayRef<MachineInstr *> ComponentPHIs = Phi.second;
     MachineBasicBlock *PhiMBB = ComponentPHIs[0]->getParent();
-    EntryBuilder->setDebugLoc(PI->getDebugLoc());
+    EntryBuilder->setDebugLoc(PI->getFullDebugLoc());
 #ifndef NDEBUG
     Verifier.setCurrentInst(PI);
 #endif // ifndef NDEBUG
@@ -3749,7 +3749,7 @@ void IRTranslator::finishPendingPhis() {
 void IRTranslator::translateDbgValueRecord(Value *V, bool HasArgList,
                                      const DILocalVariable *Variable,
                                      const DIExpression *Expression,
-                                     const DebugLoc &DL,
+                                     DebugLoc DL,
                                      MachineIRBuilder &MIRBuilder) {
   assert(Variable->isValidLocationForIntrinsic(DL) &&
          "Expected inlined-at fields to agree");
@@ -3795,7 +3795,7 @@ void IRTranslator::translateDbgValueRecord(Value *V, bool HasArgList,
 void IRTranslator::translateDbgDeclareRecord(Value *Address, bool HasArgList,
                                      const DILocalVariable *Variable,
                                      const DIExpression *Expression,
-                                     const DebugLoc &DL,
+                                     DebugLoc DL,
                                      MachineIRBuilder &MIRBuilder) {
   if (!Address || isa<UndefValue>(Address)) {
     LLVM_DEBUG(dbgs() << "Dropping debug info for " << *Variable << "\n");
@@ -3829,7 +3829,7 @@ void IRTranslator::translateDbgInfo(const Instruction &Inst,
                                       MachineIRBuilder &MIRBuilder) {
   for (DbgRecord &DR : Inst.getDbgRecordRange()) {
     if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
-      MIRBuilder.setDebugLoc(DLR->getDebugLoc());
+      MIRBuilder.setDebugLoc(DLR->getFullDebugLoc());
       assert(DLR->getLabel() && "Missing label");
       assert(DLR->getLabel()->isValidLocationForIntrinsic(
                  MIRBuilder.getDebugLoc()) &&
@@ -3843,15 +3843,15 @@ void IRTranslator::translateDbgInfo(const Instruction &Inst,
     Value *V = DVR.getVariableLocationOp(0);
     if (DVR.isDbgDeclare())
       translateDbgDeclareRecord(V, DVR.hasArgList(), Variable, Expression,
-                                DVR.getDebugLoc(), MIRBuilder);
+                                DVR.getFullDebugLoc(), MIRBuilder);
     else
       translateDbgValueRecord(V, DVR.hasArgList(), Variable, Expression,
-                              DVR.getDebugLoc(), MIRBuilder);
+                              DVR.getFullDebugLoc(), MIRBuilder);
   }
 }
 
 bool IRTranslator::translate(const Instruction &Inst) {
-  CurBuilder->setDebugLoc(Inst.getDebugLoc());
+  CurBuilder->setDebugLoc(Inst.getFullDebugLoc());
   CurBuilder->setPCSections(Inst.getMetadata(LLVMContext::MD_pcsections));
   CurBuilder->setMMRAMetadata(Inst.getMetadata(LLVMContext::MD_mmra));
 
@@ -4311,7 +4311,7 @@ bool IRTranslator::runOnMachineFunction(MachineFunction &CurMF) {
   MF->push_back(EntryBB);
   EntryBuilder->setMBB(*EntryBB);
 
-  DebugLoc DbgLoc = F.getEntryBlock().getFirstNonPHIIt()->getDebugLoc();
+  DebugLoc DbgLoc = F.getEntryBlock().getFirstNonPHIIt()->getFullDebugLoc();
   SwiftError.setFunction(CurMF);
   SwiftError.createEntriesInEntryBlock(DbgLoc);
 
@@ -4403,7 +4403,7 @@ bool IRTranslator::runOnMachineFunction(MachineFunction &CurMF) {
           continue;
 
         OptimizationRemarkMissed R("gisel-irtranslator", "GISelFailure",
-                                   Inst.getDebugLoc(), BB);
+                                   Inst.getFullDebugLoc(), BB);
         R << "unable to translate instruction: " << ore::NV("Opcode", &Inst);
 
         if (ORE->allowExtraAnalysis("gisel-irtranslator")) {
@@ -4420,7 +4420,7 @@ bool IRTranslator::runOnMachineFunction(MachineFunction &CurMF) {
 
       if (!finalizeBasicBlock(*BB, MBB)) {
         OptimizationRemarkMissed R("gisel-irtranslator", "GISelFailure",
-                                   BB->getTerminator()->getDebugLoc(), BB);
+                                   BB->getTerminator()->getFullDebugLoc(), BB);
         R << "unable to translate basic block";
         reportTranslationError(*MF, *ORE, R);
         return false;

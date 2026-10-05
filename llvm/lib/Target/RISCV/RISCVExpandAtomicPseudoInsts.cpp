@@ -496,7 +496,7 @@ bool RISCVExpandAtomicPseudo::expandAtomicBinOp(
     AtomicRMWInst::BinOp BinOp, bool IsMasked, int Width,
     MachineBasicBlock::iterator &NextMBBI) {
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   MachineFunction *MF = MBB.getParent();
   auto LoopMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
@@ -707,7 +707,7 @@ bool RISCVExpandAtomicPseudo::expandAtomicMinMaxOp(
     return expandAtomicBinOp(MBB, MBBI, BinOp, IsMasked, Width, NextMBBI);
 
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction *MF = MBB.getParent();
   auto LoopHeadMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
   auto LoopIfBodyMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
@@ -820,7 +820,7 @@ bool RISCVExpandAtomicPseudo::expandAtomicCmpXchg(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI, bool IsMasked,
     int Width, MachineBasicBlock::iterator &NextMBBI) {
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction *MF = MBB.getParent();
   auto LoopHeadMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
   auto LoopTailMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());

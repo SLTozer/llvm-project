@@ -113,7 +113,7 @@ static bool lowerTileCopy(MachineFunction &MF) {
         }
       }
 
-      const DebugLoc &DL = MI.getDebugLoc();
+      DebugLoc DL = MI.getFullDebugLoc();
       if (GR64Cand) {
         // mov 64 %reg
         BuildMI(MBB, MI, DL, TII->get(X86::MOV64ri), GR64Cand).addImm(64);

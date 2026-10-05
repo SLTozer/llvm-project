@@ -72,6 +72,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/EHPersonalities.h"
 #include "llvm/IR/Function.h"
@@ -1690,7 +1691,7 @@ void AsmPrinter::emitPseudoProbe(const MachineInstr &MI) {
     auto Index = MI.getOperand(1).getImm();
     auto Type = MI.getOperand(2).getImm();
     auto Attr = MI.getOperand(3).getImm();
-    DebugLoc DebugLoc = MI.getDebugLoc();
+    DebugLoc DebugLoc = MI.getFullDebugLoc();
     PP->emitPseudoProbe(GUID, Index, Type, Attr, DebugLoc);
   }
 }
@@ -2375,7 +2376,7 @@ void AsmPrinter::emitFunctionBody() {
         continue;
 
       MachineOptimizationRemarkAnalysis R(DEBUG_TYPE, "InstructionMix",
-                                          MBB.begin()->getDebugLoc(), &MBB);
+                                          MBB.begin()->getFullDebugLoc(), &MBB);
 
       // Generate instruction mix remark. First, sort counts in descending order
       // by count and name.
@@ -2886,6 +2887,7 @@ bool AsmPrinter::doFinalization(Module &M) {
   // accesses to MF specific features at the module level and so that
   // we can conditionalize accesses based on whether or not it is nullptr.
   MF = nullptr;
+  DbgLocCtx.reset();
   const Triple &Target = TM.getTargetTriple();
 
   std::vector<GlobalVariable *> GlobalsToTag;
@@ -3180,6 +3182,8 @@ MCSymbol *AsmPrinter::createCallsiteEndSymbol(const MachineBasicBlock &MBB) {
 
 void AsmPrinter::SetupMachineFunction(MachineFunction &MF) {
   this->MF = &MF;
+  if (MF.getFunction().getFLContext())
+    this->DbgLocCtx = DebugLocContext(&MF.getFunction());
   const Function &F = MF.getFunction();
 
   // Record that there are split-stack functions, so we will emit a special

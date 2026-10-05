@@ -154,7 +154,7 @@ bool SILowerWWMCopies::run(MachineFunction &MF) {
 
       // For WWM vector copies, manipulate the exec mask around the copy
       // instruction.
-      const DebugLoc &DL = MI.getDebugLoc();
+      DebugLoc DL = MI.getFullDebugLoc();
       MachineBasicBlock::iterator InsertPt = MI.getIterator();
       Register RegForExecCopy = MFI->getSGPRForEXECCopy();
       TII->insertScratchExecCopy(MF, MBB, InsertPt, DL, RegForExecCopy,

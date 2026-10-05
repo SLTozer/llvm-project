@@ -53,13 +53,13 @@ public:
       MachineInstr::MIFlag Flags = MachineInstr::NoFlags) const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
 
   bool analyzeBranch(MachineBasicBlock &MBB, MachineBasicBlock *&TBB,
@@ -81,7 +81,7 @@ public:
 
   // Materializes the given integer Val into DstReg.
   Register movImm(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                  const DebugLoc &DL, uint64_t Val,
+                  DbgLocStorage DL, uint64_t Val,
                   MachineInstr::MIFlag Flag = MachineInstr::NoFlags) const;
 };
 

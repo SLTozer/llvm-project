@@ -158,7 +158,7 @@ public:
   bool tryMoveVGPRConstToSGPR(MachineOperand &MO, Register NewDst,
                               MachineBasicBlock *BlockToInsertTo,
                               MachineBasicBlock::iterator PointToInsertTo,
-                              const DebugLoc &DL);
+                              DebugLoc DL);
 };
 
 class SIFixSGPRCopiesLegacy : public MachineFunctionPass {
@@ -339,7 +339,7 @@ static bool foldVGPRCopyIntoRegSequence(MachineInstr &MI,
 
     Register TmpReg = MRI.createVirtualRegister(NewSrcRC);
 
-    BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(), TII->get(AMDGPU::COPY),
+    BuildMI(*MI.getParent(), &MI, MI.getFullDebugLoc(), TII->get(AMDGPU::COPY),
             TmpReg)
         .add(MI.getOperand(I));
 
@@ -348,7 +348,7 @@ static bool foldVGPRCopyIntoRegSequence(MachineInstr &MI,
       Register TmpAReg = MRI.createVirtualRegister(NewSrcRC);
       unsigned Opc = NewSrcRC == &AMDGPU::AGPR_32RegClass ?
         AMDGPU::V_ACCVGPR_WRITE_B32_e64 : AMDGPU::COPY;
-      BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(), TII->get(Opc),
+      BuildMI(*MI.getParent(), &MI, MI.getFullDebugLoc(), TII->get(Opc),
             TmpAReg)
         .addReg(TmpReg, RegState::Kill);
       TmpReg = TmpAReg;
@@ -700,7 +700,7 @@ bool SIFixSGPRCopies::run(MachineFunction &MF) {
               MachineBasicBlock::iterator PointToInsertCopy =
                   MI.isPHI() ? BlockToInsertCopy->getFirstInstrTerminator() : I;
 
-              const DebugLoc &DL = MI.getDebugLoc();
+              DebugLoc DL = MI.getFullDebugLoc();
               if (!tryMoveVGPRConstToSGPR(MO, NewDst, BlockToInsertCopy,
                                           PointToInsertCopy, DL)) {
                 MachineInstr *NewCopy =
@@ -775,7 +775,7 @@ bool SIFixSGPRCopies::run(MachineFunction &MF) {
           if (!Resolved) {
             // Haven't managed to resolve by replacing an SGPR with an immediate
             // Move src1 to be in M0
-            BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+            BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                     TII->get(AMDGPU::COPY), AMDGPU::M0)
                 .add(Src1);
             Src1.ChangeToRegister(AMDGPU::M0, false);
@@ -878,7 +878,7 @@ void SIFixSGPRCopies::processPHINode(MachineInstr &MI) {
 bool SIFixSGPRCopies::tryMoveVGPRConstToSGPR(
     MachineOperand &MaybeVGPRConstMO, Register DstReg,
     MachineBasicBlock *BlockToInsertTo,
-    MachineBasicBlock::iterator PointToInsertTo, const DebugLoc &DL) {
+    MachineBasicBlock::iterator PointToInsertTo, DebugLoc DL) {
 
   MachineInstr *DefMI = MRI->getVRegDef(MaybeVGPRConstMO.getReg());
   if (!DefMI || !DefMI->isMoveImmediate())
@@ -917,7 +917,7 @@ bool SIFixSGPRCopies::lowerSpecialCase(MachineInstr &MI,
 
       const MCInstrDesc &ReadFirstLaneDesc =
           TII->get(AMDGPU::V_READFIRSTLANE_B32);
-      BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), ReadFirstLaneDesc, TmpReg)
+      BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), ReadFirstLaneDesc, TmpReg)
           .add(MI.getOperand(1));
 
       unsigned SubReg = MI.getOperand(1).getSubReg();
@@ -936,7 +936,7 @@ bool SIFixSGPRCopies::lowerSpecialCase(MachineInstr &MI,
     }
 
     if (tryMoveVGPRConstToSGPR(MI.getOperand(1), DstReg, MI.getParent(), MI,
-                               MI.getDebugLoc())) {
+                               MI.getFullDebugLoc())) {
       I = MI.eraseFromParent();
       return true;
     }
@@ -1139,7 +1139,7 @@ void SIFixSGPRCopies::lowerVGPR2SGPRCopies(MachineFunction &MF) {
       // There is no V_READFIRSTLANE_B16, so legalize the dst/src reg to 32 bits
       MRI->setRegClass(DstReg, &AMDGPU::SReg_32_XM0RegClass);
       Register VReg32 = MRI->createVirtualRegister(&AMDGPU::VGPR_32RegClass);
-      const DebugLoc &DL = MI->getDebugLoc();
+      DebugLoc DL = MI->getFullDebugLoc();
       Register Undef = MRI->createVirtualRegister(&AMDGPU::VGPR_16RegClass);
       BuildMI(*MBB, MI, DL, TII->get(AMDGPU::IMPLICIT_DEF), Undef);
       BuildMI(*MBB, MI, DL, TII->get(AMDGPU::REG_SEQUENCE), VReg32)
@@ -1153,7 +1153,7 @@ void SIFixSGPRCopies::lowerVGPR2SGPRCopies(MachineFunction &MF) {
       const MCInstrDesc &ReadFirstLaneDesc =
           TII->get(AMDGPU::V_READFIRSTLANE_B32);
       const TargetRegisterClass *OpRC = TII->getRegClass(ReadFirstLaneDesc, 1);
-      BuildMI(*MBB, MI, MI->getDebugLoc(), ReadFirstLaneDesc, DstReg)
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), ReadFirstLaneDesc, DstReg)
           .addReg(SrcReg, {}, SubReg);
 
       const TargetRegisterClass *ConstrainRC =
@@ -1165,7 +1165,7 @@ void SIFixSGPRCopies::lowerVGPR2SGPRCopies(MachineFunction &MF) {
       if (!MRI->constrainRegClass(SrcReg, ConstrainRC))
         llvm_unreachable("failed to constrain register");
     } else {
-      auto Result = BuildMI(*MBB, MI, MI->getDebugLoc(),
+      auto Result = BuildMI(*MBB, MI, MI->getFullDebugLoc(),
                             TII->get(AMDGPU::REG_SEQUENCE), DstReg);
       int N = TRI->getRegSizeInBits(*SrcRC) / 32;
       for (int i = 0; i < N; i++) {
@@ -1174,7 +1174,7 @@ void SIFixSGPRCopies::lowerVGPR2SGPRCopies(MachineFunction &MF) {
             TRI->getSubRegFromChannel(i), &AMDGPU::VGPR_32RegClass);
         Register PartialDst =
             MRI->createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
-        BuildMI(*MBB, *Result, Result->getDebugLoc(),
+        BuildMI(*MBB, *Result, Result->getFullDebugLoc(),
                 TII->get(AMDGPU::V_READFIRSTLANE_B32), PartialDst)
             .addReg(PartialSrc);
         Result.addReg(PartialDst).addImm(TRI->getSubRegFromChannel(i));
@@ -1200,10 +1200,10 @@ void SIFixSGPRCopies::fixSCCCopies(MachineFunction &MF) {
         Register SCCCopy =
             MRI->createVirtualRegister(TRI->getWaveMaskRegClass());
         I = BuildMI(*MI.getParent(), std::next(MachineBasicBlock::iterator(MI)),
-                    MI.getDebugLoc(), TII->get(LMC.CSelectOpc), SCCCopy)
+                    MI.getFullDebugLoc(), TII->get(LMC.CSelectOpc), SCCCopy)
                 .addImm(-1)
                 .addImm(0);
-        I = BuildMI(*MI.getParent(), std::next(I), I->getDebugLoc(),
+        I = BuildMI(*MI.getParent(), std::next(I), I->getFullDebugLoc(),
                     TII->get(AMDGPU::COPY), DstReg)
                 .addReg(SCCCopy);
         MI.eraseFromParent();
@@ -1212,7 +1212,7 @@ void SIFixSGPRCopies::fixSCCCopies(MachineFunction &MF) {
       if (DstReg == AMDGPU::SCC) {
         Register Tmp = MRI->createVirtualRegister(TRI->getBoolRC());
         I = BuildMI(*MI.getParent(), std::next(MachineBasicBlock::iterator(MI)),
-                    MI.getDebugLoc(), TII->get(LMC.AndOpc))
+                    MI.getFullDebugLoc(), TII->get(LMC.AndOpc))
                 .addReg(Tmp, getDefRegState(true))
                 .addReg(SrcReg)
                 .addReg(LMC.ExecReg);

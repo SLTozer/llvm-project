@@ -60,7 +60,7 @@ protected:
   // decrement/increment to allocate/deallocate the callee-save stack area by
   // converting store/load to use pre/post increment version.
   MachineBasicBlock::iterator convertCalleeSaveRestoreToSPPrePostIncDec(
-      MachineBasicBlock::iterator MBBI, const DebugLoc &DL, int CSStackSizeInc,
+      MachineBasicBlock::iterator MBBI, DebugLoc DL, int CSStackSizeInc,
       bool EmitCFI, MachineInstr::MIFlag FrameFlag = MachineInstr::FrameSetup,
       int CFAOffset = 0) const;
 
@@ -124,23 +124,23 @@ private:
                           bool FollowupAllocs);
 
   void emitShadowCallStackPrologue(MachineBasicBlock::iterator MBBI,
-                                   const DebugLoc &DL) const;
+                                   DebugLoc DL) const;
 
   void emitSwiftAsyncContextFramePointer(MachineBasicBlock::iterator MBBI,
-                                         const DebugLoc &DL) const;
+                                         DebugLoc DL) const;
 
   void emitEmptyStackFramePrologue(int64_t NumBytes,
                                    MachineBasicBlock::iterator MBBI,
-                                   const DebugLoc &DL) const;
+                                   DebugLoc DL) const;
 
   void emitFramePointerSetup(MachineBasicBlock::iterator MBBI,
-                             const DebugLoc &DL, unsigned FixedObject);
+                             DebugLoc DL, unsigned FixedObject);
 
   void emitDefineCFAWithFP(MachineBasicBlock::iterator MBBI,
                            unsigned FixedObject) const;
 
   void emitWindowsStackProbe(MachineBasicBlock::iterator MBBI,
-                             const DebugLoc &DL, int64_t &NumBytes,
+                             DebugLoc DL, int64_t &NumBytes,
                              int64_t RealignmentPadding) const;
 
   void emitCalleeSavedGPRLocations(MachineBasicBlock::iterator MBBI) const;
@@ -186,10 +186,10 @@ private:
   void moveSPBelowFP(MachineBasicBlock::iterator MBBI, StackOffset Offset);
 
   void emitSwiftAsyncContextFramePointer(MachineBasicBlock::iterator MBBI,
-                                         const DebugLoc &DL) const;
+                                         DebugLoc DL) const;
 
   void emitShadowCallStackEpilogue(MachineBasicBlock::iterator MBBI,
-                                   const DebugLoc &DL) const;
+                                   DebugLoc DL) const;
 
   void emitCalleeSavedRestores(MachineBasicBlock::iterator MBBI,
                                bool SVE) const;

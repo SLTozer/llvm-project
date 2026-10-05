@@ -28,6 +28,7 @@
 #include "llvm/CodeGen/MachineInstrBundle.h"
 #include "llvm/CodeGen/MachineOperand.h"
 #include "llvm/CodeGen/TargetRegisterInfo.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/Compiler.h"
@@ -133,29 +134,33 @@ inline RegState getRegState(const MachineOperand &RegOp) {
 class MIMetadata {
 public:
   MIMetadata() = default;
+  MIMetadata(DbgLocStorage DL, MDNode *PCSections = nullptr, MDNode *MMRA = nullptr,
+             Value *DeactivationSymbol = nullptr)
+      : DL(DL), PCSections(PCSections), MMRA(MMRA),
+        DeactivationSymbol(DeactivationSymbol) {}
   MIMetadata(DebugLoc DL, MDNode *PCSections = nullptr, MDNode *MMRA = nullptr,
              Value *DeactivationSymbol = nullptr)
-      : DL(std::move(DL)), PCSections(PCSections), MMRA(MMRA),
+      : DL(DL.getStorage()), PCSections(PCSections), MMRA(MMRA),
         DeactivationSymbol(DeactivationSymbol) {}
   MIMetadata(std::nullptr_t, MDNode *PCSections = nullptr, MDNode *MMRA = nullptr,
              Value *DeactivationSymbol = nullptr)
       : DL(), PCSections(PCSections), MMRA(MMRA),
         DeactivationSymbol(DeactivationSymbol) {}
   explicit MIMetadata(const Instruction &From)
-      : DL(From.getDebugLoc()),
+      : DL(From.getFullDebugLoc()),
         PCSections(From.getMetadata(LLVMContext::MD_pcsections)),
         DeactivationSymbol(getDeactivationSymbol(&From)) {}
   explicit MIMetadata(const MachineInstr &From)
-      : DL(From.getDebugLoc()), PCSections(From.getPCSections()),
+      : DL(From.getFullDebugLoc()), PCSections(From.getPCSections()),
         DeactivationSymbol(From.getDeactivationSymbol()) {}
 
-  const DebugLoc &getDL() const { return DL; }
+  DbgLocStorage getDL() const { return DL; }
   MDNode *getPCSections() const { return PCSections; }
   MDNode *getMMRAMetadata() const { return MMRA; }
   Value *getDeactivationSymbol() const { return DeactivationSymbol; }
 
 private:
-  DebugLoc DL;
+  DbgLocStorage DL;
   MDNode *PCSections = nullptr;
   MDNode *MMRA = nullptr;
   Value *DeactivationSymbol = nullptr;
@@ -570,14 +575,14 @@ inline MachineInstrBuilder BuildMI(MachineBasicBlock *BB,
 /// for either a value in a register or a register-indirect
 /// address.  The convention is that a DBG_VALUE is indirect iff the
 /// second operand is an immediate.
-LLVM_ABI MachineInstrBuilder BuildMI(MachineFunction &MF, const DebugLoc &DL,
+LLVM_ABI MachineInstrBuilder BuildMI(MachineFunction &MF, DbgLocStorage DL,
                                      const MCInstrDesc &MCID, bool IsIndirect,
                                      Register Reg, const MDNode *Variable,
                                      const MDNode *Expr);
 
 /// This version of the builder builds a DBG_VALUE or DBG_VALUE_LIST intrinsic
 /// for a MachineOperand.
-LLVM_ABI MachineInstrBuilder BuildMI(MachineFunction &MF, const DebugLoc &DL,
+LLVM_ABI MachineInstrBuilder BuildMI(MachineFunction &MF, DbgLocStorage DL,
                                      const MCInstrDesc &MCID, bool IsIndirect,
                                      ArrayRef<MachineOperand> MOs,
                                      const MDNode *Variable,
@@ -588,7 +593,7 @@ LLVM_ABI MachineInstrBuilder BuildMI(MachineFunction &MF, const DebugLoc &DL,
 /// address and inserts it at position I.
 LLVM_ABI MachineInstrBuilder BuildMI(MachineBasicBlock &BB,
                                      MachineBasicBlock::iterator I,
-                                     const DebugLoc &DL,
+                                     DbgLocStorage DL,
                                      const MCInstrDesc &MCID, bool IsIndirect,
                                      Register Reg, const MDNode *Variable,
                                      const MDNode *Expr);
@@ -596,7 +601,7 @@ LLVM_ABI MachineInstrBuilder BuildMI(MachineBasicBlock &BB,
 /// This version of the builder builds a DBG_VALUE, DBG_INSTR_REF, or
 /// DBG_VALUE_LIST intrinsic for a machine operand and inserts it at position I.
 LLVM_ABI MachineInstrBuilder BuildMI(
-    MachineBasicBlock &BB, MachineBasicBlock::iterator I, const DebugLoc &DL,
+    MachineBasicBlock &BB, MachineBasicBlock::iterator I, DbgLocStorage DL,
     const MCInstrDesc &MCID, bool IsIndirect, ArrayRef<MachineOperand> MOs,
     const MDNode *Variable, const MDNode *Expr);
 

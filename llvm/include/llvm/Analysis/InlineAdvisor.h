@@ -110,7 +110,7 @@ public:
 
   /// Get the inlining recommendation.
   bool isInliningRecommended() const { return IsInliningRecommended; }
-  const DebugLoc &getOriginalCallSiteDebugLoc() const { return DLoc; }
+  DebugLoc getOriginalCallSiteDebugLoc() const { return DLoc; }
   const BasicBlock *getOriginalCallSiteBasicBlock() const { return Block; }
 
 protected:

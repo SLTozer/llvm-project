@@ -13281,7 +13281,7 @@ MachineBasicBlock *PPCTargetLowering::EmitAtomicBinary(MachineInstr &MI,
   Register ptrA = MI.getOperand(1).getReg();
   Register ptrB = MI.getOperand(2).getReg();
   Register incr = MI.getOperand(4).getReg();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   MachineBasicBlock *loopMBB = F->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *loop2MBB =
@@ -13431,7 +13431,7 @@ static void signExtendOperandIfUnknown(MachineInstr &MI, MachineBasicBlock *BB,
 
   if (!IsSignExtended) {
     Register ValueReg = RegInfo.createVirtualRegister(&PPC::GPRCRegClass);
-    BuildMI(*BB, MI, MI.getDebugLoc(),
+    BuildMI(*BB, MI, MI.getFullDebugLoc(),
             TII->get(IsByte ? PPC::EXTSB : PPC::EXTSH), ValueReg)
         .addReg(Reg);
     MI.getOperand(OpIdx).setReg(ValueReg);
@@ -13450,7 +13450,7 @@ MachineBasicBlock *PPCTargetLowering::EmitPartwordAtomicBinary(
 
   // If this is a signed comparison and the value being compared is not known
   // to be sign extended, sign extend it here.
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   MachineFunction *F = BB->getParent();
   MachineRegisterInfo &RegInfo = F->getRegInfo();
   const bool is8bit = MI.getOperand(3).getImm() == 1;
@@ -13647,7 +13647,7 @@ MachineBasicBlock *PPCTargetLowering::EmitPartwordAtomicBinary(
 llvm::MachineBasicBlock *
 PPCTargetLowering::emitEHSjLjSetJmp(MachineInstr &MI,
                                     MachineBasicBlock *MBB) const {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const PPCRegisterInfo *TRI = Subtarget.getRegisterInfo();
 
@@ -13789,7 +13789,7 @@ PPCTargetLowering::emitEHSjLjSetJmp(MachineInstr &MI,
 MachineBasicBlock *
 PPCTargetLowering::emitEHSjLjLongJmp(MachineInstr &MI,
                                      MachineBasicBlock *MBB) const {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
 
   MachineFunction *MF = MBB->getParent();
@@ -13923,7 +13923,7 @@ PPCTargetLowering::emitProbedAlloca(MachineInstr &MI,
   const bool isPPC64 = Subtarget.isPPC64();
   MachineFunction *MF = MBB->getParent();
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const unsigned ProbeSize = getStackProbeSize(*MF);
   const BasicBlock *ProbedBB = MBB->getBasicBlock();
   MachineRegisterInfo &MRI = MF->getRegInfo();
@@ -14141,7 +14141,7 @@ static MachineBasicBlock *emitSelect(MachineInstr &MI, MachineBasicBlock *BB,
       Cond.push_back(MachineOperand::CreateImm(PPC::PRED_BIT_SET));
     Cond.push_back(MI.getOperand(1));
 
-    DebugLoc dl = MI.getDebugLoc();
+    DebugLoc dl = MI.getFullDebugLoc();
     TII->insertSelect(*BB, MI, dl, MI.getOperand(0).getReg(), Cond,
                       MI.getOperand(2).getReg(), MI.getOperand(3).getReg());
     MI.eraseFromParent();
@@ -14152,7 +14152,7 @@ static MachineBasicBlock *emitSelect(MachineInstr &MI, MachineBasicBlock *BB,
   MachineFunction *F = BB->getParent();
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
   MachineFunction::iterator It = ++BB->getIterator();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   MachineBasicBlock *thisMBB = BB;
   MachineBasicBlock *copy0MBB = F->CreateMachineBasicBlock(LLVM_BB);
@@ -14289,7 +14289,7 @@ emitAtomicCmpSwapHardware(MachineInstr &MI, MachineBasicBlock *BB,
   Register ptrB = MI.getOperand(2).getReg();
   Register oldval = MI.getOperand(3).getReg();
   Register newval = MI.getOperand(4).getReg();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   MachineBasicBlock *loop1MBB, *loop2MBB, *exitMBB;
   createAtomicLoopBlocks(F, BB, loop1MBB, loop2MBB, exitMBB, MI, It);
@@ -14379,7 +14379,7 @@ emitAtomicCmpSwapSoftware(MachineInstr &MI, MachineBasicBlock *BB,
   Register ptrB = MI.getOperand(2).getReg();
   Register oldval = MI.getOperand(3).getReg();
   Register newval = MI.getOperand(4).getReg();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   MachineBasicBlock *loop1MBB, *loop2MBB, *exitMBB;
   createAtomicLoopBlocks(F, BB, loop1MBB, loop2MBB, exitMBB, MI, It);
@@ -14576,7 +14576,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
 
     MachineBasicBlock *readMBB = F->CreateMachineBasicBlock(LLVM_BB);
     MachineBasicBlock *sinkMBB = F->CreateMachineBasicBlock(LLVM_BB);
-    DebugLoc dl = MI.getDebugLoc();
+    DebugLoc dl = MI.getFullDebugLoc();
     F->insert(It, readMBB);
     F->insert(It, sinkMBB);
 
@@ -14732,7 +14732,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     Register Dest = MI.getOperand(0).getReg();
     Register Src1 = MI.getOperand(1).getReg();
     Register Src2 = MI.getOperand(2).getReg();
-    DebugLoc dl = MI.getDebugLoc();
+    DebugLoc dl = MI.getFullDebugLoc();
 
     MachineRegisterInfo &RegInfo = F->getRegInfo();
     Register MFFSReg = RegInfo.createVirtualRegister(&PPC::F8RCRegClass);
@@ -14775,7 +14775,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     Register Dest = RegInfo.createVirtualRegister(
         Opcode == PPC::ANDI_rec ? &PPC::GPRCRegClass : &PPC::G8RCRegClass);
 
-    DebugLoc Dl = MI.getDebugLoc();
+    DebugLoc Dl = MI.getFullDebugLoc();
     BuildMI(*BB, MI, Dl, TII->get(Opcode), Dest)
         .addReg(MI.getOperand(1).getReg())
         .addImm(1);
@@ -14785,7 +14785,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     break;
   }
   case PPC::TCHECK_RET: {
-    DebugLoc Dl = MI.getDebugLoc();
+    DebugLoc Dl = MI.getFullDebugLoc();
     MachineRegisterInfo &RegInfo = F->getRegInfo();
     Register CRReg = RegInfo.createVirtualRegister(&PPC::CRRCRegClass);
     BuildMI(*BB, MI, Dl, TII->get(PPC::TCHECK), CRReg);
@@ -14795,7 +14795,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     break;
   }
   case PPC::TBEGIN_RET: {
-    DebugLoc Dl = MI.getDebugLoc();
+    DebugLoc Dl = MI.getFullDebugLoc();
     unsigned Imm = MI.getOperand(1).getImm();
     BuildMI(*BB, MI, Dl, TII->get(PPC::TBEGIN)).addImm(Imm);
     BuildMI(*BB, MI, Dl, TII->get(TargetOpcode::COPY),
@@ -14804,7 +14804,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     break;
   }
   case PPC::SETRNDi: {
-    DebugLoc dl = MI.getDebugLoc();
+    DebugLoc dl = MI.getFullDebugLoc();
     Register OldFPSCRReg = MI.getOperand(0).getReg();
 
     // Save FPSCR value.
@@ -14833,7 +14833,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     break;
   }
   case PPC::SETRND: {
-    DebugLoc dl = MI.getDebugLoc();
+    DebugLoc dl = MI.getFullDebugLoc();
 
     // Copy register from F8RCRegClass::SrcReg to G8RCRegClass::DestReg
     // or copy register from G8RCRegClass::SrcReg to F8RCRegClass::DestReg.
@@ -14944,7 +14944,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     break;
   }
   case PPC::SETFLM: {
-    DebugLoc Dl = MI.getDebugLoc();
+    DebugLoc Dl = MI.getFullDebugLoc();
 
     // Result of setflm is previous FPSCR content, so we need to save it first.
     Register OldFPSCRReg = MI.getOperand(0).getReg();
@@ -14967,7 +14967,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     return emitProbedAlloca(MI, BB);
 
   case PPC::SPLIT_QUADWORD: {
-    DebugLoc DL = MI.getDebugLoc();
+    DebugLoc DL = MI.getFullDebugLoc();
     Register Src = MI.getOperand(2).getReg();
     Register Lo = MI.getOperand(0).getReg();
     Register Hi = MI.getOperand(1).getReg();
@@ -14981,7 +14981,7 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   }
   case PPC::LQX_PSEUDO:
   case PPC::STQX_PSEUDO: {
-    DebugLoc DL = MI.getDebugLoc();
+    DebugLoc DL = MI.getFullDebugLoc();
     // Ptr is used as the ptr_rc_no_r0 part
     // of LQ/STQ's memory operand and adding result of RA and RB,
     // so it has to be g8rc_and_g8rc_nox0.

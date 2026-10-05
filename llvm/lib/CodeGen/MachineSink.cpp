@@ -578,7 +578,7 @@ bool MachineSinking::PerformSinkAndFold(MachineInstr &MI,
       Register DstReg = SinkDst->getOperand(0).getReg();
       TII->reMaterialize(*SinkDst->getParent(), InsertPt, DstReg, 0, MI);
       New = &*std::prev(InsertPt);
-      if (!New->getDebugLoc())
+      if (!New->getFullDebugLoc())
         New->copyDebugLocFrom(SinkDst);
 
       // The operand registers of the "sunk" instruction have their live range
@@ -1024,7 +1024,7 @@ void MachineSinking::ProcessDbgInst(MachineInstr &MI) {
   assert(MI.isDebugValue() && "Expected DBG_VALUE for processing");
 
   DebugVariable Var(MI.getDebugVariable(), MI.getDebugExpression(),
-                    MI.getDebugLoc().getInlinedAt());
+                    MI.getFullDebugLoc().getInlinedAt());
   bool SeenBefore = SeenDbgVars.contains(Var);
 
   for (MachineOperand &MO : MI.debug_operands()) {
@@ -1624,7 +1624,7 @@ static void performSink(MachineInstr &MI, MachineBasicBlock &SuccToSinkTo,
     MI.setDebugLoc(DebugLoc::getDropped());
   else
     MI.setDebugLoc(DebugLoc::getMergedLocation(
-        MI.getDebugLoc(), SuccToSinkTo.findDebugLoc(InsertPos)));
+        MI.getFullDebugLoc(), SuccToSinkTo.findDebugLoc(InsertPos)));
 
   // Move the instruction.
   MachineBasicBlock *ParentBlock = MI.getParent();

@@ -165,7 +165,7 @@ void SparcFrameLowering::emitEpilogue(MachineFunction &MF,
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
   const SparcInstrInfo &TII =
       *static_cast<const SparcInstrInfo *>(MF.getSubtarget().getInstrInfo());
-  DebugLoc dl = MBBI->getDebugLoc();
+  DebugLoc dl = MBBI->getFullDebugLoc();
   assert((MBBI->getOpcode() == SP::RETL || MBBI->getOpcode() == SP::TAIL_CALL ||
           MBBI->getOpcode() == SP::TAIL_CALLri) &&
          "Can only put epilog before 'retl' or 'tail_call' instruction!");

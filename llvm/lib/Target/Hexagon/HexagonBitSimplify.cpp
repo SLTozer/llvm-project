@@ -1346,7 +1346,7 @@ bool RedundantInstrElimination::processBlock(MachineBasicBlock &B,
         continue;
 
       // If found, replace the instruction with a COPY.
-      const DebugLoc &DL = MI->getDebugLoc();
+      DebugLoc DL = MI->getFullDebugLoc();
       const TargetRegisterClass *FRC = HBS::getFinalVRegClass(RD, MRI);
       Register NewR = MRI.createVirtualRegister(FRC);
       MachineInstr *CopyI =
@@ -1387,7 +1387,7 @@ namespace {
   private:
     Register genTfrConst(const TargetRegisterClass *RC, int64_t C,
                          MachineBasicBlock &B, MachineBasicBlock::iterator At,
-                         DebugLoc &DL);
+                         DebugLoc DL);
 
     const HexagonInstrInfo &HII;
     MachineRegisterInfo &MRI;
@@ -1417,7 +1417,7 @@ bool ConstGeneration::isTfrConst(const MachineInstr &MI) {
 Register ConstGeneration::genTfrConst(const TargetRegisterClass *RC, int64_t C,
                                       MachineBasicBlock &B,
                                       MachineBasicBlock::iterator At,
-                                      DebugLoc &DL) {
+                                      DebugLoc DL) {
   Register Reg = MRI.createVirtualRegister(RC);
   if (RC == &Hexagon::IntRegsRegClass) {
     BuildMI(B, At, DL, HII.get(Hexagon::A2_tfrsi), Reg)
@@ -1488,7 +1488,7 @@ bool ConstGeneration::processBlock(MachineBasicBlock &B, const RegisterSet&) {
     const BitTracker::RegisterCell &DRC = BT.lookup(DR);
     if (HBS::getConst(DRC, 0, DRC.width(), U)) {
       int64_t C = U;
-      DebugLoc DL = I->getDebugLoc();
+      DebugLoc DL = I->getFullDebugLoc();
       auto At = I->isPHI() ? B.getFirstNonPHI() : I;
       Register ImmReg = genTfrConst(MRI.getRegClass(DR), C, B, At, DL);
       if (ImmReg) {
@@ -1611,7 +1611,7 @@ bool CopyGeneration::processBlock(MachineBasicBlock &B,
         ConstGeneration::isTfrConst(*I))
       continue;
 
-    DebugLoc DL = I->getDebugLoc();
+    DebugLoc DL = I->getFullDebugLoc();
     auto At = I->isPHI() ? B.getFirstNonPHI() : I;
 
     for (Register R = Defs.find_first(); R; R = Defs.find_next(R)) {
@@ -2037,7 +2037,7 @@ bool BitSimplification::genPackhl(MachineInstr *MI,
 
   MachineBasicBlock &B = *MI->getParent();
   Register NewR = MRI.createVirtualRegister(&Hexagon::DoubleRegsRegClass);
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   auto At = MI->isPHI() ? B.getFirstNonPHI()
                         : MachineBasicBlock::iterator(MI);
   BuildMI(B, At, DL, HII.get(Hexagon::S2_packhl), NewR)
@@ -2059,7 +2059,7 @@ bool BitSimplification::genExtractHalf(MachineInstr *MI,
 
   unsigned Opc = MI->getOpcode();
   MachineBasicBlock &B = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   // Prefer zxth, since zxth can go in any slot, while extractu only in
   // slots 2 and 3.
@@ -2107,7 +2107,7 @@ bool BitSimplification::genCombineHalf(MachineInstr *MI,
     return false;
 
   MachineBasicBlock &B = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   Register NewR = MRI.createVirtualRegister(&Hexagon::IntRegsRegClass);
   auto At = MI->isPHI() ? B.getFirstNonPHI()
                         : MachineBasicBlock::iterator(MI);
@@ -2148,7 +2148,7 @@ bool BitSimplification::genExtractLow(MachineInstr *MI,
                   : (W < 10)  ? Hexagon::A2_andir
                   : Hexagon::S2_extractu;
   MachineBasicBlock &B = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   for (auto &Op : MI->uses()) {
     if (!Op.isReg())
@@ -2276,7 +2276,7 @@ bool BitSimplification::genBitSplit(MachineInstr *MI,
       CountBitSplit++;
     MachineInstr *DefS = MRI.getVRegDef(S);
     assert(DefS != nullptr);
-    DebugLoc DL = DefS->getDebugLoc();
+    DebugLoc DL = DefS->getFullDebugLoc();
     MachineBasicBlock &B = *DefS->getParent();
     auto At = DefS->isPHI() ? B.getFirstNonPHI()
                             : MachineBasicBlock::iterator(DefS);
@@ -2343,7 +2343,7 @@ bool BitSimplification::simplifyTstbit(MachineInstr *MI,
   unsigned BN = MI->getOperand(2).getImm();
   BitTracker::RegisterRef RS = MI->getOperand(1);
   unsigned F, W;
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   if (!BT.has(RS.Reg) || !HBS::getSubregMask(RS, F, W, MRI))
     return false;
   MachineBasicBlock &B = *MI->getParent();
@@ -2550,7 +2550,7 @@ bool BitSimplification::simplifyExtractLow(MachineInstr *MI,
         continue;
     }
 
-    DebugLoc DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
     MachineBasicBlock &B = *MI->getParent();
     Register NewR = MRI.createVirtualRegister(FRC);
     auto At = MI->isPHI() ? B.getFirstNonPHI()
@@ -2600,7 +2600,7 @@ bool BitSimplification::simplifyRCmp0(MachineInstr *MI,
   assert(RD.Sub == 0);
 
   MachineBasicBlock &B = *MI->getParent();
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   auto At = MI->isPHI() ? B.getFirstNonPHI()
                         : MachineBasicBlock::iterator(MI);
   bool KnownZ = true;
@@ -3073,7 +3073,7 @@ void HexagonLoopRescheduling::moveGroup(InstrGroup &G, MachineBasicBlock &LB,
 
   const TargetRegisterClass *PhiRC = MRI->getRegClass(NewPredR);
   Register PhiR = MRI->createVirtualRegister(PhiRC);
-  BuildMI(LB, At, At->getDebugLoc(), HII->get(TargetOpcode::PHI), PhiR)
+  BuildMI(LB, At, At->getFullDebugLoc(), HII->get(TargetOpcode::PHI), PhiR)
     .addReg(NewPredR)
     .addMBB(&PB)
     .addReg(G.Inp.Reg)
@@ -3084,7 +3084,7 @@ void HexagonLoopRescheduling::moveGroup(InstrGroup &G, MachineBasicBlock &LB,
     unsigned DR = getDefReg(SI);
     const TargetRegisterClass *RC = MRI->getRegClass(DR);
     Register NewDR = MRI->createVirtualRegister(RC);
-    DebugLoc DL = SI->getDebugLoc();
+    DebugLoc DL = SI->getFullDebugLoc();
 
     auto MIB = BuildMI(LB, At, DL, HII->get(SI->getOpcode()), NewDR);
     for (const MachineOperand &Op : SI->operands()) {
@@ -3285,7 +3285,7 @@ bool HexagonLoopRescheduling::processLoop(LoopCand &C) {
         unsigned TfrI = (RC == &Hexagon::IntRegsRegClass) ? Hexagon::A2_tfrsi
                                                           : Hexagon::A2_tfrpi;
         auto T = C.PB->getFirstTerminator();
-        DebugLoc DL = (T != C.PB->end()) ? T->getDebugLoc() : DebugLoc();
+        DebugLoc DL = (T != C.PB->end()) ? T->getFullDebugLoc() : DebugLoc();
         BuildMI(*C.PB, T, DL, HII->get(TfrI), PrehR)
           .addImm(0);
       } else {

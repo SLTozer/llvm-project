@@ -1379,7 +1379,7 @@ bool HexagonGenInsert::generateInserts() {
   for (auto &I : IFMap) {
     MachineInstr *MI = MRI->getVRegDef(I.first);
     MachineBasicBlock &B = *MI->getParent();
-    DebugLoc DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
     unsigned NewR = RegMap[I.first];
     bool R32 = MRI->getRegClass(NewR) == &Hexagon::IntRegsRegClass;
     const MCInstrDesc &D = R32 ? HII->get(Hexagon::S2_insert)

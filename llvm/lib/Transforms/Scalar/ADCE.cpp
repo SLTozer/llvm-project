@@ -307,7 +307,7 @@ void AggressiveDeadCodeElimination::markLive(Instruction *I) {
   Worklist.push_back(I);
 
   // Collect the live debug info scopes attached to this instruction.
-  if (DebugLoc DL = I->getDebugLoc())
+  if (DebugLoc DL = I->getFullDebugLoc())
     collectLiveScopes(DL);
 
   // Mark the containing block live
@@ -437,7 +437,7 @@ ADCEChanged AggressiveDeadCodeElimination::removeDeadInstructions() {
 
       if (auto *DII = dyn_cast<DbgVariableIntrinsic>(&I)) {
         // Check if the scope of this variable location is alive.
-        if (AliveScopes.count(DII->getDebugLoc().getScope()))
+        if (AliveScopes.count(DII->getFullDebugLoc().getScope()))
           continue;
 
         // If intrinsic is pointing at a live SSA value, there may be an
@@ -471,7 +471,7 @@ ADCEChanged AggressiveDeadCodeElimination::removeDeadInstructions() {
           DVR && DVR->isDbgAssign())
         if (!at::getAssignmentInsts(DVR).empty())
           continue;
-      if (AliveScopes.count(DR.getDebugLoc().getScope()))
+      if (AliveScopes.count(DR.getFullDebugLoc().getScope()))
         continue;
       I.dropOneDbgRecord(&DR);
     }
@@ -598,7 +598,7 @@ void AggressiveDeadCodeElimination::makeUnconditional(BasicBlock *BB,
                                                       BasicBlock *Target) {
   Instruction *PredTerm = BB->getTerminator();
   // Collect the live debug info scopes attached to this instruction.
-  if (DebugLoc DL = PredTerm->getDebugLoc())
+  if (DebugLoc DL = PredTerm->getFullDebugLoc())
     collectLiveScopes(DL);
 
   // Just mark live an existing unconditional branch
@@ -612,7 +612,7 @@ void AggressiveDeadCodeElimination::makeUnconditional(BasicBlock *BB,
   IRBuilder<> Builder(PredTerm);
   auto *NewTerm = Builder.CreateBr(Target);
   LiveInst.insert(NewTerm);
-  if (DebugLoc DL = PredTerm->getDebugLoc())
+  if (DebugLoc DL = PredTerm->getFullDebugLoc())
     NewTerm->setDebugLoc(DL);
   PredTerm->eraseFromParent();
 }

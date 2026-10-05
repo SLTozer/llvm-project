@@ -619,7 +619,7 @@ void SSACCmpConv::convert(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks) {
   }
 
   Head->transferSuccessorsAndUpdatePHIs(CmpBB);
-  DebugLoc TermDL = Head->getFirstTerminator()->getDebugLoc();
+  DebugLoc TermDL = Head->getFirstTerminator()->getFullDebugLoc();
   TII->removeBranch(*Head);
 
   // If the Head terminator was one of the cbz / tbz branches with built-in
@@ -700,7 +700,7 @@ void SSACCmpConv::convert(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks) {
   if (CmpMI->getOperand(FirstOp + 1).isReg())
     MRI->constrainRegClass(CmpMI->getOperand(FirstOp + 1).getReg(),
                            TII->getRegClass(MCID, 1));
-  MachineInstrBuilder MIB = BuildMI(*Head, CmpMI, CmpMI->getDebugLoc(), MCID)
+  MachineInstrBuilder MIB = BuildMI(*Head, CmpMI, CmpMI->getFullDebugLoc(), MCID)
                                 .add(CmpMI->getOperand(FirstOp)); // Register Rn
   if (isZBranch)
     MIB.addImm(0); // cbz/cbnz Rn -> ccmp Rn, #0
@@ -713,7 +713,7 @@ void SSACCmpConv::convert(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks) {
   if (isZBranch) {
     bool isNZ = CmpMI->getOpcode() == AArch64::CBNZW ||
                 CmpMI->getOpcode() == AArch64::CBNZX;
-    BuildMI(*Head, CmpMI, CmpMI->getDebugLoc(), TII->get(AArch64::Bcc))
+    BuildMI(*Head, CmpMI, CmpMI->getFullDebugLoc(), TII->get(AArch64::Bcc))
         .addImm(isNZ ? AArch64CC::NE : AArch64CC::EQ)
         .add(CmpMI->getOperand(1)); // Branch target.
   }

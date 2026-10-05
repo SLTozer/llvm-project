@@ -1951,7 +1951,7 @@ bool HexagonLoopIdiomRecognize::isLegalStore(Loop *CurLoop, StoreInst *SI) {
   if (!StoreEv || StoreEv->getLoop() != CurLoop || !StoreEv->isAffine()) {
     ORE.emit([&]() {
       return OptimizationRemarkMissed(DEBUG_TYPE, "NonAffineStorePtr",
-                                      SI->getDebugLoc(), SI->getParent())
+                                      SI->getFullDebugLoc(), SI->getParent())
              << "store pointer is not an affine AddRec";
     });
     return false;
@@ -1966,7 +1966,7 @@ bool HexagonLoopIdiomRecognize::isLegalStore(Loop *CurLoop, StoreInst *SI) {
   if (StoreSize != unsigned(std::abs(Stride))) {
     ORE.emit([&]() {
       return OptimizationRemarkMissed(DEBUG_TYPE, "StrideSizeMismatch",
-                                      SI->getDebugLoc(), SI->getParent())
+                                      SI->getFullDebugLoc(), SI->getParent())
              << "stride does not match store size";
     });
     return false;
@@ -1977,7 +1977,7 @@ bool HexagonLoopIdiomRecognize::isLegalStore(Loop *CurLoop, StoreInst *SI) {
   if (!LI || !LI->isSimple()) {
     ORE.emit([&]() {
       return OptimizationRemarkMissed(DEBUG_TYPE, "StoreNotFeedingLoad",
-                                      SI->getDebugLoc(), SI->getParent())
+                                      SI->getFullDebugLoc(), SI->getParent())
              << "store value is not a simple load";
     });
     return false;
@@ -1991,7 +1991,7 @@ bool HexagonLoopIdiomRecognize::isLegalStore(Loop *CurLoop, StoreInst *SI) {
   if (!LoadEv || LoadEv->getLoop() != CurLoop || !LoadEv->isAffine()) {
     ORE.emit([&]() {
       return OptimizationRemarkMissed(DEBUG_TYPE, "NonAffineLoadPtr",
-                                      LI->getDebugLoc(), LI->getParent())
+                                      LI->getFullDebugLoc(), LI->getParent())
              << "load pointer is not an affine AddRec";
     });
     return false;
@@ -2121,7 +2121,7 @@ CleanupAndExit:
       // Still bad. Nothing we can do.
       ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "MemoryAlias",
-                                        SI->getDebugLoc(), SI->getParent())
+                                        SI->getFullDebugLoc(), SI->getParent())
                << "memory aliasing prevents memcpy/memmove";
       });
       goto CleanupAndExit;
@@ -2134,7 +2134,7 @@ CleanupAndExit:
     if (DisableMemcpyIdiom || !HasMemcpy) {
       ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "MemcpyDisabled",
-                                        SI->getDebugLoc(), SI->getParent())
+                                        SI->getFullDebugLoc(), SI->getParent())
                << "memcpy idiom is disabled or unavailable";
       });
       goto CleanupAndExit;
@@ -2156,7 +2156,7 @@ CleanupAndExit:
     if (!coverLoop(CurLoop, Insts)) {
       ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "ExtraLoopInstructions",
-                                        SI->getDebugLoc(), SI->getParent())
+                                        SI->getFullDebugLoc(), SI->getParent())
                << "loop contains instructions beyond load/store pair";
       });
       goto CleanupAndExit;
@@ -2165,7 +2165,7 @@ CleanupAndExit:
     if (DisableMemmoveIdiom || !HasMemmove) {
       ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "MemmoveDisabled",
-                                        SI->getDebugLoc(), SI->getParent())
+                                        SI->getFullDebugLoc(), SI->getParent())
                << "memmove idiom is disabled or unavailable";
       });
       goto CleanupAndExit;
@@ -2174,7 +2174,7 @@ CleanupAndExit:
     if (IsNested && OnlyNonNestedMemmove) {
       ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "NestedLoop",
-                                        SI->getDebugLoc(), SI->getParent())
+                                        SI->getFullDebugLoc(), SI->getParent())
                << "memmove skipped for nested loop";
       });
       goto CleanupAndExit;
@@ -2215,7 +2215,7 @@ CleanupAndExit:
   // pointer size if it isn't already.
   LLVMContext &Ctx = SI->getContext();
   BECount = SE->getTruncateOrZeroExtend(BECount, IntPtrTy);
-  DebugLoc DLoc = SI->getDebugLoc();
+  DebugLoc DLoc = SI->getFullDebugLoc();
 
   const SCEV *NumBytesS =
       SE->getAddExpr(BECount, SE->getOne(IntPtrTy), SCEV::FlagNUW);

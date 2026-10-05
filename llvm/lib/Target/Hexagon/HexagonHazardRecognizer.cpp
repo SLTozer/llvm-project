@@ -50,7 +50,7 @@ HexagonHazardRecognizer::getHazardType(SUnit *SU, int stalls) {
       MachineFunction *MF = MI->getParent()->getParent();
       MachineInstr *NewMI =
         MF->CreateMachineInstr(TII->get(TII->getDotNewOp(*MI)),
-                               MI->getDebugLoc());
+                               MI->getFullDebugLoc());
       if (Resources->canReserveResources(*NewMI))
         RetVal = NoHazard;
       LLVM_DEBUG(dbgs() << "*** Try .new version? " << (RetVal == NoHazard)
@@ -130,7 +130,7 @@ void HexagonHazardRecognizer::EmitInstruction(SUnit *SU) {
     MachineFunction *MF = MI->getParent()->getParent();
     MachineInstr *NewMI =
         MF->CreateMachineInstr(TII->get(TII->getDotNewOp(*MI)),
-                               MI->getDebugLoc());
+                               MI->getFullDebugLoc());
     if (Resources->canReserveResources(*NewMI))
       Resources->reserveResources(*NewMI);
     else

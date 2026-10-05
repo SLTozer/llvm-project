@@ -730,7 +730,7 @@ Value *MemCmpExpansion::getMemCmpExpansion() {
                          {DominatorTree::Delete, StartBlock, EndBlock}});
   }
 
-  Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+  Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
   if (IsUsedForZeroCmp)
     return getNumBlocks() == 1 ? getMemCmpEqZeroOneBlock()

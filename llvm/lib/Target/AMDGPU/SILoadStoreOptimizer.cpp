@@ -235,11 +235,11 @@ private:
 
   void copyToDestRegs(CombineInfo &CI, CombineInfo &Paired,
                       MachineBasicBlock::iterator InsertBefore,
-                      const DebugLoc &DL, AMDGPU::OpName OpName,
+                      DebugLoc DL, AMDGPU::OpName OpName,
                       Register DestReg) const;
   Register copyFromSrcRegs(CombineInfo &CI, CombineInfo &Paired,
                            MachineBasicBlock::iterator InsertBefore,
-                           const DebugLoc &DL, AMDGPU::OpName OpName) const;
+                           DebugLoc DL, AMDGPU::OpName OpName) const;
 
   unsigned read2Opcode(unsigned EltSize) const;
   unsigned read2ST64Opcode(unsigned EltSize) const;
@@ -1371,7 +1371,7 @@ SILoadStoreOptimizer::checkAndPrepareMerge(CombineInfo &CI,
 // Paired.
 void SILoadStoreOptimizer::copyToDestRegs(
     CombineInfo &CI, CombineInfo &Paired,
-    MachineBasicBlock::iterator InsertBefore, const DebugLoc &DL,
+    MachineBasicBlock::iterator InsertBefore, DebugLoc DL,
     AMDGPU::OpName OpName, Register DestReg) const {
   MachineBasicBlock *MBB = CI.I->getParent();
 
@@ -1401,7 +1401,7 @@ void SILoadStoreOptimizer::copyToDestRegs(
 Register
 SILoadStoreOptimizer::copyFromSrcRegs(CombineInfo &CI, CombineInfo &Paired,
                                       MachineBasicBlock::iterator InsertBefore,
-                                      const DebugLoc &DL,
+                                      DebugLoc DL,
                                       AMDGPU::OpName OpName) const {
   MachineBasicBlock *MBB = CI.I->getParent();
 
@@ -1460,7 +1460,7 @@ SILoadStoreOptimizer::mergeRead2Pair(CombineInfo &CI, CombineInfo &Paired,
   Register DestReg = MRI->createVirtualRegister(SuperRC);
 
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   Register BaseReg = AddrReg->getReg();
   unsigned BaseSubReg = AddrReg->getSubReg();
@@ -1546,7 +1546,7 @@ MachineBasicBlock::iterator SILoadStoreOptimizer::mergeWrite2Pair(
 
   const MCInstrDesc &Write2Desc = TII->get(Opc);
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   Register BaseReg = AddrReg->getReg();
   unsigned BaseSubReg = AddrReg->getSubReg();
@@ -1588,7 +1588,7 @@ SILoadStoreOptimizer::mergeImagePair(CombineInfo &CI, CombineInfo &Paired,
                                      MachineBasicBlock::iterator InsertBefore) {
   MachineBasicBlock *MBB = CI.I->getParent();
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   const unsigned Opcode = getNewOpcode(CI, Paired);
 
@@ -1626,7 +1626,7 @@ MachineBasicBlock::iterator SILoadStoreOptimizer::mergeSMemLoadImmPair(
     MachineBasicBlock::iterator InsertBefore) {
   MachineBasicBlock *MBB = CI.I->getParent();
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   const unsigned Opcode = getNewOpcode(CI, Paired);
 
@@ -1661,7 +1661,7 @@ MachineBasicBlock::iterator SILoadStoreOptimizer::mergeBufferLoadPair(
   MachineBasicBlock *MBB = CI.I->getParent();
 
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   const unsigned Opcode = getNewOpcode(CI, Paired);
 
@@ -1704,7 +1704,7 @@ MachineBasicBlock::iterator SILoadStoreOptimizer::mergeTBufferLoadPair(
   MachineBasicBlock *MBB = CI.I->getParent();
 
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   const unsigned Opcode = getNewOpcode(CI, Paired);
 
@@ -1756,7 +1756,7 @@ MachineBasicBlock::iterator SILoadStoreOptimizer::mergeTBufferStorePair(
     MachineBasicBlock::iterator InsertBefore) {
   MachineBasicBlock *MBB = CI.I->getParent();
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   const unsigned Opcode = getNewOpcode(CI, Paired);
 
@@ -1805,7 +1805,7 @@ MachineBasicBlock::iterator SILoadStoreOptimizer::mergeFlatLoadPair(
   MachineBasicBlock *MBB = CI.I->getParent();
 
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   const unsigned Opcode = getNewOpcode(CI, Paired);
 
@@ -1836,7 +1836,7 @@ MachineBasicBlock::iterator SILoadStoreOptimizer::mergeFlatStorePair(
   MachineBasicBlock *MBB = CI.I->getParent();
 
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   const unsigned Opcode = getNewOpcode(CI, Paired);
 
@@ -2113,7 +2113,7 @@ MachineBasicBlock::iterator SILoadStoreOptimizer::mergeBufferStorePair(
     MachineBasicBlock::iterator InsertBefore) {
   MachineBasicBlock *MBB = CI.I->getParent();
   DebugLoc DL =
-      DebugLoc::getMergedLocation(CI.I->getDebugLoc(), Paired.I->getDebugLoc());
+      DebugLoc::getMergedLocation(CI.I->getFullDebugLoc(), Paired.I->getFullDebugLoc());
 
   const unsigned Opcode = getNewOpcode(CI, Paired);
 
@@ -2155,7 +2155,7 @@ SILoadStoreOptimizer::createRegOrImm(int32_t Val, MachineInstr &MI) const {
 
   Register Reg = MRI->createVirtualRegister(&AMDGPU::SReg_32RegClass);
   MachineInstr *Mov =
-  BuildMI(*MI.getParent(), MI.getIterator(), MI.getDebugLoc(),
+  BuildMI(*MI.getParent(), MI.getIterator(), MI.getFullDebugLoc(),
           TII->get(AMDGPU::S_MOV_B32), Reg)
     .addImm(Val);
   (void)Mov;
@@ -2168,7 +2168,7 @@ Register SILoadStoreOptimizer::computeBase(MachineInstr &MI,
                                            const MemAddress &Addr) const {
   MachineBasicBlock *MBB = MI.getParent();
   MachineBasicBlock::iterator MBBI = MI.getIterator();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   LLVM_DEBUG(dbgs() << "  Re-Computed Anchor-Base:\n");
 
@@ -2386,7 +2386,7 @@ void SILoadStoreOptimizer::updateAsyncLDSAddress(MachineInstr &MI,
   Register OldReg = LDSAddr->getReg();
   Register NewReg = MRI->createVirtualRegister(MRI->getRegClass(OldReg));
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   BuildMI(MBB, MI, DL, TII->get(AMDGPU::V_ADD_U32_e64), NewReg)
       .addReg(OldReg)
       .addImm(-OffsetDiff)

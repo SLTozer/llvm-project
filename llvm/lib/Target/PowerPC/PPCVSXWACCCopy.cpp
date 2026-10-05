@@ -91,7 +91,7 @@ protected:
                "Unknown source for a VSX copy");
 
         Register NewVReg = MRI.createVirtualRegister(SrcRC);
-        BuildMI(MBB, MI, MI.getDebugLoc(),
+        BuildMI(MBB, MI, MI.getFullDebugLoc(),
                 TII->get(TargetOpcode::SUBREG_TO_REG), NewVReg)
             .add(SrcMO)
             .addImm(PPC::sub_64);
@@ -110,7 +110,7 @@ protected:
 
         // Copy the VSX value into a new VSX register of the correct subclass.
         Register NewVReg = MRI.createVirtualRegister(DstRC);
-        BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(TargetOpcode::COPY),
+        BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(TargetOpcode::COPY),
                 NewVReg)
             .add(SrcMO);
 

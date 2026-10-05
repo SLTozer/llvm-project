@@ -263,7 +263,7 @@ void PPCCTRLoops::expandNormalLoops(MachineLoop *ML, MachineInstr *Start,
       MRI->createVirtualRegister(Is64Bit ? &PPC::G8RC_and_G8RC_NOX0RegClass
                                          : &PPC::GPRC_and_GPRC_NOR0RegClass);
   // Generate "addi -1" in the exiting block.
-  BuildMI(*Exiting, Dec, Dec->getDebugLoc(), TII->get(ADDIOpcode), ADDIDef)
+  BuildMI(*Exiting, Dec, Dec->getFullDebugLoc(), TII->get(ADDIOpcode), ADDIDef)
       .addReg(PHIDef)
       .addImm(-1);
 
@@ -295,11 +295,11 @@ void PPCCTRLoops::expandNormalLoops(MachineLoop *ML, MachineInstr *Start,
   // Generate the compare in the exiting block.
   Register CMPDef = MRI->createVirtualRegister(&PPC::CRRCRegClass);
   auto CMPMIB =
-      BuildMI(*Exiting, Dec, Dec->getDebugLoc(), TII->get(CMPOpcode), CMPDef)
+      BuildMI(*Exiting, Dec, Dec->getFullDebugLoc(), TII->get(CMPOpcode), CMPDef)
           .addReg(ADDIDef)
           .addImm(0);
 
-  BuildMI(*Exiting, Dec, Dec->getDebugLoc(), TII->get(TargetOpcode::COPY),
+  BuildMI(*Exiting, Dec, Dec->getFullDebugLoc(), TII->get(TargetOpcode::COPY),
           Dec->getOperand(0).getReg())
       .addReg(CMPMIB->getOperand(0).getReg(), {}, PPC::sub_gt);
 
@@ -346,7 +346,7 @@ void PPCCTRLoops::expandCTRLoops(MachineLoop *ML, MachineInstr *Start,
   }
 
   // Generate "bdnz/bdz" in the exiting block just before the terminator.
-  BuildMI(*Exiting, &*BrInstr, BrInstr->getDebugLoc(), TII->get(Opcode))
+  BuildMI(*Exiting, &*BrInstr, BrInstr->getFullDebugLoc(), TII->get(Opcode))
       .addMBB(BrInstr->getOperand(1).getMBB());
 
   // Remove the pseudo instructions.

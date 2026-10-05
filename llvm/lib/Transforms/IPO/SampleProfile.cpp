@@ -655,7 +655,7 @@ ErrorOr<uint64_t> SampleProfileLoader::getInstWeight(const Instruction &Inst) {
   if (FunctionSamples::ProfileIsProbeBased)
     return getProbeWeight(Inst);
 
-  const DebugLoc &DLoc = Inst.getDebugLoc();
+  DebugLoc DLoc = Inst.getFullDebugLoc();
   if (!DLoc)
     return std::error_code();
 
@@ -693,7 +693,7 @@ ErrorOr<uint64_t> SampleProfileLoader::getInstWeight(const Instruction &Inst) {
 /// \returns The FunctionSamples pointer to the inlined instance.
 const FunctionSamples *
 SampleProfileLoader::findCalleeFunctionSamples(const CallBase &Inst) const {
-  DebugLoc DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getFullDebugLoc();
   if (!DIL) {
     return nullptr;
   }
@@ -720,7 +720,7 @@ SampleProfileLoader::findCalleeFunctionSamples(const CallBase &Inst) const {
 std::vector<const FunctionSamples *>
 SampleProfileLoader::findIndirectCallFunctionSamples(
     const Instruction &Inst, uint64_t &Sum) const {
-  DebugLoc DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getFullDebugLoc();
   std::vector<const FunctionSamples *> R;
 
   if (!DIL) {
@@ -780,7 +780,7 @@ SampleProfileLoader::findFunctionSamples(const Instruction &Inst) const {
       return nullptr;
   }
 
-  DebugLoc DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getFullDebugLoc();
   if (!DIL)
     return Samples;
 
@@ -1016,7 +1016,7 @@ void SampleProfileLoader::emitOptimizationRemarksForInlineCandidates(
     Function *CalledFunction = I->getCalledFunction();
     if (CalledFunction) {
       ORE->emit(OptimizationRemarkAnalysis(getAnnotatedRemarkPassName(),
-                                           "InlineAttempt", I->getDebugLoc(),
+                                           "InlineAttempt", I->getFullDebugLoc(),
                                            I->getParent())
                 << "previous inlining reattempted for "
                 << (Hot ? "hotness: '" : "size: '")
@@ -1237,7 +1237,7 @@ bool SampleProfileLoader::tryInlineCandidate(
   CallBase &CB = *Candidate.CallInstr;
   Function *CalledFunction = CB.getCalledFunction();
   assert(CalledFunction && "Expect a callee with definition");
-  DebugLoc DLoc = CB.getDebugLoc();
+  DebugLoc DLoc = CB.getFullDebugLoc();
   BasicBlock *BB = CB.getParent();
 
   InlineCost Cost = shouldInlineCandidate(Candidate);
@@ -1548,7 +1548,7 @@ void SampleProfileLoader::promoteMergeNotInlinedContextSamples(
 
     ORE->emit(
         OptimizationRemarkAnalysis(getAnnotatedRemarkPassName(), "NotInline",
-                                   I->getDebugLoc(), I->getParent())
+                                   I->getFullDebugLoc(), I->getParent())
         << "previous inlining not repeated: '" << ore::NV("Callee", Callee)
         << "' into '" << ore::NV("Caller", &F) << "'");
 
@@ -1622,7 +1622,7 @@ void SampleProfileLoader::generateMDProfMetadata(Function &F) {
         if (!isa<CallInst>(I) && !isa<InvokeInst>(I))
           continue;
         if (!cast<CallBase>(I).getCalledFunction()) {
-          const DebugLoc &DLoc = I.getDebugLoc();
+          DebugLoc DLoc = I.getFullDebugLoc();
           if (!DLoc)
             continue;
           DebugLoc DIL = DLoc;
@@ -1690,7 +1690,7 @@ void SampleProfileLoader::generateMDProfMetadata(Function &F) {
         !isa<IndirectBrInst>(TI))
       continue;
 
-    DebugLoc BranchLoc = TI->getDebugLoc();
+    DebugLoc BranchLoc = TI->getFullDebugLoc();
     LLVM_DEBUG(dbgs() << "\nGetting weights for branch at line "
                       << ((BranchLoc) ? Twine(BranchLoc.getLine())
                                       : Twine("<UNKNOWN LOCATION>"))
@@ -2143,7 +2143,7 @@ void SampleProfileLoader::removePseudoProbeInstsDiscriminator(Module &M) {
         if (isa<PseudoProbeInst>(&I))
           InstsToDel.push_back(&I);
         else if (isa<CallBase>(&I))
-          if (DebugLoc DIL = I.getDebugLoc()) {
+          if (DebugLoc DIL = I.getFullDebugLoc()) {
             // Restore dwarf discriminator for call.
             unsigned Discriminator = DIL.getDiscriminator();
             if (DebugLoc::isPseudoProbeDiscriminator(Discriminator)) {

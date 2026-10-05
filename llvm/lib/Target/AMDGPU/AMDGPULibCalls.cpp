@@ -1749,7 +1749,7 @@ bool AMDGPULibCalls::fold_sincos(FPMathOperator *FPOp, IRBuilder<> &B,
   FastMathFlags FMF = FPOp->getFastMathFlags();
   MDNode *FPMath = CI->getMetadata(LLVMContext::MD_fpmath);
 
-  SmallVector<DebugLoc> MergeDbgLocs = {CI->getDebugLoc()};
+  SmallVector<DebugLoc> MergeDbgLocs = {CI->getFullDebugLoc()};
 
   for (User* U : CArgVal->users()) {
     CallInst *XI = dyn_cast<CallInst>(U);
@@ -1773,7 +1773,7 @@ bool AMDGPULibCalls::fold_sincos(FPMathOperator *FPOp, IRBuilder<> &B,
       Handled = false;
 
     if (Handled) {
-      MergeDbgLocs.push_back(XI->getDebugLoc());
+      MergeDbgLocs.push_back(XI->getFullDebugLoc());
       auto *OtherOp = cast<FPMathOperator>(XI);
       FMF &= OtherOp->getFastMathFlags();
       FPMath = MDNode::getMostGenericFPMath(

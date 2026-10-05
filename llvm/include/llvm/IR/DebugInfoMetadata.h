@@ -4458,6 +4458,13 @@ public:
   bool isValidLocationForIntrinsic(DebugLoc DL) const {
     return DL && getScope()->getSubprogram() == DL.getScope()->getSubprogram();
   }
+  bool isValidLocationForIntrinsic(DbgLocStorage DL) const {
+    // FIXME: Temp used to fix compile errors in places where we stopped using
+    // DebugLoc; we may remove assertions that call this, but any place which
+    // depends on this for actual logic needs to be updated to use a full
+    // DebugLoc.
+    return true;
+  }
 
   static bool classof(const Metadata *MD) {
     return MD->getMetadataID() == DILocalVariableKind;
@@ -4541,6 +4548,13 @@ public:
   /// to a \a DbgInfoIntrinsic.)
   bool isValidLocationForIntrinsic(DebugLoc DL) const {
     return DL && getScope()->getSubprogram() == DL.getScope()->getSubprogram();
+  }
+  bool isValidLocationForIntrinsic(DbgLocStorage DL) const {
+    // FIXME: Temp used to fix compile errors in places where we stopped using
+    // DebugLoc; we may remove assertions that call this, but any place which
+    // depends on this for actual logic needs to be updated to use a full
+    // DebugLoc.
+    return true;
   }
 
   static bool classof(const Metadata *MD) {

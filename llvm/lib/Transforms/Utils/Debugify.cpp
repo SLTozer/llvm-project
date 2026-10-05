@@ -236,7 +236,7 @@ bool llvm::applyDebugifyMetadata(
       Value *V = &TemplateInst;
       if (TemplateInst.getType()->isVoidTy())
         V = ConstantInt::get(Int32Ty, 0);
-      DebugLoc Loc = TemplateInst.getDebugLoc();
+      DebugLoc Loc = TemplateInst.getFullDebugLoc();
       auto LocalVar = DIB.createAutoVariable(SP, Name, File, Loc.getLine(),
                                              getCachedDIType(V->getType()),
                                              /*AlwaysPreserve=*/true);
@@ -401,7 +401,7 @@ bool llvm::stripDebugifyMetadata(Module &M) {
 }
 
 bool hasLoc(const Instruction &I) {
-  DebugLoc Loc = I.getDebugLoc();
+  DebugLoc Loc = I.getFullDebugLoc();
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
   DebugLocKind Kind = I.getDebugLoc().getKind();
   return Loc || Kind != DebugLocKind::Normal;
@@ -457,7 +457,7 @@ bool llvm::collectDebugInfoMetadata(Module &M,
             if (!SP)
               return;
             // Skip inlined variables.
-            if (DbgVar->getDebugLoc().getInlinedAt())
+            if (DbgVar->getFullDebugLoc().getInlinedAt())
               return;
             // Skip undef values.
             if (DbgVar->isKillLocation())
@@ -678,7 +678,7 @@ bool llvm::checkDebugInfoMetadata(Module &M,
             if (!SP)
               return;
             // Skip inlined variables.
-            if (DbgVar->getDebugLoc().getInlinedAt())
+            if (DbgVar->getFullDebugLoc().getInlinedAt())
               return;
             // Skip undef values.
             if (DbgVar->isKillLocation())
@@ -817,7 +817,7 @@ bool checkDebugifyMetadata(Module &M,
 
     // Find missing lines.
     for (Instruction &I : instructions(F)) {
-      auto DL = I.getDebugLoc();
+      auto DL = I.getFullDebugLoc();
       if (DL && DL.getLine() != 0) {
         MissingLines.reset(DL.getLine() - 1);
         continue;

@@ -656,7 +656,9 @@ bool Loop::isAnnotatedParallel() const {
   return true;
 }
 
-DebugLoc Loop::getStartLoc() const { return getLocRange().getStart(); }
+DebugLoc Loop::getStartLoc() const {
+  return getLocRange().getStart().withContext(getHeader()->getParent());
+}
 
 Loop::LocRange Loop::getLocRange() const {
   // If we have a debug location in the loop ID, then use it.
@@ -680,13 +682,13 @@ Loop::LocRange Loop::getLocRange() const {
 
   // Try the pre-header first.
   if (BasicBlock *PHeadBB = getLoopPreheader())
-    if (DebugLoc DL = PHeadBB->getTerminator()->getDebugLoc())
+    if (DebugLoc DL = PHeadBB->getTerminator()->getFullDebugLoc())
       return LocRange(DL);
 
   // If we have no pre-header or there are no instructions with debug
   // info in it, try the header.
   if (BasicBlock *HeadBB = getHeader())
-    return LocRange(HeadBB->getTerminator()->getDebugLoc());
+    return LocRange(HeadBB->getTerminator()->getFullDebugLoc());
 
   return LocRange();
 }

@@ -1019,7 +1019,7 @@ void NumericalStabilitySanitizer::emitFCmpCheck(FCmpInst &FCmp,
 
   // Create the shadow fcmp and comparison between the fcmps.
   IRBuilder<> FCmpBuilder(FCmpBB);
-  FCmpBuilder.SetCurrentDebugLocation(FCmp.getDebugLoc());
+  FCmpBuilder.SetCurrentDebugLocation(FCmp.getFullDebugLoc());
   Value *ShadowLHS = Map.getShadow(LHS);
   Value *ShadowRHS = Map.getShadow(RHS);
   // See comment on ClTruncateFCmpEq.
@@ -1050,7 +1050,7 @@ void NumericalStabilitySanitizer::emitFCmpCheck(FCmpInst &FCmp,
 
   // Fill in FailBB.
   IRBuilder<> FailBuilder(FailBB);
-  FailBuilder.SetCurrentDebugLocation(FCmp.getDebugLoc());
+  FailBuilder.SetCurrentDebugLocation(FCmp.getFullDebugLoc());
 
   const auto EmitFailCall = [this, &FCmp, &FCmpBuilder,
                              &FailBuilder](Value *L, Value *R, Value *ShadowL,
@@ -1116,7 +1116,7 @@ PHINode *NumericalStabilitySanitizer::maybeCreateShadowPhi(
 Value *NumericalStabilitySanitizer::handleLoad(LoadInst &Load, Type *VT,
                                                Type *ExtendedVT) {
   IRBuilder<> Builder(Load.getNextNode());
-  Builder.SetCurrentDebugLocation(Load.getDebugLoc());
+  Builder.SetCurrentDebugLocation(Load.getFullDebugLoc());
   if (addrPointsToConstantData(Load.getPointerOperand())) {
     // No need to look into the shadow memory, the value is a constant. Just
     // convert from FT to 2FT.
@@ -1157,14 +1157,14 @@ Value *NumericalStabilitySanitizer::handleLoad(LoadInst &Load, Type *VT,
   {
     LoadBB->back().eraseFromParent();
     IRBuilder<> LoadBBBuilder(LoadBB); // The old builder has been invalidated.
-    LoadBBBuilder.SetCurrentDebugLocation(Load.getDebugLoc());
+    LoadBBBuilder.SetCurrentDebugLocation(Load.getFullDebugLoc());
     LoadBBBuilder.CreateCondBr(LoadBBBuilder.CreateIsNull(ShadowPtr), FExtBB,
                                ShadowLoadBB);
   }
 
   // Fill in ShadowLoadBB.
   IRBuilder<> ShadowLoadBBBuilder(ShadowLoadBB);
-  ShadowLoadBBBuilder.SetCurrentDebugLocation(Load.getDebugLoc());
+  ShadowLoadBBBuilder.SetCurrentDebugLocation(Load.getFullDebugLoc());
   Value *ShadowLoad = ShadowLoadBBBuilder.CreateAlignedLoad(
       ExtendedVT, ShadowPtr, Align(1), Load.isVolatile());
   if (ClCheckLoads) {
@@ -1175,13 +1175,13 @@ Value *NumericalStabilitySanitizer::handleLoad(LoadInst &Load, Type *VT,
 
   // Fill in FExtBB.
   IRBuilder<> FExtBBBuilder(FExtBB);
-  FExtBBBuilder.SetCurrentDebugLocation(Load.getDebugLoc());
+  FExtBBBuilder.SetCurrentDebugLocation(Load.getFullDebugLoc());
   Value *FExt = FExtBBBuilder.CreateFPExt(&Load, ExtendedVT);
   FExtBBBuilder.CreateBr(NextBB);
 
   // The shadow value come from any of the options.
   IRBuilder<> NextBBBuilder(&*NextBB->begin());
-  NextBBBuilder.SetCurrentDebugLocation(Load.getDebugLoc());
+  NextBBBuilder.SetCurrentDebugLocation(Load.getFullDebugLoc());
   PHINode *ShadowPhi = NextBBBuilder.CreatePHI(ExtendedVT, 2);
   ShadowPhi->addIncoming(ShadowLoad, ShadowLoadBB);
   ShadowPhi->addIncoming(FExt, FExtBB);
@@ -1664,7 +1664,7 @@ Value *NumericalStabilitySanitizer::createShadowValueWithOperandsAvailable(
     // Insert after the call.
     BasicBlock::iterator It(Inst);
     IRBuilder<> Builder(Call->getParent(), ++It);
-    Builder.SetCurrentDebugLocation(Call->getDebugLoc());
+    Builder.SetCurrentDebugLocation(Call->getFullDebugLoc());
     return handleCallBase(*Call, VT, ExtendedVT, TLI, Map, Builder);
   }
 
@@ -1678,7 +1678,7 @@ Value *NumericalStabilitySanitizer::createShadowValueWithOperandsAvailable(
     Inst.replaceSuccessorWith(NextBB, NewBB);
 
     IRBuilder<> Builder(NewBB);
-    Builder.SetCurrentDebugLocation(Invoke->getDebugLoc());
+    Builder.SetCurrentDebugLocation(Invoke->getFullDebugLoc());
     Value *Shadow = handleCallBase(*Invoke, VT, ExtendedVT, TLI, Map, Builder);
     Builder.CreateBr(NextBB);
     NewBB->replaceSuccessorsPhiUsesWith(InvokeBB, NewBB);
@@ -1686,7 +1686,7 @@ Value *NumericalStabilitySanitizer::createShadowValueWithOperandsAvailable(
   }
 
   IRBuilder<> Builder(Inst.getNextNode());
-  Builder.SetCurrentDebugLocation(Inst.getDebugLoc());
+  Builder.SetCurrentDebugLocation(Inst.getFullDebugLoc());
 
   if (auto *Trunc = dyn_cast<FPTruncInst>(&Inst))
     return handleTrunc(*Trunc, VT, ExtendedVT, Map, Builder);
@@ -1794,7 +1794,7 @@ void NumericalStabilitySanitizer::propagateFTStore(
     StoreInst &Store, Type *VT, Type *ExtendedVT, const ValueToShadowMap &Map) {
   Value *StoredValue = Store.getValueOperand();
   IRBuilder<> Builder(&Store);
-  Builder.SetCurrentDebugLocation(Store.getDebugLoc());
+  Builder.SetCurrentDebugLocation(Store.getFullDebugLoc());
   const auto Extents = getMemoryExtentsOrDie(VT);
   Value *ShadowPtr = Builder.CreateCall(
       NsanGetShadowPtrForStore[Extents.ValueType],
@@ -1827,7 +1827,7 @@ void NumericalStabilitySanitizer::propagateNonFTStore(
     StoreInst &Store, Type *VT, const ValueToShadowMap &Map) {
   Value *PtrOp = Store.getPointerOperand();
   IRBuilder<> Builder(Store.getNextNode());
-  Builder.SetCurrentDebugLocation(Store.getDebugLoc());
+  Builder.SetCurrentDebugLocation(Store.getFullDebugLoc());
   Value *Dst = PtrOp;
   TypeSize SlotSize = DL.getTypeStoreSize(VT);
   assert(!SlotSize.isScalable() && "unsupported");
@@ -1847,7 +1847,7 @@ void NumericalStabilitySanitizer::propagateNonFTStore(
     Type *ShadowValueIntTy =
         Type::getIntNTy(Context, 8 * kShadowScale * LoadSizeBytes);
     IRBuilder<> LoadBuilder(Load->getNextNode());
-    Builder.SetCurrentDebugLocation(Store.getDebugLoc());
+    Builder.SetCurrentDebugLocation(Store.getFullDebugLoc());
     Value *LoadSrc = Load->getPointerOperand();
     // Read the shadow type and value at load time. The type has the same size
     // as the FT value, the value has twice its size.

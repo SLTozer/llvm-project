@@ -942,7 +942,7 @@ static void printMI(raw_ostream &OS, MFPrintState &State,
     OS << LS << "debug-instr-number " << Num;
 
   if (PrintLocations) {
-    if (const DebugLoc &DL = MI.getDebugLoc()) {
+    if (DebugLoc DL = MI.getFullDebugLoc()) {
       OS << LS << "debug-location ";
       DL.printAsOperand(OS, State.MST);
     }

@@ -323,7 +323,7 @@ bool HexagonGenMux::genMuxInBlock(MachineBasicBlock &B) {
       continue;
 
     MachineBasicBlock &B = *MX.At->getParent();
-    const DebugLoc &DL = B.findDebugLoc(MX.At);
+    DebugLoc DL = B.findDebugLoc(MX.At);
     auto NewMux = BuildMI(B, MX.At, DL, HII->get(MxOpc), MX.DefR)
                       .addReg(MX.PredR)
                       .add(*MX.SrcT)

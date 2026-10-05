@@ -312,7 +312,7 @@ private:
 
   std::tuple<DebugLoc, BasicBlock *> getOneDebugLoc(Function &F) const {
     CallBase *CB = getOneCallSiteTo(F);
-    DebugLoc DLoc = CB->getDebugLoc();
+    DebugLoc DLoc = CB->getFullDebugLoc();
     BasicBlock *Block = CB->getParent();
     return std::make_tuple(DLoc, Block);
   }

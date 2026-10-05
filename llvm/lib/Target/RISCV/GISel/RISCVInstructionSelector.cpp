@@ -785,7 +785,7 @@ bool RISCVInstructionSelector::selectIntrinsicWithSideEffects(
                             static_cast<unsigned>(LMUL));
 
     MachineInstrBuilder PseudoMI =
-        BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(P->Pseudo), DstReg);
+        BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(P->Pseudo), DstReg);
     for (Register Reg : SrcOps)
       PseudoMI.addReg(Reg);
 
@@ -853,7 +853,7 @@ bool RISCVInstructionSelector::selectIntrinsicWithSideEffects(
         static_cast<unsigned>(IndexLMUL));
 
     MachineInstrBuilder PseudoMI =
-        BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(P->Pseudo), DstReg);
+        BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(P->Pseudo), DstReg);
     for (Register Reg : SrcOps)
       PseudoMI.addReg(Reg);
 
@@ -905,7 +905,7 @@ bool RISCVInstructionSelector::selectIntrinsicWithSideEffects(
         IsMasked, IsStrided, Log2SEW, static_cast<unsigned>(LMUL));
 
     MachineInstrBuilder PseudoMI =
-        BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(P->Pseudo));
+        BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(P->Pseudo));
     for (Register Reg : SrcOps)
       PseudoMI.addReg(Reg);
 
@@ -959,7 +959,7 @@ bool RISCVInstructionSelector::selectIntrinsicWithSideEffects(
         static_cast<unsigned>(IndexLMUL));
 
     MachineInstrBuilder PseudoMI =
-        BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(P->Pseudo));
+        BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(P->Pseudo));
     for (Register Reg : SrcOps)
       PseudoMI.addReg(Reg);
 
@@ -1037,7 +1037,7 @@ bool RISCVInstructionSelector::selectIntrinsic(MachineInstr &I) const {
         uint64_t AVL = AVLConst->Value.getZExtValue();
         if (isUInt<5>(AVL)) {
           MachineInstr *PseudoMI =
-              BuildMI(*I.getParent(), I, I.getDebugLoc(),
+              BuildMI(*I.getParent(), I, I.getFullDebugLoc(),
                       TII.get(RISCV::PseudoVSETIVLI), DstReg)
                   .addImm(AVL)
                   .addImm(VTypeI);
@@ -1049,7 +1049,7 @@ bool RISCVInstructionSelector::selectIntrinsic(MachineInstr &I) const {
     }
 
     MachineInstr *PseudoMI =
-        BuildMI(*I.getParent(), I, I.getDebugLoc(), TII.get(Opcode), DstReg)
+        BuildMI(*I.getParent(), I, I.getFullDebugLoc(), TII.get(Opcode), DstReg)
             .addReg(VLOperand)
             .addImm(VTypeI);
     I.eraseFromParent();
@@ -1091,7 +1091,7 @@ bool RISCVInstructionSelector::selectExtractSubvector(MachineInstr &MI) const {
   if (!RBI.constrainGenericRegister(SrcReg, *SrcRC, *MRI))
     return false;
 
-  BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII.get(TargetOpcode::COPY),
+  BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII.get(TargetOpcode::COPY),
           DstReg)
       .addReg(SrcReg, {}, SubRegIdx);
 
@@ -1137,7 +1137,7 @@ bool RISCVInstructionSelector::selectInsertSubVector(MachineInstr &MI) const {
     assert(RISCVTargetLowering::getRegClassIDForVecVT(SubVecMVT) ==
                DstRegClassID &&
            "Unexpected subvector insert");
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII.get(TargetOpcode::COPY),
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII.get(TargetOpcode::COPY),
             DstReg)
         .addReg(SubVecReg);
     MI.eraseFromParent();
@@ -1146,7 +1146,7 @@ bool RISCVInstructionSelector::selectInsertSubVector(MachineInstr &MI) const {
 
   // Use INSERT_SUBREG to insert the subvector into the vector at the
   // appropriate subregister index.
-  MachineInstr *Ins = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  MachineInstr *Ins = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                               TII.get(TargetOpcode::INSERT_SUBREG), DstReg)
                           .addReg(VecReg)
                           .addReg(SubVecReg)
@@ -1259,13 +1259,13 @@ bool RISCVInstructionSelector::select(MachineInstr &MI) {
 
     // Fall back to shift pair.
     Register ShiftLeftReg = MRI->createVirtualRegister(&RISCV::GPRRegClass);
-    MachineInstr *ShiftLeft = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstr *ShiftLeft = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                       TII.get(RISCV::SLLI), ShiftLeftReg)
                                   .addReg(SrcReg)
                                   .addImm(STI.getXLen() - SrcSize);
     constrainSelectedInstRegOperands(*ShiftLeft, TII, TRI, RBI);
     MachineInstr *ShiftRight =
-        BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+        BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                 TII.get(IsSigned ? RISCV::SRAI : RISCV::SRLI), DstReg)
             .addReg(ShiftLeftReg)
             .addImm(STI.getXLen() - SrcSize);
@@ -1292,7 +1292,7 @@ bool RISCVInstructionSelector::select(MachineInstr &MI) {
       unsigned Opcode = Size == 64   ? RISCV::FMV_D_X
                         : Size == 32 ? RISCV::FMV_W_X
                                      : RISCV::FMV_H_X;
-      MachineInstr *FMV = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+      MachineInstr *FMV = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                   TII.get(Opcode), DstReg)
                               .addReg(GPRReg);
       constrainSelectedInstRegOperands(*FMV, TII, TRI, RBI);
@@ -1303,7 +1303,7 @@ bool RISCVInstructionSelector::select(MachineInstr &MI) {
 
       if (FPimm.isPosZero()) {
         // Optimize +0.0 to use fcvt.d.w
-        MachineInstr *FCVT = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+        MachineInstr *FCVT = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                      TII.get(RISCV::FCVT_D_W), DstReg)
                                  .addReg(RISCV::X0)
                                  .addImm(RISCVFPRndMode::RNE);
@@ -1323,7 +1323,7 @@ bool RISCVInstructionSelector::select(MachineInstr &MI) {
       if (!materializeImm(GPRRegLow, Imm.trunc(32).getSExtValue(), MI))
         return false;
       MachineInstr *PairF64 =
-          BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+          BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                   TII.get(RISCV::BuildPairF64Pseudo), DstReg)
               .addReg(GPRRegLow)
               .addReg(GPRRegHigh);
@@ -1350,7 +1350,7 @@ bool RISCVInstructionSelector::select(MachineInstr &MI) {
     RISCVCC::CondCode CC;
     getOperandsForBranch(MI.getOperand(0).getReg(), CC, LHS, RHS, *MRI);
 
-    MachineInstr *Bcc = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstr *Bcc = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                 TII.get(RISCVCC::getBrCond(CC)))
                             .addReg(LHS)
                             .addReg(RHS)
@@ -1424,7 +1424,7 @@ bool RISCVInstructionSelector::select(MachineInstr &MI) {
 
     // Folded something. Create a new instruction and return it.
     MachineInstrBuilder NewInst =
-        BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII.get(NewOpc));
+        BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII.get(NewOpc));
     NewInst.setMIFlags(MI.getFlags());
     if (isa<GStore>(MI))
       NewInst.addUse(ValReg);
@@ -1466,12 +1466,12 @@ bool RISCVInstructionSelector::selectUnmergeValues(MachineInstr &MI) const {
   if (!isRegInFprb(Src) || !isRegInGprb(Lo) || !isRegInGprb(Hi))
     return false;
 
-  MachineInstr *ExtractLo = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  MachineInstr *ExtractLo = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                     TII.get(RISCV::FMV_X_W_FPR64), Lo)
                                 .addReg(Src);
   constrainSelectedInstRegOperands(*ExtractLo, TII, TRI, RBI);
 
-  MachineInstr *ExtractHi = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  MachineInstr *ExtractHi = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                     TII.get(RISCV::FMVH_X_D), Hi)
                                 .addReg(Src);
   constrainSelectedInstRegOperands(*ExtractHi, TII, TRI, RBI);
@@ -1489,7 +1489,7 @@ bool RISCVInstructionSelector::replacePtrWithInt(MachineOperand &Op) {
   Register IntReg = MRI->createGenericVirtualRegister(sXLen);
   MRI->setRegBank(IntReg, RBI.getRegBank(RISCV::GPRBRegBankID));
   MachineInstr *PtrToInt =
-      BuildMI(*ParentMI.getParent(), ParentMI, ParentMI.getDebugLoc(),
+      BuildMI(*ParentMI.getParent(), ParentMI, ParentMI.getFullDebugLoc(),
               TII.get(TargetOpcode::G_PTRTOINT), IntReg)
           .addReg(PtrReg);
   Op.setReg(IntReg);
@@ -1653,7 +1653,7 @@ bool RISCVInstructionSelector::selectImplicitDef(MachineInstr &MI) const {
 bool RISCVInstructionSelector::materializeImm(Register DstReg, int64_t Imm,
                                               MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (Imm == 0) {
     BuildMI(MBB, MI, DL, TII.get(TargetOpcode::COPY), DstReg).addReg(RISCV::X0);
@@ -1741,7 +1741,7 @@ bool RISCVInstructionSelector::selectAddr(MachineInstr &MI, bool IsLocal,
             MachineMemOperand::MOInvariant,
         DefTy, Align(DefTy.getSizeInBits() / 8));
 
-    MachineInstr *Result = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstr *Result = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                    TII.get(RISCV::PseudoLGA), DefReg)
                                .addDisp(DispMO, 0)
                                .addMemOperand(MemOp);
@@ -1763,13 +1763,13 @@ bool RISCVInstructionSelector::selectAddr(MachineInstr &MI, bool IsLocal,
     // absolute addresses -2 GiB and +2 GiB. This generates the pattern (addi
     // (lui %hi(sym)) %lo(sym)).
     Register AddrHiDest = MRI->createVirtualRegister(&RISCV::GPRRegClass);
-    MachineInstr *AddrHi = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstr *AddrHi = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                    TII.get(RISCV::LUI), AddrHiDest)
                                .addDisp(DispMO, 0, RISCVII::MO_HI);
 
     constrainSelectedInstRegOperands(*AddrHi, TII, TRI, RBI);
 
-    MachineInstr *Result = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstr *Result = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                    TII.get(RISCV::ADDI), DefReg)
                                .addReg(AddrHiDest)
                                .addDisp(DispMO, 0, RISCVII::MO_LO);
@@ -1796,7 +1796,7 @@ bool RISCVInstructionSelector::selectAddr(MachineInstr &MI, bool IsLocal,
               MachineMemOperand::MOInvariant,
           DefTy, Align(DefTy.getSizeInBits() / 8));
 
-      MachineInstr *Result = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+      MachineInstr *Result = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                      TII.get(RISCV::PseudoLGA), DefReg)
                                  .addDisp(DispMO, 0)
                                  .addMemOperand(MemOp);
@@ -1835,7 +1835,7 @@ bool RISCVInstructionSelector::selectSelect(MachineInstr &MI) const {
   }
 
   MachineInstr *Result =
-      BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII.get(Opc))
+      BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII.get(Opc))
           .addDef(DstReg)
           .addReg(LHS)
           .addReg(RHS)
@@ -1917,7 +1917,7 @@ bool RISCVInstructionSelector::selectFPCompare(MachineInstr &MI) const {
   if (legalizeFCmpPredicate(LHS, RHS, Pred, NeedInvert)) {
     if (NeedInvert)
       TmpReg = MRI->createVirtualRegister(&RISCV::GPRRegClass);
-    MachineInstr *Cmp = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstr *Cmp = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                 TII.get(getFCmpOpcode(Pred, Size)), TmpReg)
                             .addReg(LHS)
                             .addReg(RHS);
@@ -1927,21 +1927,21 @@ bool RISCVInstructionSelector::selectFPCompare(MachineInstr &MI) const {
     NeedInvert = Pred == CmpInst::FCMP_UEQ;
     Register Cmp1Reg = MRI->createVirtualRegister(&RISCV::GPRRegClass);
     MachineInstr *Cmp1 =
-        BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+        BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                 TII.get(getFCmpOpcode(CmpInst::FCMP_OLT, Size)), Cmp1Reg)
             .addReg(LHS)
             .addReg(RHS);
     constrainSelectedInstRegOperands(*Cmp1, TII, TRI, RBI);
     Register Cmp2Reg = MRI->createVirtualRegister(&RISCV::GPRRegClass);
     MachineInstr *Cmp2 =
-        BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+        BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                 TII.get(getFCmpOpcode(CmpInst::FCMP_OLT, Size)), Cmp2Reg)
             .addReg(RHS)
             .addReg(LHS);
     constrainSelectedInstRegOperands(*Cmp2, TII, TRI, RBI);
     if (NeedInvert)
       TmpReg = MRI->createVirtualRegister(&RISCV::GPRRegClass);
-    MachineInstr *Or = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstr *Or = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                TII.get(RISCV::OR), TmpReg)
                            .addReg(Cmp1Reg)
                            .addReg(Cmp2Reg);
@@ -1954,7 +1954,7 @@ bool RISCVInstructionSelector::selectFPCompare(MachineInstr &MI) const {
       TmpReg = MRI->createVirtualRegister(&RISCV::GPRRegClass);
     if (LHS == RHS) {
       MachineInstr *Cmp =
-          BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+          BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                   TII.get(getFCmpOpcode(CmpInst::FCMP_OEQ, Size)), TmpReg)
               .addReg(LHS)
               .addReg(LHS);
@@ -1962,19 +1962,19 @@ bool RISCVInstructionSelector::selectFPCompare(MachineInstr &MI) const {
     } else {
       Register Cmp1Reg = MRI->createVirtualRegister(&RISCV::GPRRegClass);
       MachineInstr *Cmp1 =
-          BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+          BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                   TII.get(getFCmpOpcode(CmpInst::FCMP_OEQ, Size)), Cmp1Reg)
               .addReg(LHS)
               .addReg(LHS);
       constrainSelectedInstRegOperands(*Cmp1, TII, TRI, RBI);
       Register Cmp2Reg = MRI->createVirtualRegister(&RISCV::GPRRegClass);
       MachineInstr *Cmp2 =
-          BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+          BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                   TII.get(getFCmpOpcode(CmpInst::FCMP_OEQ, Size)), Cmp2Reg)
               .addReg(RHS)
               .addReg(RHS);
       constrainSelectedInstRegOperands(*Cmp2, TII, TRI, RBI);
-      MachineInstr *And = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+      MachineInstr *And = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                   TII.get(RISCV::AND), TmpReg)
                               .addReg(Cmp1Reg)
                               .addReg(Cmp2Reg);
@@ -1985,7 +1985,7 @@ bool RISCVInstructionSelector::selectFPCompare(MachineInstr &MI) const {
 
   // Emit an XORI to invert the result if needed.
   if (NeedInvert) {
-    MachineInstr *Xor = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstr *Xor = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                 TII.get(RISCV::XORI), DstReg)
                             .addReg(TmpReg)
                             .addImm(1);
@@ -2000,7 +2000,7 @@ void RISCVInstructionSelector::emitFence(AtomicOrdering FenceOrdering,
                                          SyncScope::ID FenceSSID,
                                          MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   if (STI.hasStdExtZtso()) {
     // The only fence that needs an instruction is a sequentially-consistent

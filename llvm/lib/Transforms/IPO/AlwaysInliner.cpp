@@ -49,7 +49,7 @@ bool AlwaysInlineImpl(
                        SmallVectorImpl<CallBase *> *NewCallSites =
                            nullptr) -> bool {
     Function *Caller = CB.getCaller();
-    DebugLoc DLoc = CB.getDebugLoc();
+    DebugLoc DLoc = CB.getFullDebugLoc();
     BasicBlock *Block = CB.getParent();
 
     InlineFunctionInfo IFI(GetAssumptionCache, &PSI);
@@ -144,7 +144,7 @@ bool AlwaysInlineImpl(
       if (Callee == F) {
         ORE.emit([&]() {
           return OptimizationRemarkMissed("inline", "NotInlined",
-                                          CB->getDebugLoc(), CB->getParent())
+                                          CB->getFullDebugLoc(), CB->getParent())
                  << "'" << ore::NV("Callee", Callee)
                  << "' is not inlined into '"
                  << ore::NV("Caller", CB->getCaller())

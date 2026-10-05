@@ -148,7 +148,7 @@ insertLoopExpansion(Instruction *InsertBefore, Value *Len,
       InsertBefore, BBNamePrefix + "-post-expansion");
   Function *ParentFunc = PreLoopBB->getParent();
   LLVMContext &Ctx = PreLoopBB->getContext();
-  const DebugLoc &DbgLoc = InsertBefore->getStableDebugLoc();
+  DebugLoc DbgLoc = InsertBefore->getStableDebugLoc();
   IRBuilder<> PreLoopBuilder(PreLoopBB->getTerminator());
   PreLoopBuilder.SetCurrentDebugLocation(DbgLoc);
 
@@ -700,7 +700,7 @@ static void createMemMoveLoopUnknownSize(Instruction *InsertBefore,
       ConstantInt::get(ILengthType, ResidualLoopOpSize);
   ConstantInt *Zero = ConstantInt::get(ILengthType, 0);
 
-  const DebugLoc &DbgLoc = InsertBefore->getStableDebugLoc();
+  DebugLoc DbgLoc = InsertBefore->getStableDebugLoc();
   IRBuilder<> PLBuilder(InsertBefore);
   PLBuilder.SetCurrentDebugLocation(DbgLoc);
 
@@ -967,7 +967,7 @@ static void createMemMoveLoopKnownSize(Instruction *InsertBefore,
   ConstantInt *LoopBound = ConstantInt::get(ILengthType, BytesCopiedInLoop);
   ConstantInt *CILoopOpSize = ConstantInt::get(ILengthType, LoopOpSize);
 
-  const DebugLoc &DbgLoc = InsertBefore->getStableDebugLoc();
+  DebugLoc DbgLoc = InsertBefore->getStableDebugLoc();
   IRBuilder<> PLBuilder(InsertBefore);
   PLBuilder.SetCurrentDebugLocation(DbgLoc);
 

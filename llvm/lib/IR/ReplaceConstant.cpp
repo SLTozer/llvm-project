@@ -97,7 +97,7 @@ bool llvm::convertUsersOfConstantsToInstructions(ArrayRef<Constant *> Consts,
       ConstantToInstructionMap;
   while (!InstructionWorklist.empty()) {
     Instruction *I = InstructionWorklist.pop_back_val();
-    DebugLoc Loc = I->getDebugLoc();
+    DebugLoc Loc = I->getFullDebugLoc();
     for (Use &U : I->operands()) {
       BasicBlock::iterator BI = I->getIterator();
       if (auto *Phi = dyn_cast<PHINode>(I)) {

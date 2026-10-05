@@ -189,7 +189,7 @@ static bool handleNDDOrNFInstructions(MachineFunction &MF,
                             << MI);
           Register Reg = MRI->createVirtualRegister(&X86::GR64_NOREX2RegClass);
           [[maybe_unused]] MachineInstrBuilder CopyMIB =
-              BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(TargetOpcode::COPY),
+              BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(TargetOpcode::COPY),
                       Reg)
                   .addReg(MI.getOperand(1).getReg());
           MI.getOperand(1).setReg(Reg);
@@ -211,11 +211,11 @@ static bool handleNDDOrNFInstructions(MachineFunction &MF,
           suppressEGPRRegClassInRegAndUses(MRI, MI, ST, 0);
           Register Reg = MRI->createVirtualRegister(&X86::GR64_NOREX2RegClass);
           [[maybe_unused]] MachineInstrBuilder CopyMIB =
-              BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(TargetOpcode::COPY),
+              BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(TargetOpcode::COPY),
                       Reg)
                   .addReg(MI.getOperand(6).getReg());
           MachineInstrBuilder NewMIB =
-              BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(X86::ADD64rm),
+              BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(X86::ADD64rm),
                       MI.getOperand(0).getReg())
                   .addReg(Reg)
                   .addReg(MI.getOperand(1).getReg())

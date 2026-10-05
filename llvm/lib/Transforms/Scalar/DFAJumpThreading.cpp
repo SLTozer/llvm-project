@@ -222,7 +222,7 @@ void DFAJumpThreading::unfold(DomTreeUpdater *DTU, LoopInfo *LI,
     // for updating source locations we assign each of them the merged location
     // of the Select+Br.
     DebugLoc SelectBranchLoc = DebugLoc::getMergedLocation(
-        StartBlockTerm->getDebugLoc(), SI->getDebugLoc());
+        StartBlockTerm->getFullDebugLoc(), SI->getFullDebugLoc());
     Instruction *NewToEndBr = UncondBrInst::Create(EndBlock, NewBlock);
     NewToEndBr->setDebugLoc(SelectBranchLoc);
     DTU->applyUpdates({{DominatorTree::Insert, NewBlock, EndBlock}});
@@ -316,7 +316,7 @@ void DFAJumpThreading::unfold(DomTreeUpdater *DTU, LoopInfo *LI,
         CondBrInst::Create(SI->getCondition(), EndBlock, NewBlockF, NewBlockT);
     // The branches from NewBlockT and NewBlockF are performing the Select
     // logic, and so assume its source location.
-    DebugLoc SelectLoc = SI->getDebugLoc();
+    DebugLoc SelectLoc = SI->getFullDebugLoc();
     NewFToEnd->setDebugLoc(SelectLoc);
     BI->setDebugLoc(SelectLoc);
     if (!ProfcheckDisableMetadataFixes)
@@ -1422,7 +1422,7 @@ private:
         DTUpdates.push_back({DominatorTree::Delete, LastBlock, Succ});
     }
 
-    DebugLoc SwitchLoc = Switch->getDebugLoc();
+    DebugLoc SwitchLoc = Switch->getFullDebugLoc();
     Switch->eraseFromParent();
     UncondBrInst::Create(NextCase, LastBlock)->setDebugLoc(SwitchLoc);
 

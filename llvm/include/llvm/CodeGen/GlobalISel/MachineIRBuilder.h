@@ -269,7 +269,7 @@ public:
   MachineIRBuilder(MachineInstr &MI) :
     MachineIRBuilder(*MI.getParent(), MI.getIterator()) {
     setInstr(MI);
-    setDebugLoc(MI.getDebugLoc());
+    setDebugLoc(MI.getFullDebugLoc());
   }
 
   MachineIRBuilder(MachineInstr &MI, GISelChangeObserver &Observer) :
@@ -306,7 +306,7 @@ public:
   }
 
   /// Getter for DebugLoc
-  const DebugLoc &getDL() { return State.DL; }
+  DebugLoc getDL() { return State.DL; }
 
   /// Getter for MRI
   MachineRegisterInfo *getMRI() { return State.MRI; }
@@ -379,7 +379,7 @@ public:
   /// \pre MI must be in getMF().
   void setInstrAndDebugLoc(MachineInstr &MI) {
     setInstr(MI);
-    setDebugLoc(MI.getDebugLoc());
+    setDebugLoc(MI.getFullDebugLoc());
   }
 
   void setChangeObserver(GISelChangeObserver &Observer) {
@@ -394,10 +394,11 @@ public:
   /// @}
 
   /// Set the debug location to \p DL for all the next build instructions.
-  void setDebugLoc(const DebugLoc &DL) { this->State.DL = DL; }
+  void setDebugLoc(DebugLoc DL) { this->State.DL = DL; }
 
   /// Get the current instruction's debug location.
-  const DebugLoc &getDebugLoc() { return State.DL; }
+  DebugLoc getDebugLoc() { return State.DL; }
+  DebugLoc getFullDebugLoc() { return State.DL; }
 
   /// Set the PC sections metadata to \p MD for all the next build instructions.
   void setPCSections(MDNode *MD) { State.PCSections = MD; }

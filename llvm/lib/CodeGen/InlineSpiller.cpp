@@ -791,7 +791,7 @@ bool InlineSpiller::reMaterializeFor(LiveInterval &VirtReg, MachineInstr &MI) {
   // We take the DebugLoc from MI, since OrigMI may be attributed to a
   // different source location.
   auto *NewMI = LIS.getInstructionFromIndex(DefIdx);
-  NewMI->setDebugLoc(MI.getDebugLoc());
+  NewMI->setDebugLoc(MI.getFullDebugLoc());
 
   (void)DefIdx;
   LLVM_DEBUG(dbgs() << "\tremat:  " << DefIdx << '\t'
@@ -1275,7 +1275,7 @@ void InlineSpiller::insertSpill(Register NewVReg, bool isKill,
     // Anything works for undef, in particular keeping the memory
     // uninitialized is a viable option and it saves code size and
     // run time.
-    BuildMI(MBB, SpillBefore, MI->getDebugLoc(), TII.get(TargetOpcode::KILL))
+    BuildMI(MBB, SpillBefore, MI->getFullDebugLoc(), TII.get(TargetOpcode::KILL))
         .addReg(NewVReg, getKillRegState(isKill));
 
   MachineBasicBlock::iterator Spill = std::next(MI);

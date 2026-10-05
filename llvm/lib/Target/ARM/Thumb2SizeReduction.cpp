@@ -469,7 +469,7 @@ Thumb2SizeReduce::ReduceLoadStore(MachineBasicBlock &MBB, MachineInstr *MI,
       return false;
 
     // Add the 16-bit load / store instruction.
-    DebugLoc dl = MI->getDebugLoc();
+    DebugLoc dl = MI->getFullDebugLoc();
     auto MIB = BuildMI(MBB, MI, dl, TII->get(Entry.NarrowOpc1))
                    .addReg(Rn, RegState::Define)
                    .addReg(Rn)
@@ -581,7 +581,7 @@ Thumb2SizeReduce::ReduceLoadStore(MachineBasicBlock &MBB, MachineInstr *MI,
   }
 
   // Add the 16-bit load / store instruction.
-  DebugLoc dl = MI->getDebugLoc();
+  DebugLoc dl = MI->getFullDebugLoc();
   MachineInstrBuilder MIB = BuildMI(MBB, MI, dl, TII->get(Opc));
 
   // tSTMIA_UPD takes a defining register operand. We've already checked that
@@ -651,7 +651,7 @@ Thumb2SizeReduce::ReduceSpecial(MachineBasicBlock &MBB, MachineInstr *MI,
       return false;
 
     MachineInstrBuilder MIB =
-        BuildMI(MBB, MI, MI->getDebugLoc(),
+        BuildMI(MBB, MI, MI->getFullDebugLoc(),
                 TII->get(ARM::tADDrSPi))
             .add(MI->getOperand(0))
             .add(MI->getOperand(1))
@@ -825,7 +825,7 @@ Thumb2SizeReduce::ReduceTo2Addr(MachineBasicBlock &MBB, MachineInstr *MI,
     return false;
 
   // Add the 16-bit instruction.
-  DebugLoc dl = MI->getDebugLoc();
+  DebugLoc dl = MI->getFullDebugLoc();
   MachineInstrBuilder MIB = BuildMI(MBB, MI, dl, NewMCID);
   MIB.add(MI->getOperand(0));
   if (NewMCID.hasOptionalDef())
@@ -916,7 +916,7 @@ Thumb2SizeReduce::ReduceToNarrow(MachineBasicBlock &MBB, MachineInstr *MI,
     return false;
 
   // Add the 16-bit instruction.
-  DebugLoc dl = MI->getDebugLoc();
+  DebugLoc dl = MI->getFullDebugLoc();
   MachineInstrBuilder MIB = BuildMI(MBB, MI, dl, NewMCID);
 
   // TEQ is special in that it doesn't define a register but we're converting

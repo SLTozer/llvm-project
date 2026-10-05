@@ -58,7 +58,7 @@ ThumbRegisterInfo::getPointerRegClass(unsigned Kind) const {
 
 static void emitThumb1LoadConstPool(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator &MBBI,
-                                    const DebugLoc &dl, unsigned DestReg,
+                                    DbgLocStorage dl, unsigned DestReg,
                                     unsigned SubIdx, int Val,
                                     ARMCC::CondCodes Pred, unsigned PredReg,
                                     unsigned MIFlags) {
@@ -78,7 +78,7 @@ static void emitThumb1LoadConstPool(MachineBasicBlock &MBB,
 
 static void emitThumb2LoadConstPool(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator &MBBI,
-                                    const DebugLoc &dl, unsigned DestReg,
+                                    DbgLocStorage dl, unsigned DestReg,
                                     unsigned SubIdx, int Val,
                                     ARMCC::CondCodes Pred, unsigned PredReg,
                                     unsigned MIFlags) {
@@ -100,7 +100,7 @@ static void emitThumb2LoadConstPool(MachineBasicBlock &MBB,
 /// specified immediate.
 void ThumbRegisterInfo::emitLoadConstPool(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-    const DebugLoc &dl, Register DestReg, unsigned SubIdx, int Val,
+    DbgLocStorage dl, Register DestReg, unsigned SubIdx, int Val,
     ARMCC::CondCodes Pred, Register PredReg, unsigned MIFlags) const {
   MachineFunction &MF = *MBB.getParent();
   const ARMSubtarget &STI = MF.getSubtarget<ARMSubtarget>();
@@ -121,7 +121,7 @@ void ThumbRegisterInfo::emitLoadConstPool(
 /// constpool entry.
 static void emitThumbRegPlusImmInReg(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-    const DebugLoc &dl, Register DestReg, Register BaseReg, int NumBytes,
+    DbgLocStorage dl, Register DestReg, Register BaseReg, int NumBytes,
     bool CanChangeCC, const TargetInstrInfo &TII,
     const ARMBaseRegisterInfo &MRI, unsigned MIFlags = MachineInstr::NoFlags) {
   MachineFunction &MF = *MBB.getParent();
@@ -248,7 +248,7 @@ static void emitThumbRegPlusImmInReg(
 /// be too long. This is allowed to modify the condition flags.
 void llvm::emitThumbRegPlusImmediate(MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator &MBBI,
-                                     const DebugLoc &dl, Register DestReg,
+                                     DbgLocStorage dl, Register DestReg,
                                      Register BaseReg, int NumBytes,
                                      const TargetInstrInfo &TII,
                                      const ARMBaseRegisterInfo &MRI,
@@ -428,7 +428,7 @@ bool ThumbRegisterInfo::rewriteFrameIndex(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   assert(MBB.getParent()->getSubtarget<ARMSubtarget>().isThumb1Only() &&
          "This isn't needed for thumb2!");
-  DebugLoc dl = MI.getDebugLoc();
+  DbgLocStorage dl = MI.getDebugLoc();
   MachineInstrBuilder MIB(*MBB.getParent(), &MI);
   unsigned Opcode = MI.getOpcode();
   const MCInstrDesc &Desc = MI.getDesc();
@@ -549,7 +549,7 @@ bool ThumbRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   Register VReg;
   const ARMBaseInstrInfo &TII = *STI.getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DbgLocStorage dl = MI.getDebugLoc();
   MachineInstrBuilder MIB(*MBB.getParent(), &MI);
 
   Register FrameReg;

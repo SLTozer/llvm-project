@@ -193,7 +193,7 @@ bool HexagonTfrCleanup::rewriteIfImm(MachineInstr *MI, ImmediateMap &IMap,
     return false;
 
   MachineBasicBlock &B = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   int64_t SVal = Is32 ? int32_t(Val) : Val;
   auto &HST = B.getParent()->getSubtarget<HexagonSubtarget>();
   MachineInstr *NewMI;
@@ -245,7 +245,7 @@ bool HexagonTfrCleanup::eraseIfRedundant(MachineInstr *MI,
     return false;
   if (IsUndef) {
     MachineBasicBlock &B = *MI->getParent();
-    DebugLoc DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
     auto DefI = BuildMI(B, MI, DL, HII->get(TargetOpcode::IMPLICIT_DEF), DefR);
     for (auto &Op : MI->operands())
       if (Op.isReg() && Op.isDef() && Op.isImplicit())

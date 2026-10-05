@@ -153,7 +153,7 @@ using namespace llvm;
 
 static void emitSCSPrologue(MachineFunction &MF, MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MI,
-                            const DebugLoc &DL) {
+                            DebugLoc DL) {
   if (!MF.getFunction().hasFnAttribute(Attribute::ShadowCallStack))
     return;
 
@@ -206,7 +206,7 @@ static void emitSCSPrologue(MachineFunction &MF, MachineBasicBlock &MBB,
 
 static void emitSCSEpilogue(MachineFunction &MF, MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MI,
-                            const DebugLoc &DL) {
+                            DebugLoc DL) {
   if (!MF.getFunction().hasFnAttribute(Attribute::ShadowCallStack))
     return;
 
@@ -1639,7 +1639,7 @@ bool HexagonFrameLowering::insertCSRSpillsInBlock(MachineBasicBlock &MBB,
     bool LongCalls = HST.useLongCalls() || EnableSaveRestoreLong;
 
     // Call spill function.
-    DebugLoc DL = MI != MBB.end() ? MI->getDebugLoc() : DebugLoc();
+    DebugLoc DL = MI != MBB.end() ? MI->getFullDebugLoc() : DebugLoc();
     unsigned SpillOpc;
     if (StkOvrFlowEnabled) {
       if (LongCalls)
@@ -1722,7 +1722,7 @@ bool HexagonFrameLowering::insertCSRRestoresInBlock(MachineBasicBlock &MBB,
     bool LongCalls = HST.useLongCalls() || EnableSaveRestoreLong;
 
     // Call spill function.
-    DebugLoc DL = MI != MBB.end() ? MI->getDebugLoc()
+    DebugLoc DL = MI != MBB.end() ? MI->getFullDebugLoc()
                                   : MBB.findDebugLoc(MBB.end());
     MachineInstr *DeallocCall = nullptr;
 
@@ -1996,7 +1996,7 @@ bool HexagonFrameLowering::expandCopy(MachineBasicBlock &B,
       MachineBasicBlock::iterator It, MachineRegisterInfo &MRI,
       const HexagonInstrInfo &HII, SmallVectorImpl<Register> &NewRegs) const {
   MachineInstr *MI = &*It;
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   Register DstR = MI->getOperand(0).getReg();
   Register SrcR = MI->getOperand(1).getReg();
   if (!Hexagon::ModRegsRegClass.contains(DstR) ||
@@ -2020,7 +2020,7 @@ bool HexagonFrameLowering::expandStoreInt(MachineBasicBlock &B,
   if (!MI->getOperand(0).isFI())
     return false;
 
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   unsigned Opc = MI->getOpcode();
   Register SrcR = MI->getOperand(2).getReg();
   bool IsKill = MI->getOperand(2).isKill();
@@ -2053,7 +2053,7 @@ bool HexagonFrameLowering::expandLoadInt(MachineBasicBlock &B,
   if (!MI->getOperand(1).isFI())
     return false;
 
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   unsigned Opc = MI->getOpcode();
   Register DstR = MI->getOperand(0).getReg();
   int FI = MI->getOperand(1).getIndex();
@@ -2084,7 +2084,7 @@ bool HexagonFrameLowering::expandStoreVecPred(MachineBasicBlock &B,
   if (!MI->getOperand(0).isFI())
     return false;
 
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   Register SrcR = MI->getOperand(2).getReg();
   bool IsKill = MI->getOperand(2).isKill();
   int FI = MI->getOperand(0).getIndex();
@@ -2120,7 +2120,7 @@ bool HexagonFrameLowering::expandLoadVecPred(MachineBasicBlock &B,
   if (!MI->getOperand(1).isFI())
     return false;
 
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   Register DstR = MI->getOperand(0).getReg();
   int FI = MI->getOperand(1).getIndex();
   auto *RC = &Hexagon::HvxVRRegClass;
@@ -2168,7 +2168,7 @@ bool HexagonFrameLowering::expandStoreVec2(MachineBasicBlock &B,
     LPR.stepForward(*R, Clobbers);
   }
 
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   Register SrcR = MI->getOperand(2).getReg();
   Register SrcLo = HRI.getSubReg(SrcR, Hexagon::vsub_lo);
   Register SrcHi = HRI.getSubReg(SrcR, Hexagon::vsub_hi);
@@ -2216,7 +2216,7 @@ bool HexagonFrameLowering::expandLoadVec2(MachineBasicBlock &B,
   if (!MI->getOperand(1).isFI())
     return false;
 
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   Register DstR = MI->getOperand(0).getReg();
   Register DstHi = HRI.getSubReg(DstR, Hexagon::vsub_hi);
   Register DstLo = HRI.getSubReg(DstR, Hexagon::vsub_lo);
@@ -2257,7 +2257,7 @@ bool HexagonFrameLowering::expandStoreVec(MachineBasicBlock &B,
     return false;
 
   auto &HRI = *MF.getSubtarget<HexagonSubtarget>().getRegisterInfo();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   Register SrcR = MI->getOperand(2).getReg();
   bool IsKill = MI->getOperand(2).isKill();
   int FI = MI->getOperand(0).getIndex();
@@ -2286,7 +2286,7 @@ bool HexagonFrameLowering::expandLoadVec(MachineBasicBlock &B,
     return false;
 
   auto &HRI = *MF.getSubtarget<HexagonSubtarget>().getRegisterInfo();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   Register DstR = MI->getOperand(0).getReg();
   int FI = MI->getOperand(1).getIndex();
 
@@ -2701,7 +2701,7 @@ void HexagonFrameLowering::optimizeSpillSlots(MachineFunction &MF,
         MachineBasicBlock::iterator StartIt = SI.getIterator(), NextIt;
         MachineInstr *CopyIn = nullptr;
         if (SrcRR.Reg != FoundR || SrcRR.Sub != 0) {
-          const DebugLoc &DL = SI.getDebugLoc();
+          DebugLoc DL = SI.getFullDebugLoc();
           CopyIn = BuildMI(B, StartIt, DL, HII.get(TargetOpcode::COPY), FoundR)
                        .add(SrcOp);
         }
@@ -2733,7 +2733,7 @@ void HexagonFrameLowering::optimizeSpillSlots(MachineFunction &MF,
           assert(MI.getOperand(0).getSubReg() == 0);
           MachineInstr *CopyOut = nullptr;
           if (DstR != FoundR) {
-            DebugLoc DL = MI.getDebugLoc();
+            DebugLoc DL = MI.getFullDebugLoc();
             unsigned MemSize = HII.getMemAccessSize(MI);
             assert(HII.getAddrMode(MI) == HexagonII::BaseImmOffset);
             unsigned CopyOpc = TargetOpcode::COPY;
@@ -2761,7 +2761,7 @@ void HexagonFrameLowering::expandAlloca(MachineInstr *AI, MachineFunction &MF,
                                         const HexagonInstrInfo &HII,
                                         Register SP, unsigned CF) const {
   MachineBasicBlock &MB = *AI->getParent();
-  DebugLoc DL = AI->getDebugLoc();
+  DebugLoc DL = AI->getFullDebugLoc();
   unsigned A = AI->getOperand(2).getImm();
 
   MachineOperand &RdOp = AI->getOperand(0);

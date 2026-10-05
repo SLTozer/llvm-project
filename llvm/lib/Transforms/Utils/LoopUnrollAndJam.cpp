@@ -346,7 +346,7 @@ llvm::UnrollAndJamLoop(Loop *L, unsigned Count, unsigned TripCount,
     for (BasicBlock *BB : L->getBlocks())
       for (Instruction &I : *BB)
         if (!I.isDebugOrPseudoInst())
-          if (DebugLoc DIL = I.getDebugLoc()) {
+          if (DebugLoc DIL = I.getFullDebugLoc()) {
             auto NewDIL = DIL.cloneByMultiplyingDuplicationFactor(Count);
             if (NewDIL)
               I.setDebugLoc(*NewDIL);

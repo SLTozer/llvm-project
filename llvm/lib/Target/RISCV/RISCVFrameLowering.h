@@ -104,7 +104,7 @@ private:
   void emitCFIForCSI(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
                      const SmallVector<CalleeSavedInfo, 8> &CSI) const;
   void deallocateStack(MachineFunction &MF, MachineBasicBlock &MBB,
-                       MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+                       MachineBasicBlock::iterator MBBI, DebugLoc DL,
                        uint64_t &StackSize, int64_t CFAOffset) const;
 
   std::pair<int64_t, Align>
@@ -114,7 +114,7 @@ private:
                         MachineBasicBlock &PrologueMBB) const override;
   void allocateAndProbeStackForRVV(MachineFunction &MF, MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator MBBI,
-                                   const DebugLoc &DL, int64_t Amount,
+                                   DebugLoc DL, int64_t Amount,
                                    MachineInstr::MIFlag Flag, bool EmitCFI,
                                    bool DynAllocation) const;
 

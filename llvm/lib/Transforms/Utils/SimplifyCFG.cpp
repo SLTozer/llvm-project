@@ -1182,13 +1182,13 @@ static void cloneInstructionsIntoPredecessorBlockAndUpdateSSAUses(
     Instruction *NewBonusInst = BonusInst.clone();
 
     NewBonusInst->insertInto(PredBlock, PTI->getIterator());
-    if (!NewBonusInst->getDebugLoc().isSameSourceLocation(PTI->getDebugLoc())) {
+    if (!NewBonusInst->getFullDebugLoc().isSameSourceLocation(PTI->getFullDebugLoc())) {
       // Unless the instruction has the same !dbg location as the original
       // branch, drop it. When we fold the bonus instructions we want to make
       // sure we reset their debug locations in order to avoid stepping on
       // dead code caused by folding dead branches.
       NewBonusInst->setDebugLoc(DebugLoc::getDropped());
-    } else if (const DebugLoc &DL = NewBonusInst->getDebugLoc()) {
+    } else if (DebugLoc DL = NewBonusInst->getFullDebugLoc()) {
       mapAtomInstance(DL, VMap);
     }
 
@@ -1237,8 +1237,8 @@ static void cloneInstructionsIntoPredecessorBlockAndUpdateSSAUses(
   // pred's terminator already has atom info do nothing as merging would drop
   // one atom group anyway. If it doesn't, propagte the remapped atom group
   // from BB's terminator.
-  if (DebugLoc PredDL = PTI->getDebugLoc()) {
-    DebugLoc DL = BB->getTerminator()->getDebugLoc();
+  if (DebugLoc PredDL = PTI->getFullDebugLoc()) {
+    DebugLoc DL = BB->getTerminator()->getFullDebugLoc();
     if (!PredDL.getAtomGroup() && DL && DL.getAtomGroup() &&
         PredDL.isSameSourceLocation(DL)) {
       PTI->setDebugLoc(DL);
@@ -2043,7 +2043,7 @@ bool SimplifyCFGOpt::hoistCommonCodeFromSuccessors(Instruction *TI,
         combineMetadataForCSE(I1, I2, true);
         // I1 and I2 are being combined into a single instruction.  Its debug
         // location is the merged locations of the original instructions.
-        I1->applyMergedLocation(I1->getDebugLoc(), I2->getDebugLoc());
+        I1->applyMergedLocation(I1->getFullDebugLoc(), I2->getFullDebugLoc());
         I2->eraseFromParent();
       }
       if (!Changed)
@@ -2134,9 +2134,9 @@ bool SimplifyCFGOpt::hoistSuccIdenticalTerminatorToSwitchOrIf(
   // Ensure terminator gets a debug location, even an unknown one, in case
   // it involves inlinable calls.
   SmallVector<DebugLoc, 4> Locs;
-  Locs.push_back(I1->getDebugLoc());
+  Locs.push_back(I1->getFullDebugLoc());
   for (auto *OtherSuccTI : OtherSuccTIs)
-    Locs.push_back(OtherSuccTI->getDebugLoc());
+    Locs.push_back(OtherSuccTI->getFullDebugLoc());
   NT->setDebugLoc(DebugLoc::getMergedLocations(Locs));
 
   // PHIs created below will adopt NT's merged DebugLoc.
@@ -2375,7 +2375,7 @@ static void sinkLastInstruction(ArrayRef<BasicBlock*> Blocks) {
       // This is an N-way merge, which will be inefficient if I0 is a CallInst.
       // However, as N-way merge for CallInst is rare, so we use simplified API
       // instead of using complex API for N-way merge.
-      I0->applyMergedLocation(I0->getDebugLoc(), I->getDebugLoc());
+      I0->applyMergedLocation(I0->getFullDebugLoc(), I->getFullDebugLoc());
       combineMetadataForCSE(I0, I, true);
       I0->andIRFlags(I);
       if (auto *CB = dyn_cast<CallBase>(I0)) {
@@ -2916,10 +2916,10 @@ static void mergeCompatibleInvokesImpl(ArrayRef<InvokeInst *> Invokes,
   for (InvokeInst *II : Invokes) {
     // Compute the debug location common to all the original `invoke`s.
     if (!MergedDebugLoc)
-      MergedDebugLoc = II->getDebugLoc();
+      MergedDebugLoc = II->getFullDebugLoc();
     else
       MergedDebugLoc =
-          DebugLoc::getMergedLocation(MergedDebugLoc, II->getDebugLoc());
+          DebugLoc::getMergedLocation(MergedDebugLoc, II->getFullDebugLoc());
 
     // And replace the old `invoke` with an unconditionally branch
     // to the block with the merged `invoke`.
@@ -3368,8 +3368,8 @@ bool SimplifyCFGOpt::speculativelyExecuteBB(CondBrInst *BI,
         BrCond, TrueV, FalseV, "spec.store.select", BI);
     Sel = cast<Instruction>(S);
     SpeculatedStore->setOperand(0, S);
-    SpeculatedStore->applyMergedLocation(BI->getDebugLoc(),
-                                         SpeculatedStore->getDebugLoc());
+    SpeculatedStore->applyMergedLocation(BI->getFullDebugLoc(),
+                                         SpeculatedStore->getFullDebugLoc());
     // The value stored is still conditional, but the store itself is now
     // unconditionally executed, so we must be sure that any linked dbg.assign
     // intrinsics are tracking the new stored value (the result of the
@@ -3665,7 +3665,7 @@ foldCondBranchOnValueKnownInPredecessorImpl(CondBrInst *BI, DomTreeUpdater *DTU,
 
       // Update operands due to translation.
       // Key Instructions: Remap all the atom groups.
-      if (const DebugLoc &DL = BBI->getDebugLoc())
+      if (DebugLoc DL = BBI->getFullDebugLoc())
         mapAtomInstance(DL, TranslateMap);
       RemapInstruction(N, TranslateMap,
                        RF_IgnoreMissingLocals | RF_NoModuleLevelChanges);
@@ -4948,7 +4948,7 @@ bool SimplifyCFGOpt::simplifyTerminatorOnSelect(Instruction *OldTerm,
   }
 
   IRBuilder<> Builder(OldTerm);
-  Builder.SetCurrentDebugLocation(OldTerm->getDebugLoc());
+  Builder.SetCurrentDebugLocation(OldTerm->getFullDebugLoc());
 
   // Insert an appropriate new terminator.
   if (!KeepEdge1 && !KeepEdge2) {
@@ -5253,7 +5253,7 @@ bool SimplifyCFGOpt::tryToSimplifyUncondBranchWithICmpSelectInIt(
 
   // NewBB branches to the phi block, add the uncond branch and the phi entry.
   Builder.SetInsertPoint(NewBB);
-  Builder.SetCurrentDebugLocation(SI->getDebugLoc());
+  Builder.SetCurrentDebugLocation(SI->getFullDebugLoc());
   Builder.CreateBr(SuccBlock);
   PHIUse->addIncoming(NewCst, NewBB);
   if (DTU) {

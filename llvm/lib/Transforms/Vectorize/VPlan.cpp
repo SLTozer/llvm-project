@@ -443,7 +443,7 @@ void VPBasicBlock::connectToPredecessors(VPTransformState &State) {
     if (isa<UnreachableInst>(PredBBTerminator)) {
       assert(PredVPSuccessors.size() == 1 &&
              "Predecessor ending w/o branch must have single successor.");
-      DebugLoc DL = PredBBTerminator->getDebugLoc();
+      DebugLoc DL = PredBBTerminator->getFullDebugLoc();
       PredBBTerminator->eraseFromParent();
       auto *Br = UncondBrInst::Create(NewBB, PredBB);
       Br->setDebugLoc(DL);

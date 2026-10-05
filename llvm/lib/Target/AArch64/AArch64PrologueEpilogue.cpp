@@ -14,6 +14,7 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/CodeGen/CFIInstBuilder.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/MC/MCContext.h"
 
 #define DEBUG_TYPE "frame-info"
@@ -107,7 +108,7 @@ AArch64PrologueEpilogueCommon::AArch64PrologueEpilogueCommon(
 
 MachineBasicBlock::iterator
 AArch64PrologueEpilogueCommon::convertCalleeSaveRestoreToSPPrePostIncDec(
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL, int CSStackSizeInc,
+    MachineBasicBlock::iterator MBBI, DebugLoc DL, int CSStackSizeInc,
     bool EmitCFI, MachineInstr::MIFlag FrameFlag, int CFAOffset) const {
   unsigned NewOpc;
 
@@ -507,7 +508,7 @@ void AArch64PrologueEmitter::allocateStackSpace(
   if (!AllocSize)
     return;
 
-  DebugLoc DL;
+  DbgLocStorage DL;
   const int64_t MaxAlign = MFI.getMaxAlign().value();
   const uint64_t AndMask = ~(MaxAlign - 1);
 
@@ -897,7 +898,7 @@ void AArch64PrologueEmitter::emitPrologue() {
 }
 
 void AArch64PrologueEmitter::emitShadowCallStackPrologue(
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL) const {
+    MachineBasicBlock::iterator MBBI, DebugLoc DL) const {
   // Shadow call stack prolog: str x30, [x18], #8
   BuildMI(MBB, MBBI, DL, TII->get(AArch64::STRXpost))
       .addReg(AArch64::X18, RegState::Define)
@@ -929,7 +930,7 @@ void AArch64PrologueEmitter::emitShadowCallStackPrologue(
 }
 
 void AArch64PrologueEmitter::emitSwiftAsyncContextFramePointer(
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL) const {
+    MachineBasicBlock::iterator MBBI, DebugLoc DL) const {
   switch (MF.getTarget().Options.SwiftAsyncFramePointer) {
   case SwiftAsyncFramePointerMode::DeploymentBased:
     if (Subtarget.swiftAsyncContextIsDynamicallySet()) {
@@ -976,7 +977,7 @@ void AArch64PrologueEmitter::emitSwiftAsyncContextFramePointer(
 
 void AArch64PrologueEmitter::emitEmptyStackFramePrologue(
     int64_t NumBytes, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL) const {
+    DebugLoc DL) const {
   assert(!HasFP && "unexpected function without stack frame but with FP");
   assert(!AFL.getSVEStackSize(MF) &&
          "unexpected function without stack frame but with SVE objects");
@@ -1015,7 +1016,7 @@ void AArch64PrologueEmitter::emitEmptyStackFramePrologue(
 }
 
 void AArch64PrologueEmitter::emitFramePointerSetup(
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+    MachineBasicBlock::iterator MBBI, DebugLoc DL,
     unsigned FixedObject) {
   int64_t FPOffset = AFI->getCalleeSaveBaseToFrameRecordOffset();
   if (CombineSPBump)
@@ -1082,7 +1083,7 @@ void AArch64PrologueEmitter::emitDefineCFAWithFP(
 }
 
 void AArch64PrologueEmitter::emitWindowsStackProbe(
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL, int64_t &NumBytes,
+    MachineBasicBlock::iterator MBBI, DebugLoc DL, int64_t &NumBytes,
     int64_t RealignmentPadding) const {
   if (AFI->getSVECalleeSavedStackSize())
     report_fatal_error("SVE callee saves not yet supported with stack probing");
@@ -1355,7 +1356,7 @@ void AArch64EpilogueEmitter::moveSPBelowFP(MachineBasicBlock::iterator MBBI,
 void AArch64EpilogueEmitter::emitEpilogue() {
   MachineBasicBlock::iterator EpilogueEndI = MBB.getLastNonDebugInstr();
   if (MBB.end() != EpilogueEndI) {
-    DL = EpilogueEndI->getDebugLoc();
+    DL = EpilogueEndI->getFullDebugLoc();
     IsFunclet = isFuncletReturnInstr(*EpilogueEndI);
   }
 
@@ -1696,7 +1697,7 @@ bool AArch64EpilogueEmitter::shouldCombineCSRLocalStackBump(
 }
 
 void AArch64EpilogueEmitter::emitSwiftAsyncContextFramePointer(
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL) const {
+    MachineBasicBlock::iterator MBBI, DebugLoc DL) const {
   switch (MF.getTarget().Options.SwiftAsyncFramePointer) {
   case SwiftAsyncFramePointerMode::DeploymentBased:
     // Avoid the reload as it is GOT relative, and instead fall back to the
@@ -1726,7 +1727,7 @@ void AArch64EpilogueEmitter::emitSwiftAsyncContextFramePointer(
 }
 
 void AArch64EpilogueEmitter::emitShadowCallStackEpilogue(
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL) const {
+    MachineBasicBlock::iterator MBBI, DebugLoc DL) const {
   // Shadow call stack epilog: ldr x30, [x18, #-8]!
   BuildMI(MBB, MBBI, DL, TII->get(AArch64::LDRXpre))
       .addReg(AArch64::X18, RegState::Define)

@@ -525,7 +525,7 @@ static unsigned EstimateRuntime(MachineBasicBlock::iterator I,
 // with a conditional branch to the next block, optimize by reversing the
 // test and conditionally branching to SuccMBB instead.
 static void FixTail(MachineBasicBlock *CurMBB, MachineBasicBlock *SuccBB,
-                    const TargetInstrInfo *TII, const DebugLoc &BranchDL) {
+                    const TargetInstrInfo *TII, DebugLoc BranchDL) {
   MachineFunction *MF = CurMBB->getParent();
   MachineFunction::iterator I = std::next(MachineFunction::iterator(CurMBB));
   MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
@@ -756,7 +756,7 @@ unsigned BranchFolder::ComputeSameTails(unsigned CurHash,
 void BranchFolder::RemoveBlocksWithHash(unsigned CurHash,
                                         MachineBasicBlock *SuccBB,
                                         MachineBasicBlock *PredBB,
-                                        const DebugLoc &BranchDL) {
+                                        DebugLoc BranchDL) {
   MPIterator CurMPIter, B;
   for (CurMPIter = std::prev(MergePotentials.end()),
       B = MergePotentials.begin();
@@ -893,7 +893,7 @@ void BranchFolder::mergeCommonTails(unsigned commonTailIndex) {
   for (auto &MI : *MBB) {
     if (!countsAsInstruction(MI))
       continue;
-    DebugLoc DL = MI.getDebugLoc();
+    DebugLoc DL = MI.getFullDebugLoc();
     for (unsigned int i = 0 ; i < NextCommonInsts.size() ; i++) {
       if (i == commonTailIndex)
         continue;
@@ -907,7 +907,7 @@ void BranchFolder::mergeCommonTails(unsigned commonTailIndex) {
             "Reached BB end within common tail");
       }
       assert(MI.isIdenticalTo(*Pos) && "Expected matching MIIs!");
-      DL = DebugLoc::getMergedLocation(DL, Pos->getDebugLoc());
+      DL = DebugLoc::getMergedLocation(DL, Pos->getFullDebugLoc());
       NextCommonInsts[i] = ++Pos;
     }
     MI.setDebugLoc(DL);
@@ -989,7 +989,7 @@ bool BranchFolder::TryTailMergeBlocks(MachineBasicBlock *SuccBB,
   // Walk through equivalence sets looking for actual exact matches.
   while (MergePotentials.size() > 1) {
     unsigned CurHash = MergePotentials.back().getHash();
-    const DebugLoc &BranchDL = MergePotentials.back().getBranchDebugLoc();
+    DebugLoc BranchDL = MergePotentials.back().getBranchDebugLoc();
 
     // Build SameTails, identifying the set of blocks with this hash code
     // and with the maximum number of instructions in common.
@@ -2151,7 +2151,7 @@ bool BranchFolder::HoistCommonCodeInSuccs(MachineBasicBlock *MBB) {
         const TargetInstrInfo *TII =
             MBB->getParent()->getSubtarget().getInstrInfo();
         const MCInstrDesc &DBGV = TII->get(TargetOpcode::DBG_VALUE);
-        DI = BuildMI(*MBB->getParent(), DI->getDebugLoc(), DBGV, false, 0,
+        DI = BuildMI(*MBB->getParent(), DI->getFullDebugLoc(), DBGV, false, 0,
                      DI->getDebugVariable(), DI->getDebugExpression());
         MBB->insert(Loc, &*DI);
         return;
@@ -2201,7 +2201,7 @@ bool BranchFolder::HoistCommonCodeInSuccs(MachineBasicBlock *MBB) {
 
       // Merge debug locs on hoisted instructions.
       TI->setDebugLoc(
-          DebugLoc::getMergedLocation(TI->getDebugLoc(), FI->getDebugLoc()));
+          DebugLoc::getMergedLocation(TI->getFullDebugLoc(), FI->getFullDebugLoc()));
       TI->moveBefore(&*Loc);
       ++FI;
     }

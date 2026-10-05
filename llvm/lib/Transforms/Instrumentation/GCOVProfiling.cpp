@@ -586,7 +586,7 @@ static bool functionHasLines(const Function &F, unsigned &EndLine) {
   EndLine = 0;
   for (const auto &BB : F) {
     for (const auto &I : BB) {
-      const DebugLoc &Loc = I.getDebugLoc();
+      DebugLoc Loc = I.getFullDebugLoc();
       if (!Loc)
         continue;
 
@@ -657,7 +657,7 @@ bool GCOVProfiler::AddFlushBeforeForkAndExec() {
     // back() is a br instruction with a debug location
     // equals to the one from NextAfterFork
     // So to avoid to have two debug locs on two blocks just change it
-    DebugLoc Loc = F->getDebugLoc();
+    DebugLoc Loc = F->getFullDebugLoc();
     Parent->back().setDebugLoc(Loc);
   }
 
@@ -673,7 +673,7 @@ bool GCOVProfiler::AddFlushBeforeForkAndExec() {
         M->getOrInsertFunction("llvm_writeout_files", FTy);
     Builder.CreateCall(WriteoutF);
 
-    DebugLoc Loc = E->getDebugLoc();
+    DebugLoc Loc = E->getFullDebugLoc();
     Builder.SetInsertPoint(&*NextInst);
     // If the exec** fails we must reset the counters since they've been
     // dumped
@@ -873,7 +873,7 @@ bool GCOVProfiler::emitProfileNotes(
         }
 
         for (const auto &I : BB) {
-          const DebugLoc &Loc = I.getDebugLoc();
+          DebugLoc Loc = I.getFullDebugLoc();
           if (!Loc)
             continue;
 

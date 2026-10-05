@@ -221,7 +221,7 @@ bool WebAssemblyLateEHPrepare::addCatchAlls(MachineFunction &MF) {
                                     ? WebAssembly::CATCH_ALL_LEGACY
                                     : WebAssembly::CATCH_ALL;
       BuildMI(MBB, InsertPos,
-              InsertPos == MBB.end() ? DebugLoc() : InsertPos->getDebugLoc(),
+              InsertPos == MBB.end() ? DebugLoc() : InsertPos->getFullDebugLoc(),
               TII.get(CatchAllOpcode));
     }
   }
@@ -245,7 +245,7 @@ bool WebAssemblyLateEHPrepare::replaceFuncletReturns(MachineFunction &MF) {
       // Replace a catchret with a branch
       MachineBasicBlock *TBB = TI->getOperand(0).getMBB();
       if (!MBB.isLayoutSuccessor(TBB))
-        BuildMI(MBB, TI, TI->getDebugLoc(), TII.get(WebAssembly::BR))
+        BuildMI(MBB, TI, TI->getFullDebugLoc(), TII.get(WebAssembly::BR))
             .addMBB(TBB);
       TI->eraseFromParent();
       Changed = true;
@@ -282,7 +282,7 @@ bool WebAssemblyLateEHPrepare::replaceFuncletReturns(MachineFunction &MF) {
       // This is because we cannot safely assume that it is always the nearest
       // dominating EH pad, in case there are code transformations such as
       // inlining.
-      BuildMI(MBB, TI, TI->getDebugLoc(), TII.get(WebAssembly::RETHROW))
+      BuildMI(MBB, TI, TI->getFullDebugLoc(), TII.get(WebAssembly::RETHROW))
           .addMBB(TI->getOperand(0).getMBB());
       TI->eraseFromParent();
       Changed = true;
@@ -317,7 +317,7 @@ bool WebAssemblyLateEHPrepare::addCatchRefsAndThrowRefs(MachineFunction &MF) {
     auto InsertPos = std::next(Catch->getIterator());
     auto ExnReg = MRI.createVirtualRegister(&WebAssembly::EXNREFRegClass);
     if (Catch->getOpcode() == WebAssembly::CATCH) {
-      MachineInstrBuilder MIB = BuildMI(*EHPad, InsertPos, Catch->getDebugLoc(),
+      MachineInstrBuilder MIB = BuildMI(*EHPad, InsertPos, Catch->getFullDebugLoc(),
                                         TII.get(WebAssembly::CATCH_REF));
       // Copy defs (= extracted values) from the old CATCH to the new CATCH_REF
       for (const auto &Def : Catch->defs())
@@ -330,7 +330,7 @@ bool WebAssemblyLateEHPrepare::addCatchRefsAndThrowRefs(MachineFunction &MF) {
         break;
       }
     } else if (Catch->getOpcode() == WebAssembly::CATCH_ALL) {
-      BuildMI(*EHPad, InsertPos, Catch->getDebugLoc(),
+      BuildMI(*EHPad, InsertPos, Catch->getFullDebugLoc(),
               TII.get(WebAssembly::CATCH_ALL_REF))
           .addDef(ExnReg);
     } else {
@@ -340,7 +340,7 @@ bool WebAssemblyLateEHPrepare::addCatchRefsAndThrowRefs(MachineFunction &MF) {
 
     for (auto *Rethrow : Rethrows) {
       auto InsertPos = std::next(Rethrow->getIterator());
-      BuildMI(*Rethrow->getParent(), InsertPos, Rethrow->getDebugLoc(),
+      BuildMI(*Rethrow->getParent(), InsertPos, Rethrow->getFullDebugLoc(),
               TII.get(WebAssembly::THROW_REF))
           .addReg(ExnReg);
       Rethrow->eraseFromParent();
@@ -408,7 +408,7 @@ bool WebAssemblyLateEHPrepare::restoreStackPointer(MachineFunction &MF) {
            "catch/catch_all should be present in every EH pad at this point");
     ++InsertPos; // Skip the catch instruction
     FrameLowering->writeBackSP(FrameLowering->getSPReg(MF), MF, MBB, InsertPos,
-                               MBB.begin()->getDebugLoc());
+                               MBB.begin()->getFullDebugLoc());
   }
   return Changed;
 }

@@ -704,7 +704,7 @@ public:
   virtual void insertIndirectBranch(MachineBasicBlock &MBB,
                                     MachineBasicBlock &NewDestBB,
                                     MachineBasicBlock &RestoreBB,
-                                    const DebugLoc &DL, int64_t BrOffset = 0,
+                                    DbgLocStorage DL, int64_t BrOffset = 0,
                                     RegScavenger *RS = nullptr) const {
     llvm_unreachable("target did not implement");
   }
@@ -810,14 +810,14 @@ public:
   virtual unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                                 MachineBasicBlock *FBB,
                                 ArrayRef<MachineOperand> Cond,
-                                const DebugLoc &DL,
+                                DbgLocStorage DL,
                                 int *BytesAdded = nullptr) const {
     llvm_unreachable("Target didn't implement TargetInstrInfo::insertBranch!");
   }
 
   unsigned insertUnconditionalBranch(MachineBasicBlock &MBB,
                                      MachineBasicBlock *DestBB,
-                                     const DebugLoc &DL,
+                                     DbgLocStorage DL,
                                      int *BytesAdded = nullptr) const {
     return insertBranch(MBB, DestBB, nullptr, ArrayRef<MachineOperand>(), DL,
                         BytesAdded);
@@ -1044,7 +1044,7 @@ public:
   /// @param TrueReg  Virtual register to copy when Cond is true.
   /// @param FalseReg Virtual register to copy when Cons is false.
   virtual void insertSelect(MachineBasicBlock &MBB,
-                            MachineBasicBlock::iterator I, const DebugLoc &DL,
+                            MachineBasicBlock::iterator I, DbgLocStorage DL,
                             Register DstReg, ArrayRef<MachineOperand> Cond,
                             Register TrueReg, Register FalseReg) const {
     llvm_unreachable("Target didn't implement TargetInstrInfo::insertSelect!");
@@ -1085,7 +1085,7 @@ public:
   /// If RenamableSrc is true, the copy instruction's source operand is
   /// marked renamable.
   virtual void copyPhysReg(MachineBasicBlock &MBB,
-                           MachineBasicBlock::iterator MI, const DebugLoc &DL,
+                           MachineBasicBlock::iterator MI, DbgLocStorage DL,
                            Register DestReg, Register SrcReg, bool KillSrc,
                            bool RenamableDest = false,
                            bool RenamableSrc = false) const {
@@ -2188,7 +2188,7 @@ public:
   /// manner.
   virtual MachineInstr *createPHIDestinationCopy(
       MachineBasicBlock &MBB, MachineBasicBlock::iterator InsPt,
-      const DebugLoc &DL, Register Src, Register Dst) const {
+      DbgLocStorage DL, Register Src, Register Dst) const {
     return BuildMI(MBB, InsPt, DL, get(TargetOpcode::COPY), Dst)
         .addReg(Src);
   }
@@ -2198,7 +2198,7 @@ public:
   /// manner.
   virtual MachineInstr *createPHISourceCopy(MachineBasicBlock &MBB,
                                             MachineBasicBlock::iterator InsPt,
-                                            const DebugLoc &DL, Register Src,
+                                            DbgLocStorage DL, Register Src,
                                             unsigned SrcSubReg,
                                             Register Dst) const {
     return BuildMI(MBB, InsPt, DL, get(TargetOpcode::COPY), Dst)
@@ -2287,7 +2287,7 @@ public:
   /// \p AllowSideEffects to \p false.
   virtual void buildClearRegister(Register Reg, MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator Iter,
-                                  DebugLoc &DL,
+                                  DbgLocStorage DL,
                                   bool AllowSideEffects = true) const {
     llvm_unreachable(
         "Target didn't implement TargetInstrInfo::buildClearRegister!");

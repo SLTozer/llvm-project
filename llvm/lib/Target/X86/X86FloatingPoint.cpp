@@ -204,7 +204,7 @@ private:
 
   bool isAtTop(unsigned RegNo) const { return getSlot(RegNo) == StackTop - 1; }
   void moveToTop(unsigned RegNo, MachineBasicBlock::iterator I) {
-    DebugLoc dl = I == MBB->end() ? DebugLoc() : I->getDebugLoc();
+    DebugLoc dl = I == MBB->end() ? DebugLoc() : I->getFullDebugLoc();
     if (isAtTop(RegNo))
       return;
 
@@ -226,7 +226,7 @@ private:
 
   void duplicateToTop(unsigned RegNo, unsigned AsReg,
                       MachineBasicBlock::iterator I) {
-    DebugLoc dl = I == MBB->end() ? DebugLoc() : I->getDebugLoc();
+    DebugLoc dl = I == MBB->end() ? DebugLoc() : I->getFullDebugLoc();
     unsigned STReg = getSTReg(RegNo);
     pushReg(AsReg); // New register on top of stack
 
@@ -889,7 +889,7 @@ getNextFPInstruction(MachineBasicBlock::iterator I) {
 ///
 void FPS::popStackAfter(MachineBasicBlock::iterator &I) {
   MachineInstr &MI = *I;
-  const DebugLoc &dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   ASSERT_SORTED(PopTable);
 
   popReg();
@@ -1379,7 +1379,7 @@ void FPS::handleTwoArgFP(MachineBasicBlock::iterator &I) {
   unsigned Op1 = getFPReg(MI.getOperand(NumOperands - 1));
   bool KillsOp0 = MI.killsRegister(X86::FP0 + Op0, /*TRI=*/nullptr);
   bool KillsOp1 = MI.killsRegister(X86::FP0 + Op1, /*TRI=*/nullptr);
-  const DebugLoc &dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   unsigned TOS = getStackEntry(0);
 
@@ -1572,7 +1572,7 @@ void FPS::handleSpecialFP(MachineBasicBlock::iterator &Inst) {
     // All FP registers must be explicitly defined, so load a 0 instead.
     unsigned Reg = MI.getOperand(0).getReg() - X86::FP0;
     LLVM_DEBUG(dbgs() << "Emitting LD_F0 for implicit FP" << Reg << '\n');
-    BuildMI(*MBB, Inst, MI.getDebugLoc(), TII->get(X86::LD_F0));
+    BuildMI(*MBB, Inst, MI.getFullDebugLoc(), TII->get(X86::LD_F0));
     pushReg(Reg);
     break;
   }

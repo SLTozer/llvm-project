@@ -55,7 +55,7 @@ public:
   /// \p InstrNum optionally contains a debug-info instruction number for the
   ///    new stack pointer.
   void emitStackProbe(MachineFunction &MF, MachineBasicBlock &MBB,
-                      MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+                      MachineBasicBlock::iterator MBBI, DbgLocStorage DL,
                       bool InProlog,
                       std::optional<MachineFunction::DebugInstrOperandPair>
                           InstrNum = std::nullopt) const;
@@ -71,7 +71,7 @@ public:
 
   void emitCalleeSavedFrameMoves(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator MBBI,
-                                 const DebugLoc &DL, bool IsPrologue) const;
+                                 DbgLocStorage DL, bool IsPrologue) const;
 
   /// emitProlog/emitEpilog - These methods insert prolog and epilog code into
   /// the function.
@@ -182,7 +182,7 @@ public:
   /// Emit a series of instructions to increment / decrement the stack
   /// pointer by a constant value.
   void emitSPUpdate(MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                    const DebugLoc &DL, int64_t NumBytes, bool InEpilogue) const;
+                    DbgLocStorage DL, int64_t NumBytes, bool InEpilogue) const;
 
   /// Check that LEA can be used on SP in an epilogue sequence for \p MF.
   bool canUseLEAForSPInEpilogue(const MachineFunction &MF) const;
@@ -216,7 +216,7 @@ public:
 
   /// Wraps up getting a CFI index and building a MachineInstr for it.
   void BuildCFI(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                const DebugLoc &DL, const MCCFIInstruction &CFIInst,
+                DbgLocStorage DL, const MCCFIInstruction &CFIInst,
                 MachineInstr::MIFlag Flag = MachineInstr::NoFlags) const;
 
   /// Sets up EBP and optionally ESI based on the incoming EBP value.  Only
@@ -224,7 +224,7 @@ public:
   MachineBasicBlock::iterator
   restoreWin32EHStackPointers(MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator MBBI,
-                              const DebugLoc &DL, bool RestoreSP = false) const;
+                              DbgLocStorage DL, bool RestoreSP = false) const;
 
   void restoreWinEHStackPointersInParent(MachineFunction &MF) const;
 
@@ -251,32 +251,32 @@ private:
   /// Emit target stack probe as a call to a helper function
   void emitStackProbeCall(
       MachineFunction &MF, MachineBasicBlock &MBB,
-      MachineBasicBlock::iterator MBBI, const DebugLoc &DL, bool InProlog,
+      MachineBasicBlock::iterator MBBI, DbgLocStorage DL, bool InProlog,
       std::optional<MachineFunction::DebugInstrOperandPair> InstrNum) const;
 
   /// Emit target stack probe as an inline sequence.
   void emitStackProbeInline(MachineFunction &MF, MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MBBI,
-                            const DebugLoc &DL, bool InProlog) const;
+                            DbgLocStorage DL, bool InProlog) const;
   void emitStackProbeInlineWindowsCoreCLR64(MachineFunction &MF,
                                             MachineBasicBlock &MBB,
                                             MachineBasicBlock::iterator MBBI,
-                                            const DebugLoc &DL,
+                                            DbgLocStorage DL,
                                             bool InProlog) const;
   void emitStackProbeInlineGeneric(MachineFunction &MF, MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator MBBI,
-                                   const DebugLoc &DL, bool InProlog) const;
+                                   DbgLocStorage DL, bool InProlog) const;
 
   void emitStackProbeInlineGenericBlock(MachineFunction &MF,
                                         MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator MBBI,
-                                        const DebugLoc &DL, uint64_t Offset,
+                                        DbgLocStorage DL, uint64_t Offset,
                                         uint64_t Align) const;
 
   void emitStackProbeInlineGenericLoop(MachineFunction &MF,
                                        MachineBasicBlock &MBB,
                                        MachineBasicBlock::iterator MBBI,
-                                       const DebugLoc &DL, uint64_t Offset,
+                                       DbgLocStorage DL, uint64_t Offset,
                                        uint64_t Align) const;
 
   /// Emit target zero call-used regs.
@@ -287,18 +287,18 @@ private:
 
   /// Aligns the stack pointer by ANDing it with -MaxAlign.
   void BuildStackAlignAND(MachineBasicBlock &MBB,
-                          MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+                          MachineBasicBlock::iterator MBBI, DbgLocStorage DL,
                           Register Reg, uint64_t MaxAlign) const;
 
   /// Make small positive stack adjustments using POPs.
   bool adjustStackWithPops(MachineBasicBlock &MBB,
-                           MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+                           MachineBasicBlock::iterator MBBI, DbgLocStorage DL,
                            int Offset) const;
 
   /// Adjusts the stack pointer using LEA, SUB, or ADD.
   MachineInstrBuilder BuildStackAdjustment(MachineBasicBlock &MBB,
                                            MachineBasicBlock::iterator MBBI,
-                                           const DebugLoc &DL, int64_t Offset,
+                                           DbgLocStorage DL, int64_t Offset,
                                            bool InEpilogue) const;
 
   unsigned getPSPSlotOffsetFromSP(const MachineFunction &MF) const;

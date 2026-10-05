@@ -13,6 +13,7 @@
 #include "llvm/ADT/PointerIntPair.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/IR/DebugLoc.h"
 #include <utility>
 
 namespace llvm {
@@ -92,7 +93,7 @@ public:
     EntryIndex EndIndex;
   };
   using Entries = SmallVector<Entry, 4>;
-  using InlinedEntity = std::pair<const DINode *, DebugLoc>;
+  using InlinedEntity = std::pair<const DINode *, DbgLocStorage>;
   using EntriesMap = MapVector<InlinedEntity, Entries>;
 
 private:
@@ -122,7 +123,7 @@ public:
   EntriesMap::const_iterator end() const { return VarEntries.end(); }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-  LLVM_ABI LLVM_DUMP_METHOD void dump(StringRef FuncName) const;
+  LLVM_ABI LLVM_DUMP_METHOD void dump(const MachineFunction &MF) const;
 #endif
 };
 
@@ -131,7 +132,7 @@ public:
 /// a temporary (assembler) label before it.
 class DbgLabelInstrMap {
 public:
-  using InlinedEntity = std::pair<const DINode *, DebugLoc>;
+  using InlinedEntity = std::pair<const DINode *, DbgLocStorage>;
   using InstrMap = MapVector<InlinedEntity, const MachineInstr *>;
 
 private:

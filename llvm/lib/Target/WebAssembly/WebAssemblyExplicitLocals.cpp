@@ -337,7 +337,7 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
           unsigned LocalId = getLocalId(Reg2Local, MFI, CurLocal, DefReg);
           Register NewReg = MRI.createVirtualRegister(RC);
           unsigned Opc = getLocalGetOpcode(RC);
-          BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(Opc), NewReg)
+          BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(Opc), NewReg)
               .addImm(LocalId);
           MI.getOperand(2).setReg(NewReg);
           MFI.stackifyVReg(MRI, NewReg);
@@ -347,7 +347,7 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
         unsigned LocalId =
             getLocalId(Reg2Local, MFI, CurLocal, MI.getOperand(1).getReg());
         unsigned Opc = getLocalTeeOpcode(RC);
-        BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(Opc),
+        BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(Opc),
                 MI.getOperand(0).getReg())
             .addImm(LocalId)
             .addReg(MI.getOperand(2).getReg());
@@ -376,7 +376,7 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
           if (UseEmpty[OldReg.virtRegIndex()] && !NeedsRegForDebug) {
             unsigned Opc = getDropOpcode(RC);
             MachineInstr *Drop =
-                BuildMI(MBB, InsertPt, MI.getDebugLoc(), TII->get(Opc))
+                BuildMI(MBB, InsertPt, MI.getFullDebugLoc(), TII->get(Opc))
                     .addReg(NewReg);
             // After the drop instruction, this reg operand will not be used
             Drop->getOperand(0).setIsKill();
@@ -388,7 +388,7 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
 
             WebAssemblyDebugValueManager(&MI).replaceWithLocal(LocalId);
 
-            BuildMI(MBB, InsertPt, MI.getDebugLoc(), TII->get(Opc))
+            BuildMI(MBB, InsertPt, MI.getFullDebugLoc(), TII->get(Opc))
                 .addImm(LocalId)
                 .addReg(NewReg);
           }
@@ -451,7 +451,7 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
         // yet. Alternative is previous instruction, but that is strictly worse
         // since it can point at the previous statement.
         // See crbug.com/1251909, crbug.com/1249745
-        InsertPt = BuildMI(MBB, InsertPt, InsertPt->getDebugLoc(),
+        InsertPt = BuildMI(MBB, InsertPt, InsertPt->getFullDebugLoc(),
                            TII->get(Opc), NewReg).addImm(LocalId);
         MO.setReg(NewReg);
         MFI.stackifyVReg(MRI, NewReg);

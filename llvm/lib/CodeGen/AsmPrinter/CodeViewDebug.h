@@ -333,7 +333,7 @@ private:
 
   unsigned maybeRecordFile(const DIFile *F);
 
-  void maybeRecordLocation(const DebugLoc &DL, const MachineFunction *MF);
+  void maybeRecordLocation(DebugLoc DL, const MachineFunction *MF);
 
   void clear();
 

@@ -1350,7 +1350,7 @@ bool MemCpyOptPass::processMemSetMemCpyDependence(MemCpyInst *MemCpy,
   // block.
   assert(MemSet->getParent() == MemCpy->getParent() &&
          "Preserving debug location based on moving memset within BB.");
-  Builder.SetCurrentDebugLocation(MemSet->getDebugLoc());
+  Builder.SetCurrentDebugLocation(MemSet->getFullDebugLoc());
 
   // If the sizes have different types, zext the smaller one.
   if (DestSize->getType() != SrcSize->getType()) {

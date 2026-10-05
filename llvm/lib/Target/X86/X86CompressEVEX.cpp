@@ -396,7 +396,7 @@ static bool tryCompressVPMOVPattern(MachineInstr &MI, MachineBasicBlock &MBB,
     // VMOV*rrk has a tied passthrough operand and a different operand order
     // than VBLENDV.
     auto MIB =
-        BuildMI(MBB, *BlendMI, BlendMI->getDebugLoc(), TII->get(BlendOpc))
+        BuildMI(MBB, *BlendMI, BlendMI->getFullDebugLoc(), TII->get(BlendOpc))
             .addReg(Dst.getReg(), getRegState(Dst))
             .addReg(Passthru.getReg(), getRegState(Passthru))
             .addReg(Src.getReg(), getRegState(Src))
@@ -517,7 +517,7 @@ static bool CompressEVEXImpl(MachineInstr &MI, MachineBasicBlock &MBB,
           ST.getInstrInfo()->get(Is32BitReg ? X86::LEA64_32r : X86::LEA64r);
       if (Is32BitReg)
         Src1 = getX86SubSuperRegister(Src1, 64);
-      MachineInstrBuilder MIB = BuildMI(MBB, MI, MI.getDebugLoc(), NewDesc, Dst)
+      MachineInstrBuilder MIB = BuildMI(MBB, MI, MI.getFullDebugLoc(), NewDesc, Dst)
                                     .addReg(Src1)
                                     .addImm(1);
       if (Opc == X86::ADD32ri_ND || Opc == X86::ADD64ri32_ND)

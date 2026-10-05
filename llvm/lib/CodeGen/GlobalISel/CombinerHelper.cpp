@@ -4549,7 +4549,7 @@ void CombinerHelper::applyExtendThroughPhis(MachineInstr &MI,
       InsertPt = MBB->getFirstNonPHI();
 
     Builder.setInsertPt(*SrcMI->getParent(), InsertPt);
-    Builder.setDebugLoc(MI.getDebugLoc());
+    Builder.setDebugLoc(MI.getFullDebugLoc());
     auto NewExt = Builder.buildExtOrTrunc(ExtMI->getOpcode(), ExtTy, SrcReg);
     OldToNewSrcMap[SrcMI] = NewExt;
   }

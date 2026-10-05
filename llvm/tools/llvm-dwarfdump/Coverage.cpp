@@ -239,7 +239,7 @@ static const SmallVector<DWARFDie> getParentSubroutines(DWARFDie DIE) {
   return Parents;
 }
 
-static bool isInScope(MDNode *Scope, const DebugLoc &Loc) {
+static bool isInScope(MDNode *Scope, DebugLoc Loc) {
   MDNode *Parent = Loc.getScope();
   while (Parent != Scope) {
     auto *S = dyn_cast_if_present<DIScope>(Parent);

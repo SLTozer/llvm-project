@@ -1031,7 +1031,7 @@ DebugLoc StructurizeCFG::killTerminator(BasicBlock *BB) {
   for (BasicBlock *Succ : successors(BB))
     delPhiValues(BB, Succ);
 
-  DebugLoc DL = Term->getDebugLoc();
+  DebugLoc DL = Term->getFullDebugLoc();
   Term->eraseFromParent();
   return DL;
 }

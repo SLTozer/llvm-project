@@ -124,7 +124,7 @@ void ARMInstrInfo::expandLoadStackGuard(MachineBasicBlock::iterator MI) const {
   }
 
   MachineBasicBlock &MBB = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DbgLocStorage DL = MI->getDebugLoc();
   Register Reg = MI->getOperand(0).getReg();
   MachineInstrBuilder MIB;
 

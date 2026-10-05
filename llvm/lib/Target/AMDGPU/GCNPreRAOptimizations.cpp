@@ -210,7 +210,7 @@ bool GCNPreRAOptimizationsImpl::processReg(Register Reg) {
 
   LIS->RemoveMachineInstrFromMaps(*Def0);
   LIS->RemoveMachineInstrFromMaps(*Def1);
-  auto NewI = BuildMI(*Def0->getParent(), *Def0, Def0->getDebugLoc(),
+  auto NewI = BuildMI(*Def0->getParent(), *Def0, Def0->getFullDebugLoc(),
                       TII->get(AMDGPU::S_MOV_B64_IMM_PSEUDO), Reg)
                   .addImm(Init);
 

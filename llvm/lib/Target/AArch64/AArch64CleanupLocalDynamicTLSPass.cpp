@@ -99,7 +99,7 @@ struct LDTLSCleanup : public MachineFunctionPass {
 
     // Insert a Copy from TLSBaseAddrReg to x0, which is where the rest of the
     // code sequence assumes the address will be.
-    MachineInstr *Copy = BuildMI(*I.getParent(), I, I.getDebugLoc(),
+    MachineInstr *Copy = BuildMI(*I.getParent(), I, I.getFullDebugLoc(),
                                  TII->get(TargetOpcode::COPY), AArch64::X0)
                              .addReg(TLSBaseAddrReg);
 
@@ -125,7 +125,7 @@ struct LDTLSCleanup : public MachineFunctionPass {
 
     // Insert a copy from X0 to TLSBaseAddrReg for later.
     MachineInstr *Copy =
-        BuildMI(*I.getParent(), ++I.getIterator(), I.getDebugLoc(),
+        BuildMI(*I.getParent(), ++I.getIterator(), I.getFullDebugLoc(),
                 TII->get(TargetOpcode::COPY), *TLSBaseAddrReg)
             .addReg(AArch64::X0);
 

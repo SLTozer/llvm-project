@@ -2046,7 +2046,7 @@ void AddressSanitizer::instrumentAddress(Instruction *OrigIns,
 
   Instruction *Crash = generateCrashCode(
       CrashTerm, AddrLong, IsWrite, AccessSizeIndex, SizeArgument, Exp, RTCI);
-  if (OrigIns->getDebugLoc())
+  if (OrigIns->getFullDebugLoc())
     Crash->copyDebugLocFrom(OrigIns);
 }
 
@@ -3618,7 +3618,7 @@ void FunctionStackPoisoner::processStaticAllocas() {
     ASanStackVariableDescription &Desc = *AllocaToSVDMap[APC.AI];
     Desc.LifetimeSize = Desc.Size;
     if (DebugLoc FnLoc = EntryDebugLocation) {
-      if (DebugLoc LifetimeLoc = APC.InsBefore->getDebugLoc()) {
+      if (DebugLoc LifetimeLoc = APC.InsBefore->getFullDebugLoc()) {
         if (LifetimeLoc.getFile() == FnLoc.getFile())
           if (unsigned Line = LifetimeLoc.getLine())
             Desc.Line = std::min(Desc.Line ? Desc.Line : Line, Line);

@@ -31,17 +31,17 @@ void LostDebugLocObserver::analyzeDebugLocations() {
                    << " instrs for " << LostDebugLocs.size() << " locations\n");
   SmallPtrSet<MachineInstr *, 4> FoundIn;
   for (MachineInstr *MI : PotentialMIsForDebugLocs) {
-    if (!MI->getDebugLoc())
+    if (!MI->getFullDebugLoc())
       continue;
     // Check this first in case there's a matching line-0 location on both input
     // and output.
-    if (MI->getDebugLoc().getLine() == 0) {
+    if (MI->getFullDebugLoc().getLine() == 0) {
       LOC_DEBUG(
           dbgs() << ".. Assuming line-0 location covers remainder (if any)\n");
       return;
     }
-    if (LostDebugLocs.erase(MI->getDebugLoc())) {
-      LOC_DEBUG(dbgs() << ".. .. found " << MI->getDebugLoc() << " in " << *MI);
+    if (LostDebugLocs.erase(MI->getFullDebugLoc())) {
+      LOC_DEBUG(dbgs() << ".. .. found " << MI->getFullDebugLoc() << " in " << *MI);
       FoundIn.insert(MI);
       continue;
     }
@@ -52,7 +52,7 @@ void LostDebugLocObserver::analyzeDebugLocations() {
   NumLostDebugLocs += LostDebugLocs.size();
   LOC_DEBUG({
     dbgs() << ".. Lost locations:\n";
-    for (const DebugLoc &Loc : LostDebugLocs) {
+    for (DebugLoc Loc : LostDebugLocs) {
       dbgs() << ".. .. ";
       Loc.print(dbgs());
       dbgs() << "\n";
@@ -95,8 +95,8 @@ void LostDebugLocObserver::erasingInstr(MachineInstr &MI) {
     return;
 
   PotentialMIsForDebugLocs.erase(&MI);
-  if (MI.getDebugLoc())
-    LostDebugLocs.insert(MI.getDebugLoc());
+  if (MI.getFullDebugLoc())
+    LostDebugLocs.insert(MI.getFullDebugLoc());
 }
 
 void LostDebugLocObserver::changingInstr(MachineInstr &MI) {
@@ -104,8 +104,8 @@ void LostDebugLocObserver::changingInstr(MachineInstr &MI) {
     return;
 
   PotentialMIsForDebugLocs.erase(&MI);
-  if (MI.getDebugLoc())
-    LostDebugLocs.insert(MI.getDebugLoc());
+  if (MI.getFullDebugLoc())
+    LostDebugLocs.insert(MI.getFullDebugLoc());
 }
 
 void LostDebugLocObserver::changedInstr(MachineInstr &MI) {

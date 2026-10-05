@@ -10210,7 +10210,7 @@ LegalizerHelper::lowerReadWriteRegister(MachineInstr &MI) {
     Fn.getContext().diagnose(DiagnosticInfoGenericWithLoc(
         "invalid register \"" + Twine(RegStr->getString().data()) + "\" for " +
             (IsRead ? "llvm.read_register" : "llvm.write_register"),
-        Fn, MI.getDebugLoc()));
+        Fn, MI.getFullDebugLoc()));
     if (IsRead)
       MIRBuilder.buildUndef(ValReg);
 

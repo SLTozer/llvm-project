@@ -455,7 +455,7 @@ struct VirtualCallSite {
   emitRemark(const StringRef OptName, const StringRef TargetName,
              function_ref<OptimizationRemarkEmitter &(Function &)> OREGetter) {
     Function *F = CB.getCaller();
-    DebugLoc DLoc = CB.getDebugLoc();
+    DebugLoc DLoc = CB.getFullDebugLoc();
     BasicBlock *Block = CB.getParent();
 
     using namespace ore;

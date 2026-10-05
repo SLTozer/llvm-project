@@ -674,7 +674,7 @@ Register PPCInstrInfo::generateLoadForNewConst(
   // Generate ADDIStocHA8
   Register VReg1 = MRI->createVirtualRegister(&PPC::G8RC_and_G8RC_NOX0RegClass);
   MachineInstrBuilder TOCOffset =
-      BuildMI(*MF, MI->getDebugLoc(), get(PPC::ADDIStocHA8), VReg1)
+      BuildMI(*MF, MI->getFullDebugLoc(), get(PPC::ADDIStocHA8), VReg1)
           .addReg(PPC::X2)
           .addConstantPoolIndex(Idx);
 
@@ -696,7 +696,7 @@ Register PPCInstrInfo::generateLoadForNewConst(
 
   // Generate Load from constant pool.
   MachineInstrBuilder Load =
-      BuildMI(*MF, MI->getDebugLoc(), get(LoadOpcode), VReg2)
+      BuildMI(*MF, MI->getFullDebugLoc(), get(LoadOpcode), VReg2)
           .addConstantPoolIndex(Idx)
           .addReg(VReg1, getKillRegState(true))
           .addMemOperand(MMO);
@@ -911,12 +911,12 @@ void PPCInstrInfo::reassociateFMA(
   case PPCMachineCombinerPattern::REASSOC_XY_AMM_BMM: {
     // Create new instructions for insertion.
     MachineInstrBuilder MINewB =
-        BuildMI(*MF, Prev->getDebugLoc(), get(FmaOp), NewVRB)
+        BuildMI(*MF, Prev->getFullDebugLoc(), get(FmaOp), NewVRB)
             .addReg(RegX, getKillRegState(KillX))
             .addReg(RegM21, getKillRegState(KillM21))
             .addReg(RegM22, getKillRegState(KillM22));
     MachineInstrBuilder MINewA =
-        BuildMI(*MF, Root.getDebugLoc(), get(FmaOp), NewVRA)
+        BuildMI(*MF, Root.getFullDebugLoc(), get(FmaOp), NewVRA)
             .addReg(RegY, getKillRegState(KillY))
             .addReg(RegM31, getKillRegState(KillM31))
             .addReg(RegM32, getKillRegState(KillM32));
@@ -927,7 +927,7 @@ void PPCInstrInfo::reassociateFMA(
     }
 
     MachineInstrBuilder MINewC =
-        BuildMI(*MF, Root.getDebugLoc(),
+        BuildMI(*MF, Root.getFullDebugLoc(),
                 get(FMAOpIdxInfo[Idx][InfoArrayIdxFAddInst]), RegC)
             .addReg(NewVRB, getKillRegState(true))
             .addReg(NewVRA, getKillRegState(true));
@@ -947,17 +947,17 @@ void PPCInstrInfo::reassociateFMA(
     assert(NewVRD && "new FMA register not created!");
     // Create new instructions for insertion.
     MachineInstrBuilder MINewA =
-        BuildMI(*MF, Leaf->getDebugLoc(),
+        BuildMI(*MF, Leaf->getFullDebugLoc(),
                 get(FMAOpIdxInfo[Idx][InfoArrayIdxFMULInst]), NewVRA)
             .addReg(RegM11, getKillRegState(KillM11))
             .addReg(RegM12, getKillRegState(KillM12));
     MachineInstrBuilder MINewB =
-        BuildMI(*MF, Prev->getDebugLoc(), get(FmaOp), NewVRB)
+        BuildMI(*MF, Prev->getFullDebugLoc(), get(FmaOp), NewVRB)
             .addReg(RegX, getKillRegState(KillX))
             .addReg(RegM21, getKillRegState(KillM21))
             .addReg(RegM22, getKillRegState(KillM22));
     MachineInstrBuilder MINewD =
-        BuildMI(*MF, Root.getDebugLoc(), get(FmaOp), NewVRD)
+        BuildMI(*MF, Root.getFullDebugLoc(), get(FmaOp), NewVRD)
             .addReg(NewVRA, getKillRegState(true))
             .addReg(RegM31, getKillRegState(KillM31))
             .addReg(RegM32, getKillRegState(KillM32));
@@ -969,7 +969,7 @@ void PPCInstrInfo::reassociateFMA(
     }
 
     MachineInstrBuilder MINewC =
-        BuildMI(*MF, Root.getDebugLoc(),
+        BuildMI(*MF, Root.getFullDebugLoc(),
                 get(FMAOpIdxInfo[Idx][InfoArrayIdxFAddInst]), RegC)
             .addReg(NewVRB, getKillRegState(true))
             .addReg(NewVRD, getKillRegState(true));
@@ -1004,11 +1004,11 @@ void PPCInstrInfo::reassociateFMA(
     // here as a placeholder. When the InsInstrs is selected in
     // MachineCombiner, we call finalizeInsInstrs to replace the zero register
     // with a virtual register which is a load from constant pool.
-    NewARegPressure = BuildMI(*MF, Root.getDebugLoc(), get(FmaOp), NewVRA)
+    NewARegPressure = BuildMI(*MF, Root.getFullDebugLoc(), get(FmaOp), NewVRA)
                           .addReg(RegB, getKillRegState(RegB))
                           .addReg(RegY, getKillRegState(KillY))
                           .addReg(PPC::ZERO8);
-    NewCRegPressure = BuildMI(*MF, Root.getDebugLoc(), get(FmaOp), RegC)
+    NewCRegPressure = BuildMI(*MF, Root.getFullDebugLoc(), get(FmaOp), RegC)
                           .addReg(NewVRA, getKillRegState(true))
                           .addReg(RegX, getKillRegState(KillX))
                           .addReg(VarReg, getKillRegState(KillVarReg));
@@ -1181,7 +1181,7 @@ MachineInstr *PPCInstrInfo::commuteInstructionImpl(MachineInstr &MI, bool NewMI,
     // Create a new instruction.
     Register Reg0 = ChangeReg0 ? Reg2 : MI.getOperand(0).getReg();
     bool Reg0IsDead = MI.getOperand(0).isDead();
-    return BuildMI(MF, MI.getDebugLoc(), MI.getDesc())
+    return BuildMI(MF, MI.getFullDebugLoc(), MI.getDesc())
         .addReg(Reg0, RegState::Define | getDeadRegState(Reg0IsDead))
         .addReg(Reg2, getKillRegState(Reg2IsKill))
         .addReg(Reg1, getKillRegState(Reg1IsKill))
@@ -1237,7 +1237,7 @@ void PPCInstrInfo::insertNoop(MachineBasicBlock &MBB,
   case PPC::DIR_PWR9: Opcode = PPC::NOP_GT_PWR7; break;
   }
 
-  DebugLoc DL;
+  DbgLocStorage DL;
   BuildMI(MBB, MI, DL, get(Opcode));
 }
 
@@ -1462,7 +1462,7 @@ unsigned PPCInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                     MachineBasicBlock *TBB,
                                     MachineBasicBlock *FBB,
                                     ArrayRef<MachineOperand> Cond,
-                                    const DebugLoc &DL,
+                                    DbgLocStorage DL,
                                     int *BytesAdded) const {
   // Shouldn't be a fall through.
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
@@ -1559,7 +1559,7 @@ bool PPCInstrInfo::canInsertSelect(const MachineBasicBlock &MBB,
 
 void PPCInstrInfo::insertSelect(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator MI,
-                                const DebugLoc &dl, Register DestReg,
+                                DbgLocStorage dl, Register DestReg,
                                 ArrayRef<MachineOperand> Cond, Register TrueReg,
                                 Register FalseReg) const {
   assert(Cond.size() == 2 &&
@@ -1672,7 +1672,7 @@ static unsigned getCRBitValue(unsigned CRBit) {
 
 void PPCInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator I,
-                               const DebugLoc &DL, Register DestReg,
+                               DbgLocStorage DL, Register DestReg,
                                Register SrcReg, bool KillSrc,
                                bool RenamableDest, bool RenamableSrc) const {
   // We can end up with self copies and similar things as a result of VSX copy
@@ -1990,7 +1990,7 @@ void PPCInstrInfo::StoreRegToStackSlot(
     const TargetRegisterClass *RC,
     SmallVectorImpl<MachineInstr *> &NewMIs) const {
   unsigned Opcode = getStoreOpcodeForSpill(RC);
-  DebugLoc DL;
+  DbgLocStorage DL;
 
   PPCFunctionInfo *FuncInfo = MF.getInfo<PPCFunctionInfo>();
   FuncInfo->setHasSpills();
@@ -2041,7 +2041,7 @@ void PPCInstrInfo::storeRegToStackSlot(
   storeRegToStackSlotNoUpd(MBB, MI, SrcReg, isKill, FrameIdx, RC);
 }
 
-void PPCInstrInfo::LoadRegFromStackSlot(MachineFunction &MF, const DebugLoc &DL,
+void PPCInstrInfo::LoadRegFromStackSlot(MachineFunction &MF, DbgLocStorage DL,
                                         unsigned DestReg, int FrameIdx,
                                         const TargetRegisterClass *RC,
                                         SmallVectorImpl<MachineInstr *> &NewMIs)
@@ -2056,8 +2056,8 @@ void PPCInstrInfo::loadRegFromStackSlotNoUpd(
     int FrameIdx, const TargetRegisterClass *RC) const {
   MachineFunction &MF = *MBB.getParent();
   SmallVector<MachineInstr*, 4> NewMIs;
-  DebugLoc DL;
-  if (MI != MBB.end()) DL = MI->getDebugLoc();
+  DbgLocStorage DL;
+  if (MI != MBB.end()) DL = MI->getFullDebugLoc();
 
   LoadRegFromStackSlot(MF, DL, DestReg, FrameIdx, RC, NewMIs);
 
@@ -2714,7 +2714,7 @@ bool PPCInstrInfo::optimizeCompareInstr(MachineInstr &CmpInstr, Register SrcReg,
   CmpInstr.eraseFromParent();
 
   MachineBasicBlock::iterator MII = MI;
-  BuildMI(*MI->getParent(), std::next(MII), MI->getDebugLoc(),
+  BuildMI(*MI->getParent(), std::next(MII), MI->getFullDebugLoc(),
           get(TargetOpcode::COPY), CRReg)
       .addReg(PPC::CR0, getKillRegState(MIOpC != NewOpC));
 
@@ -3157,7 +3157,7 @@ static bool isAnImmediateOperand(const MachineOperand &MO) {
 
 bool PPCInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   auto &MBB = *MI.getParent();
-  auto DL = MI.getDebugLoc();
+  auto DL = MI.getFullDebugLoc();
 
   switch (MI.getOpcode()) {
   case PPC::BUILD_UACC: {
@@ -3442,7 +3442,7 @@ MachineInstr *PPCInstrInfo::getDefMIPostRA(unsigned Reg, MachineInstr &MI,
 
 void PPCInstrInfo::materializeImmPostRA(MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator MBBI,
-                                        const DebugLoc &DL, Register Reg,
+                                        DbgLocStorage DL, Register Reg,
                                         int64_t Imm) const {
   assert(!MBB.getParent()->getRegInfo().isSSA() &&
          "Register should be in non-SSA form after RA");
@@ -5469,7 +5469,7 @@ void PPCInstrInfo::promoteInstr32To64ForElimEXTSW(const Register &Reg,
   if (NewRC == SrcRC)
     return;
 
-  DebugLoc DL = MI->getDebugLoc();
+  DbgLocStorage DL = MI->getDebugLoc();
   auto MBB = MI->getParent();
 
   // Since the pseudo-opcode of the instruction is promoted from 32-bit to
@@ -5883,7 +5883,7 @@ bool PPCInstrInfo::areMemAccessesTriviallyDisjoint(
 // register class.
 bool PPCInstrInfo::expandAMOCSNEPseudo(MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DbgLocStorage DL = MI.getDebugLoc();
   bool IsLDAT = MI.getOpcode() == PPC::LDAT_CSNE_PSEUDO;
 
   Register DstReg = MI.getOperand(0).getReg();

@@ -21,6 +21,7 @@
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/Support/Compiler.h"
 #include <cassert>
 #include <unordered_map>
@@ -43,7 +44,7 @@ using InsnRange = std::pair<const MachineInstr *, const MachineInstr *>;
 ///
 class LexicalScope {
 public:
-  LexicalScope(LexicalScope *P, const DILocalScope *D, DebugLoc I,
+  LexicalScope(LexicalScope *P, const DILocalScope *D, DbgLocStorage I,
                bool A)
       : Parent(P), Desc(D), InlinedAtLocation(I), AbstractScope(A) {
     assert(D);
@@ -61,7 +62,7 @@ public:
   // Accessors.
   LexicalScope *getParent() const { return Parent; }
   const MDNode *getDesc() const { return Desc; }
-  DebugLoc getInlinedAt() const { return InlinedAtLocation; }
+  DbgLocStorage getInlinedAt() const { return InlinedAtLocation; }
   const DILocalScope *getScopeNode() const { return Desc; }
   bool isAbstractScope() const { return AbstractScope; }
   SmallVectorImpl<LexicalScope *> &getChildren() { return Children; }
@@ -122,7 +123,7 @@ public:
 private:
   LexicalScope *Parent;                        // Parent to this scope.
   const DILocalScope *Desc;                    // Debug info descriptor.
-  DebugLoc InlinedAtLocation;         // Location at which this
+  DbgLocStorage InlinedAtLocation;             // Location at which this
                                                // scope is inlined.
   bool AbstractScope;                          // Abstract Scope
   SmallVector<LexicalScope *, 4> Children;     // Scopes defined in scope.
@@ -170,16 +171,16 @@ public:
   /// Populate given set using machine basic blocks which have machine
   /// instructions that belong to lexical scope identified by DebugLoc.
   LLVM_ABI void
-  getMachineBasicBlocks(DebugLoc DL,
+  getMachineBasicBlocks(DbgLocStorage DL,
                         SmallPtrSetImpl<const MachineBasicBlock *> &MBBs);
 
   /// Return true if DebugLoc's lexical scope dominates at least one machine
   /// instruction's lexical scope in a given machine basic block.
-  LLVM_ABI bool dominates(DebugLoc DL, MachineBasicBlock *MBB);
+  LLVM_ABI bool dominates(DbgLocStorage DL, MachineBasicBlock *MBB);
 
   /// Find lexical scope, either regular or inlined, for the given DebugLoc.
   /// Return NULL if not found.
-  LLVM_ABI LexicalScope *findLexicalScope(DebugLoc DL);
+  LLVM_ABI LexicalScope *findLexicalScope(DbgLocStorage DL);
 
   /// Return a reference to list of abstract scopes.
   ArrayRef<LexicalScope *> getAbstractScopesList() const {
@@ -193,7 +194,7 @@ public:
   }
 
   /// Find an inlined scope for the given scope/inlined-at.
-  LexicalScope *findInlinedScope(const DILocalScope *N, DebugLoc IA) {
+  LexicalScope *findInlinedScope(const DILocalScope *N, DbgLocStorage IA) {
     auto I = InlinedLexicalScopeMap.find(std::make_pair(N, IA));
     return I != InlinedLexicalScopeMap.end() ? &I->second : nullptr;
   }
@@ -217,7 +218,7 @@ private:
   /// then create new lexical scope.
   LLVM_ABI LexicalScope *
   getOrCreateLexicalScope(const DILocalScope *Scope,
-                          DebugLoc IA = nullptr);
+                          DbgLocStorage IA = {});
   LexicalScope *getOrCreateLexicalScope(DebugLoc DL) {
     return DL ? getOrCreateLexicalScope(DL.getScope(), DL.getInlinedAt())
               : nullptr;
@@ -228,7 +229,7 @@ private:
 
   /// Find or create an inlined lexical scope.
   LexicalScope *getOrCreateInlinedScope(const DILocalScope *Scope,
-                                        DebugLoc InlinedAt);
+                                        DbgLocStorage InlinedAt);
 
   /// Extract instruction ranges for each lexical scopes
   /// for the given machine function.
@@ -249,9 +250,9 @@ private:
   std::unordered_map<const DILocalScope *, LexicalScope> LexicalScopeMap;
 
   /// Tracks inlined function scopes in current function.
-  std::unordered_map<std::pair<const DILocalScope *, DebugLoc>,
+  std::unordered_map<std::pair<const DILocalScope *, DbgLocStorage>,
                      LexicalScope,
-                     pair_hash<const DILocalScope *, DebugLoc>>
+                     pair_hash<const DILocalScope *, DbgLocStorage>>
       InlinedLexicalScopeMap;
 
   /// These scopes are  not included LexicalScopeMap.
@@ -264,10 +265,13 @@ private:
   /// Top level scope for the current function.
   LexicalScope *CurrentFnLexicalScope = nullptr;
 
+  /// DebugLocContext for the current function.
+  std::optional<DebugLocContext> DbgLocCtx;
+
   /// Map a location to the set of basic blocks it dominates. This is a cache
   /// for \ref LexicalScopes::getMachineBasicBlocks results.
   using BlockSetT = SmallPtrSet<const MachineBasicBlock *, 4>;
-  DenseMap<DebugLoc, std::unique_ptr<BlockSetT>> DominatedBlocks;
+  DenseMap<DbgLocStorage, std::unique_ptr<BlockSetT>> DominatedBlocks;
 };
 
 } // end namespace llvm

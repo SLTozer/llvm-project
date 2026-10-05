@@ -188,7 +188,7 @@ bool WebAssemblyLowerBrUnless::runOnMachineFunction(MachineFunction &MF) {
       // instruction to invert it.
       if (!Inverted) {
         Register Tmp = MRI.createVirtualRegister(&WebAssembly::I32RegClass);
-        BuildMI(MBB, &MI, MI.getDebugLoc(), TII.get(WebAssembly::EQZ_I32), Tmp)
+        BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII.get(WebAssembly::EQZ_I32), Tmp)
             .addReg(Cond);
         MFI.stackifyVReg(MRI, Tmp);
         Cond = Tmp;
@@ -198,7 +198,7 @@ bool WebAssemblyLowerBrUnless::runOnMachineFunction(MachineFunction &MF) {
       // The br_unless condition has now been inverted. Insert a br_if and
       // delete the br_unless.
       assert(Inverted);
-      BuildMI(MBB, &MI, MI.getDebugLoc(), TII.get(WebAssembly::BR_IF))
+      BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII.get(WebAssembly::BR_IF))
           .add(MI.getOperand(0))
           .addReg(Cond);
       MBB.erase(&MI);

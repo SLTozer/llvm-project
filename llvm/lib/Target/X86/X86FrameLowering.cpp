@@ -228,7 +228,7 @@ constexpr uint64_t MaxSPChunk = (1ULL << 31) - 1;
 /// stack pointer by a constant value.
 void X86FrameLowering::emitSPUpdate(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator &MBBI,
-                                    const DebugLoc &DL, int64_t NumBytes,
+                                    DbgLocStorage DL, int64_t NumBytes,
                                     bool InEpilogue) const {
   bool isSub = NumBytes < 0;
   uint64_t Offset = isSub ? -NumBytes : NumBytes;
@@ -344,7 +344,7 @@ void X86FrameLowering::emitSPUpdate(MachineBasicBlock &MBB,
 
 MachineInstrBuilder X86FrameLowering::BuildStackAdjustment(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, int64_t Offset, bool InEpilogue) const {
+    DbgLocStorage DL, int64_t Offset, bool InEpilogue) const {
   assert(Offset != 0 && "zero offset stack adjustment requested");
 
   // On Atom, using LEA to adjust SP is preferred, but using it in the epilogue
@@ -493,7 +493,7 @@ int64_t X86FrameLowering::mergeSPAdd(MachineBasicBlock &MBB,
 
 void X86FrameLowering::BuildCFI(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator MBBI,
-                                const DebugLoc &DL,
+                                DbgLocStorage DL,
                                 const MCCFIInstruction &CFIInst,
                                 MachineInstr::MIFlag Flag) const {
   MachineFunction &MF = *MBB.getParent();
@@ -513,7 +513,7 @@ void X86FrameLowering::emitCalleeSavedFrameMovesFullCFA(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) const {
   MachineFunction &MF = *MBB.getParent();
   if (!hasFP(MF)) {
-    emitCalleeSavedFrameMoves(MBB, MBBI, DebugLoc{}, true);
+    emitCalleeSavedFrameMoves(MBB, MBBI, DbgLocStorage{}, true);
     return;
   }
   const MCRegisterInfo *MRI = MF.getContext().getRegisterInfo();
@@ -524,14 +524,14 @@ void X86FrameLowering::emitCalleeSavedFrameMovesFullCFA(
   unsigned DwarfReg = MRI->getDwarfRegNum(MachineFramePtr, true);
   // Offset = space for return address + size of the frame pointer itself.
   int64_t Offset = (Is64Bit ? 8 : 4) + (Uses64BitFramePtr ? 8 : 4);
-  BuildCFI(MBB, MBBI, DebugLoc{},
+  BuildCFI(MBB, MBBI, DbgLocStorage{},
            MCCFIInstruction::createOffset(nullptr, DwarfReg, -Offset));
-  emitCalleeSavedFrameMoves(MBB, MBBI, DebugLoc{}, true);
+  emitCalleeSavedFrameMoves(MBB, MBBI, DbgLocStorage{}, true);
 }
 
 void X86FrameLowering::emitCalleeSavedFrameMoves(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, bool IsPrologue) const {
+    DbgLocStorage DL, bool IsPrologue) const {
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   const MCRegisterInfo *MRI = MF.getContext().getRegisterInfo();
@@ -613,7 +613,7 @@ void X86FrameLowering::emitZeroCallUsedRegs(BitVector RegsToZero,
   MachineBasicBlock::iterator MBBI = MBB.getFirstTerminator();
 
   // Fake a debug loc.
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (MBBI != MBB.end())
     DL = MBBI->getDebugLoc();
 
@@ -652,7 +652,7 @@ void X86FrameLowering::emitZeroCallUsedRegs(BitVector RegsToZero,
 
 void X86FrameLowering::emitStackProbe(
     MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL, bool InProlog,
+    MachineBasicBlock::iterator MBBI, DbgLocStorage DL, bool InProlog,
     std::optional<MachineFunction::DebugInstrOperandPair> InstrNum) const {
   const X86Subtarget &STI = MF.getSubtarget<X86Subtarget>();
   if (STI.isTargetWindowsCoreCLR()) {
@@ -677,7 +677,7 @@ void X86FrameLowering::inlineStackProbe(MachineFunction &MF,
     return MI.getOpcode() == X86::STACKALLOC_W_PROBING;
   });
   if (Where != PrologMBB.end()) {
-    DebugLoc DL = PrologMBB.findDebugLoc(Where);
+    DbgLocStorage DL = PrologMBB.findDebugLoc(Where);
     emitStackProbeInline(MF, PrologMBB, Where, DL, true);
     Where->eraseFromParent();
   }
@@ -686,7 +686,7 @@ void X86FrameLowering::inlineStackProbe(MachineFunction &MF,
 void X86FrameLowering::emitStackProbeInline(MachineFunction &MF,
                                             MachineBasicBlock &MBB,
                                             MachineBasicBlock::iterator MBBI,
-                                            const DebugLoc &DL,
+                                            DbgLocStorage DL,
                                             bool InProlog) const {
   const X86Subtarget &STI = MF.getSubtarget<X86Subtarget>();
   if (STI.isTargetWindowsCoreCLR() && STI.is64Bit())
@@ -697,7 +697,7 @@ void X86FrameLowering::emitStackProbeInline(MachineFunction &MF,
 
 void X86FrameLowering::emitStackProbeInlineGeneric(
     MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL, bool InProlog) const {
+    MachineBasicBlock::iterator MBBI, DbgLocStorage DL, bool InProlog) const {
   MachineInstr &AllocWithProbe = *MBBI;
   uint64_t Offset = AllocWithProbe.getOperand(0).getImm();
 
@@ -726,7 +726,7 @@ void X86FrameLowering::emitStackProbeInlineGeneric(
 
 void X86FrameLowering::emitStackProbeInlineGenericBlock(
     MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL, uint64_t Offset,
+    MachineBasicBlock::iterator MBBI, DbgLocStorage DL, uint64_t Offset,
     uint64_t AlignOffset) const {
 
   const bool NeedsDwarfCFI = needsDwarfCFI(MF);
@@ -802,7 +802,7 @@ void X86FrameLowering::emitStackProbeInlineGenericBlock(
 
 void X86FrameLowering::emitStackProbeInlineGenericLoop(
     MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL, uint64_t Offset,
+    MachineBasicBlock::iterator MBBI, DbgLocStorage DL, uint64_t Offset,
     uint64_t AlignOffset) const {
   assert(Offset && "null offset");
 
@@ -958,7 +958,7 @@ void X86FrameLowering::emitStackProbeInlineGenericLoop(
 
 void X86FrameLowering::emitStackProbeInlineWindowsCoreCLR64(
     MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL, bool InProlog) const {
+    MachineBasicBlock::iterator MBBI, DbgLocStorage DL, bool InProlog) const {
   const X86Subtarget &STI = MF.getSubtarget<X86Subtarget>();
   assert(STI.is64Bit() && "different expansion needed for 32 bit");
   assert(STI.isTargetWindowsCoreCLR() && "custom expansion expects CoreCLR");
@@ -1199,7 +1199,7 @@ void X86FrameLowering::emitStackProbeInlineWindowsCoreCLR64(
 
 void X86FrameLowering::emitStackProbeCall(
     MachineFunction &MF, MachineBasicBlock &MBB,
-    MachineBasicBlock::iterator MBBI, const DebugLoc &DL, bool InProlog,
+    MachineBasicBlock::iterator MBBI, DbgLocStorage DL, bool InProlog,
     std::optional<MachineFunction::DebugInstrOperandPair> InstrNum) const {
   bool IsLargeCodeModel = MF.getTarget().getCodeModel() == CodeModel::Large;
 
@@ -1319,7 +1319,7 @@ X86FrameLowering::calculateMaxStackAlign(const MachineFunction &MF) const {
 
 void X86FrameLowering::BuildStackAlignAND(MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator MBBI,
-                                          const DebugLoc &DL, Register Reg,
+                                          DbgLocStorage DL, Register Reg,
                                           uint64_t MaxAlign) const {
   uint64_t Val = -MaxAlign;
   unsigned AndOp = getANDriOpcode(Uses64BitFramePtr, Val);
@@ -1656,7 +1656,7 @@ void X86FrameLowering::emitPrologue(MachineFunction &MF,
 
   // Debug location must be unknown since the first debug location is used
   // to determine the end of the prologue.
-  DebugLoc DL;
+  DbgLocStorage DL;
   Register ArgBaseReg;
 
   // Emit extra prolog for argument stack slot reference.
@@ -2493,7 +2493,7 @@ void X86FrameLowering::emitEpilogue(MachineFunction &MF,
   X86MachineFunctionInfo *X86FI = MF.getInfo<X86MachineFunctionInfo>();
   MachineBasicBlock::iterator Terminator = MBB.getFirstTerminator();
   MachineBasicBlock::iterator MBBI = Terminator;
-  DebugLoc DL;
+  DbgLocStorage DL;
   if (MBBI != MBB.end())
     DL = MBBI->getDebugLoc();
   // standard x86_64 uses 64-bit frame/stack pointers, x32 - 32-bit.
@@ -3157,7 +3157,7 @@ bool X86FrameLowering::assignCalleeSavedSpillSlots(
 bool X86FrameLowering::spillCalleeSavedRegisters(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MI,
     ArrayRef<CalleeSavedInfo> CSI, const TargetRegisterInfo *TRI) const {
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
 
   // Don't save CSRs in 32-bit EH funclets. The caller saves EBX, EBP, ESI, EDI
   // for us, and there are no XMM CSRs on Win32.
@@ -3241,7 +3241,7 @@ void X86FrameLowering::emitCatchRetReturnValue(MachineBasicBlock &MBB,
   assert(!isAsynchronousEHPersonality(classifyEHPersonality(
              MBB.getParent()->getFunction().getPersonalityFn())) &&
          "SEH should not use CATCHRET");
-  const DebugLoc &DL = CatchRet->getDebugLoc();
+  DbgLocStorage DL = CatchRet->getDebugLoc();
   MachineBasicBlock *CatchRetTarget = CatchRet->getOperand(0).getMBB();
 
   // Fill EAX/RAX with the address of the target block.
@@ -3286,7 +3286,7 @@ bool X86FrameLowering::restoreCalleeSavedRegisters(
     }
   }
 
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DbgLocStorage DL = MBB.findDebugLoc(MI);
   MachineFunction &MF = *MBB.getParent();
   const X86MachineFunctionInfo *X86FI = MF.getInfo<X86MachineFunctionInfo>();
 
@@ -3428,7 +3428,7 @@ void X86FrameLowering::adjustForSegmentedStacks(
   MachineFrameInfo &MFI = MF.getFrameInfo();
   uint64_t StackSize;
   unsigned TlsReg, TlsOffset;
-  DebugLoc DL;
+  DbgLocStorage DL;
 
   // To support shrink-wrapping we would need to insert the new blocks
   // at the right place and update the branches to PrologueMBB.
@@ -3735,7 +3735,7 @@ static bool blockEndIsUnreachable(const MachineBasicBlock &MBB,
 void X86FrameLowering::adjustForHiPEPrologue(
     MachineFunction &MF, MachineBasicBlock &PrologueMBB) const {
   MachineFrameInfo &MFI = MF.getFrameInfo();
-  DebugLoc DL;
+  DbgLocStorage DL;
 
   // To support shrink-wrapping we would need to insert the new blocks
   // at the right place and update the branches to PrologueMBB.
@@ -3873,7 +3873,7 @@ void X86FrameLowering::adjustForHiPEPrologue(
 
 bool X86FrameLowering::adjustStackWithPops(MachineBasicBlock &MBB,
                                            MachineBasicBlock::iterator MBBI,
-                                           const DebugLoc &DL,
+                                           DbgLocStorage DL,
                                            int Offset) const {
   if (Offset <= 0)
     return false;
@@ -3951,7 +3951,7 @@ MachineBasicBlock::iterator X86FrameLowering::eliminateCallFramePseudoInstr(
   bool reserveCallFrame = hasReservedCallFrame(MF);
   unsigned Opcode = I->getOpcode();
   bool isDestroy = Opcode == TII.getCallFrameDestroyOpcode();
-  DebugLoc DL = I->getDebugLoc(); // copy DebugLoc as I will be erased.
+  DbgLocStorage DL = I->getDebugLoc(); // copy DbgLocStorage as I will be erased.
   uint64_t Amount = TII.getFrameSize(*I);
   uint64_t InternalAmt = (isDestroy || Amount) ? TII.getFrameAdjustment(*I) : 0;
   I = MBB.erase(I);
@@ -4124,7 +4124,7 @@ bool X86FrameLowering::enableShrinkWrapping(const MachineFunction &MF) const {
 
 MachineBasicBlock::iterator X86FrameLowering::restoreWin32EHStackPointers(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, bool RestoreSP) const {
+    DbgLocStorage DL, bool RestoreSP) const {
   assert(STI.isTargetWindowsMSVC() && "funclets only supported in MSVC env");
   assert(STI.isTargetWin32() && "EBP/ESI restoration only required on win32");
   assert(STI.is32Bit() && !Uses64BitFramePtr &&
@@ -4432,7 +4432,7 @@ void X86FrameLowering::adjustFrameForMsvcCxxEh(MachineFunction &MF) const {
   while (MBBI != MBB.end() && MBBI->getFlag(MachineInstr::FrameSetup))
     ++MBBI;
 
-  DebugLoc DL = MBB.findDebugLoc(MBBI);
+  DbgLocStorage DL = MBB.findDebugLoc(MBBI);
   addFrameReference(BuildMI(MBB, MBBI, DL, TII.get(X86::MOV64mi32)),
                     UnwindHelpFI)
       .addImm(-2);
@@ -4462,7 +4462,7 @@ void X86FrameLowering::restoreWinEHStackPointersInParent(
   for (MachineBasicBlock &MBB : MF) {
     bool NeedsRestore = MBB.isEHPad() && !MBB.isEHFuncletEntry();
     if (NeedsRestore)
-      restoreWin32EHStackPointers(MBB, MBB.begin(), DebugLoc(),
+      restoreWin32EHStackPointers(MBB, MBB.begin(), DbgLocStorage(),
                                   /*RestoreSP=*/IsSEH);
   }
 }
@@ -4486,7 +4486,7 @@ void X86FrameLowering::spillFPBPUsingSP(MachineFunction &MF,
   assert(FP.isValid() || BP.isValid());
 
   MachineBasicBlock *MBB = BeforeMI->getParent();
-  DebugLoc DL = BeforeMI->getDebugLoc();
+  DbgLocStorage DL = BeforeMI->getDebugLoc();
 
   // Spill FP.
   if (FP.isValid()) {
@@ -4557,7 +4557,7 @@ void X86FrameLowering::restoreFPBPUsingSP(MachineFunction &MF,
   // Adjust SP so it points to spilled FP or BP.
   MachineBasicBlock *MBB = AfterMI->getParent();
   MachineBasicBlock::iterator Pos = std::next(AfterMI);
-  DebugLoc DL = AfterMI->getDebugLoc();
+  DbgLocStorage DL = AfterMI->getDebugLoc();
   if (SPAdjust)
     emitSPUpdate(*MBB, Pos, DL, SPAdjust, false);
 

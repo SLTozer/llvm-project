@@ -225,7 +225,7 @@ void FastISel::flushLocalValueMap() {
       MachineBasicBlock::iterator FirstLocalValue =
           EmitStartPt ? ++MachineBasicBlock::iterator(EmitStartPt)
                       : FuncInfo.MBB->begin();
-      if (FirstLocalValue != FirstNonValue && !FirstLocalValue->getDebugLoc())
+      if (FirstLocalValue != FirstNonValue && !FirstLocalValue->getFullDebugLoc())
         FirstLocalValue->copyDebugLocFrom(&*FirstNonValue);
     }
   }
@@ -1201,7 +1201,7 @@ void FastISel::handleDbgInfo(const Instruction *II) {
 
     if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
       assert(DLR->getLabel() && "Missing label");
-      BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DLR->getDebugLoc(),
+      BuildMI(*FuncInfo.MBB, FuncInfo.InsertPt, DLR->getFullDebugLoc(),
               TII.get(TargetOpcode::DBG_LABEL))
           .addMetadata(DLR->getLabel());
       continue;
@@ -1217,13 +1217,13 @@ void FastISel::handleDbgInfo(const Instruction *II) {
     if (DVR.getType() == DbgVariableRecord::LocationType::Value ||
         DVR.getType() == DbgVariableRecord::LocationType::Assign) {
       Res = lowerDbgValue(V, DVR.getExpression(), DVR.getVariable(),
-                          DVR.getDebugLoc());
+                          DVR.getFullDebugLoc());
     } else {
       assert(DVR.getType() == DbgVariableRecord::LocationType::Declare);
       if (FuncInfo.PreprocessedDVRDeclares.contains(&DVR))
         continue;
       Res = lowerDbgDeclare(V, DVR.getExpression(), DVR.getVariable(),
-                            DVR.getDebugLoc());
+                            DVR.getFullDebugLoc());
     }
 
     if (!Res)
@@ -1232,7 +1232,7 @@ void FastISel::handleDbgInfo(const Instruction *II) {
 }
 
 bool FastISel::lowerDbgValue(const Value *V, DIExpression *Expr,
-                             DILocalVariable *Var, const DebugLoc &DL) {
+                             DILocalVariable *Var, DebugLoc DL) {
   // This form of DBG_VALUE is target-independent.
   const MCInstrDesc &II = TII.get(TargetOpcode::DBG_VALUE);
   if (!V || isa<UndefValue>(V)) {
@@ -1318,7 +1318,7 @@ bool FastISel::lowerDbgValue(const Value *V, DIExpression *Expr,
 }
 
 bool FastISel::lowerDbgDeclare(const Value *Address, DIExpression *Expr,
-                               DILocalVariable *Var, const DebugLoc &DL) {
+                               DILocalVariable *Var, DebugLoc DL) {
   if (!Address || isa<UndefValue>(Address)) {
     LLVM_DEBUG(dbgs() << "Dropping debug info (bad/undef address)\n");
     return false;
@@ -1617,7 +1617,7 @@ bool FastISel::selectInstruction(const Instruction *I) {
 /// Emit an unconditional branch to the given block, unless it is the immediate
 /// (fall-through) successor, and update the CFG.
 void FastISel::fastEmitBranch(MachineBasicBlock *MSucc,
-                              const DebugLoc &DbgLoc) {
+                              DebugLoc DbgLoc) {
   const BasicBlock *BB = FuncInfo.MBB->getBasicBlock();
   bool BlockHasMultipleInstrs = &BB->front() != &BB->back();
   if (BlockHasMultipleInstrs && FuncInfo.MBB->isLayoutSuccessor(MSucc)) {
@@ -1652,7 +1652,7 @@ void FastISel::finishCondBranch(const BasicBlock *BranchBB,
       FuncInfo.MBB->addSuccessorWithoutProb(TrueMBB);
   }
 
-  fastEmitBranch(FalseMBB, MIMD.getDL());
+  fastEmitBranch(FalseMBB, getCurDebugLoc());
 }
 
 /// Emit an FNeg operation.
@@ -1788,7 +1788,7 @@ bool FastISel::selectOperator(const User *I, unsigned Opcode) {
     const UncondBrInst *BI = cast<UncondBrInst>(I);
     const BasicBlock *LLVMSucc = BI->getSuccessor(0);
     MachineBasicBlock *MSucc = FuncInfo.getMBB(LLVMSucc);
-    fastEmitBranch(MSucc, BI->getDebugLoc());
+    fastEmitBranch(MSucc, BI->getFullDebugLoc());
     return true;
   }
 

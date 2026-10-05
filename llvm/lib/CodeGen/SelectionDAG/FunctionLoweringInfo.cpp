@@ -298,7 +298,7 @@ void FunctionLoweringInfo::set(const Function &fn, MachineFunction &mf,
       if (PN.getType()->isEmptyTy())
         continue;
 
-      DebugLoc DL = PN.getDebugLoc();
+      DebugLoc DL = PN.getFullDebugLoc();
       Register PHIReg = ValueMap[&PN];
       assert(PHIReg && "PHI node does not have an assigned virtual register!");
 

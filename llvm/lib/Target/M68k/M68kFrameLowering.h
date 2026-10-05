@@ -45,21 +45,21 @@ class M68kFrameLowering : public TargetFrameLowering {
   /// Adjusts the stack pointer using LEA, SUB, or ADD.
   MachineInstrBuilder BuildStackAdjustment(MachineBasicBlock &MBB,
                                            MachineBasicBlock::iterator MBBI,
-                                           const DebugLoc &DL, int64_t Offset,
+                                           DebugLoc DL, int64_t Offset,
                                            bool InEpilogue) const;
 
   /// Aligns the stack pointer by ANDing it with -MaxAlign.
   void BuildStackAlignAND(MachineBasicBlock &MBB,
-                          MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+                          MachineBasicBlock::iterator MBBI, DebugLoc DL,
                           unsigned Reg, uint64_t MaxAlign) const;
 
   /// Wraps up getting a CFI index and building a MachineInstr for it.
   void BuildCFI(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                const DebugLoc &DL, const MCCFIInstruction &CFIInst) const;
+                DebugLoc DL, const MCCFIInstruction &CFIInst) const;
 
   void emitPrologueCalleeSavedFrameMoves(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator MBBI,
-                                         const DebugLoc &DL) const;
+                                         DebugLoc DL) const;
 
   unsigned getPSPSlotOffsetFromSP(const MachineFunction &MF) const;
 

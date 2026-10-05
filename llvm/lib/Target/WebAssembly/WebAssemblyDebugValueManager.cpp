@@ -128,7 +128,7 @@ WebAssemblyDebugValueManager::getSinkableDebugValues(
   for (auto *DV : DbgValuesInBetween) {
     if (!llvm::is_contained(DbgValues, DV)) {
       DebugVariable Var(DV->getDebugVariable(), DV->getDebugExpression(),
-                        DV->getDebugLoc().getInlinedAt());
+                        DV->getFullDebugLoc().getInlinedAt());
       SeenDbgVarToDbgValues[Var].push_back(DV);
     }
   }
@@ -146,7 +146,7 @@ WebAssemblyDebugValueManager::getSinkableDebugValues(
   MachineRegisterInfo &MRI = Def->getParent()->getParent()->getRegInfo();
   for (auto *DV : DbgValues) {
     DebugVariable Var(DV->getDebugVariable(), DV->getDebugExpression(),
-                      DV->getDebugLoc().getInlinedAt());
+                      DV->getFullDebugLoc().getInlinedAt());
     auto It = SeenDbgVarToDbgValues.find(Var);
     if (It == SeenDbgVarToDbgValues.end()) {
       SinkableDbgValues.push_back(DV);
@@ -250,7 +250,7 @@ bool WebAssemblyDebugValueManager::isInsertSamePlace(
 // Also returns true if DL is an empty location.
 static bool hasSameDebugLoc(const MachineBasicBlock *MBB, DebugLoc DL) {
   for (const auto &MI : *MBB)
-    if (MI.getDebugLoc() == DL)
+    if (MI.getFullDebugLoc() == DL)
       return true;
   return false;
 }
@@ -296,7 +296,7 @@ void WebAssemblyDebugValueManager::sink(MachineInstr *Insert) {
   // When moving to a different BB, we preserve the debug loc only if the
   // destination BB contains the same location. See
   // https://llvm.org/docs/HowToUpdateDebugInfo.html#when-to-preserve-an-instruction-location.
-  if (Def->getParent() != MBB && !hasSameDebugLoc(MBB, Def->getDebugLoc()))
+  if (Def->getParent() != MBB && !hasSameDebugLoc(MBB, Def->getFullDebugLoc()))
       Def->setDebugLoc(DebugLoc());
   MBB->splice(Insert, Def->getParent(), Def);
 
@@ -381,7 +381,7 @@ void WebAssemblyDebugValueManager::cloneSink(MachineInstr *Insert,
     // When cloning to a different BB, we preserve the debug loc only if the
     // destination BB contains the same location. See
     // https://llvm.org/docs/HowToUpdateDebugInfo.html#when-to-preserve-an-instruction-location.
-    if (Def->getParent() != MBB && !hasSameDebugLoc(MBB, Def->getDebugLoc()))
+    if (Def->getParent() != MBB && !hasSameDebugLoc(MBB, Def->getFullDebugLoc()))
       Clone->setDebugLoc(DebugLoc());
     if (NewReg != CurrentReg && NewReg.isValid())
       Clone->getOperand(0).setReg(NewReg);

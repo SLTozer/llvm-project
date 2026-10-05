@@ -39,7 +39,7 @@ static bool expandFormTransposedRegTuple(MachineBasicBlock &MBB,
   unsigned TupleSize =
       MI.getOpcode() == AArch64::FORM_TRANSPOSED_REG_TUPLE_X2_PSEUDO ? 2 : 4;
 
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   Register TupleReg = MI.getOperand(0).getReg();
   SmallVector<Register, 5> OrigRegs{TupleReg};
   MachineBasicBlock::iterator FirstCopyMBBI;

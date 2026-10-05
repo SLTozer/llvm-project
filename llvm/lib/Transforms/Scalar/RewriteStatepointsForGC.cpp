@@ -1848,7 +1848,7 @@ makeStatepointExplicitImpl(CallBase *Call, /* to replace */
     // the old call (which we're about to delete)
     assert(CI->getNextNode() && "Not a terminator, must have next!");
     Builder.SetInsertPoint(CI->getNextNode());
-    Builder.SetCurrentDebugLocation(CI->getNextNode()->getDebugLoc());
+    Builder.SetCurrentDebugLocation(CI->getNextNode()->getFullDebugLoc());
   } else {
     auto *II = cast<InvokeInst>(Call);
 
@@ -1876,7 +1876,7 @@ makeStatepointExplicitImpl(CallBase *Call, /* to replace */
            "can't safely insert in this block!");
 
     Builder.SetInsertPoint(UnwindBlock, UnwindBlock->getFirstInsertionPt());
-    Builder.SetCurrentDebugLocation(II->getDebugLoc());
+    Builder.SetCurrentDebugLocation(II->getFullDebugLoc());
 
     // Attach exceptional gc relocates to the landingpad.
     Instruction *ExceptionalToken = UnwindBlock->getLandingPadInst();

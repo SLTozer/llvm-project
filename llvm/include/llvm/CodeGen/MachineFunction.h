@@ -26,6 +26,7 @@
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineInstr.h"
 #include "llvm/CodeGen/MachineMemOperand.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/EHPersonalities.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/ArrayRecycler.h"
@@ -1074,7 +1075,7 @@ public:
 
   /// CreateMachineInstr - Allocate a new MachineInstr. Use this instead
   /// of `new MachineInstr'.
-  MachineInstr *CreateMachineInstr(const MCInstrDesc &MCID, DebugLoc DL,
+  MachineInstr *CreateMachineInstr(const MCInstrDesc &MCID, DbgLocStorage DL,
                                    bool NoImplicit = false);
 
   /// Create a new MachineInstr which is a copy of \p Orig, identical in all

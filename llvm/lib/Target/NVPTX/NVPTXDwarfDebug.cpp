@@ -103,7 +103,7 @@ bool NVPTXDwarfDebug::isEnhancedLineinfo(const MachineFunction &MF) const {
 ///   https://dwarfstd.org/issues/140906.1.html
 /// - [3] NVIDIA PTX ISA `.loc` (debugging directives; PTX ISA 7.2+):
 ///   https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#debugging-directives-loc
-void NVPTXDwarfDebug::recordTargetSourceLine(const DebugLoc &DL,
+void NVPTXDwarfDebug::recordTargetSourceLine(DebugLoc DL,
                                              unsigned Flags) {
   // Maintain a work list of .loc to be emitted. If we are emitting the
   // inlined_at directive, we might need to emit additional .loc prior

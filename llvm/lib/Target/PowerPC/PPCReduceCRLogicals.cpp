@@ -221,11 +221,11 @@ static bool splitMBB(BlockSplitInfo &BSI) {
   ThisMBB->addSuccessor(NewMBB, ProbFallThrough);
 
   // Add the branches to ThisMBB.
-  BuildMI(*ThisMBB, ThisMBB->end(), BSI.SplitBefore->getDebugLoc(),
+  BuildMI(*ThisMBB, ThisMBB->end(), BSI.SplitBefore->getFullDebugLoc(),
           TII->get(NewBROpcode))
       .addReg(BSI.SplitCond->getOperand(0).getReg(), {}, BSI.SplitCondSubreg)
       .addMBB(NewBRTarget);
-  BuildMI(*ThisMBB, ThisMBB->end(), BSI.SplitBefore->getDebugLoc(),
+  BuildMI(*ThisMBB, ThisMBB->end(), BSI.SplitBefore->getFullDebugLoc(),
           TII->get(PPC::B))
       .addMBB(NewMBB);
   if (BSI.MIToDelete)

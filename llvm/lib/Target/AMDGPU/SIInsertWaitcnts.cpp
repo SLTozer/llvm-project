@@ -1721,7 +1721,7 @@ bool WaitcntGeneratorPreGFX12::createNewWaitcnt(
   assert(isNormalMode(MaxCounter));
 
   bool Modified = false;
-  const DebugLoc &DL = Block.findDebugLoc(It);
+  DebugLoc DL = Block.findDebugLoc(It);
 
   // Waits for VMcnt, LKGMcnt and/or EXPcnt are encoded together into a
   // single instruction while VScnt has its own instruction.
@@ -2121,7 +2121,7 @@ bool WaitcntGeneratorGFX12Plus::createNewWaitcnt(
   assert(!isNormalMode(MaxCounter));
 
   bool Modified = false;
-  const DebugLoc &DL = Block.findDebugLoc(It);
+  DebugLoc DL = Block.findDebugLoc(It);
 
   // For GFX12+, we use separate wait instructions, which makes expansion
   // simpler
@@ -2632,7 +2632,7 @@ bool SIInsertWaitcnts::insertForcedWaitAfter(MachineInstr &Inst,
                                 /*OldWaitcntInstr=*/nullptr);
 
   if (Result && NeedsEndPGMCheck && isNextENDPGM(SuccessorIt, &Block)) {
-    BuildMI(Block, SuccessorIt, Inst.getDebugLoc(), TII.get(AMDGPU::S_NOP))
+    BuildMI(Block, SuccessorIt, Inst.getFullDebugLoc(), TII.get(AMDGPU::S_NOP))
         .addImm(0);
   }
 
@@ -2960,7 +2960,7 @@ public:
       // Recompute the vccz bit. Any time a value is written to vcc, the vccz
       // bit is updated, so we can restore the bit by reading the value of vcc
       // and then writing it back to the register.
-      BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+      BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
               TII.get(ST.isWave32() ? AMDGPU::S_MOV_B32 : AMDGPU::S_MOV_B64),
               TRI.getVCC())
           .addReg(TRI.getVCC());
@@ -3566,7 +3566,7 @@ bool SIInsertWaitcnts::run() {
                I->getOpcode() == AMDGPU::SI_RETURN_TO_EPILOG) &&
               !SeenDCacheWB) {
             Modified = true;
-            BuildMI(*MBB, I, I->getDebugLoc(), TII.get(AMDGPU::S_DCACHE_WB));
+            BuildMI(*MBB, I, I->getFullDebugLoc(), TII.get(AMDGPU::S_DCACHE_WB));
           }
         }
       }
@@ -3602,7 +3602,7 @@ bool SIInsertWaitcnts::run() {
   // waveslot limited kernel runs slower with the deallocation.
   if (!WCG->isOptNone() && MFI->isDynamicVGPREnabled()) {
     for (auto [MI, _] : EndPgmInsts) {
-      BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+      BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
               TII.get(AMDGPU::S_ALLOC_VGPR))
           .addImm(0);
       Modified = true;
@@ -3617,11 +3617,11 @@ bool SIInsertWaitcnts::run() {
     for (auto [MI, Flag] : EndPgmInsts) {
       if (Flag) {
         if (ST.requiresNopBeforeDeallocVGPRs()) {
-          BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+          BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
                   TII.get(AMDGPU::S_NOP))
               .addImm(0);
         }
-        BuildMI(*MI->getParent(), MI, MI->getDebugLoc(),
+        BuildMI(*MI->getParent(), MI, MI->getFullDebugLoc(),
                 TII.get(AMDGPU::S_SENDMSG))
             .addImm(AMDGPU::SendMsg::ID_DEALLOC_VGPRS_GFX11Plus);
         Modified = true;

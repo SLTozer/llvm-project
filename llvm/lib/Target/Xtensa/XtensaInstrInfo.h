@@ -50,7 +50,7 @@ public:
                               int &FrameIndex) const override;
 
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-                   const DebugLoc &DL, Register DestReg, Register SrcReg,
+                   DbgLocStorage DL, Register DestReg, Register SrcReg,
                    bool KillSrc, bool RenamableDest = false,
                    bool RenamableSrc = false) const override;
 
@@ -92,23 +92,23 @@ public:
 
   unsigned insertBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                         MachineBasicBlock *FBB, ArrayRef<MachineOperand> Cond,
-                        const DebugLoc &DL,
+                        DbgLocStorage DL,
                         int *BytesAdded = nullptr) const override;
 
   void insertIndirectBranch(MachineBasicBlock &MBB, MachineBasicBlock &DestBB,
-                            MachineBasicBlock &RestoreBB, const DebugLoc &DL,
+                            MachineBasicBlock &RestoreBB, DbgLocStorage DL,
                             int64_t BrOffset = 0,
                             RegScavenger *RS = nullptr) const override;
 
   unsigned insertBranchAtInst(MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator I,
                               MachineBasicBlock *TBB,
-                              ArrayRef<MachineOperand> Cond, const DebugLoc &DL,
+                              ArrayRef<MachineOperand> Cond, DbgLocStorage DL,
                               int *BytesAdded) const;
 
   unsigned insertConstBranchAtInst(MachineBasicBlock &MBB, MachineInstr *I,
                                    int64_t offset,
-                                   ArrayRef<MachineOperand> Cond, DebugLoc DL,
+                                   ArrayRef<MachineOperand> Cond, DbgLocStorage DL,
                                    int *BytesAdded) const;
 
   // Return true if MI is a conditional or unconditional branch.

@@ -122,7 +122,7 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
     if (!Subtarget->isV9() &&
         (MI->getOpcode() == SP::FCMPS || MI->getOpcode() == SP::FCMPD
          || MI->getOpcode() == SP::FCMPQ)) {
-      BuildMI(MBB, I, MI->getDebugLoc(), TII->get(SP::NOP));
+      BuildMI(MBB, I, MI->getFullDebugLoc(), TII->get(SP::NOP));
       Changed = true;
       continue;
     }
@@ -140,7 +140,7 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
     Changed = true;
 
     if (D == MBB.end())
-      BuildMI(MBB, I, MI->getDebugLoc(), TII->get(SP::NOP));
+      BuildMI(MBB, I, MI->getFullDebugLoc(), TII->get(SP::NOP));
     else
       MBB.splice(I, &MBB, D);
 
@@ -149,7 +149,7 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
       MachineBasicBlock::iterator J = MI;
       ++J; // skip the delay filler.
       assert (J != MBB.end() && "MI needs a delay instruction.");
-      BuildMI(MBB, ++J, MI->getDebugLoc(),
+      BuildMI(MBB, ++J, MI->getFullDebugLoc(),
               TII->get(SP::UNIMP)).addImm(structSize);
       // Bundle the delay filler and unimp with the instruction.
       MIBundleBuilder(MBB, MachineBasicBlock::iterator(MI), J);

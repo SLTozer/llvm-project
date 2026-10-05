@@ -315,7 +315,7 @@ Value *SCEVExpander::InsertBinop(Instruction::BinaryOps Opcode,
   }
 
   // Save the original insertion point so we can restore it when we're done.
-  DebugLoc Loc = Builder.GetInsertPoint()->getDebugLoc();
+  DebugLoc Loc = Builder.GetInsertPoint()->getFullDebugLoc();
   SCEVInsertPointGuard Guard(Builder, this);
 
   if (IsSafeToHoist) {
@@ -1811,7 +1811,7 @@ void SCEVExpander::replaceCongruentIVInc(
       IP = OrigInc->getNextNode()->getIterator();
 
     IRBuilder<> Builder(IP->getParent(), IP);
-    Builder.SetCurrentDebugLocation(IsomorphicInc->getDebugLoc());
+    Builder.SetCurrentDebugLocation(IsomorphicInc->getFullDebugLoc());
     NewInc =
         Builder.CreateTruncOrBitCast(OrigInc, IsomorphicInc->getType(), IVName);
   }
@@ -1914,7 +1914,7 @@ SCEVExpander::replaceCongruentIVs(Loop *L, const DominatorTree *DT,
     if (OrigPhiRef->getType() != Phi->getType()) {
       IRBuilder<> Builder(L->getHeader(),
                           L->getHeader()->getFirstInsertionPt());
-      Builder.SetCurrentDebugLocation(Phi->getDebugLoc());
+      Builder.SetCurrentDebugLocation(Phi->getFullDebugLoc());
       NewIV = Builder.CreateTruncOrBitCast(OrigPhiRef, Phi->getType(), IVName);
     }
     Phi->replaceAllUsesWith(NewIV);

@@ -380,7 +380,7 @@ bool AMDGPUCodeGenPrepareImpl::replaceMulWithMul24(BinaryOperator &I) const {
   Value *LHS = I.getOperand(0);
   Value *RHS = I.getOperand(1);
   IRBuilder<> Builder(&I);
-  Builder.SetCurrentDebugLocation(I.getDebugLoc());
+  Builder.SetCurrentDebugLocation(I.getFullDebugLoc());
 
   unsigned LHSBits = 0, RHSBits = 0;
   bool IsSigned = false;
@@ -488,7 +488,7 @@ bool AMDGPUCodeGenPrepareImpl::foldBinOpIntoSelect(BinaryOperator &BO) const {
     return false;
 
   IRBuilder<> Builder(&BO);
-  Builder.SetCurrentDebugLocation(BO.getDebugLoc());
+  Builder.SetCurrentDebugLocation(BO.getFullDebugLoc());
   if (const FPMathOperator *FPOp = dyn_cast<const FPMathOperator>(&BO))
     Builder.setFastMathFlags(FPOp->getFastMathFlags());
 
@@ -954,7 +954,7 @@ bool AMDGPUCodeGenPrepareImpl::visitFDiv(BinaryOperator &FDiv) {
 
   IRBuilder<> Builder(FDiv.getParent(), std::next(FDiv.getIterator()));
   Builder.setFastMathFlags(DivFMF);
-  Builder.SetCurrentDebugLocation(FDiv.getDebugLoc());
+  Builder.SetCurrentDebugLocation(FDiv.getFullDebugLoc());
 
   SmallVector<Value *, 4> NumVals;
   SmallVector<Value *, 4> DenVals;
@@ -1488,7 +1488,7 @@ bool AMDGPUCodeGenPrepareImpl::visitBinaryOperator(BinaryOperator &I) {
     Value *Num = I.getOperand(0);
     Value *Den = I.getOperand(1);
     IRBuilder<> Builder(&I);
-    Builder.SetCurrentDebugLocation(I.getDebugLoc());
+    Builder.SetCurrentDebugLocation(I.getFullDebugLoc());
 
     if (auto *VT = dyn_cast<FixedVectorType>(Ty)) {
       NewDiv = PoisonValue::get(VT);
@@ -1560,7 +1560,7 @@ bool AMDGPUCodeGenPrepareImpl::visitLoadInst(LoadInst &I) {
        I.getPointerAddressSpace() == AMDGPUAS::CONSTANT_ADDRESS_32BIT) &&
       canWidenScalarExtLoad(I)) {
     IRBuilder<> Builder(&I);
-    Builder.SetCurrentDebugLocation(I.getDebugLoc());
+    Builder.SetCurrentDebugLocation(I.getFullDebugLoc());
 
     Type *I32Ty = Builder.getInt32Ty();
     LoadInst *WidenLoad = Builder.CreateLoad(I32Ty, I.getPointerOperand());
@@ -1871,7 +1871,7 @@ public:
 
     IRBuilder<> B(BB->getTerminator());
     if (Instruction *IncInst = dyn_cast<Instruction>(Inc))
-      B.SetCurrentDebugLocation(IncInst->getDebugLoc());
+      B.SetCurrentDebugLocation(IncInst->getFullDebugLoc());
 
     if (NumElts > 1) {
       SmallVector<int, 4> Mask;
@@ -1939,7 +1939,7 @@ bool AMDGPUCodeGenPrepareImpl::visitPHINode(PHINode &I) {
   // creating the necessary instruction to extract the relevant slices of each
   // incoming value.
   IRBuilder<> B(I.getParent());
-  B.SetCurrentDebugLocation(I.getDebugLoc());
+  B.SetCurrentDebugLocation(I.getFullDebugLoc());
 
   unsigned IncNameSuffix = 0;
   for (VectorSlice &S : Slices) {

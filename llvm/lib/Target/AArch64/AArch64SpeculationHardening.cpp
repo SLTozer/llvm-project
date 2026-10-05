@@ -258,7 +258,7 @@ bool AArch64SpeculationHardening::instrumentControlFlow(
 
     DebugLoc DL;
     if (MBB.instr_end() != MBB.instr_begin())
-      DL = (--MBB.instr_end())->getDebugLoc();
+      DL = (--MBB.instr_end())->getFullDebugLoc();
 
     insertTrackingCode(*SplitEdgeTBB, CondCode, DL);
     insertTrackingCode(*SplitEdgeFBB, InvCondCode, DL);
@@ -320,7 +320,7 @@ bool AArch64SpeculationHardening::instrumentControlFlow(
     // emit a full speculation barrier at the start of this basic block, which
     // renders the taint/speculation tracking in this basic block unnecessary.
     insertFullSpeculationBarrier(MBB, MBB.begin(),
-                                 (MBB.begin())->getDebugLoc());
+                                 (MBB.begin())->getFullDebugLoc());
     UsesFullSpeculationBarrier = true;
     Modified = true;
   } else {
@@ -444,7 +444,7 @@ bool AArch64SpeculationHardening::makeGPRSpeculationSafe(
 
   const bool Is64Bit = AArch64::GPR64allRegClass.contains(Reg);
   LLVM_DEBUG(dbgs() << "About to harden register : " << Reg << "\n");
-  BuildMI(MBB, MBBI, MI.getDebugLoc(),
+  BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
           TII->get(Is64Bit ? AArch64::SpeculationSafeValueX
                            : AArch64::SpeculationSafeValueW))
       .addDef(Reg)
@@ -569,7 +569,7 @@ bool AArch64SpeculationHardening::expandSpeculationSafeValue(
           RegsNeedingCSDBBeforeUse.set(*AI);
 
       // Mask off with taint state.
-      BuildMI(MBB, MBBI, MI.getDebugLoc(),
+      BuildMI(MBB, MBBI, MI.getFullDebugLoc(),
               Is64Bit ? TII->get(AArch64::ANDXrs) : TII->get(AArch64::ANDWrs))
           .addDef(DstReg)
           .addUse(SrcReg, RegState::Kill)
@@ -615,7 +615,7 @@ bool AArch64SpeculationHardening::lowerSpeculationSafeValuePseudos(
   DebugLoc DL;
   while (MBBI != E) {
     MachineInstr &MI = *MBBI;
-    DL = MI.getDebugLoc();
+    DL = MI.getFullDebugLoc();
     MachineBasicBlock::iterator NMBBI = std::next(MBBI);
 
     // First check if a CSDB needs to be inserted due to earlier registers

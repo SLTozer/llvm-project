@@ -47,7 +47,7 @@ using namespace llvm;
 
 STATISTIC(RemappedAtomMax, "Highest global NextAtomGroup (after mapping)");
 
-void llvm::mapAtomInstance(const DebugLoc &DL, ValueToValueMapTy &VMap) {
+void llvm::mapAtomInstance(DebugLoc DL, ValueToValueMapTy &VMap) {
   uint64_t CurGroup = DL.getAtomGroup();
   if (!CurGroup)
     return;
@@ -169,7 +169,7 @@ BasicBlock *llvm::CloneBasicBlock(const BasicBlock *BB, ValueToValueMapTy &VMap,
       // we can use the existing basic block. However, this needs verifying, and
       // also  there is a good argument that if we are inserting into a new
       // function then we don't need to map atoms at all.
-      if (const DebugLoc &DL = NewInst->getDebugLoc(F ? F : BB->getParent()))
+      if (DebugLoc DL = NewInst->getFullDebugLoc(F ? F : BB->getParent()))
         mapAtomInstance(DL, VMap);
     }
 
@@ -302,9 +302,9 @@ void llvm::CloneFunctionBodyInto(Function &NewFunc, const Function &OldFunc,
            BE = NewFunc.end();
        BB != BE; ++BB)
     for (Instruction &II : *BB) {
-      II.setDebugLoc(II.getDebugLoc(&NewFunc));
+      II.setDebugLoc(II.getFullDebugLoc(&NewFunc));
       for (auto &DVR : II.getDbgRecordRange())
-        DVR.setDebugLoc(DVR.getDebugLoc(&NewFunc));
+        DVR.setDebugLoc(DVR.getFullDebugLoc(&NewFunc));
     }
 #endif
 

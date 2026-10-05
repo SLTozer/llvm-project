@@ -46,7 +46,7 @@ extractProbeFromDiscriminator(const Instruction &Inst) {
   assert(isa<CallBase>(&Inst) && !isa<IntrinsicInst>(&Inst) &&
          "Only call instructions should have pseudo probe encodes as their "
          "Dwarf discriminators");
-  if (const DebugLoc &DLoc = Inst.getDebugLoc())
+  if (DebugLoc DLoc = Inst.getFullDebugLoc())
     return extractProbeFromDiscriminator(DLoc);
   return std::nullopt;
 }
@@ -60,7 +60,7 @@ std::optional<PseudoProbe> llvm::extractProbe(const Instruction &Inst) {
     Probe.Factor = II->getFactor()->getZExtValue() /
                    (float)PseudoProbeFullDistributionFactor;
     Probe.Discriminator = 0;
-    if (const DebugLoc &DLoc = Inst.getDebugLoc())
+    if (DebugLoc DLoc = Inst.getFullDebugLoc())
       Probe.Discriminator = DLoc.getDiscriminator();
     return Probe;
   }
@@ -83,7 +83,7 @@ void llvm::setProbeDistributionFactor(Instruction &Inst, float Factor) {
     if (IntFactor != OrigFactor)
       II->replaceUsesOfWith(II->getFactor(), Builder.getInt64(IntFactor));
   } else if (isa<CallBase>(&Inst) && !isa<IntrinsicInst>(&Inst)) {
-    if (const DebugLoc &DLoc = Inst.getDebugLoc()) {
+    if (DebugLoc DLoc = Inst.getFullDebugLoc()) {
       DebugLoc DIL = DLoc;
       auto Discriminator = DIL.getDiscriminator();
       if (DebugLoc::isPseudoProbeDiscriminator(Discriminator)) {

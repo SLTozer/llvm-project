@@ -935,7 +935,7 @@ AArch64LoadStoreOpt::mergeNarrowZeroStores(MachineBasicBlock::iterator I,
   }
 
   // Construct the new instruction.
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
   MachineBasicBlock *MBB = I->getParent();
   MachineInstrBuilder MIB;
   MIB = BuildMI(*MBB, InsertionPoint, DL, TII->get(NewOpcode))
@@ -1200,7 +1200,7 @@ AArch64LoadStoreOpt::mergePairedInsns(MachineBasicBlock::iterator I,
 
   // Construct the new instruction.
   MachineInstrBuilder MIB;
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
   MachineBasicBlock *MBB = I->getParent();
   MachineOperand RegOp0 = getLdStRegOp(*RtMI);
   MachineOperand RegOp1 = getLdStRegOp(*Rt2MI);
@@ -1483,7 +1483,7 @@ AArch64LoadStoreOpt::promoteLoadFromStore(MachineBasicBlock::iterator LoadI,
     }
     // Replace the load with a mov if the load and store are in the same size.
     BitExtMI =
-        BuildMI(*LoadI->getParent(), LoadI, LoadI->getDebugLoc(),
+        BuildMI(*LoadI->getParent(), LoadI, LoadI->getFullDebugLoc(),
                 TII->get(IsStoreXReg ? AArch64::ORRXrs : AArch64::ORRWrs), LdRt)
             .addReg(IsStoreXReg ? AArch64::XZR : AArch64::WZR)
             .add(StMO)
@@ -1525,7 +1525,7 @@ AArch64LoadStoreOpt::promoteLoadFromStore(MachineBasicBlock::iterator LoadI,
           ;
 
       BitExtMI =
-          BuildMI(*LoadI->getParent(), LoadI, LoadI->getDebugLoc(),
+          BuildMI(*LoadI->getParent(), LoadI, LoadI->getFullDebugLoc(),
                   TII->get(IsStoreXReg ? AArch64::ANDXri : AArch64::ANDWri),
                   DestReg)
               .add(StMO)
@@ -1535,7 +1535,7 @@ AArch64LoadStoreOpt::promoteLoadFromStore(MachineBasicBlock::iterator LoadI,
       // Use the 32 bit variant of UBFM if it's the LSR alias of the
       // instruction.
       assert(Immr <= Imms && "Expected LSR alias of UBFM");
-      BitExtMI = BuildMI(*LoadI->getParent(), LoadI, LoadI->getDebugLoc(),
+      BitExtMI = BuildMI(*LoadI->getParent(), LoadI, LoadI->getFullDebugLoc(),
                          TII->get(AArch64::UBFMWri),
                          TRI->getSubReg(DestReg, AArch64::sub_32))
                      .addReg(TRI->getSubReg(StRt, AArch64::sub_32))
@@ -1544,7 +1544,7 @@ AArch64LoadStoreOpt::promoteLoadFromStore(MachineBasicBlock::iterator LoadI,
                      .setMIFlags(LoadI->getFlags());
     } else {
       BitExtMI =
-          BuildMI(*LoadI->getParent(), LoadI, LoadI->getDebugLoc(),
+          BuildMI(*LoadI->getParent(), LoadI, LoadI->getFullDebugLoc(),
                   TII->get(IsStoreXReg ? AArch64::UBFMXri : AArch64::UBFMWri),
                   DestReg)
               .add(StMO)
@@ -2354,7 +2354,7 @@ std::optional<MachineBasicBlock::iterator> AArch64LoadStoreOpt::mergeUpdateInsn(
   getPrePostIndexedMemOpInfo(*I, Scale, MinOffset, MaxOffset);
   if (!AArch64InstrInfo::isPairedLdSt(*I)) {
     // Non-paired instruction.
-    MIB = BuildMI(*InsertPt->getParent(), InsertPt, InsertPt->getDebugLoc(),
+    MIB = BuildMI(*InsertPt->getParent(), InsertPt, InsertPt->getFullDebugLoc(),
                   TII->get(NewOpc))
               .add(Update->getOperand(0))
               .add(getLdStRegOp(*I))
@@ -2364,7 +2364,7 @@ std::optional<MachineBasicBlock::iterator> AArch64LoadStoreOpt::mergeUpdateInsn(
               .setMIFlags(I->mergeFlagsWith(*Update));
   } else {
     // Paired instruction.
-    MIB = BuildMI(*InsertPt->getParent(), InsertPt, InsertPt->getDebugLoc(),
+    MIB = BuildMI(*InsertPt->getParent(), InsertPt, InsertPt->getFullDebugLoc(),
                   TII->get(NewOpc))
               .add(Update->getOperand(0))
               .add(getLdStRegOp(*I, 0))
@@ -2416,7 +2416,7 @@ AArch64LoadStoreOpt::mergeConstOffsetInsn(MachineBasicBlock::iterator I,
 
   // Add IndexReg, BaseReg, High (the BaseReg may be SP)
   AddMIB =
-      BuildMI(*I->getParent(), I, I->getDebugLoc(), TII->get(AArch64::ADDXri))
+      BuildMI(*I->getParent(), I, I->getFullDebugLoc(), TII->get(AArch64::ADDXri))
           .addDef(IndexReg)
           .addUse(BaseReg)
           .addImm(High >> 12) // shifted value
@@ -2424,7 +2424,7 @@ AArch64LoadStoreOpt::mergeConstOffsetInsn(MachineBasicBlock::iterator I,
   (void)AddMIB;
   // Ld/St DestReg, IndexReg, Imm12
   unsigned NewOpc = getBaseAddressOpcode(I->getOpcode());
-  MemMIB = BuildMI(*I->getParent(), I, I->getDebugLoc(), TII->get(NewOpc))
+  MemMIB = BuildMI(*I->getParent(), I, I->getFullDebugLoc(), TII->get(NewOpc))
                .add(getLdStRegOp(MemMI))
                .add(AArch64InstrInfo::getLdStOffsetOp(MemMI))
                .addImm(Low / Scale)
@@ -3163,7 +3163,7 @@ bool AArch64LoadStoreOpt::tryToReplaceUMOVStore(
   LLVM_DEBUG(dbgs() << "Folding UMOV + store: " << *UMOVMI << "  + "
                     << StoreMI);
 
-  auto MIB = BuildMI(*MBB, MBBI, StoreMI.getDebugLoc(), TII->get(FPRStoreOpc))
+  auto MIB = BuildMI(*MBB, MBBI, StoreMI.getFullDebugLoc(), TII->get(FPRStoreOpc))
                  .addReg(FPRReg, getKillRegState(VecRegKilled));
   for (unsigned I = 1, E = StoreMI.getNumExplicitOperands(); I < E; ++I)
     MIB.add(StoreMI.getOperand(I));

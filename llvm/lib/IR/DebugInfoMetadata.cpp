@@ -57,11 +57,11 @@ const DIExpression::FragmentInfo DebugVariable::DefaultFragment = {
 DebugVariable::DebugVariable(const DbgVariableRecord *DVR)
     : Variable(DVR->getVariable()),
       Fragment(DVR->getExpression()->getFragmentInfo()),
-      InlinedAt(DVR->getDebugLoc().getInlinedAt()) {}
+      InlinedAt(DVR->getFullDebugLoc().getInlinedAt()) {}
 
 DebugVariableAggregate::DebugVariableAggregate(const DbgVariableRecord *DVR)
     : DebugVariable(DVR->getVariable(), std::nullopt,
-                    DVR->getDebugLoc().getInlinedAt()) {}
+                    DVR->getFullDebugLoc().getInlinedAt()) {}
 
 static void adjustColumn(unsigned &Column) {
   // Set to unknown on overflow.  We only have 16 bits to play with here.

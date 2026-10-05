@@ -205,7 +205,7 @@ static unsigned getSubOpcode(bool Is64Bit) {
 }
 
 void X86DynAllocaExpander::lower(MachineInstr *MI, Lowering L) {
-  const DebugLoc &DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   MachineBasicBlock *MBB = MI->getParent();
   MachineBasicBlock::iterator I = *MI;
 

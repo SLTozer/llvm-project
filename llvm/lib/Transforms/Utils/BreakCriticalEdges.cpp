@@ -484,8 +484,8 @@ bool llvm::SplitIndirectBrCriticalEdges(Function &F,
       MergePHI->insertBefore(MergeInsert);
       MergePHI->addIncoming(NewIndPHI, Target);
       MergePHI->addIncoming(DirPHI, DirectSucc);
-      MergePHI->applyMergedLocation(DirPHI->getDebugLoc(),
-                                    IndPHI->getDebugLoc());
+      MergePHI->applyMergedLocation(DirPHI->getFullDebugLoc(),
+                                    IndPHI->getFullDebugLoc());
 
       IndPHI->replaceAllUsesWith(MergePHI);
       IndPHI->eraseFromParent();

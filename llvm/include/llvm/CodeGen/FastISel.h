@@ -249,7 +249,7 @@ public:
   void finishBasicBlock();
 
   /// Return current debug location information.
-  DebugLoc getCurDebugLoc() const { return MIMD.getDL(); }
+  DebugLoc getCurDebugLoc() const { return MIMD.getDL().withContext(&MF->getFunction()); }
 
   /// Do "fast" instruction selection for function arguments and append
   /// the machine instructions to the current block. Returns true when
@@ -447,7 +447,7 @@ protected:
 
   /// Emit an unconditional branch to the given block, unless it is the
   /// immediate (fall-through) successor, and update the CFG.
-  void fastEmitBranch(MachineBasicBlock *MSucc, const DebugLoc &DbgLoc);
+  void fastEmitBranch(MachineBasicBlock *MSucc, DebugLoc DbgLoc);
 
   /// Emit an unconditional branch to \p FalseMBB, obtains the branch weight
   /// and adds TrueMBB and FalseMBB to the successor list.
@@ -532,12 +532,12 @@ protected:
   /// Target-independent lowering of debug information. Returns false if the
   /// debug information couldn't be lowered and was instead discarded.
   virtual bool lowerDbgValue(const Value *V, DIExpression *Expr,
-                             DILocalVariable *Var, const DebugLoc &DL);
+                             DILocalVariable *Var, DebugLoc DL);
 
   /// Target-independent lowering of debug information. Returns false if the
   /// debug information couldn't be lowered and was instead discarded.
   virtual bool lowerDbgDeclare(const Value *V, DIExpression *Expr,
-                               DILocalVariable *Var, const DebugLoc &DL);
+                               DILocalVariable *Var, DebugLoc DL);
 
 private:
   /// Handle PHI nodes in successor blocks.

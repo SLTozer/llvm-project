@@ -35,7 +35,7 @@ AVRInstrInfo::AVRInstrInfo(const AVRSubtarget &STI)
 
 void AVRInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MI,
-                               const DebugLoc &DL, Register DestReg,
+                               DbgLocStorage DL, Register DestReg,
                                Register SrcReg, bool KillSrc,
                                bool RenamableDest, bool RenamableSrc) const {
   const AVRRegisterInfo &TRI = *STI.getRegisterInfo();
@@ -149,7 +149,7 @@ void AVRInstrInfo::storeRegToStackSlot(
     llvm_unreachable("Cannot store this register into a stack slot!");
   }
 
-  BuildMI(MBB, MI, DebugLoc(), get(Opcode))
+  BuildMI(MBB, MI, DbgLocStorage(), get(Opcode))
       .addFrameIndex(FrameIndex)
       .addImm(0)
       .addReg(SrcReg, getKillRegState(isKill))
@@ -181,7 +181,7 @@ void AVRInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
     llvm_unreachable("Cannot load this register from a stack slot!");
   }
 
-  BuildMI(MBB, MI, DebugLoc(), get(Opcode), DestReg)
+  BuildMI(MBB, MI, DbgLocStorage(), get(Opcode), DestReg)
       .addFrameIndex(FrameIndex)
       .addImm(0)
       .addMemOperand(MMO);
@@ -393,7 +393,7 @@ unsigned AVRInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                     MachineBasicBlock *TBB,
                                     MachineBasicBlock *FBB,
                                     ArrayRef<MachineOperand> Cond,
-                                    const DebugLoc &DL, int *BytesAdded) const {
+                                    DbgLocStorage DL, int *BytesAdded) const {
   if (BytesAdded)
     *BytesAdded = 0;
 
@@ -555,7 +555,7 @@ bool AVRInstrInfo::isBranchOffsetInRange(unsigned BranchOp,
 void AVRInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
                                         MachineBasicBlock &NewDestBB,
                                         MachineBasicBlock &RestoreBB,
-                                        const DebugLoc &DL, int64_t BrOffset,
+                                        DbgLocStorage DL, int64_t BrOffset,
                                         RegScavenger *RS) const {
   // This method inserts a *direct* branch (JMP), despite its name.
   // LLVM calls this method to fixup unconditional branches; it never calls

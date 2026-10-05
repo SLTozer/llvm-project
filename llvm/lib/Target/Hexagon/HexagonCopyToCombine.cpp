@@ -638,7 +638,7 @@ void HexagonCopyToCombine::emitConst64(MachineBasicBlock::iterator &InsertPt,
                                        MachineOperand &LoOperand) {
   LLVM_DEBUG(dbgs() << "Found a CONST64\n");
 
-  DebugLoc DL = InsertPt->getDebugLoc();
+  DebugLoc DL = InsertPt->getFullDebugLoc();
   MachineBasicBlock *BB = InsertPt->getParent();
   assert(LoOperand.isImm() && HiOperand.isImm() &&
          "Both operands must be immediate");
@@ -653,7 +653,7 @@ void HexagonCopyToCombine::emitCombineII(MachineBasicBlock::iterator &InsertPt,
                                          unsigned DoubleDestReg,
                                          MachineOperand &HiOperand,
                                          MachineOperand &LoOperand) {
-  DebugLoc DL = InsertPt->getDebugLoc();
+  DebugLoc DL = InsertPt->getFullDebugLoc();
   MachineBasicBlock *BB = InsertPt->getParent();
 
   // Handle globals.
@@ -750,7 +750,7 @@ void HexagonCopyToCombine::emitCombineIR(MachineBasicBlock::iterator &InsertPt,
   Register LoReg = LoOperand.getReg();
   RegState LoRegKillFlag = getKillRegState(LoOperand.isKill());
 
-  DebugLoc DL = InsertPt->getDebugLoc();
+  DebugLoc DL = InsertPt->getFullDebugLoc();
   MachineBasicBlock *BB = InsertPt->getParent();
 
   // Handle globals.
@@ -798,7 +798,7 @@ void HexagonCopyToCombine::emitCombineRI(MachineBasicBlock::iterator &InsertPt,
   RegState HiRegKillFlag = getKillRegState(HiOperand.isKill());
   Register HiReg = HiOperand.getReg();
 
-  DebugLoc DL = InsertPt->getDebugLoc();
+  DebugLoc DL = InsertPt->getFullDebugLoc();
   MachineBasicBlock *BB = InsertPt->getParent();
 
   // Handle global.
@@ -849,7 +849,7 @@ void HexagonCopyToCombine::emitCombineRR(MachineBasicBlock::iterator &InsertPt,
   Register LoReg = LoOperand.getReg();
   Register HiReg = HiOperand.getReg();
 
-  DebugLoc DL = InsertPt->getDebugLoc();
+  DebugLoc DL = InsertPt->getFullDebugLoc();
   MachineBasicBlock *BB = InsertPt->getParent();
 
   // Insert new combine instruction.

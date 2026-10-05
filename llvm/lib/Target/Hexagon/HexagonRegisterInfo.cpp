@@ -356,7 +356,7 @@ bool HexagonRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     auto &MRI = MF.getRegInfo();
     if (!ReuseBP) {
       ReuseBP = MRI.createVirtualRegister(&Hexagon::IntRegsRegClass);
-      const DebugLoc &DL = MI.getDebugLoc();
+      DebugLoc DL = MI.getFullDebugLoc();
       BuildMI(MB, II, DL, HII.get(Hexagon::A2_addi), ReuseBP)
         .addReg(BP)
         .addImm(RealOffset);

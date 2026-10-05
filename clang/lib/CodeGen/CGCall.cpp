@@ -4381,7 +4381,7 @@ void CodeGenFunction::EmitFunctionEpilog(
         // cleanup code to be emitted between the store and return
         // instruction.
         if (EmitRetDbgLoc && !AutoreleaseResult)
-          RetDbgLoc = SI->getDebugLoc();
+          RetDbgLoc = SI->getFullDebugLoc();
         // Get the stored value and nuke the now-dead store.
         RV = SI->getValueOperand();
         SI->eraseFromParent();

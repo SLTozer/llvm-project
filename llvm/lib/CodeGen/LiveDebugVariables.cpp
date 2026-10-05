@@ -491,7 +491,7 @@ public:
                        BlockSkipInstsMap &BBSkipInstsMap);
 
   /// Return DebugLoc of this UserValue.
-  const DebugLoc &getDebugLoc() { return dl; }
+  DebugLoc getDebugLoc() { return dl; }
 
   void print(raw_ostream &, const TargetRegisterInfo *);
 };
@@ -524,7 +524,7 @@ public:
                       BlockSkipInstsMap &BBSkipInstsMap);
 
   /// Return DebugLoc of this UserLabel.
-  const DebugLoc &getDebugLoc() { return dl; }
+  DebugLoc getDebugLoc() { return dl; }
 
   void print(raw_ostream &, const TargetRegisterInfo *);
 };
@@ -588,7 +588,7 @@ class LiveDebugVariables::LDVImpl {
   /// Find or create a UserValue.
   UserValue *getUserValue(const DILocalVariable *Var,
                           std::optional<DIExpression::FragmentInfo> Fragment,
-                          const DebugLoc &DL);
+                          DebugLoc DL);
 
   /// Find the EC leader for VirtReg or null.
   UserValue *lookupVirtReg(Register VirtReg);
@@ -682,7 +682,7 @@ LiveDebugVariables::LiveDebugVariables(LiveDebugVariables &&) = default;
 
 } // namespace llvm
 
-static void printDebugLoc(const DebugLoc &DL, raw_ostream &CommentOS,
+static void printDebugLoc(DebugLoc DL, raw_ostream &CommentOS,
                           const LLVMContext &Ctx) {
   if (!DL)
     return;
@@ -778,7 +778,7 @@ void UserValue::mapVirtRegs(LiveDebugVariables::LDVImpl *LDV) {
 
 UserValue *LiveDebugVariables::LDVImpl::getUserValue(
     const DILocalVariable *Var,
-    std::optional<DIExpression::FragmentInfo> Fragment, const DebugLoc &DL) {
+    std::optional<DIExpression::FragmentInfo> Fragment, DebugLoc DL) {
   // FIXME: Handle partially overlapping fragments. See
   // https://reviews.llvm.org/D70121#1849741.
   DebugVariable ID(Var, Fragment, DL.getInlinedAt());
@@ -862,7 +862,7 @@ bool LiveDebugVariables::LDVImpl::handleDebugValue(MachineInstr &MI,
   bool IsList = MI.isDebugValueList();
   const DILocalVariable *Var = MI.getDebugVariable();
   const DIExpression *Expr = MI.getDebugExpression();
-  UserValue *UV = getUserValue(Var, Expr->getFragmentInfo(), MI.getDebugLoc());
+  UserValue *UV = getUserValue(Var, Expr->getFragmentInfo(), MI.getFullDebugLoc());
   if (!Discard)
     UV->addDef(Idx,
                ArrayRef<MachineOperand>(MI.debug_operands().begin(),
@@ -911,7 +911,7 @@ bool LiveDebugVariables::LDVImpl::handleDebugLabel(MachineInstr &MI,
 
   // Get or create the UserLabel for label here.
   const DILabel *Label = MI.getDebugLabel();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   bool Found = false;
   for (auto const &L : userLabels) {
     if (L->matches(Label, DL.getInlinedAt(), Idx)) {

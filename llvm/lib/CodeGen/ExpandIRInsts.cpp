@@ -533,7 +533,7 @@ static bool expandFRem(BinaryOperator &I, std::optional<SimplifyQuery> &SQ) {
 
   IRBuilder<> B(&I);
   B.setFastMathFlags(FMF);
-  B.SetCurrentDebugLocation(I.getDebugLoc());
+  B.SetCurrentDebugLocation(I.getFullDebugLoc());
 
   const FRemExpander Expander = FRemExpander::create(B, Ty);
   Value *Ret = FMF.approxFunc()

@@ -1457,7 +1457,7 @@ bool JumpThreadingPass::simplifyPartiallyRedundantLoad(LoadInst *LoadI) {
       // branch to the load BB however then the debug location must be dropped,
       // as it is hoisted past a conditional branch.
       DebugLoc DL = P->getTerminator()->getNumSuccessors() == 1
-                        ? LoadI->getDebugLoc()
+                        ? LoadI->getFullDebugLoc()
                         : DebugLoc::getDropped();
       cast<CastInst>(PredV)->setDebugLoc(DL);
     }
@@ -2093,7 +2093,7 @@ void JumpThreadingPass::cloneInstructions(ValueToValueMapTy &ValueMapping,
     PHINode *NewPN = PHINode::Create(PN->getType(), 1, PN->getName(), NewBB);
     NewPN->addIncoming(PN->getIncomingValueForBlock(PredBB), PredBB);
     ValueMapping[PN] = NewPN;
-    if (const DebugLoc &DL = PN->getDebugLoc())
+    if (DebugLoc DL = PN->getFullDebugLoc())
       mapAtomInstance(DL, ValueMapping);
   }
 
@@ -2123,7 +2123,7 @@ void JumpThreadingPass::cloneInstructions(ValueToValueMapTy &ValueMapping,
     adaptNoAliasScopes(New, ClonedScopes, Context);
 
     CloneAndRemapDbgInfo(New, &*BI);
-    if (const DebugLoc &DL = New->getDebugLoc())
+    if (DebugLoc DL = New->getFullDebugLoc())
       mapAtomInstance(DL, ValueMapping);
 
     // Remap operands to patch up intra-block references.
@@ -2740,7 +2740,7 @@ bool JumpThreadingPass::duplicateCondBranchOnPHIIntoPred(
 
     // Remap debug variable operands.
     remapDebugVariable(ValueMapping, New);
-    if (const DebugLoc &DL = New->getDebugLoc())
+    if (DebugLoc DL = New->getFullDebugLoc())
       mapAtomInstance(DL, ValueMapping);
 
     // If this instruction can be simplified after the operands are updated,
@@ -2831,7 +2831,7 @@ void JumpThreadingPass::unfoldSelectInstr(BasicBlock *Pred, BasicBlock *BB,
   // and we haven't been able to find an end-to-end correctness issue it fixes.
   // https://github.com/llvm/llvm-project/pull/199408#issuecomment-4545013881.
   auto *BI = CondBrInst::Create(SI->getCondition(), NewBB, BB, Pred);
-  BI->applyMergedLocation(PredTerm->getDebugLoc(), SI->getDebugLoc());
+  BI->applyMergedLocation(PredTerm->getFullDebugLoc(), SI->getFullDebugLoc());
   BI->copyMetadata(*SI, {LLVMContext::MD_prof});
   SIUse->setIncomingValue(Idx, SI->getFalseValue());
   SIUse->addIncoming(SI->getTrueValue(), NewBB);

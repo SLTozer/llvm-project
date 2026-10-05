@@ -2823,7 +2823,7 @@ unsigned IROutliner::doOutline(Module &M) {
             [&R](OutlinableRegion *Region) {
               R << ore::NV(
                   "DebugLoc",
-                  Region->Candidate->frontInstruction()->getDebugLoc());
+                  Region->Candidate->frontInstruction()->getFullDebugLoc());
             },
             [&R]() { R << " "; });
         return R;
@@ -2928,7 +2928,7 @@ unsigned IROutliner::doOutline(Module &M) {
           CurrentGroup.Regions.begin(), CurrentGroup.Regions.end(),
           [&R](OutlinableRegion *Region) {
             R << ore::NV("DebugLoc",
-                         Region->Candidate->frontInstruction()->getDebugLoc());
+                         Region->Candidate->frontInstruction()->getFullDebugLoc());
           },
           [&R]() { R << " "; });
       return R;

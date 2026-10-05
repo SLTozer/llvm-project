@@ -424,7 +424,7 @@ SampleProfileLoaderBaseImpl<BT>::getInstWeightImpl(const InstructionT &Inst) {
   if (!FS)
     return std::error_code();
 
-  const DebugLoc &DLoc = Inst.getDebugLoc();
+  DebugLoc DLoc = Inst.getFullDebugLoc();
   if (!DLoc)
     return std::error_code();
 
@@ -571,7 +571,7 @@ bool SampleProfileLoaderBaseImpl<BT>::computeBlockWeights(FunctionT &F) {
 template <typename BT>
 const FunctionSamples *SampleProfileLoaderBaseImpl<BT>::findFunctionSamples(
     const InstructionT &Inst) const {
-  DebugLoc DIL = Inst.getDebugLoc();
+  DebugLoc DIL = Inst.getFullDebugLoc();
   if (!DIL)
     return Samples;
 

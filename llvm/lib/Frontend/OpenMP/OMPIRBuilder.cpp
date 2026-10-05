@@ -6251,7 +6251,7 @@ static void workshareLoopTargetCallback(
   // That's why make an unconditional branch from loop preheader to loop
   // exit block
   Builder.restoreIP({Preheader, Preheader->end()});
-  Builder.SetCurrentDebugLocation(Preheader->getTerminator()->getDebugLoc());
+  Builder.SetCurrentDebugLocation(Preheader->getTerminator()->getFullDebugLoc());
   Preheader->getTerminator()->eraseFromParent();
   Builder.CreateBr(CLI->getExit());
 

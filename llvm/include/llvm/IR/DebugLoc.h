@@ -245,6 +245,32 @@ struct SrcLocData {
 
 DIFunctionLocalMetadata *getFLMDForInstruction(const Instruction *I);
 DIFunctionLocalMetadata *getFLMDForFunction(const Function *F);
+class DebugLoc;
+
+/// Helper class used to fetch the required context object to create a new
+/// DebugLoc from any of the objects that can reach it (see comment above the
+/// private functions above).
+struct DebugLocContext {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  DIFunctionLocalMetadata *Context;
+  /// Warning: Only use in conditionally-compiled code, where
+  /// LLVM_USE_FLMD_SOURCE_LOCS is defined - otherwise this will cause an
+  /// error when the flag is not defined.
+  explicit DebugLocContext(DIFunctionLocalMetadata *FLMDContext) : Context(FLMDContext) {}
+#else
+  LLVMContext &Context;
+  /// Warning: Only use in conditionally-compiled code, where
+  /// LLVM_USE_FLMD_SOURCE_LOCS is not defined - otherwise this will cause an
+  /// error when the flag is defined.
+  explicit DebugLocContext(LLVMContext &LLVMContext) : Context(LLVMContext) {}
+  DebugLocContext(DebugLoc DL) : Context(DL.getContext()) {
+    assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
+  }
+#endif
+  DebugLocContext(const Instruction *I);
+  DebugLocContext(const Function *F);
+  DebugLocContext(DebugLoc DL);
+};
 
 /// Debug location information stored directly inside an Instruction.
 /// Underlying interface can be accessed via `get`, but care must be taken
@@ -285,6 +311,69 @@ public:
   bool operator!=(const DILocation *Other) const { return Loc != Other; }
 #endif
 
+  DebugLoc withContext(DebugLocContext Context) const;
+
+#if LLVM_USE_FLMD_SOURCE_LOCS
+  bool isSameSourceLocation(const DbgLocStorage &Other) const {
+    return get().SrcLocIdx == Other.get().SrcLocIdx &&
+      get().InlinedAtIdx == Other.get().InlinedAtIdx;
+  }
+  uint64_t getAtomGroup() const {
+    return get().AtomGroup;
+  }
+  uint8_t getAtomRank() const {
+    return get().AtomRank;
+  }
+  DbgLocStorage getWithoutAtom() const {
+    FLDebugLoc Copy = get();
+    Copy.AtomGroup = 0;
+    Copy.AtomRank = 0;
+    return Copy;
+  }
+  DbgLocStorage getWithAtom(uint16_t Group, uint16_t Rank) const {
+    FLDebugLoc Copy = get();
+    Copy.AtomGroup = Group;
+    Copy.AtomRank = Rank;
+    return Copy;
+  }
+  // bool isLineZero() const {
+  //   return get().SrcLocIdx.get() == 0;
+  // }
+  // DbgLocStorage getWithLineZero() const {
+  //   FLDebugLoc DL = get();
+  //   DL.SrcLocIdx = 0;
+  //   return DL;
+  // }
+  bool isInlinedAt(DbgLocStorage &Other) const {
+    assert(Other.get().isInlinedCall() &&
+      "Cannot be inlined at a non-inlined-call!");
+    return get().InlinedAtIdx == Other.get().InlinedAtIdx;
+  }
+  /// Returns the InlinedAt value for an InstrLoc only, meaning this will assert
+  /// if called on an InlinedCallLoc (meaning
+  /// `Instr->getInstrInlinedAt().getInstrInlinedAt()` will *always* fail.)
+  DbgLocStorage getInstrInlinedAt() const {
+    assert(get().SrcLocIdx &&
+      "getInstrInlinedAt called for a non-instruction loc!");
+    return FLDebugLoc({}, get().InlinedAtIdx);
+  }
+#else
+  bool isSameSourceLocation(const DbgLocStorage &Other) const;
+  uint64_t getAtomGroup() const;
+  uint8_t getAtomRank() const;
+  // bool isLineZero() const {
+  //   return get()->getLine() == 0;
+  // }
+  // DbgLocStorage getWithLineZero() const {
+  //   return DILocation::get(get()->getContext(), 0, 0,
+  //                          get()->getScope(),
+  //                          get()->getInlinedAt());
+  // }
+  bool isInlinedAt(DbgLocStorage &Other) const;
+  DbgLocStorage getInstrInlinedAt() const;
+  DbgLocStorage getWithoutAtom() const;
+  DbgLocStorage getWithAtom(uint16_t Group, uint16_t Rank) const;
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Coverage + Origin Tracking Features
@@ -372,8 +461,12 @@ public:
 #if LLVM_USE_FLMD_SOURCE_LOCS
   DebugLoc(DbgLocStorage Loc, DIFunctionLocalMetadata *FLContext)
     : Storage(Loc), FLContext(FLContext) {}
+  DebugLoc(DbgLocStorage Loc, DebugLocContext DLContext)
+    : Storage(Loc), FLContext(DLContext.Context) {}
 #else
   DebugLoc(DbgLocStorage Loc) : Storage(Loc) {}
+  DebugLoc(DbgLocStorage Loc, DebugLocContext DLContext)
+    : Storage(Loc) {}
 #endif
 
   DebugLoc() : Storage() {}
@@ -503,30 +596,7 @@ public:
   /// Helper class used to fetch the required context object to create a new
   /// DebugLoc from any of the objects that can reach it (see comment above the
   /// private functions above).
-  struct DebugLocContext {
-#if LLVM_USE_FLMD_SOURCE_LOCS
-    DIFunctionLocalMetadata *Context;
-    /// Warning: Only use in conditionally-compiled code, where
-    /// LLVM_USE_FLMD_SOURCE_LOCS is defined - otherwise this will cause an
-    /// error when the flag is not defined.
-    explicit DebugLocContext(DIFunctionLocalMetadata *FLMDContext) : Context(FLMDContext) {}
-    DebugLocContext(DebugLoc DL) {
-      assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
-      Context = DL.getFLContext();
-    }
-#else
-    LLVMContext &Context;
-    /// Warning: Only use in conditionally-compiled code, where
-    /// LLVM_USE_FLMD_SOURCE_LOCS is not defined - otherwise this will cause an
-    /// error when the flag is defined.
-    explicit DebugLocContext(LLVMContext &LLVMContext) : Context(LLVMContext) {}
-    DebugLocContext(DebugLoc DL) : Context(DL.getContext()) {
-      assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
-    }
-#endif
-    DebugLocContext(const Instruction *I);
-    DebugLocContext(const Function *F);
-  };
+  using DebugLocContext = llvm::DebugLocContext;
   static DebugLoc get(
     DebugLocContext Context, unsigned Line, unsigned Column, Metadata *Scope,
     DebugLoc InlinedAt = DebugLoc(), bool ImplicitCode = false, uint64_t AtomGroup = 0,
@@ -602,12 +672,14 @@ public:
   ///
   /// \p LocA \p LocB: The locations to be merged.
   LLVM_ABI static DebugLoc getMergedLocation(DebugLoc LocA, DebugLoc LocB);
+  LLVM_ABI static DebugLoc getMergedLocation(DbgLocStorage LocA, DbgLocStorage LocB, DebugLocContext Context);
 
   /// Try to combine the vector of locations passed as input in a single one.
   /// This function applies getMergedLocation() repeatedly left-to-right.
   ///
   /// \p Locs: The locations to be merged.
   LLVM_ABI static DebugLoc getMergedLocations(ArrayRef<DebugLoc> Locs);
+  LLVM_ABI static DebugLoc getMergedLocations(ArrayRef<DbgLocStorage> Locs, DebugLocContext Context);
 
   enum { ReplaceLastInlinedAt = true };
   /// Rebuild the entire inlined-at chain for this instruction so that the top
@@ -912,6 +984,7 @@ inline raw_ostream &operator<<(raw_ostream &OS, const DebugLoc &DL) {
   DL.print(OS);
   return OS;
 }
+raw_ostream &operator<<(raw_ostream &OS, const FLDebugLoc &DL);
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
 // Class used to map DebugLocs from one context to another. Currently used only
@@ -995,6 +1068,15 @@ public:
 };
 #endif
 
+
+inline DebugLocContext::DebugLocContext(DebugLoc DL) {
+  assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
+  Context = DL.getDLContext().Context;
+}
+inline DebugLoc DbgLocStorage::withContext(DebugLocContext Context) const {
+  return DebugLoc(*this, Context);
+}
+
 template <>
 struct DenseMapInfo<DebugLoc> {
   static unsigned getHashValue(DebugLoc DL) {
@@ -1019,6 +1101,15 @@ struct DenseMapInfo<FLDebugLoc> {
 inline hash_code hash_value(const DbgLocStorage &Val) {
   return hash_value(Val.get());
 }
+template <>
+struct DenseMapInfo<DbgLocStorage> {
+  static unsigned getHashValue(DbgLocStorage DL) {
+    return hash_value(DL);
+  }
+
+  static bool isEqual(DbgLocStorage LHS, DbgLocStorage RHS) { return LHS == RHS; }
+};
+
 
 inline hash_code hash_value(const DebugLoc &Val) {
 #if LLVM_USE_FLMD_SOURCE_LOCS
@@ -1034,6 +1125,11 @@ inline hash_code hash_value(const DebugLoc &Val) {
 namespace std {
 template<> struct hash<llvm::DebugLoc> {
   size_t operator()(const llvm::DebugLoc &Val) const {
+    return llvm::hash_value(Val);
+  }
+};
+template<> struct hash<llvm::DbgLocStorage> {
+  size_t operator()(const llvm::DbgLocStorage &Val) const {
     return llvm::hash_value(Val);
   }
 };

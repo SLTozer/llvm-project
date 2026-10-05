@@ -403,7 +403,7 @@ bool SIFoldOperandsImpl::foldCopyToVGPROfScalarAddOfFrameIndex(
       return false;
 
     MachineBasicBlock *MBB = Def->getParent();
-    const DebugLoc &DL = Def->getDebugLoc();
+    DebugLoc DL = Def->getFullDebugLoc();
     if (NewOp != AMDGPU::V_ADD_CO_U32_e32) {
       MachineInstrBuilder Add =
           BuildMI(*MBB, *Def, DL, TII->get(NewOp), DstReg);
@@ -648,7 +648,7 @@ bool SIFoldOperandsImpl::updateOperand(FoldCandidate &Fold) const {
     MachineInstr *Inst32 = TII->buildShrunkInst(*MI, Op32);
 
     if (HaveNonDbgCarryUse) {
-      BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(AMDGPU::COPY),
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(AMDGPU::COPY),
               Dst1.getReg())
         .addReg(AMDGPU::VCC, RegState::Kill);
     }
@@ -1899,7 +1899,7 @@ bool SIFoldOperandsImpl::foldCopyToAGPRRegSequence(MachineInstr *CopyMI) const {
   if (!RegSeq || !RegSeq->isRegSequence())
     return false;
 
-  const DebugLoc &DL = CopyMI->getDebugLoc();
+  DebugLoc DL = CopyMI->getFullDebugLoc();
   MachineBasicBlock &MBB = *CopyMI->getParent();
 
   MachineInstrBuilder B(*MBB.getParent(), CopyMI);
@@ -2224,7 +2224,7 @@ bool SIFoldOperandsImpl::tryFoldClamp(MachineInstr &MI) {
   if (TRI->isSGPRReg(*MRI, DefReg)) {
     // Pseudo scalar instructions have a SGPR for dst and clamp is a v_max*
     // instruction with a VGPR dst.
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII->get(AMDGPU::COPY),
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII->get(AMDGPU::COPY),
             MIDstReg)
         .addReg(DefReg);
   } else {
@@ -2457,7 +2457,7 @@ bool SIFoldOperandsImpl::tryFoldRegSequence(MachineInstr &MI) {
 
   const auto *NewDstRC = TRI->getEquivalentAGPRClass(MRI->getRegClass(Reg));
   auto Dst = MRI->createVirtualRegister(NewDstRC);
-  auto RS = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  auto RS = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                     TII->get(AMDGPU::REG_SEQUENCE), Dst);
 
   for (auto &[Def, SubIdx] : Defs) {
@@ -2636,7 +2636,7 @@ bool SIFoldOperandsImpl::tryFoldPhiAGPR(MachineInstr &PHI) {
     }
 
     Register NewReg = MRI->createVirtualRegister(ARC);
-    MachineInstr *MI = BuildMI(*InsertMBB, InsertPt, PHI.getDebugLoc(),
+    MachineInstr *MI = BuildMI(*InsertMBB, InsertPt, PHI.getFullDebugLoc(),
                                TII->get(CopyOpc), NewReg)
                            .addReg(Reg);
     MO.setReg(NewReg);
@@ -2652,7 +2652,7 @@ bool SIFoldOperandsImpl::tryFoldPhiAGPR(MachineInstr &PHI) {
   // COPY that new register back to the original PhiOut register. This COPY will
   // usually be folded out later.
   MachineBasicBlock *MBB = PHI.getParent();
-  BuildMI(*MBB, MBB->getFirstNonPHI(), PHI.getDebugLoc(),
+  BuildMI(*MBB, MBB->getFirstNonPHI(), PHI.getFullDebugLoc(),
           TII->get(AMDGPU::COPY), PhiOut)
       .addReg(NewReg);
 
@@ -2789,13 +2789,13 @@ bool SIFoldOperandsImpl::tryOptimizeAGPRPhis(MachineBasicBlock &MBB) {
     Register TempVGPR =
         MRI->createVirtualRegister(TRI->getEquivalentVGPRClass(ARC));
     MachineInstr *VGPRCopy =
-        BuildMI(*DefMBB, ++Def->getIterator(), Def->getDebugLoc(),
+        BuildMI(*DefMBB, ++Def->getIterator(), Def->getFullDebugLoc(),
                 TII->get(AMDGPU::V_ACCVGPR_READ_B32_e64), TempVGPR)
             .addReg(Reg, /* flags */ {}, SubReg);
 
     // Copy back to an AGPR and use that instead of the AGPR subreg in all MOs.
     Register TempAGPR = MRI->createVirtualRegister(ARC);
-    BuildMI(*DefMBB, ++VGPRCopy->getIterator(), Def->getDebugLoc(),
+    BuildMI(*DefMBB, ++VGPRCopy->getIterator(), Def->getFullDebugLoc(),
             TII->get(AMDGPU::COPY), TempAGPR)
         .addReg(TempVGPR);
 

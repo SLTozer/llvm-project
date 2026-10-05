@@ -1712,7 +1712,7 @@ bool InstCombinerImpl::mergeStoreIntoSuccessor(StoreInst &SI) {
   Value *MergedVal = OtherStore->getValueOperand();
   // The debug locations of the original instructions might differ. Merge them.
   DebugLoc MergedLoc =
-      DebugLoc::getMergedLocation(SI.getDebugLoc(), OtherStore->getDebugLoc());
+      DebugLoc::getMergedLocation(SI.getFullDebugLoc(), OtherStore->getFullDebugLoc());
   if (MergedVal != SI.getValueOperand()) {
     PHINode *PN =
         PHINode::Create(SI.getValueOperand()->getType(), 2, "storemerge");

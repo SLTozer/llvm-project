@@ -1327,7 +1327,7 @@ bool ARMFastISel::SelectBranch(const Instruction *I) {
              dyn_cast<ConstantInt>(BI->getCondition())) {
     uint64_t Imm = CI->getZExtValue();
     MachineBasicBlock *Target = (Imm == 0) ? FBB : TBB;
-    fastEmitBranch(Target, MIMD.getDL());
+    fastEmitBranch(Target, getCurDebugLoc());
     return true;
   }
 

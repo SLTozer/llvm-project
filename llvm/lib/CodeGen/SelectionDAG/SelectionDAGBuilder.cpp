@@ -1321,7 +1321,7 @@ void SelectionDAGBuilder::visitDbgInfo(const Instruction &I) {
     if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
       assert(DLR->getLabel() && "Missing label");
       SDDbgLabel *SDV =
-          DAG.getDbgLabel(DLR->getLabel(), DLR->getDebugLoc(), SDNodeOrder);
+          DAG.getDbgLabel(DLR->getLabel(), DLR->getFullDebugLoc(), SDNodeOrder);
       DAG.AddDbgLabel(SDV);
       continue;
     }
@@ -1339,14 +1339,14 @@ void SelectionDAGBuilder::visitDbgInfo(const Instruction &I) {
       LLVM_DEBUG(dbgs() << "SelectionDAG visiting dbg_declare: " << DVR
                         << "\n");
       handleDebugDeclare(DVR.getVariableLocationOp(0), Variable, Expression,
-                         DVR.getDebugLoc());
+                         DVR.getFullDebugLoc());
       continue;
     }
 
     // A DbgVariableRecord with no locations is a kill location.
     SmallVector<Value *, 4> Values(DVR.location_ops());
     if (Values.empty()) {
-      handleKillDebugValue(Variable, Expression, DVR.getDebugLoc(),
+      handleKillDebugValue(Variable, Expression, DVR.getFullDebugLoc(),
                            SDNodeOrder);
       continue;
     }
@@ -1355,16 +1355,16 @@ void SelectionDAGBuilder::visitDbgInfo(const Instruction &I) {
     // location.
     if (llvm::any_of(Values,
                      [](Value *V) { return !V || isa<UndefValue>(V); })) {
-      handleKillDebugValue(Variable, Expression, DVR.getDebugLoc(),
+      handleKillDebugValue(Variable, Expression, DVR.getFullDebugLoc(),
                            SDNodeOrder);
       continue;
     }
 
     bool IsVariadic = DVR.hasArgList();
-    if (!handleDebugValue(Values, Variable, Expression, DVR.getDebugLoc(),
+    if (!handleDebugValue(Values, Variable, Expression, DVR.getFullDebugLoc(),
                           SDNodeOrder, IsVariadic)) {
       addDanglingDebugInfo(Values, Variable, Expression, IsVariadic,
-                           DVR.getDebugLoc(), SDNodeOrder);
+                           DVR.getFullDebugLoc(), SDNodeOrder);
     }
   }
 }
@@ -6485,7 +6485,7 @@ bool SelectionDAGBuilder::EmitFuncArgumentDbgValue(
 SDDbgValue *SelectionDAGBuilder::getDbgValue(SDValue N,
                                              DILocalVariable *Variable,
                                              DIExpression *Expr,
-                                             const DebugLoc &dl,
+                                             DebugLoc dl,
                                              unsigned DbgSDNodeOrder) {
   if (auto *FISDN = dyn_cast<FrameIndexSDNode>(N.getNode())) {
     // Construct a FrameIndexDbgValue for FrameIndexSDNodes so we can describe

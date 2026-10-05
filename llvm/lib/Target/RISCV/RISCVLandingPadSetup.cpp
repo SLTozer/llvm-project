@@ -71,7 +71,7 @@ bool RISCVLandingPadSetup::runOnMachineFunction(MachineFunction &MF) {
           MI.getOpcode() != RISCV::PseudoCALLIndirect &&
           MI.getOpcode() != RISCV::PseudoTAILIndirect)
         continue;
-      BuildMI(MBB, MI, MI.getDebugLoc(), TII.get(RISCV::LUI), RISCV::X7)
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), TII.get(RISCV::LUI), RISCV::X7)
           .addImm(Label);
       MachineInstrBuilder(MF, &MI).addUse(RISCV::X7, RegState::ImplicitKill);
       Changed = true;

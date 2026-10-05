@@ -386,7 +386,7 @@ static bool isConvertibleToVMV_V_V(const RISCVSubtarget &STI,
 
 void RISCVInstrInfo::copyPhysRegVector(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
-    const DebugLoc &DL, MCRegister DstReg, MCRegister SrcReg, bool KillSrc,
+    DbgLocStorage DL, MCRegister DstReg, MCRegister SrcReg, bool KillSrc,
     const TargetRegisterClass *RegClass) const {
   const RISCVRegisterInfo *TRI = STI.getRegisterInfo();
   RISCVVType::VLMUL LMul = RISCVRI::getLMul(RegClass->TSFlags);
@@ -509,7 +509,7 @@ void RISCVInstrInfo::copyPhysRegVector(
 
 void RISCVInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator MBBI,
-                                 const DebugLoc &DL, Register DstReg,
+                                 DbgLocStorage DL, Register DstReg,
                                  Register SrcReg, bool KillSrc,
                                  bool RenamableDest, bool RenamableSrc) const {
   const TargetRegisterInfo *TRI = STI.getRegisterInfo();
@@ -728,7 +728,7 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
         TypeSize::getScalable(MFI.getObjectSize(FI)), Alignment);
 
     MFI.setStackID(FI, TargetStackID::ScalableVector);
-    BuildMI(MBB, I, DebugLoc(), get(Opcode))
+    BuildMI(MBB, I, DbgLocStorage(), get(Opcode))
         .addReg(SrcReg, getKillRegState(IsKill))
         .addFrameIndex(FI)
         .addMemOperand(MMO)
@@ -739,7 +739,7 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
         MachinePointerInfo::getFixedStack(*MF, FI), MachineMemOperand::MOStore,
         MFI.getObjectSize(FI), Alignment);
 
-    BuildMI(MBB, I, DebugLoc(), get(Opcode))
+    BuildMI(MBB, I, DbgLocStorage(), get(Opcode))
         .addReg(SrcReg, getKillRegState(IsKill))
         .addFrameIndex(FI)
         .addImm(0)
@@ -757,8 +757,8 @@ void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   MachineFunction *MF = MBB.getParent();
   MachineFrameInfo &MFI = MF->getFrameInfo();
   Align Alignment = MFI.getObjectAlign(FI);
-  DebugLoc DL =
-      Flags & MachineInstr::FrameDestroy ? MBB.findDebugLoc(I) : DebugLoc();
+  DbgLocStorage DL =
+      Flags & MachineInstr::FrameDestroy ? MBB.findDebugLoc(I) : DbgLocStorage();
 
   unsigned Opcode;
   if (RISCV::GPRRegClass.hasSubClassEq(RC)) {
@@ -918,7 +918,7 @@ RISCVInstrInfo::foldMemoryOperandImpl(MachineFunction &MF, MachineInstr &MI,
   if (!LoadOpc)
     return nullptr;
   Register DstReg = MI.getOperand(0).getReg();
-  return BuildMI(*MI.getParent(), InsertPt, MI.getDebugLoc(), get(*LoadOpc),
+  return BuildMI(*MI.getParent(), InsertPt, MI.getFullDebugLoc(), get(*LoadOpc),
                  DstReg)
       .addFrameIndex(FrameIndex)
       .addImm(0);
@@ -982,7 +982,7 @@ MachineInstr *RISCVInstrInfo::foldMemoryOperandImpl(
 
   // Create a new predicated version of DefMI.
   MachineInstrBuilder NewMI = BuildMI(*MI.getParent(), InsertPt,
-                                      MI.getDebugLoc(), get(PredOpc), DestReg);
+                                      MI.getFullDebugLoc(), get(PredOpc), DestReg);
 
   // Copy the false register.
   NewMI.add(FalseReg);
@@ -1007,7 +1007,7 @@ MachineInstr *RISCVInstrInfo::foldMemoryOperandImpl(
 
 void RISCVInstrInfo::movImm(MachineBasicBlock &MBB,
                             MachineBasicBlock::iterator MBBI,
-                            const DebugLoc &DL, Register DstReg, uint64_t Val,
+                            DbgLocStorage DL, Register DstReg, uint64_t Val,
                             MachineInstr::MIFlag Flag, bool DstRenamable,
                             bool DstIsDead) const {
   Register SrcReg = RISCV::X0;
@@ -1472,7 +1472,7 @@ unsigned RISCVInstrInfo::removeBranch(MachineBasicBlock &MBB,
 // the number of instructions inserted.
 unsigned RISCVInstrInfo::insertBranch(
     MachineBasicBlock &MBB, MachineBasicBlock *TBB, MachineBasicBlock *FBB,
-    ArrayRef<MachineOperand> Cond, const DebugLoc &DL, int *BytesAdded) const {
+    ArrayRef<MachineOperand> Cond, DbgLocStorage DL, int *BytesAdded) const {
   if (BytesAdded)
     *BytesAdded = 0;
 
@@ -1511,7 +1511,7 @@ unsigned RISCVInstrInfo::insertBranch(
 void RISCVInstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
                                           MachineBasicBlock &DestBB,
                                           MachineBasicBlock &RestoreBB,
-                                          const DebugLoc &DL, int64_t BrOffset,
+                                          DbgLocStorage DL, int64_t BrOffset,
                                           RegScavenger *RS) const {
   assert(RS && "RegScavenger required for long branching");
   assert(MBB.empty() &&
@@ -1660,7 +1660,7 @@ bool RISCVInstrInfo::optimizeCondBranch(MachineInstr &MI) const {
   if (isFromLoadImm(MRI, LHS, C0) && isFromLoadImm(MRI, RHS, C1)) {
     unsigned NewOpc = evaluateCondBranch(CC, C0, C1) ? RISCV::BEQ : RISCV::BNE;
     // Build the new branch and remove the old one.
-    BuildMI(*MBB, MI, MI.getDebugLoc(), get(NewOpc))
+    BuildMI(*MBB, MI, MI.getFullDebugLoc(), get(NewOpc))
         .addReg(RISCV::X0)
         .addReg(RISCV::X0)
         .addMBB(TBB);
@@ -1714,7 +1714,7 @@ bool RISCVInstrInfo::optimizeCondBranch(MachineInstr &MI) const {
       MRI.hasOneUse(LHS.getReg()) && (IsSigned || C0 != -1)) {
     assert((isInt<12>(C0) || C0 == 2048) && "Unexpected immediate");
     if (Register RegZ = searchConst(C0 + 1)) {
-      BuildMI(*MBB, MI, MI.getDebugLoc(), get(NewOpc))
+      BuildMI(*MBB, MI, MI.getFullDebugLoc(), get(NewOpc))
           .add(RHS)
           .addReg(RegZ)
           .addMBB(TBB);
@@ -1735,7 +1735,7 @@ bool RISCVInstrInfo::optimizeCondBranch(MachineInstr &MI) const {
       MRI.hasOneUse(RHS.getReg())) {
     assert((isInt<12>(C0) || C0 == 2048) && "Unexpected immediate");
     if (Register RegZ = searchConst(C0 - 1)) {
-      BuildMI(*MBB, MI, MI.getDebugLoc(), get(NewOpc))
+      BuildMI(*MBB, MI, MI.getFullDebugLoc(), get(NewOpc))
           .addReg(RegZ)
           .add(LHS)
           .addMBB(TBB);
@@ -1938,7 +1938,7 @@ RISCVInstrInfo::optimizeSelect(MachineInstr &MI,
 
   // Create a new predicated version of DefMI.
   MachineInstrBuilder NewMI =
-      BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), get(PredOpc), DestReg);
+      BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), get(PredOpc), DestReg);
 
   // Copy the false register.
   NewMI.add(FalseReg);
@@ -2851,8 +2851,8 @@ static void combineFPFusedMultiply(MachineInstr &Root, MachineInstr &Prev,
   Register DstReg = Dst.getReg();
   unsigned FusedOpc = getFPFusedMultiplyOpcode(Root.getOpcode(), Pattern);
   uint32_t IntersectedFlags = Root.getFlags() & Prev.getFlags();
-  DebugLoc MergedLoc =
-      DebugLoc::getMergedLocation(Root.getDebugLoc(), Prev.getDebugLoc());
+  DbgLocStorage MergedLoc =
+      DebugLoc::getMergedLocation(Root.getFullDebugLoc(), Prev.getFullDebugLoc());
 
   bool Mul1IsKill = Mul1.isKill();
   bool Mul2IsKill = Mul2.isKill();
@@ -3367,7 +3367,7 @@ bool RISCVInstrInfo::canFoldIntoAddrMode(const MachineInstr &MemI, Register Reg,
 MachineInstr *RISCVInstrInfo::emitLdStWithAddr(MachineInstr &MemI,
                                                const ExtAddrMode &AM) const {
 
-  const DebugLoc &DL = MemI.getDebugLoc();
+  DbgLocStorage DL = MemI.getDebugLoc();
   MachineBasicBlock &MBB = *MemI.getParent();
 
   assert(AM.ScaledReg == 0 && AM.Scale == 0 &&
@@ -3895,7 +3895,7 @@ void RISCVInstrInfo::buildOutlinedFrame(
   MBB.addLiveIn(RISCV::X5);
 
   // Add in a return instruction to the end of the outlined frame.
-  MBB.insert(MBB.end(), BuildMI(MF, DebugLoc(), get(RISCV::JALR))
+  MBB.insert(MBB.end(), BuildMI(MF, DbgLocStorage(), get(RISCV::JALR))
       .addReg(RISCV::X0, RegState::Define)
       .addReg(RISCV::X5)
       .addImm(0));
@@ -3906,7 +3906,7 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
     MachineFunction &MF, outliner::Candidate &C) const {
 
   if (C.CallConstructionID == MachineOutlinerTailCall) {
-    It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(RISCV::PseudoTAIL))
+    It = MBB.insert(It, BuildMI(MF, DbgLocStorage(), get(RISCV::PseudoTAIL))
                             .addGlobalAddress(M.getNamedValue(MF.getName()),
                                               /*Offset=*/0, RISCVII::MO_CALL));
     return It;
@@ -3917,21 +3917,21 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
     assert(SaveReg && "Cannot find an available register to save/restore X5.");
 
     // Save: ADDI SaveReg, X5, 0 (equivalent to MV SaveReg, X5)
-    It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(RISCV::ADDI), SaveReg)
+    It = MBB.insert(It, BuildMI(MF, DbgLocStorage(), get(RISCV::ADDI), SaveReg)
                             .addReg(RISCV::X5)
                             .addImm(0));
     It++;
 
     // Call: PseudoCALLReg X5
     It = MBB.insert(
-        It, BuildMI(MF, DebugLoc(), get(RISCV::PseudoCALLReg), RISCV::X5)
+        It, BuildMI(MF, DbgLocStorage(), get(RISCV::PseudoCALLReg), RISCV::X5)
                 .addGlobalAddress(M.getNamedValue(MF.getName()), 0,
                                   RISCVII::MO_CALL));
     MachineBasicBlock::iterator CallPt = It;
     It++;
 
     // Restore: ADDI X5, SaveReg, 0 (equivalent to MV X5, SaveReg)
-    It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(RISCV::ADDI), RISCV::X5)
+    It = MBB.insert(It, BuildMI(MF, DbgLocStorage(), get(RISCV::ADDI), RISCV::X5)
                             .addReg(SaveReg)
                             .addImm(0));
 
@@ -3940,7 +3940,7 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
 
   // Add in a call instruction to the outlined function at the given location.
   It = MBB.insert(It,
-                  BuildMI(MF, DebugLoc(), get(RISCV::PseudoCALLReg), RISCV::X5)
+                  BuildMI(MF, DbgLocStorage(), get(RISCV::PseudoCALLReg), RISCV::X5)
                       .addGlobalAddress(M.getNamedValue(MF.getName()), 0,
                                         RISCVII::MO_CALL));
   return It;
@@ -3948,7 +3948,7 @@ MachineBasicBlock::iterator RISCVInstrInfo::insertOutlinedCall(
 
 void RISCVInstrInfo::buildClearRegister(Register Reg, MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator Iter,
-                                        DebugLoc &DL,
+                                        DbgLocStorage DL,
                                         bool AllowSideEffects) const {
 
   const MachineFunction &MF = *MBB.getParent();
@@ -4897,7 +4897,7 @@ MachineInstr *RISCVInstrInfo::convertToThreeAddress(MachineInstr &MI,
     // clang-format on
 
     MachineBasicBlock &MBB = *MI.getParent();
-    MIB = BuildMI(MBB, MI, MI.getDebugLoc(), get(NewOpc))
+    MIB = BuildMI(MBB, MI, MI.getFullDebugLoc(), get(NewOpc))
               .add(MI.getOperand(0))
               .addReg(MI.getOperand(0).getReg(), RegState::Undef)
               .add(MI.getOperand(1))
@@ -4932,7 +4932,7 @@ MachineInstr *RISCVInstrInfo::convertToThreeAddress(MachineInstr &MI,
     // clang-format on
 
     MachineBasicBlock &MBB = *MI.getParent();
-    MIB = BuildMI(MBB, MI, MI.getDebugLoc(), get(NewOpc))
+    MIB = BuildMI(MBB, MI, MI.getFullDebugLoc(), get(NewOpc))
               .add(MI.getOperand(0))
               .addReg(MI.getOperand(0).getReg(), RegState::Undef)
               .add(MI.getOperand(1))
@@ -4981,7 +4981,7 @@ MachineInstr *RISCVInstrInfo::convertToThreeAddress(MachineInstr &MI,
 #undef CASE_FP_WIDEOP_CHANGE_OPCODE_LMULS
 
 void RISCVInstrInfo::mulImm(MachineFunction &MF, MachineBasicBlock &MBB,
-                            MachineBasicBlock::iterator II, const DebugLoc &DL,
+                            MachineBasicBlock::iterator II, DbgLocStorage DL,
                             Register DestReg, uint32_t Amount,
                             MachineInstr::MIFlag Flag) const {
   MachineRegisterInfo &MRI = MF.getRegInfo();

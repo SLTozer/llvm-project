@@ -188,7 +188,7 @@ void AArch64PointerAuthImpl::authenticateLR(
   bool NeedsWinCFI = MF.hasWinCFI();
 
   MachineBasicBlock &MBB = *MBBI->getParent();
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc DL = MBBI->getFullDebugLoc();
   // MBBI points to a PAUTH_EPILOGUE instruction to be replaced and
   // TI points to a terminator instruction that may or may not be combined.
   // Note that inserting new instructions "before MBBI" and "before TI" is

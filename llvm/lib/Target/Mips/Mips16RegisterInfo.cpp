@@ -122,7 +122,7 @@ void Mips16RegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
   if (!MI.isDebugValue() &&
       !Mips16InstrInfo::validImmediate(MI.getOpcode(), FrameReg, Offset)) {
     MachineBasicBlock &MBB = *MI.getParent();
-    DebugLoc DL = II->getDebugLoc();
+    DebugLoc DL = II->getFullDebugLoc();
     unsigned NewImm;
     const Mips16InstrInfo &TII =
         *static_cast<const Mips16InstrInfo *>(MF.getSubtarget().getInstrInfo());

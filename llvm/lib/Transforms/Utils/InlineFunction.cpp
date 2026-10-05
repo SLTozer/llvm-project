@@ -1838,7 +1838,7 @@ static void HandleByValArgumentInit(Type *ByValType, Value *Dst, Value *Src,
   // The verifier requires that all calls of debug-info-bearing functions
   // from debug-info-bearing functions have a debug location (for inlining
   // purposes). Assign a dummy location to satisfy the constraint.
-  if (!CI->getDebugLoc() && InsertBlock->getParent()->getSubprogram())
+  if (!CI->getFullDebugLoc() && InsertBlock->getParent()->getSubprogram())
     if (DISubprogram *SP = CalledFunc->getSubprogram())
       CI->setDebugLoc(DebugLoc::get(CalledFunc, 0, 0, SP));
 }
@@ -2038,7 +2038,7 @@ static void fixupLineNumbers(Function *Caller, Function::iterator FI,
   // function is nodebug, if the call still has a debug location (because it was
   // inlined from a function with debug info), we can follow the normal inlining
   // procedure below.
-  if (!TheCall->getDebugLoc()) {
+  if (!TheCall->getFullDebugLoc()) {
     assert(Caller->getSubprogram() &&
       "Call in a function with debug info must have a debug location.");
     inlineIntoNodebug(Callee, Caller, FI, CalleeHasDebugInfo);
@@ -2066,7 +2066,7 @@ static void fixupLineNumbers(Function *Caller, Function::iterator FI,
   // an atom for the returned value, otherwise we miss stepping on inlined
   // nodebug functions (which is different to existing behaviour).
   DIFunctionLocalMetadata *CallerFL = getFLMDForFunction(Caller);
-  DebugLoc TheCallDL = TheCall->getDebugLoc().getWithoutAtom();
+  DebugLoc TheCallDL = TheCall->getFullDebugLoc().getWithoutAtom();
   FLDebugLoc TheCallFLDL = TheCallDL.getUnderlyingStorage();
   FLIndex<uint16_t> NewInlinedAt;
   if (CalleeHasDebugInfo) {
@@ -2305,7 +2305,7 @@ static at::StorageToVarsMap collectEscapedLocals(const DataLayout &DL,
     // Find all local variables associated with the backing storage.
     auto CollectAssignsForStorage = [&](DbgVariableRecord *DbgAssign) {
       // Skip variables from inlined functions - they are not local variables.
-      if (DbgAssign->getDebugLoc().getInlinedAt())
+      if (DbgAssign->getFullDebugLoc().getInlinedAt())
         return;
       LLVM_DEBUG(errs() << " > DEF : " << *DbgAssign << "\n");
       EscapedLocals[Base].insert(at::VarRecord(DbgAssign));
@@ -3687,7 +3687,7 @@ void llvm::InlineFunctionImpl(CallBase &CB, InlineFunctionInfo &IFI,
     DebugLoc Loc;
     for (ReturnInst *RI : Returns) {
       UncondBrInst *BI = UncondBrInst::Create(AfterCallBB, RI->getIterator());
-      Loc = RI->getDebugLoc();
+      Loc = RI->getFullDebugLoc();
       BI->setDebugLoc(Loc);
       RI->eraseFromParent();
     }

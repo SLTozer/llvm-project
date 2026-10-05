@@ -528,8 +528,8 @@ void Verifier::visitDbgRecords(Instruction &I) {
   for (DbgRecord &DR : I.getDbgRecordRange()) {
     CheckDI(DR.getMarker() == I.DebugMarker,
             "DbgRecord had invalid DebugMarker", &I, &DR);
-    if (DR.getDebugLoc())
-      visitDebugLoc(DR.getDebugLoc());
+    if (DR.getFullDebugLoc())
+      visitDebugLoc(DR.getFullDebugLoc());
     if (auto *DVR = dyn_cast<DbgVariableRecord>(&DR)) {
       visit(*DVR);
       // These have to appear after `visit` for consistency with existing
@@ -4124,7 +4124,7 @@ void Verifier::visitCallBase(CallBase &Call) {
       !Call.getCalledFunction()->isInterposable() &&
       !Call.getCalledFunction()->isDeclaration() &&
       Call.getCalledFunction()->getSubprogram())
-    CheckDI(Call.getDebugLoc(),
+    CheckDI(Call.getFullDebugLoc(),
             "inlinable function call in a function with "
             "debug info must have a !dbg location",
             Call);
@@ -7084,7 +7084,7 @@ void Verifier::visit(DbgLabelRecord &DLR) {
 
   // The scopes for variables and !dbg attachments must agree.
   DILabel *Label = DLR.getLabel();
-  DebugLoc Loc = DLR.getDebugLoc();
+  DebugLoc Loc = DLR.getFullDebugLoc();
   CheckDI(Loc, "#dbg_label record requires a !dbg attachment", &DLR, BB, F);
 
   DISubprogram *LabelSP = getSubprogram(Label->getRawScope());
@@ -7171,7 +7171,7 @@ void Verifier::visit(DbgVariableRecord &DVR) {
   CheckDI(isType(Var->getRawType()), "invalid type ref", Var, Var->getRawType(),
           BB, F);
 
-  DebugLoc Loc = DVR.getDebugLoc();
+  DebugLoc Loc = DVR.getFullDebugLoc();
 
   // The scopes for variables and !dbg attachments must agree.
   DISubprogram *VarSP = getSubprogram(Var->getRawScope());
@@ -7433,7 +7433,7 @@ void Verifier::verifyFnArgs(const DbgVariableRecord &DVR) {
     return;
 
   // For performance reasons only check non-inlined ones.
-  if (DVR.getDebugLoc().getInlinedAt())
+  if (DVR.getFullDebugLoc().getInlinedAt())
     return;
 
   DILocalVariable *Var = DVR.getVariable();

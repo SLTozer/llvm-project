@@ -2230,12 +2230,12 @@ static bool isPTXInstruction(StringRef Line) {
 /// Returns the DILocation for an inline asm MachineInstr if debug line info
 /// should be emitted, or nullptr otherwise.
 static DebugLoc getInlineAsmDebugLoc(const MachineInstr *MI) {
-  if (!MI || !MI->getDebugLoc())
+  if (!MI || !MI->getFullDebugLoc())
     return nullptr;
   const DISubprogram *SP = MI->getMF()->getFunction().getSubprogram();
   if (!SP || SP->getUnit()->getEmissionKind() == DICompileUnit::NoDebug)
     return nullptr;
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   if (!DL.getFile() || !DL.getLine())
     return nullptr;
   return DL;

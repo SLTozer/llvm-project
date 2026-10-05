@@ -382,7 +382,7 @@ bool AMDGPURewriteOutArguments::runOnFunction(Function &F) {
   for (std::pair<ReturnInst *, ReplacementVec> &Replacement : Replacements) {
     ReturnInst *RI = Replacement.first;
     IRBuilder<> B(RI);
-    B.SetCurrentDebugLocation(RI->getDebugLoc());
+    B.SetCurrentDebugLocation(RI->getFullDebugLoc());
 
     Value *NewRetVal = PoisonValue::get(NewRetTy);
 

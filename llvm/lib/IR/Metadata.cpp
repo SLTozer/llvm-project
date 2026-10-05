@@ -1706,7 +1706,7 @@ MDNode *Instruction::getMetadataImpl(StringRef Kind) const {
   const LLVMContext &Ctx = getContext();
   unsigned KindID = Ctx.getMDKindID(Kind);
   if (KindID == LLVMContext::MD_dbg)
-    return getDebugLoc().getAsMDNode();
+    return getFullDebugLoc().getAsMDNode();
   return Value::getMetadataImpl(KindID);
 }
 MDNode *Function::getMetadataImpl(StringRef Kind) const {
@@ -1718,7 +1718,7 @@ MDNode *Function::getMetadataImpl(StringRef Kind) const {
 }
 
 void Instruction::eraseMetadataIf(function_ref<bool(unsigned, MDNode *)> Pred) {
-  if (DbgLoc && Pred(LLVMContext::MD_dbg, getDebugLoc().getAsMDNode()))
+  if (DbgLoc && Pred(LLVMContext::MD_dbg, getFullDebugLoc().getAsMDNode()))
     DbgLoc = DbgLocStorage();
 
   Value::eraseMetadataIf(Pred);

@@ -629,7 +629,7 @@ unsigned HexagonInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                         MachineBasicBlock *TBB,
                                         MachineBasicBlock *FBB,
                                         ArrayRef<MachineOperand> Cond,
-                                        const DebugLoc &DL,
+                                        DbgLocStorage DL,
                                         int *BytesAdded) const {
   unsigned BOpc   = Hexagon::J2_jump;
   unsigned BccOpc = Hexagon::J2_jumpt;
@@ -731,13 +731,13 @@ class HexagonPipelinerLoopInfo : public TargetInstrInfo::PipelinerLoopInfo {
   const HexagonInstrInfo *TII;
   int64_t TripCount;
   Register LoopCount;
-  DebugLoc DL;
+  DbgLocStorage DL;
 
 public:
   HexagonPipelinerLoopInfo(MachineInstr *Loop, MachineInstr *EndLoop)
       : Loop(Loop), EndLoop(EndLoop), MF(Loop->getParent()->getParent()),
         TII(MF->getSubtarget<HexagonSubtarget>().getInstrInfo()),
-        DL(Loop->getDebugLoc()) {
+        DL(Loop->getFullDebugLoc()) {
     // Inspect the Loop instruction up-front, as it may be deleted when we call
     // createTripCountGreaterCondition.
     TripCount = Loop->getOpcode() == Hexagon::J2_loop0r
@@ -790,7 +790,7 @@ public:
     // one from the trip count, and update the loop instruction.
     Register LoopCount = Loop->getOperand(1).getReg();
     Register NewLoopCount = TII->createVR(MF, MVT::i32);
-    BuildMI(*Loop->getParent(), Loop, Loop->getDebugLoc(),
+    BuildMI(*Loop->getParent(), Loop, Loop->getFullDebugLoc(),
             TII->get(Hexagon::A2_addi), NewLoopCount)
         .addReg(LoopCount)
         .addImm(TripCountAdjust);
@@ -859,7 +859,7 @@ static void getLiveOutRegsAt(LivePhysRegs &Regs, const MachineInstr &MI) {
 
 void HexagonInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator I,
-                                   const DebugLoc &DL, Register DestReg,
+                                   DbgLocStorage DL, Register DestReg,
                                    Register SrcReg, bool KillSrc,
                                    bool RenamableDest,
                                    bool RenamableSrc) const {
@@ -966,7 +966,7 @@ void HexagonInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                            const TargetRegisterClass *RC,
                                            Register VReg,
                                            MachineInstr::MIFlag Flags) const {
-  DebugLoc DL = MBB.findDebugLoc(I);
+  DbgLocStorage DL = MBB.findDebugLoc(I);
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   RegState KillFlag = getKillRegState(isKill);
@@ -1014,7 +1014,7 @@ void HexagonInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                                             const TargetRegisterClass *RC,
                                             Register VReg, unsigned SubReg,
                                             MachineInstr::MIFlag Flags) const {
-  DebugLoc DL = MBB.findDebugLoc(I);
+  DbgLocStorage DL = MBB.findDebugLoc(I);
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
 
@@ -1060,7 +1060,7 @@ bool HexagonInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineRegisterInfo &MRI = MF.getRegInfo();
   const HexagonRegisterInfo &HRI = *Subtarget.getRegisterInfo();
   LivePhysRegs LiveIn(HRI), LiveOut(HRI);
-  DebugLoc DL = MI.getDebugLoc();
+  DbgLocStorage DL = MI.getDebugLoc();
   unsigned Opc = MI.getOpcode();
 
   auto RealCirc = [&](unsigned Opc, bool HasImm, unsigned MxOp) {
@@ -1296,11 +1296,11 @@ bool HexagonInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       Register Src1SubLo = HRI.getSubReg(Src1Reg, Hexagon::isub_lo);
       Register Src2SubHi = HRI.getSubReg(Src2Reg, Hexagon::isub_hi);
       Register Src2SubLo = HRI.getSubReg(Src2Reg, Hexagon::isub_lo);
-      BuildMI(MBB, MI, MI.getDebugLoc(), get(Hexagon::M2_mpyi),
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), get(Hexagon::M2_mpyi),
               HRI.getSubReg(DstReg, Hexagon::isub_hi))
           .addReg(Src1SubHi)
           .addReg(Src2SubHi);
-      BuildMI(MBB, MI, MI.getDebugLoc(), get(Hexagon::M2_mpyi),
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), get(Hexagon::M2_mpyi),
               HRI.getSubReg(DstReg, Hexagon::isub_lo))
           .addReg(Src1SubLo)
           .addReg(Src2SubLo);
@@ -1323,12 +1323,12 @@ bool HexagonInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       Register Src2SubLo = HRI.getSubReg(Src2Reg, Hexagon::isub_lo);
       Register Src3SubHi = HRI.getSubReg(Src3Reg, Hexagon::isub_hi);
       Register Src3SubLo = HRI.getSubReg(Src3Reg, Hexagon::isub_lo);
-      BuildMI(MBB, MI, MI.getDebugLoc(), get(Hexagon::M2_maci),
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), get(Hexagon::M2_maci),
               HRI.getSubReg(DstReg, Hexagon::isub_hi))
           .addReg(Src1SubHi)
           .addReg(Src2SubHi)
           .addReg(Src3SubHi);
-      BuildMI(MBB, MI, MI.getDebugLoc(), get(Hexagon::M2_maci),
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), get(Hexagon::M2_maci),
               HRI.getSubReg(DstReg, Hexagon::isub_lo))
           .addReg(Src1SubLo)
           .addReg(Src2SubLo)
@@ -1351,7 +1351,7 @@ bool HexagonInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       Register Pu = Op1.getReg();
       Register Rs = Op2.getReg();
       Register Rt = Op3.getReg();
-      DebugLoc DL = MI.getDebugLoc();
+      DbgLocStorage DL = MI.getDebugLoc();
       RegState K1 = getKillRegState(Op1.isKill());
       RegState K2 = getKillRegState(Op2.isKill());
       RegState K3 = getKillRegState(Op3.isKill());
@@ -1550,7 +1550,7 @@ bool HexagonInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
 MachineBasicBlock::instr_iterator
 HexagonInstrInfo::expandVGatherPseudo(MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DbgLocStorage DL = MI.getDebugLoc();
   unsigned Opc = MI.getOpcode();
   MachineBasicBlock::iterator First;
 
@@ -1666,7 +1666,7 @@ bool HexagonInstrInfo::reverseBranchCondition(
 
 void HexagonInstrInfo::insertNoop(MachineBasicBlock &MBB,
       MachineBasicBlock::iterator MI) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   BuildMI(MBB, MI, DL, get(Hexagon::A2_nop));
 }
 
@@ -1704,7 +1704,7 @@ bool HexagonInstrInfo::PredicateInstruction(
   // etc.), build a new temporary instruction, then overwrite MI with it.
 
   MachineBasicBlock &B = *MI.getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DbgLocStorage DL = MI.getDebugLoc();
   unsigned PredOpc = getCondOpcode(Opc, invertJump);
   MachineInstrBuilder T = BuildMI(B, MI, DL, get(PredOpc));
   unsigned NOp = 0, NumOps = MI.getNumOperands();
@@ -4714,7 +4714,7 @@ void HexagonInstrInfo::genAllInsnTimingClasses(MachineFunction &MF) const {
   MachineFunction::iterator A = MF.begin();
   MachineBasicBlock &B = *A;
   MachineBasicBlock::iterator I = B.begin();
-  DebugLoc DL = I->getDebugLoc();
+  DbgLocStorage DL = I->getDebugLoc();
   MachineInstr *NewMI;
 
   for (unsigned insn = TargetOpcode::GENERIC_OP_END+1;

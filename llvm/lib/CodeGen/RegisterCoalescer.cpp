@@ -1205,7 +1205,7 @@ bool RegisterCoalescer::removePartialRedundancy(const CoalescerPair &CP,
                       << printMBBReference(*CopyLeftBB) << '\t' << CopyMI);
 
     // Insert new copy to CopyLeftBB.
-    MachineInstr *NewCopyMI = BuildMI(*CopyLeftBB, InsPos, CopyMI.getDebugLoc(),
+    MachineInstr *NewCopyMI = BuildMI(*CopyLeftBB, InsPos, CopyMI.getFullDebugLoc(),
                                       TII->get(TargetOpcode::COPY), IntB.reg())
                                   .addReg(IntA.reg());
     SlotIndex NewCopyIdx =
@@ -1385,7 +1385,7 @@ bool RegisterCoalescer::reMaterializeDef(const CoalescerPair &CP,
   if (!VirtRegAuxInfo::allUsesAvailableAt(DefMI, CopyIdx, *LIS, *MRI, *TII))
     return false;
 
-  DebugLoc DL = CopyMI->getDebugLoc();
+  DebugLoc DL = CopyMI->getFullDebugLoc();
   MachineBasicBlock *MBB = CopyMI->getParent();
   MachineBasicBlock::iterator MII =
       std::next(MachineBasicBlock::iterator(CopyMI));

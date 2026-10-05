@@ -1966,7 +1966,7 @@ SDValue VETargetLowering::getPICJumpTableRelocBase(SDValue Table,
 Register VETargetLowering::prepareMBB(MachineBasicBlock &MBB,
                                       MachineBasicBlock::iterator I,
                                       MachineBasicBlock *TargetBB,
-                                      const DebugLoc &DL) const {
+                                      DebugLoc DL) const {
   MachineFunction *MF = MBB.getParent();
   MachineRegisterInfo &MRI = MF->getRegInfo();
   const VEInstrInfo *TII = Subtarget->getInstrInfo();
@@ -2014,7 +2014,7 @@ Register VETargetLowering::prepareMBB(MachineBasicBlock &MBB,
 
 Register VETargetLowering::prepareSymbol(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator I,
-                                         StringRef Symbol, const DebugLoc &DL,
+                                         StringRef Symbol, DebugLoc DL,
                                          bool IsLocal = false,
                                          bool IsCall = false) const {
   MachineFunction *MF = MBB.getParent();
@@ -2104,7 +2104,7 @@ void VETargetLowering::setupEntryBlockForSjLj(MachineInstr &MI,
                                               MachineBasicBlock *MBB,
                                               MachineBasicBlock *DispatchBB,
                                               int FI, int Offset) const {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const VEInstrInfo *TII = Subtarget->getInstrInfo();
 
   Register LabelReg =
@@ -2120,7 +2120,7 @@ void VETargetLowering::setupEntryBlockForSjLj(MachineInstr &MI,
 MachineBasicBlock *
 VETargetLowering::emitEHSjLjSetJmp(MachineInstr &MI,
                                    MachineBasicBlock *MBB) const {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction *MF = MBB->getParent();
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
   const TargetRegisterInfo *TRI = Subtarget->getRegisterInfo();
@@ -2250,7 +2250,7 @@ VETargetLowering::emitEHSjLjSetJmp(MachineInstr &MI,
 MachineBasicBlock *
 VETargetLowering::emitEHSjLjLongJmp(MachineInstr &MI,
                                     MachineBasicBlock *MBB) const {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction *MF = MBB->getParent();
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
   MachineRegisterInfo &MRI = MF->getRegInfo();
@@ -2316,7 +2316,7 @@ VETargetLowering::emitEHSjLjLongJmp(MachineInstr &MI,
 MachineBasicBlock *
 VETargetLowering::emitSjLjDispatchBlock(MachineInstr &MI,
                                         MachineBasicBlock *BB) const {
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction *MF = BB->getParent();
   MachineFrameInfo &MFI = MF->getFrameInfo();
   MachineRegisterInfo &MRI = MF->getRegInfo();

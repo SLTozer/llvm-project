@@ -1960,7 +1960,7 @@ bool ARMConstantIslands::optimizeThumb2Branches() {
     // target of Br. So now we need to reverse the condition.
     Cmp.NewOpc = Cmp.NewOpc == ARM::tCBZ ? ARM::tCBNZ : ARM::tCBZ;
 
-    MachineInstrBuilder MIB = BuildMI(*MBB, Br.MI, Br.MI->getDebugLoc(),
+    MachineInstrBuilder MIB = BuildMI(*MBB, Br.MI, Br.MI->getFullDebugLoc(),
                                       TII->get(ARM::t2LE));
     // Swapped a t2Bcc for a t2LE, so no need to update the size of the block.
     MIB.add(Br.MI->getOperand(0));
@@ -2016,7 +2016,7 @@ bool ARMConstantIslands::optimizeThumb2Branches() {
     // Create the new CBZ/CBNZ
     LLVM_DEBUG(dbgs() << "Fold: " << *Cmp.MI << " and: " << *Br.MI);
     MachineInstr *NewBR =
-        BuildMI(*MBB, Br.MI, Br.MI->getDebugLoc(), TII->get(Cmp.NewOpc))
+        BuildMI(*MBB, Br.MI, Br.MI->getFullDebugLoc(), TII->get(Cmp.NewOpc))
             .addReg(Reg, getKillRegState(RegKilled) |
                              getRegState(Cmp.MI->getOperand(0)))
             .addMBB(DestBB, Br.MI->getOperand(0).getTargetFlags());
@@ -2336,7 +2336,7 @@ bool ARMConstantIslands::optimizeThumb2JumpTables() {
 
     MachineBasicBlock::iterator MI_JT = MI;
     MachineInstr *NewJTMI =
-        BuildMI(*MBB, MI_JT, MI->getDebugLoc(), TII->get(Opc))
+        BuildMI(*MBB, MI_JT, MI->getFullDebugLoc(), TII->get(Opc))
             .addReg(User.MI->getOperand(0).getReg(),
                     getKillRegState(BaseRegKill))
             .addReg(IdxReg, getKillRegState(IdxRegKill))

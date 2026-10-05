@@ -627,8 +627,8 @@ void AMDGPUSwLowerLDS::updateMallocSizeForDynamicLDS(
 static DebugLoc getOrCreateDebugLoc(const Instruction *InsertBefore,
                                     DISubprogram *SP) {
   assert(InsertBefore);
-  if (InsertBefore->getDebugLoc())
-    return InsertBefore->getDebugLoc();
+  if (InsertBefore->getFullDebugLoc())
+    return InsertBefore->getFullDebugLoc();
   if (SP)
     return DebugLoc::get(InsertBefore, SP->getLine(), 1, SP);
   return DebugLoc();

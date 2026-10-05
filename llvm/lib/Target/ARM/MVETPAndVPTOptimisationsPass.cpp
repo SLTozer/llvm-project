@@ -190,7 +190,7 @@ static void RevertWhileLoopSetup(MachineInstr *MI, const TargetInstrInfo *TII) {
 
   // Subs
   MachineInstrBuilder MIB =
-      BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::t2SUBri));
+      BuildMI(*MBB, MI, MI->getFullDebugLoc(), TII->get(ARM::t2SUBri));
   MIB.add(MI->getOperand(0));
   MIB.add(MI->getOperand(1));
   MIB.addImm(0);
@@ -202,7 +202,7 @@ static void RevertWhileLoopSetup(MachineInstr *MI, const TargetInstrInfo *TII) {
   for (MachineInstr &I : MBB->terminators()) {
     if (I.getOpcode() == ARM::t2WhileLoopStart) {
       MachineInstrBuilder MIB =
-          BuildMI(*MBB, &I, I.getDebugLoc(), TII->get(ARM::t2Bcc));
+          BuildMI(*MBB, &I, I.getFullDebugLoc(), TII->get(ARM::t2Bcc));
       MIB.add(MI->getOperand(1)); // branch target
       MIB.addImm(ARMCC::EQ);
       MIB.addReg(ARM::CPSR);
@@ -247,7 +247,7 @@ bool MVETPAndVPTOptimisations::LowerWhileLoopStart(MachineLoop *ML) {
   }
 
   MachineInstrBuilder MI =
-      BuildMI(*WLSIt->getParent(), *WLSIt, WLSIt->getDebugLoc(),
+      BuildMI(*WLSIt->getParent(), *WLSIt, WLSIt->getFullDebugLoc(),
               TII->get(ARM::t2WhileLoopStartLR), LR)
           .add(LoopStart->getOperand(1))
           .add(WLSIt->getOperand(1));
@@ -290,7 +290,7 @@ MachineInstr *MVETPAndVPTOptimisations::CheckForLRUseInPredecessors(
       // Create a t2DoLoopStart at the end of the preheader.
       MachineInstrBuilder MIB =
           BuildMI(*PreHeader, PreHeader->getFirstTerminator(),
-                  LoopStart->getDebugLoc(), TII->get(ARM::t2DoLoopStart));
+                  LoopStart->getFullDebugLoc(), TII->get(ARM::t2DoLoopStart));
       MIB.add(LoopStart->getOperand(0));
       MIB.add(LoopStart->getOperand(1));
 
@@ -415,7 +415,7 @@ bool MVETPAndVPTOptimisations::MergeLoopEnd(MachineLoop *ML) {
 
   // Replace the loop dec and loop end as a single instruction.
   MachineInstrBuilder MI =
-      BuildMI(*LoopEnd->getParent(), *LoopEnd, LoopEnd->getDebugLoc(),
+      BuildMI(*LoopEnd->getParent(), *LoopEnd, LoopEnd->getFullDebugLoc(),
               TII->get(ARM::t2LoopEndDec), DecReg)
           .addReg(PhiReg)
           .add(LoopEnd->getOperand(1));
@@ -517,7 +517,7 @@ bool MVETPAndVPTOptimisations::ConvertTailPredLoop(MachineLoop *ML,
                         ? ARM::t2DoLoopStartTP
                         : ARM::t2WhileLoopStartTP;
   MachineInstrBuilder MI =
-      BuildMI(*MBB, InsertPt, LoopStart->getDebugLoc(), TII->get(NewOpc))
+      BuildMI(*MBB, InsertPt, LoopStart->getFullDebugLoc(), TII->get(NewOpc))
           .add(LoopStart->getOperand(0))
           .add(LoopStart->getOperand(1))
           .addReg(CountReg);
@@ -630,7 +630,7 @@ MachineInstr &MVETPAndVPTOptimisations::ReplaceRegisterUseWithVPNOT(
   Register NewResult = MRI->createVirtualRegister(MRI->getRegClass(Target));
 
   MachineInstrBuilder MIBuilder =
-      BuildMI(MBB, &Instr, Instr.getDebugLoc(), TII->get(ARM::MVE_VPNOT))
+      BuildMI(MBB, &Instr, Instr.getFullDebugLoc(), TII->get(ARM::MVE_VPNOT))
           .addDef(NewResult)
           .addReg(Target);
   addUnpredicatedMveVpredNOp(MIBuilder);
@@ -887,7 +887,7 @@ bool MVETPAndVPTOptimisations::ReplaceVCMPsByVPNOTs(MachineBasicBlock &MBB) {
 
     // Build a VPNOT to replace the VCMP, reusing its operands.
     MachineInstrBuilder MIBuilder =
-        BuildMI(MBB, &Instr, Instr.getDebugLoc(), TII->get(ARM::MVE_VPNOT))
+        BuildMI(MBB, &Instr, Instr.getFullDebugLoc(), TII->get(ARM::MVE_VPNOT))
             .add(Instr.getOperand(0))
             .addReg(PrevVCMPResultReg);
     addUnpredicatedMveVpredNOp(MIBuilder);
@@ -972,7 +972,7 @@ bool MVETPAndVPTOptimisations::ReplaceConstByVPNOTs(MachineBasicBlock &MBB,
       // We have found the not of a previous constant. Create a VPNot of the
       // earlier predicate reg and use it instead of the copy.
       Register NewVPR = MRI->createVirtualRegister(&ARM::VCCRRegClass);
-      auto VPNot = BuildMI(MBB, &Instr, Instr.getDebugLoc(),
+      auto VPNot = BuildMI(MBB, &Instr, Instr.getFullDebugLoc(),
                            TII->get(ARM::MVE_VPNOT), NewVPR)
                        .addReg(LastVPTReg);
       addUnpredicatedMveVpredNOp(VPNot);
@@ -1019,7 +1019,7 @@ bool MVETPAndVPTOptimisations::ConvertVPSEL(MachineBasicBlock &MBB) {
       continue;
 
     MachineInstrBuilder MIBuilder =
-        BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(ARM::MVE_VORR))
+        BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(ARM::MVE_VORR))
             .add(MI.getOperand(0))
             .add(MI.getOperand(1))
             .add(MI.getOperand(1))

@@ -90,7 +90,7 @@ public:
                              MachineBasicBlock *MBB) = 0;
   virtual void buildMergeLaneMasks(MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator I,
-                                   const DebugLoc &DL, Register DstReg,
+                                   DebugLoc DL, Register DstReg,
                                    Register PrevReg, Register CurReg) = 0;
   virtual void constrainAsLaneMask(Incoming &In) = 0;
 };

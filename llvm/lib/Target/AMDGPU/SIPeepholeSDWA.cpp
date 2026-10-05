@@ -1044,7 +1044,7 @@ void SIPeepholeSDWA::pseudoOpConvertToVOP2(MachineInstr &MI,
   }
 
   // Replace MI with V_{SUB|ADD}_I32_e32
-  BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(Opc))
+  BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(Opc))
     .add(*TII->getNamedOperand(MI, AMDGPU::OpName::vdst))
     .add(*TII->getNamedOperand(MI, AMDGPU::OpName::src0))
     .add(*TII->getNamedOperand(MI, AMDGPU::OpName::src1))
@@ -1091,9 +1091,9 @@ void SIPeepholeSDWA::convertVcndmaskToVOP2(MachineInstr &MI,
     return;
   }
 
-  BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(AMDGPU::COPY), Vcc).add(CarryIn);
+  BuildMI(MBB, MI, MI.getFullDebugLoc(), TII->get(AMDGPU::COPY), Vcc).add(CarryIn);
 
-  auto Converted = BuildMI(MBB, MI, MI.getDebugLoc(),
+  auto Converted = BuildMI(MBB, MI, MI.getFullDebugLoc(),
                            TII->get(AMDGPU::getVOPe32(MI.getOpcode())))
                        .add(*TII->getNamedOperand(MI, AMDGPU::OpName::vdst))
                        .add(*TII->getNamedOperand(MI, AMDGPU::OpName::src0))
@@ -1184,7 +1184,7 @@ MachineInstr *SIPeepholeSDWA::createSDWAVersion(MachineInstr &MI) {
 
   // Create SDWA version of instruction MI and initialize its operands
   MachineInstrBuilder SDWAInst =
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), SDWADesc)
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), SDWADesc)
     .setMIFlags(MI.getFlags());
 
   // Copy dst, if it is present in original then should also be present in SDWA
@@ -1349,7 +1349,7 @@ void SIPeepholeSDWA::legalizeScalarOperands(MachineInstr &MI,
       continue;
 
     Register VGPR = MRI->createVirtualRegister(&AMDGPU::VGPR_32RegClass);
-    auto Copy = BuildMI(*MI.getParent(), MI.getIterator(), MI.getDebugLoc(),
+    auto Copy = BuildMI(*MI.getParent(), MI.getIterator(), MI.getFullDebugLoc(),
                         TII->get(AMDGPU::V_MOV_B32_e32), VGPR);
     if (Op.isImm())
       Copy.addImm(Op.getImm());

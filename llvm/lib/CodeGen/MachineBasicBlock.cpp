@@ -1565,7 +1565,7 @@ MachineBasicBlock::findDebugLoc(instr_iterator MBBI) {
   // Skip debug declarations, we don't want a DebugLoc from them.
   MBBI = skipDebugInstructionsForward(MBBI, instr_end());
   if (MBBI != instr_end())
-    return MBBI->getDebugLoc();
+    return MBBI->getFullDebugLoc();
   return {};
 }
 
@@ -1575,7 +1575,7 @@ DebugLoc MachineBasicBlock::rfindDebugLoc(reverse_instr_iterator MBBI) {
   // Skip debug declarations, we don't want a DebugLoc from them.
   MBBI = skipDebugInstructionsBackward(MBBI, instr_rbegin());
   if (!MBBI->isDebugInstr())
-    return MBBI->getDebugLoc();
+    return MBBI->getFullDebugLoc();
   return {};
 }
 
@@ -1587,7 +1587,7 @@ DebugLoc MachineBasicBlock::findPrevDebugLoc(instr_iterator MBBI) {
   // Skip debug instructions, we don't want a DebugLoc from them.
   MBBI = prev_nodbg(MBBI, instr_begin());
   if (!MBBI->isDebugInstr())
-    return MBBI->getDebugLoc();
+    return MBBI->getFullDebugLoc();
   return {};
 }
 
@@ -1597,7 +1597,7 @@ DebugLoc MachineBasicBlock::rfindPrevDebugLoc(reverse_instr_iterator MBBI) {
   // Skip debug declarations, we don't want a DebugLoc from them.
   MBBI = next_nodbg(MBBI, instr_rend());
   if (MBBI != instr_rend())
-    return MBBI->getDebugLoc();
+    return MBBI->getFullDebugLoc();
   return {};
 }
 
@@ -1611,10 +1611,10 @@ MachineBasicBlock::findBranchDebugLoc() {
     ++TI;
 
   if (TI != end()) {
-    DL = TI->getDebugLoc();
+    DL = TI->getFullDebugLoc();
     for (++TI ; TI != end() ; ++TI)
       if (TI->isBranch())
-        DL = DebugLoc::getMergedLocation(DL, TI->getDebugLoc());
+        DL = DebugLoc::getMergedLocation(DL, TI->getFullDebugLoc());
   }
   return DL;
 }

@@ -65,31 +65,31 @@ namespace {
     //
     unsigned createDupLane(MachineBasicBlock &MBB,
                            MachineBasicBlock::iterator InsertBefore,
-                           const DebugLoc &DL, unsigned Reg, unsigned Lane,
+                           DebugLoc DL, unsigned Reg, unsigned Lane,
                            bool QPR = false);
 
     unsigned createExtractSubreg(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator InsertBefore,
-                                 const DebugLoc &DL, unsigned DReg,
+                                 DebugLoc DL, unsigned DReg,
                                  unsigned Lane, const TargetRegisterClass *TRC);
 
     unsigned createVExt(MachineBasicBlock &MBB,
                         MachineBasicBlock::iterator InsertBefore,
-                        const DebugLoc &DL, unsigned Ssub0, unsigned Ssub1);
+                        DebugLoc DL, unsigned Ssub0, unsigned Ssub1);
 
     unsigned createRegSequence(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator InsertBefore,
-                               const DebugLoc &DL, unsigned Reg1,
+                               DebugLoc DL, unsigned Reg1,
                                unsigned Reg2);
 
     unsigned createInsertSubreg(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator InsertBefore,
-                                const DebugLoc &DL, unsigned DReg,
+                                DebugLoc DL, unsigned DReg,
                                 unsigned Lane, unsigned ToInsert);
 
     unsigned createImplicitDef(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator InsertBefore,
-                               const DebugLoc &DL);
+                               DebugLoc DL);
 
     //
     // Various property checkers
@@ -413,7 +413,7 @@ SmallVector<unsigned, 8> A15SDOptimizer::getReadDPRs(MachineInstr *MI) {
 // Creates a DPR register from an SPR one by using a VDUP.
 unsigned A15SDOptimizer::createDupLane(MachineBasicBlock &MBB,
                                        MachineBasicBlock::iterator InsertBefore,
-                                       const DebugLoc &DL, unsigned Reg,
+                                       DebugLoc DL, unsigned Reg,
                                        unsigned Lane, bool QPR) {
   Register Out =
       MRI->createVirtualRegister(QPR ? &ARM::QPRRegClass : &ARM::DPRRegClass);
@@ -429,7 +429,7 @@ unsigned A15SDOptimizer::createDupLane(MachineBasicBlock &MBB,
 // Creates a SPR register from a DPR by copying the value in lane 0.
 unsigned A15SDOptimizer::createExtractSubreg(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator InsertBefore,
-    const DebugLoc &DL, unsigned DReg, unsigned Lane,
+    DebugLoc DL, unsigned DReg, unsigned Lane,
     const TargetRegisterClass *TRC) {
   Register Out = MRI->createVirtualRegister(TRC);
   BuildMI(MBB, InsertBefore, DL, TII->get(TargetOpcode::COPY), Out)
@@ -441,7 +441,7 @@ unsigned A15SDOptimizer::createExtractSubreg(
 // Takes two SPR registers and creates a DPR by using a REG_SEQUENCE.
 unsigned A15SDOptimizer::createRegSequence(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator InsertBefore,
-    const DebugLoc &DL, unsigned Reg1, unsigned Reg2) {
+    DebugLoc DL, unsigned Reg1, unsigned Reg2) {
   Register Out = MRI->createVirtualRegister(&ARM::QPRRegClass);
   BuildMI(MBB,
           InsertBefore,
@@ -458,7 +458,7 @@ unsigned A15SDOptimizer::createRegSequence(
 // and merges them into one DPR register.
 unsigned A15SDOptimizer::createVExt(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator InsertBefore,
-                                    const DebugLoc &DL, unsigned Ssub0,
+                                    DebugLoc DL, unsigned Ssub0,
                                     unsigned Ssub1) {
   Register Out = MRI->createVirtualRegister(&ARM::DPRRegClass);
   BuildMI(MBB, InsertBefore, DL, TII->get(ARM::VEXTd32), Out)
@@ -471,7 +471,7 @@ unsigned A15SDOptimizer::createVExt(MachineBasicBlock &MBB,
 
 unsigned A15SDOptimizer::createInsertSubreg(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator InsertBefore,
-    const DebugLoc &DL, unsigned DReg, unsigned Lane, unsigned ToInsert) {
+    DebugLoc DL, unsigned DReg, unsigned Lane, unsigned ToInsert) {
   Register Out = MRI->createVirtualRegister(&ARM::DPR_VFP2RegClass);
   BuildMI(MBB,
           InsertBefore,
@@ -487,7 +487,7 @@ unsigned A15SDOptimizer::createInsertSubreg(
 unsigned
 A15SDOptimizer::createImplicitDef(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator InsertBefore,
-                                  const DebugLoc &DL) {
+                                  DebugLoc DL) {
   Register Out = MRI->createVirtualRegister(&ARM::DPRRegClass);
   BuildMI(MBB,
           InsertBefore,
@@ -502,7 +502,7 @@ A15SDOptimizer::createImplicitDef(MachineBasicBlock &MBB,
 unsigned
 A15SDOptimizer::optimizeAllLanesPattern(MachineInstr *MI, unsigned Reg) {
   MachineBasicBlock::iterator InsertPt(MI);
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   MachineBasicBlock &MBB = *MI->getParent();
   InsertPt++;
   unsigned Out;

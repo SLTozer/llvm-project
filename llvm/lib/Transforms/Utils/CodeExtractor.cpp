@@ -1111,7 +1111,7 @@ static void applyFirstDebugLoc(Function *oldFunction,
   if (oldFunction->getSubprogram()) {
     any_of(Blocks, [&BranchI](const BasicBlock *BB) {
       return any_of(*BB, [&BranchI](const Instruction &I) {
-        if (!I.getDebugLoc())
+        if (!I.getFullDebugLoc())
           return false;
         BranchI->copyDebugLocFrom(&I);
         return true;
@@ -1310,12 +1310,12 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
       return;
     }
     if (Declare) {
-      DIB.insertDeclare(NewLoc, DR->getVariable(), Expr, DR->getDebugLoc(),
+      DIB.insertDeclare(NewLoc, DR->getVariable(), Expr, DR->getFullDebugLoc(),
                         &NewFunc.getEntryBlock());
       return;
     }
     DIB.insertDbgValueIntrinsic(
-        NewLoc, DR->getVariable(), Expr, DR->getDebugLoc(),
+        NewLoc, DR->getVariable(), Expr, DR->getFullDebugLoc(),
         NewFunc.getEntryBlock().getTerminator()->getIterator());
   };
   for (auto [Input, NewVal] : zip_equal(Inputs, NewValues)) {
@@ -1371,7 +1371,7 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
   auto UpdateDbgLabel = [&](auto *LabelRecord) {
     // Point the label record to a fresh label within the new function if
     // the record was not inlined from some other function.
-    if (LabelRecord->getDebugLoc().getInlinedAt())
+    if (LabelRecord->getFullDebugLoc().getInlinedAt())
       return;
     DILabel *OldLabel = LabelRecord->getLabel();
     DINode *&NewLabel = RemappedMetadata[OldLabel];
@@ -1409,7 +1409,7 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
       // If the variable was in the scope of the old function, i.e. it was not
       // inlined, point the intrinsic to a fresh variable within the new
       // function.
-      if (!DVR.getDebugLoc().getInlinedAt())
+      if (!DVR.getFullDebugLoc().getInlinedAt())
         DVR.setVariable(GetUpdatedDIVariable(DVR.getVariable()));
     }
   };
@@ -1429,15 +1429,15 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
     // instruction - the indices will transfer. We only need to remap scopes
     // from the new FLMD context.
 #if LLVM_USE_FLMD_SOURCE_LOCS
-    if (const DebugLoc &DL = I.getDebugLoc())
+    if (DebugLoc DL = I.getFullDebugLoc())
     
       I.setDebugLoc(
           DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, &NewFunc, Cache, DLMap));
     for (DbgRecord &DR : I.getDbgRecordRange())
-      DR.setDebugLoc(DebugLoc::replaceInlinedAtSubprogram(DR.getDebugLoc(),
+      DR.setDebugLoc(DebugLoc::replaceInlinedAtSubprogram(DR.getFullDebugLoc(),
                                                           *NewSP, &NewFunc, Cache, DLMap));
 #else
-    if (const DebugLoc &DL = I.getDebugLoc())
+    if (DebugLoc DL = I.getDebugLoc())
       I.setDebugLoc(
           DebugLoc::replaceInlinedAtSubprogram(DL, *NewSP, &NewFunc, Cache, DLMap));
     for (DbgRecord &DR : I.getDbgRecordRange())
@@ -1457,7 +1457,7 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
     updateLoopMetadataDebugLocations(I, updateLoopInfoLoc);
     at::remapAssignID(AssignmentIDMap, I);
   }
-  if (!TheCall.getDebugLoc())
+  if (!TheCall.getFullDebugLoc())
     TheCall.setDebugLoc(DebugLoc::get(&OldFunc, 0, 0, OldSP));
 
   eraseDebugIntrinsicsWithNonLocalRefs(NewFunc);
@@ -1967,7 +1967,7 @@ CallInst *CodeExtractor::emitReplacerCall(
   // function contains the first debug location of the extracted function,
   // set in extractCodeRegion.
   if (codeReplacer->getParent()->getSubprogram()) {
-    if (auto DL = newFunction->getEntryBlock().getTerminator()->getDebugLoc())
+    if (auto DL = newFunction->getEntryBlock().getTerminator()->getFullDebugLoc())
       call->setDebugLoc(DL);
   }
 

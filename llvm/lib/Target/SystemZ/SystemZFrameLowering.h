@@ -56,7 +56,7 @@ public:
 
   // Emit instructions before MBBI (in MBB) to add NumBytes to Reg.
   void emitIncrement(MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
-                     const DebugLoc &DL, Register Reg, int64_t NumBytes,
+                     DebugLoc DL, Register Reg, int64_t NumBytes,
                      const TargetInstrInfo *TII) const;
 
 private:

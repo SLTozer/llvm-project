@@ -1500,7 +1500,7 @@ const char *LLVMGetDebugLocDirectory(LLVMValueRef Val, unsigned *Length) {
   if (!Length) return nullptr;
   StringRef S;
   if (const auto *I = dyn_cast<Instruction>(unwrap(Val))) {
-    if (const auto &DL = I->getDebugLoc()) {
+    if (const auto &DL = I->getFullDebugLoc()) {
       S = DL.getDirectory();
     }
   } else if (const auto *GV = dyn_cast<GlobalVariable>(unwrap(Val))) {
@@ -1524,7 +1524,7 @@ const char *LLVMGetDebugLocFilename(LLVMValueRef Val, unsigned *Length) {
   if (!Length) return nullptr;
   StringRef S;
   if (const auto *I = dyn_cast<Instruction>(unwrap(Val))) {
-    if (const auto &DL = I->getDebugLoc()) {
+    if (const auto &DL = I->getFullDebugLoc()) {
       S = DL.getFilename();
     }
   } else if (const auto *GV = dyn_cast<GlobalVariable>(unwrap(Val))) {
@@ -1547,7 +1547,7 @@ const char *LLVMGetDebugLocFilename(LLVMValueRef Val, unsigned *Length) {
 unsigned LLVMGetDebugLocLine(LLVMValueRef Val) {
   unsigned L = 0;
   if (const auto *I = dyn_cast<Instruction>(unwrap(Val))) {
-    if (const auto &DL = I->getDebugLoc()) {
+    if (const auto &DL = I->getFullDebugLoc()) {
       L = DL.getLine();
     }
   } else if (const auto *GV = dyn_cast<GlobalVariable>(unwrap(Val))) {
@@ -1569,7 +1569,7 @@ unsigned LLVMGetDebugLocLine(LLVMValueRef Val) {
 unsigned LLVMGetDebugLocColumn(LLVMValueRef Val) {
   unsigned C = 0;
   if (const auto *I = dyn_cast<Instruction>(unwrap(Val)))
-    if (const auto &DL = I->getDebugLoc())
+    if (const auto &DL = I->getFullDebugLoc())
       C = DL.getColumn();
   return C;
 }
@@ -3123,7 +3123,7 @@ LLVMDbgRecordRef LLVMGetPreviousDbgRecord(LLVMDbgRecordRef Rec) {
 }
 
 LLVMMetadataRef LLVMDbgRecordGetDebugLoc(LLVMDbgRecordRef Rec) {
-  return wrap(unwrap<DbgRecord>(Rec)->getDebugLoc().getAsMDNode());
+  return wrap(unwrap<DbgRecord>(Rec)->getFullDebugLoc().getAsMDNode());
 }
 
 LLVMDbgRecordKind LLVMDbgRecordGetKind(LLVMDbgRecordRef Rec) {

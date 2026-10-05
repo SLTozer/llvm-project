@@ -204,7 +204,7 @@ void SPIRVLegalizeZeroSizeArraysImpl::visitAllocaInst(AllocaInst &AI) {
   AllocaInst *NewAI = Builder.CreateAlloca(Builder.getInt8Ty());
   NewAI->takeName(&AI);
   NewAI->setAlignment(AI.getAlign());
-  NewAI->setDebugLoc(AI.getDebugLoc());
+  NewAI->setDebugLoc(AI.getFullDebugLoc());
   AI.replaceAllUsesWith(NewAI);
   ToErase.push_back(&AI);
   Modified = true;

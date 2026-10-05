@@ -67,13 +67,13 @@ MCInst MipsInstrInfo::getNop() const {
 void MipsInstrInfo::
 insertNoop(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const
 {
-  DebugLoc DL;
+  DbgLocStorage DL;
   BuildMI(MBB, MI, DL, get(Mips::NOP));
 }
 
 MachineInstrBuilder MipsInstrInfo::insertNop(MachineBasicBlock &MBB,
                                              MachineBasicBlock::iterator MI,
-                                             DebugLoc DL) const {
+                                             DbgLocStorage DL) const {
   assert(!Subtarget.inMips16Mode() &&
          "insertNop does not support MIPS16e mode at this time");
   const unsigned MMOpc =
@@ -127,7 +127,7 @@ bool MipsInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 }
 
 void MipsInstrInfo::BuildCondBr(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
-                                const DebugLoc &DL,
+                                DbgLocStorage DL,
                                 ArrayRef<MachineOperand> Cond) const {
   unsigned Opc = Cond[0].getImm();
   const MCInstrDesc &MCID = get(Opc);
@@ -145,7 +145,7 @@ unsigned MipsInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                      MachineBasicBlock *TBB,
                                      MachineBasicBlock *FBB,
                                      ArrayRef<MachineOperand> Cond,
-                                     const DebugLoc &DL,
+                                     DbgLocStorage DL,
                                      int *BytesAdded) const {
   // Shouldn't be a fall through.
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
@@ -780,7 +780,7 @@ MipsInstrInfo::genInstrWithNewOpc(unsigned NewOpc,
     }
   }
 
-  MIB = BuildMI(*I->getParent(), I, I->getDebugLoc(), get(NewOpc));
+  MIB = BuildMI(*I->getParent(), I, I->getFullDebugLoc(), get(NewOpc));
 
   // For MIPSR6 JI*C requires an immediate 0 as an operand, JIALC(64) an
   // immediate 0 as an operand and requires the removal of it's implicit-def %ra

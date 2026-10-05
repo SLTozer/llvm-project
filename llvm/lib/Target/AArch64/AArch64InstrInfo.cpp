@@ -420,7 +420,7 @@ AArch64InstrInfo::getBranchDestBlock(const MachineInstr &MI) const {
 void AArch64InstrInfo::insertIndirectBranch(MachineBasicBlock &MBB,
                                             MachineBasicBlock &NewDestBB,
                                             MachineBasicBlock &RestoreBB,
-                                            const DebugLoc &DL,
+                                            DbgLocStorage DL,
                                             int64_t BrOffset,
                                             RegScavenger *RS) const {
   assert(RS && "RegScavenger required for long branching");
@@ -778,7 +778,7 @@ unsigned AArch64InstrInfo::removeBranch(MachineBasicBlock &MBB,
 }
 
 void AArch64InstrInfo::instantiateCondBranch(
-    MachineBasicBlock &MBB, const DebugLoc &DL, MachineBasicBlock *TBB,
+    MachineBasicBlock &MBB, DbgLocStorage DL, MachineBasicBlock *TBB,
     ArrayRef<MachineOperand> Cond) const {
   if (Cond[0].getImm() != -1) {
     // Regular Bcc
@@ -811,7 +811,7 @@ void AArch64InstrInfo::instantiateCondBranch(
 
 unsigned AArch64InstrInfo::insertBranch(
     MachineBasicBlock &MBB, MachineBasicBlock *TBB, MachineBasicBlock *FBB,
-    ArrayRef<MachineOperand> Cond, const DebugLoc &DL, int *BytesAdded) const {
+    ArrayRef<MachineOperand> Cond, DbgLocStorage DL, int *BytesAdded) const {
   // Shouldn't be a fall through.
   assert(TBB && "insertBranch must not be told to insert a fallthrough");
 
@@ -856,7 +856,7 @@ bool llvm::optimizeTerminators(MachineBasicBlock *MBB,
         for (auto *S : Succs)
           if (S != Target)
             MBB->removeSuccessor(S);
-        DebugLoc DL = MI.getDebugLoc();
+        DbgLocStorage DL = MI.getDebugLoc();
         while (MBB->rbegin() != &MI)
           MBB->rbegin()->eraseFromParent();
         MI.eraseFromParent();
@@ -1044,7 +1044,7 @@ bool AArch64InstrInfo::canInsertSelect(const MachineBasicBlock &MBB,
 
 void AArch64InstrInfo::insertSelect(MachineBasicBlock &MBB,
                                     MachineBasicBlock::iterator I,
-                                    const DebugLoc &DL, Register DstReg,
+                                    DbgLocStorage DL, Register DstReg,
                                     ArrayRef<MachineOperand> Cond,
                                     Register TrueReg, Register FalseReg) const {
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
@@ -2532,7 +2532,7 @@ bool AArch64InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
   auto &Subtarget = MBB.getParent()->getSubtarget<AArch64Subtarget>();
   auto TRI = Subtarget.getRegisterInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DbgLocStorage DL = MI.getDebugLoc();
 
   if (MI.getOpcode() == AArch64::STACK_GUARD_UNMIX) {
     // Expand STACK_GUARD_UNMIX to: sub Rd, fp, Rs
@@ -4295,7 +4295,7 @@ static unsigned offsetExtendOpcode(unsigned Opcode) {
 MachineInstr *AArch64InstrInfo::emitLdStWithAddr(MachineInstr &MemI,
                                                  const ExtAddrMode &AM) const {
 
-  const DebugLoc &DL = MemI.getDebugLoc();
+  DbgLocStorage DL = MemI.getDebugLoc();
   MachineBasicBlock &MBB = *MemI.getParent();
   MachineRegisterInfo &MRI = MemI.getMF()->getRegInfo();
 
@@ -5690,7 +5690,7 @@ static bool forwardCopyWillClobberTuple(unsigned DestReg, unsigned SrcReg,
 
 void AArch64InstrInfo::copyPhysRegTuple(MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator I,
-                                        const DebugLoc &DL, MCRegister DestReg,
+                                        DbgLocStorage DL, MCRegister DestReg,
                                         MCRegister SrcReg, bool KillSrc,
                                         unsigned Opcode,
                                         ArrayRef<unsigned> Indices) const {
@@ -5717,7 +5717,7 @@ void AArch64InstrInfo::copyPhysRegTuple(MachineBasicBlock &MBB,
 
 void AArch64InstrInfo::copyGPRRegTuple(MachineBasicBlock &MBB,
                                        MachineBasicBlock::iterator I,
-                                       const DebugLoc &DL, MCRegister DestReg,
+                                       DbgLocStorage DL, MCRegister DestReg,
                                        MCRegister SrcReg, bool KillSrc,
                                        unsigned Opcode, unsigned ZeroReg,
                                        llvm::ArrayRef<unsigned> Indices) const {
@@ -5774,7 +5774,7 @@ static bool mustAvoidNeonAtMBBI(const AArch64Subtarget &Subtarget,
 
 void AArch64InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator I,
-                                   const DebugLoc &DL, Register DestReg,
+                                   DbgLocStorage DL, Register DestReg,
                                    Register SrcReg, bool KillSrc,
                                    bool RenamableDest,
                                    bool RenamableSrc) const {
@@ -6316,7 +6316,7 @@ static void storeRegPairToStackSlot(const TargetRegisterInfo &TRI,
     SrcReg1 = TRI.getSubReg(SrcReg, SubIdx1);
     SubIdx1 = 0;
   }
-  BuildMI(MBB, InsertBefore, DebugLoc(), MCID)
+  BuildMI(MBB, InsertBefore, DbgLocStorage(), MCID)
       .addReg(SrcReg0, getKillRegState(IsKill), SubIdx0)
       .addReg(SrcReg1, getKillRegState(IsKill), SubIdx1)
       .addFrameIndex(FI)
@@ -6468,7 +6468,7 @@ void AArch64InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   assert(Opc && "Unknown register class");
   MFI.setStackID(FI, StackID);
 
-  const MachineInstrBuilder MI = BuildMI(MBB, MBBI, DebugLoc(), get(Opc))
+  const MachineInstrBuilder MI = BuildMI(MBB, MBBI, DbgLocStorage(), get(Opc))
                                      .addReg(SrcReg, getKillRegState(isKill))
                                      .addFrameIndex(FI);
 
@@ -6496,7 +6496,7 @@ static void loadRegPairFromStackSlot(const TargetRegisterInfo &TRI,
     SubIdx1 = 0;
     IsUndef = false;
   }
-  BuildMI(MBB, InsertBefore, DebugLoc(), MCID)
+  BuildMI(MBB, InsertBefore, DbgLocStorage(), MCID)
       .addReg(DestReg0, RegState::Define | getUndefRegState(IsUndef), SubIdx0)
       .addReg(DestReg1, RegState::Define | getUndefRegState(IsUndef), SubIdx1)
       .addFrameIndex(FI)
@@ -6651,7 +6651,7 @@ void AArch64InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   assert(Opc && "Unknown register class");
   MFI.setStackID(FI, StackID);
 
-  const MachineInstrBuilder MI = BuildMI(MBB, MBBI, DebugLoc(), get(Opc))
+  const MachineInstrBuilder MI = BuildMI(MBB, MBBI, DbgLocStorage(), get(Opc))
                                      .addReg(DestReg, getDefRegState(true))
                                      .addFrameIndex(FI);
   if (Offset)
@@ -6875,7 +6875,7 @@ llvm::createCFAOffset(const TargetRegisterInfo &TRI, unsigned Reg,
 // in that it requires the opcode.
 static void emitFrameOffsetAdj(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MBBI,
-                               const DebugLoc &DL, unsigned DestReg,
+                               DbgLocStorage DL, unsigned DestReg,
                                unsigned SrcReg, int64_t Offset, unsigned Opc,
                                const TargetInstrInfo *TII,
                                MachineInstr::MIFlag Flag, bool NeedsWinCFI,
@@ -7008,7 +7008,7 @@ static void emitFrameOffsetAdj(MachineBasicBlock &MBB,
 }
 
 void llvm::emitFrameOffset(MachineBasicBlock &MBB,
-                           MachineBasicBlock::iterator MBBI, const DebugLoc &DL,
+                           MachineBasicBlock::iterator MBBI, DbgLocStorage DL,
                            unsigned DestReg, unsigned SrcReg,
                            StackOffset Offset, const TargetInstrInfo *TII,
                            MachineInstr::MIFlag Flag, bool SetNZCV,
@@ -7362,7 +7362,7 @@ bool llvm::rewriteAArch64FrameIndex(MachineInstr &MI, unsigned FrameRegIdx,
 
   if (Opcode == AArch64::ADDSXri || Opcode == AArch64::ADDXri) {
     Offset += StackOffset::getFixed(MI.getOperand(ImmIdx).getImm());
-    emitFrameOffset(*MI.getParent(), MI, MI.getDebugLoc(),
+    emitFrameOffset(*MI.getParent(), MI, MI.getFullDebugLoc(),
                     MI.getOperand(0).getReg(), FrameReg, Offset, TII,
                     MachineInstr::NoFlags, (Opcode == AArch64::ADDSXri));
     MI.eraseFromParent();
@@ -7391,7 +7391,7 @@ bool llvm::rewriteAArch64FrameIndex(MachineInstr &MI, unsigned FrameRegIdx,
 
 void AArch64InstrInfo::insertNoop(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator MI) const {
-  DebugLoc DL;
+  DbgLocStorage DL;
   BuildMI(MBB, MI, DL, get(AArch64::NOP));
 }
 
@@ -10069,7 +10069,7 @@ bool AArch64InstrInfo::optimizeCondBranch(MachineInstr &MI) const {
 
     MachineBasicBlock &RefToMBB = *MBB;
     MachineBasicBlock *TBB = MI.getOperand(1).getMBB();
-    DebugLoc DL = MI.getDebugLoc();
+    DbgLocStorage DL = MI.getDebugLoc();
     unsigned Imm = Log2_64(Mask);
     unsigned Opc = (Imm < 32)
                        ? (IsNegativeBranch ? AArch64::TBNZW : AArch64::TBZW)
@@ -10112,7 +10112,7 @@ bool AArch64InstrInfo::optimizeCondBranch(MachineInstr &MI) const {
       return false;
     MachineBasicBlock &RefToMBB = *MBB;
     MachineBasicBlock *TBB = MI.getOperand(TargetBBInMI).getMBB();
-    DebugLoc DL = MI.getDebugLoc();
+    DbgLocStorage DL = MI.getDebugLoc();
     if (IsNegativeBranch)
       CC = AArch64CC::getInvertedCondCode(CC);
     BuildMI(RefToMBB, MI, DL, get(AArch64::Bcc)).addImm(CC).addMBB(TBB);
@@ -11094,9 +11094,9 @@ static void signOutlinedFunction(MachineFunction &MF, MachineBasicBlock &MBB,
   if (!ShouldSignReturnAddr)
     return;
 
-  BuildMI(MBB, MBB.begin(), DebugLoc(), TII->get(AArch64::PAUTH_PROLOGUE))
+  BuildMI(MBB, MBB.begin(), DbgLocStorage(), TII->get(AArch64::PAUTH_PROLOGUE))
       .setMIFlag(MachineInstr::FrameSetup);
-  TII->createPauthEpilogueInstr(MBB, DebugLoc());
+  TII->createPauthEpilogueInstr(MBB, DbgLocStorage());
 }
 
 void AArch64InstrInfo::buildOutlinedFrame(
@@ -11119,7 +11119,7 @@ void AArch64InstrInfo::buildOutlinedFrame(
              Call->getOpcode() == AArch64::BLRNoIP);
       TailOpcode = AArch64::TCRETURNriALL;
     }
-    MachineInstr *TC = BuildMI(MF, DebugLoc(), get(TailOpcode))
+    MachineInstr *TC = BuildMI(MF, DbgLocStorage(), get(TailOpcode))
                            .add(Call->getOperand(0))
                            .addImm(0);
     MBB.insert(MBB.end(), TC);
@@ -11159,7 +11159,7 @@ void AArch64InstrInfo::buildOutlinedFrame(
       Et = std::prev(MBB.end());
 
     // Insert a save before the outlined region
-    MachineInstr *STRXpre = BuildMI(MF, DebugLoc(), get(AArch64::STRXpre))
+    MachineInstr *STRXpre = BuildMI(MF, DbgLocStorage(), get(AArch64::STRXpre))
                                 .addReg(AArch64::SP, RegState::Define)
                                 .addReg(AArch64::LR)
                                 .addReg(AArch64::SP)
@@ -11178,7 +11178,7 @@ void AArch64InstrInfo::buildOutlinedFrame(
     }
 
     // Insert a restore before the terminator for the function.
-    MachineInstr *LDRXpost = BuildMI(MF, DebugLoc(), get(AArch64::LDRXpost))
+    MachineInstr *LDRXpost = BuildMI(MF, DbgLocStorage(), get(AArch64::LDRXpost))
                                  .addReg(AArch64::SP, RegState::Define)
                                  .addReg(AArch64::LR, RegState::Define)
                                  .addReg(AArch64::SP)
@@ -11203,7 +11203,7 @@ void AArch64InstrInfo::buildOutlinedFrame(
   if (!MBB.isLiveIn(AArch64::LR))
     MBB.addLiveIn(AArch64::LR);
 
-  MachineInstr *ret = BuildMI(MF, DebugLoc(), get(AArch64::RET))
+  MachineInstr *ret = BuildMI(MF, DbgLocStorage(), get(AArch64::RET))
                           .addReg(AArch64::LR);
   MBB.insert(MBB.end(), ret);
 
@@ -11227,7 +11227,7 @@ MachineBasicBlock::iterator AArch64InstrInfo::insertOutlinedCall(
   // Are we tail calling?
   if (C.CallConstructionID == MachineOutlinerTailCall) {
     // If yes, then we can just branch to the label.
-    It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(AArch64::TCRETURNdi))
+    It = MBB.insert(It, BuildMI(MF, DbgLocStorage(), get(AArch64::TCRETURNdi))
                             .addGlobalAddress(M.getNamedValue(MF.getName()))
                             .addImm(0));
     return It;
@@ -11237,7 +11237,7 @@ MachineBasicBlock::iterator AArch64InstrInfo::insertOutlinedCall(
   if (C.CallConstructionID == MachineOutlinerNoLRSave ||
       C.CallConstructionID == MachineOutlinerThunk) {
     // No, so just insert the call.
-    It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(AArch64::BL))
+    It = MBB.insert(It, BuildMI(MF, DbgLocStorage(), get(AArch64::BL))
                             .addGlobalAddress(M.getNamedValue(MF.getName())));
     return It;
   }
@@ -11261,22 +11261,22 @@ MachineBasicBlock::iterator AArch64InstrInfo::insertOutlinedCall(
       MBB.addLiveIn(AArch64::LR);
 
     // Save and restore LR from Reg.
-    Save = BuildMI(MF, DebugLoc(), get(AArch64::ORRXrs), Reg)
+    Save = BuildMI(MF, DbgLocStorage(), get(AArch64::ORRXrs), Reg)
                .addReg(AArch64::XZR)
                .addReg(AArch64::LR)
                .addImm(0);
-    Restore = BuildMI(MF, DebugLoc(), get(AArch64::ORRXrs), AArch64::LR)
+    Restore = BuildMI(MF, DbgLocStorage(), get(AArch64::ORRXrs), AArch64::LR)
                 .addReg(AArch64::XZR)
                 .addReg(Reg)
                 .addImm(0);
   } else {
     // We have the default case. Save and restore from SP.
-    Save = BuildMI(MF, DebugLoc(), get(AArch64::STRXpre))
+    Save = BuildMI(MF, DbgLocStorage(), get(AArch64::STRXpre))
                .addReg(AArch64::SP, RegState::Define)
                .addReg(AArch64::LR)
                .addReg(AArch64::SP)
                .addImm(-16);
-    Restore = BuildMI(MF, DebugLoc(), get(AArch64::LDRXpost))
+    Restore = BuildMI(MF, DbgLocStorage(), get(AArch64::LDRXpost))
                   .addReg(AArch64::SP, RegState::Define)
                   .addReg(AArch64::LR, RegState::Define)
                   .addReg(AArch64::SP)
@@ -11287,7 +11287,7 @@ MachineBasicBlock::iterator AArch64InstrInfo::insertOutlinedCall(
   It++;
 
   // Insert the call.
-  It = MBB.insert(It, BuildMI(MF, DebugLoc(), get(AArch64::BL))
+  It = MBB.insert(It, BuildMI(MF, DbgLocStorage(), get(AArch64::BL))
                           .addGlobalAddress(M.getNamedValue(MF.getName())));
   CallPt = It;
   It++;
@@ -11303,7 +11303,7 @@ bool AArch64InstrInfo::shouldOutlineFromFunctionByDefault(
 
 void AArch64InstrInfo::buildClearRegister(Register Reg, MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator Iter,
-                                          DebugLoc &DL,
+                                          DbgLocStorage DL,
                                           bool AllowSideEffects) const {
   const MachineFunction &MF = *MBB.getParent();
   const AArch64Subtarget &STI = MF.getSubtarget<AArch64Subtarget>();
@@ -11588,7 +11588,7 @@ unsigned llvm::getBLRCallOpcode(const MachineFunction &MF) {
 }
 
 void AArch64InstrInfo::createPauthEpilogueInstr(MachineBasicBlock &MBB,
-                                                DebugLoc DL) const {
+                                                DbgLocStorage DL) const {
   MachineBasicBlock::iterator InsertPt = MBB.getFirstTerminator();
   auto Builder = BuildMI(MBB, InsertPt, DL, get(AArch64::PAUTH_EPILOGUE))
                      .setMIFlag(MachineInstr::FrameDestroy);
@@ -11619,7 +11619,7 @@ AArch64InstrInfo::probedStackAlloc(MachineBasicBlock::iterator MBBI,
   const AArch64InstrInfo *TII =
       MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
   int64_t ProbeSize = MF.getInfo<AArch64FunctionInfo>()->getStackProbeSize();
-  DebugLoc DL = MBB.findDebugLoc(MBBI);
+  DbgLocStorage DL = MBB.findDebugLoc(MBBI);
 
   MachineFunction::iterator MBBInsertPoint = std::next(MBB.getIterator());
   MachineBasicBlock *LoopTestMBB =
@@ -11821,7 +11821,7 @@ void AArch64PipelinerLoopInfo::createRemainingIterationsGreaterCondition(
   auto AccumulateCond = [&](Register CurCond,
                             AArch64CC::CondCode CC) -> Register {
     Register NewCond = MRI.createVirtualRegister(&AArch64::GPR64commonRegClass);
-    BuildMI(MBB, MBB.end(), Comp->getDebugLoc(), TII->get(AArch64::CSINCXr))
+    BuildMI(MBB, MBB.end(), Comp->getFullDebugLoc(), TII->get(AArch64::CSINCXr))
         .addReg(NewCond, RegState::Define)
         .addReg(CurCond)
         .addReg(CurCond)
@@ -11886,7 +11886,7 @@ void AArch64PipelinerLoopInfo::createRemainingIterationsGreaterCondition(
   }
 
   // If AccCond == 0, the remainder is greater than TC.
-  BuildMI(MBB, MBB.end(), Comp->getDebugLoc(), TII->get(AArch64::SUBSXri))
+  BuildMI(MBB, MBB.end(), Comp->getFullDebugLoc(), TII->get(AArch64::SUBSXri))
       .addReg(AArch64::XZR, RegState::Define | RegState::Dead)
       .addReg(AccCond)
       .addImm(0)

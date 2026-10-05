@@ -132,7 +132,7 @@ static void diagnoseInvalidFormatString(const CallBase *CI) {
       *CI->getFunction(),
       "printf format string must be a trivially resolved constant string "
       "global variable",
-      CI->getDebugLoc()));
+      CI->getFullDebugLoc()));
 }
 
 bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
@@ -184,7 +184,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
       if (ArgSize % DWORD_ALIGN != 0) {
         Type *ResType = ArgType->getWithNewType(Type::getInt32Ty(Ctx));
         Builder.SetInsertPoint(CI);
-        Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+        Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
         if (ArgType->isFPOrFPVectorTy()) {
           Arg = Builder.CreateFPExt(
@@ -260,7 +260,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
 
     // Insert the printf_alloc call
     Builder.SetInsertPoint(CI);
-    Builder.SetCurrentDebugLocation(CI->getDebugLoc());
+    Builder.SetCurrentDebugLocation(CI->getFullDebugLoc());
 
     AttributeList Attr = AttributeList::get(Ctx, AttributeList::FunctionIndex,
                                             Attribute::NoUnwind);

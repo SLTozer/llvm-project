@@ -213,7 +213,7 @@ class BCECmpBlock {
   const BCEAtom &Rhs() const { return Cmp.Rhs; }
   int SizeBits() const { return Cmp.SizeBits; }
 
-  DebugLoc getCmpDebugLoc() const { return Cmp.CmpI->getDebugLoc(); }
+  DebugLoc getCmpDebugLoc() const { return Cmp.CmpI->getFullDebugLoc(); }
 
   // Returns true if the block does other works besides comparison.
   bool doesOtherWork() const;
@@ -734,7 +734,7 @@ static BasicBlock *mergeComparisons(ArrayRef<BCECmpBlock> Comparisons,
   OrigBranchDebugLocs.reserve(Comparisons.size());
   for (auto &Comparison : Comparisons)
     OrigBranchDebugLocs.push_back(
-        Comparison.BB->getTerminator()->getDebugLoc());
+        Comparison.BB->getTerminator()->getFullDebugLoc());
   DebugLoc BranchDebugLoc = DebugLoc::getMergedLocations(OrigBranchDebugLocs);
   Builder.SetCurrentDebugLocation(BranchDebugLoc);
 

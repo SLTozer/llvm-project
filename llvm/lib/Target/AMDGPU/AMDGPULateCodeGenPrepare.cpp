@@ -526,7 +526,7 @@ bool AMDGPULateCodeGenPrepare::visitLoadInst(LoadInst &LI) {
   }
 
   IRBuilder<> IRB(&LI);
-  IRB.SetCurrentDebugLocation(LI.getDebugLoc());
+  IRB.SetCurrentDebugLocation(LI.getFullDebugLoc());
 
   unsigned LdBits = DL.getTypeStoreSizeInBits(LI.getType());
   auto *IntNTy = Type::getIntNTy(LI.getContext(), LdBits);

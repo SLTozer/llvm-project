@@ -91,7 +91,7 @@ static cl::opt<bool> PrintThinLTOIndexOnly(
     cl::desc("Only read thinlto index and print the index as LLVM assembly."),
     cl::init(false), cl::Hidden, cl::cat(DisCategory));
 
-static void printDebugLoc(const DebugLoc &DL, formatted_raw_ostream &OS) {
+static void printDebugLoc(DebugLoc DL, formatted_raw_ostream &OS) {
   OS << DL.getLine() << ":" << DL.getCol();
   if (DebugLoc IDL = DL.getInlinedAt()) {
     OS << "@";
@@ -130,7 +130,7 @@ public:
       OS << "; [#uses=" << V.getNumUses() << " type=" << *V.getType() << "]";
     }
     if (const Instruction *I = dyn_cast<Instruction>(&V)) {
-      if (const DebugLoc &DL = I->getDebugLoc()) {
+      if (DebugLoc DL = I->getDebugLoc()) {
         if (!Padded) {
           OS.PadToColumn(50);
           Padded = true;

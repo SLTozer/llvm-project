@@ -1932,40 +1932,40 @@ public:
   /// Creates a SDDbgValue node.
   LLVM_ABI SDDbgValue *getDbgValue(DIVariable *Var, DIExpression *Expr,
                                    SDNode *N, unsigned R, bool IsIndirect,
-                                   const DebugLoc &DL, unsigned O);
+                                   DebugLoc DL, unsigned O);
 
   /// Creates a constant SDDbgValue node.
   LLVM_ABI SDDbgValue *getConstantDbgValue(DIVariable *Var, DIExpression *Expr,
-                                           const Value *C, const DebugLoc &DL,
+                                           const Value *C, DebugLoc DL,
                                            unsigned O);
 
   /// Creates a FrameIndex SDDbgValue node.
   LLVM_ABI SDDbgValue *getFrameIndexDbgValue(DIVariable *Var,
                                              DIExpression *Expr, unsigned FI,
                                              bool IsIndirect,
-                                             const DebugLoc &DL, unsigned O);
+                                             DebugLoc DL, unsigned O);
 
   /// Creates a FrameIndex SDDbgValue node.
   LLVM_ABI SDDbgValue *getFrameIndexDbgValue(DIVariable *Var,
                                              DIExpression *Expr, unsigned FI,
                                              ArrayRef<SDNode *> Dependencies,
                                              bool IsIndirect,
-                                             const DebugLoc &DL, unsigned O);
+                                             DebugLoc DL, unsigned O);
 
   /// Creates a VReg SDDbgValue node.
   LLVM_ABI SDDbgValue *getVRegDbgValue(DIVariable *Var, DIExpression *Expr,
                                        Register VReg, bool IsIndirect,
-                                       const DebugLoc &DL, unsigned O);
+                                       DebugLoc DL, unsigned O);
 
   /// Creates a SDDbgValue node from a list of locations.
   LLVM_ABI SDDbgValue *getDbgValueList(DIVariable *Var, DIExpression *Expr,
                                        ArrayRef<SDDbgOperand> Locs,
                                        ArrayRef<SDNode *> Dependencies,
-                                       bool IsIndirect, const DebugLoc &DL,
+                                       bool IsIndirect, DebugLoc DL,
                                        unsigned O, bool IsVariadic);
 
   /// Creates a SDDbgLabel node.
-  LLVM_ABI SDDbgLabel *getDbgLabel(DILabel *Label, const DebugLoc &DL,
+  LLVM_ABI SDDbgLabel *getDbgLabel(DILabel *Label, DebugLoc DL,
                                    unsigned O);
 
   /// Transfer debug values from one node to another, while optionally

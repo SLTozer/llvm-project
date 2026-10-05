@@ -191,7 +191,7 @@ InlineAdvice::InlineAdvice(InlineAdvisor *Advisor, CallBase &CB,
                            OptimizationRemarkEmitter &ORE,
                            bool IsInliningRecommended)
     : Advisor(Advisor), Caller(CB.getCaller()), Callee(CB.getCalledFunction()),
-      DLoc(CB.getDebugLoc()), Block(CB.getParent()), ORE(ORE),
+      DLoc(CB.getFullDebugLoc()), Block(CB.getParent()), ORE(ORE),
       IsInliningRecommended(IsInliningRecommended) {}
 
 void InlineAdvice::recordInlineStatsIfNeeded() {

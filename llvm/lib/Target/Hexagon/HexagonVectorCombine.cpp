@@ -1010,7 +1010,7 @@ auto AlignVectors::createLoadGroups(const AddrList &Group) const -> MoveList {
     if (Move.Main.size() >= SizeLimit) {
       HVC.ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "GroupSizeLimitExceeded",
-                                        Info.Inst->getDebugLoc(),
+                                        Info.Inst->getFullDebugLoc(),
                                         Info.Inst->getParent())
                << "alignment group exceeds size limit";
       });
@@ -1027,7 +1027,7 @@ auto AlignVectors::createLoadGroups(const AddrList &Group) const -> MoveList {
     if (!HVC.isSafeToMoveBeforeInBB(*Info.Inst, Base->getIterator())) {
       HVC.ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "UnsafeToRelocate",
-                                        Info.Inst->getDebugLoc(),
+                                        Info.Inst->getFullDebugLoc(),
                                         Info.Inst->getParent())
                << "unsafe to relocate memory access for alignment";
       });
@@ -1093,7 +1093,7 @@ auto AlignVectors::createStoreGroups(const AddrList &Group) const -> MoveList {
     if (Move.Main.size() >= SizeLimit) {
       HVC.ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "GroupSizeLimitExceeded",
-                                        Info.Inst->getDebugLoc(),
+                                        Info.Inst->getFullDebugLoc(),
                                         Info.Inst->getParent())
                << "alignment group exceeds size limit";
       });
@@ -1116,7 +1116,7 @@ auto AlignVectors::createStoreGroups(const AddrList &Group) const -> MoveList {
                                     Move.Main)) {
       HVC.ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "UnsafeToRelocate",
-                                        Info.Inst->getDebugLoc(),
+                                        Info.Inst->getFullDebugLoc(),
                                         Info.Inst->getParent())
                << "unsafe to relocate memory access for alignment";
       });
@@ -1661,7 +1661,7 @@ auto AlignVectors::realignGroup(const MoveGroup &Move) -> bool {
   Instruction *Front = Move.Main.front();
   HVC.ORE.emit([&]() {
     return OptimizationRemark(DEBUG_TYPE, "VectorsAligned",
-                              Front->getDebugLoc(), Front->getParent())
+                              Front->getFullDebugLoc(), Front->getParent())
            << "aligned vector memory operations";
   });
 

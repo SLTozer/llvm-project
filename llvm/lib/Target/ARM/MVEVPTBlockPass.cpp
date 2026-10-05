@@ -245,7 +245,7 @@ bool MVEVPTBlock::InsertVPTBlocks(MachineBasicBlock &Block) {
   while (MBIter != EndIter) {
     MachineInstr *MI = &*MBIter;
     Register PredReg;
-    DebugLoc DL = MI->getDebugLoc();
+    DebugLoc DL = MI->getFullDebugLoc();
 
     ARMVCC::VPTCodes Pred = getVPTInstrPredicate(*MI, PredReg);
 

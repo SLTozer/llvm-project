@@ -74,7 +74,7 @@ bool RISCVPushPopOpt::usePopRet(MachineBasicBlock::iterator &MBBI,
                                 bool IsReturnZero) {
   // Since Pseudo instruction lowering happen later in the pipeline,
   // this will detect all ret instruction.
-  DebugLoc DL = NextI->getDebugLoc();
+  DebugLoc DL = NextI->getFullDebugLoc();
   unsigned Opc = getPopRetOpcode(MBBI->getOpcode(), IsReturnZero);
   MachineInstrBuilder PopRetBuilder =
       BuildMI(*NextI->getParent(), NextI, DL, TII->get(Opc))

@@ -393,7 +393,7 @@ void X86AvoidSFBImpl::buildCopy(MachineInstr *LoadInst, unsigned NLoadOpcode,
   Register Reg1 =
       MRI->createVirtualRegister(TII->getRegClass(TII->get(NLoadOpcode), 0));
   MachineInstr *NewLoad =
-      BuildMI(*MBB, LoadInst, LoadInst->getDebugLoc(), TII->get(NLoadOpcode),
+      BuildMI(*MBB, LoadInst, LoadInst->getFullDebugLoc(), TII->get(NLoadOpcode),
               Reg1)
           .add(LoadBase)
           .addImm(1)
@@ -413,7 +413,7 @@ void X86AvoidSFBImpl::buildCopy(MachineInstr *LoadInst, unsigned NLoadOpcode,
   if (PrevInstrIt.getNodePtr() == LoadInst)
     StInst = LoadInst;
   MachineInstr *NewStore =
-      BuildMI(*MBB, StInst, StInst->getDebugLoc(), TII->get(NStoreOpcode))
+      BuildMI(*MBB, StInst, StInst->getFullDebugLoc(), TII->get(NStoreOpcode))
           .add(StoreBase)
           .addImm(1)
           .addReg(X86::NoRegister)

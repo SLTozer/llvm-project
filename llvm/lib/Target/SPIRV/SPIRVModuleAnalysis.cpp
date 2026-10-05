@@ -59,7 +59,7 @@ INITIALIZE_PASS(SPIRVModuleAnalysis, DEBUG_TYPE, "SPIRV module analysis", true,
 static void reportUnsupported(const MachineInstr &MI, const char *Msg) {
   const Function &Func = MI.getMF()->getFunction();
   Func.getContext().diagnose(
-      DiagnosticInfoUnsupported(Func, Msg, MI.getDebugLoc()));
+      DiagnosticInfoUnsupported(Func, Msg, MI.getFullDebugLoc()));
 }
 
 // Retrieve an unsigned from an MDNode with a list of them as operands.

@@ -121,7 +121,7 @@ bool ARMBlockPlacement::revertWhileToDoLoop(MachineInstr *WLS) {
 
   // Create a new DLS to replace the WLS
   MachineInstrBuilder MIB =
-      BuildMI(*NewBlock, Br, WLS->getDebugLoc(),
+      BuildMI(*NewBlock, Br, WLS->getFullDebugLoc(),
               TII->get(WLS->getOpcode() == ARM::t2WhileLoopStartTP
                            ? ARM::t2DoLoopStartTP
                            : ARM::t2DoLoopStart));
@@ -275,7 +275,7 @@ void ARMBlockPlacement::moveBasicBlock(MachineBasicBlock *BB,
     // The BB doesn't have an unconditional branch so it relied on
     // fall-through. Fix by adding an unconditional branch to the moved BB.
     MachineInstrBuilder MIB =
-        BuildMI(From, Terminator.getDebugLoc(), TII->get(ARM::t2B));
+        BuildMI(From, Terminator.getFullDebugLoc(), TII->get(ARM::t2B));
     MIB.addMBB(To);
     MIB.addImm(ARMCC::CondCodes::AL);
     MIB.addReg(ARM::NoRegister);

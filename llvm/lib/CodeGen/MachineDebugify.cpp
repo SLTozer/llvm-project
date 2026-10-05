@@ -71,10 +71,10 @@ bool llvm::applyDebugifyMetadataToMachineFunction(
       for (DbgVariableRecord &DVR : filterDbgVars(I.getDbgRecordRange())) {
         if (!DVR.isDbgValue())
           continue;
-        unsigned Line = DVR.getDebugLoc().getLine();
+        unsigned Line = DVR.getFullDebugLoc().getLine();
         assert(Line != 0 && "debugify should not insert line 0 locations");
         Line2Var[Line] = DVR.getVariable();
-        if (!EarliestDVR || Line < EarliestDVR->getDebugLoc().getLine())
+        if (!EarliestDVR || Line < EarliestDVR->getFullDebugLoc().getLine())
           EarliestDVR = &DVR;
         Expr = DVR.getExpression();
       }
@@ -107,10 +107,10 @@ bool llvm::applyDebugifyMetadataToMachineFunction(
       auto InsertBeforeIt = MI.isPHI() ? FirstNonPHIIt : I;
 
       // Find a suitable local variable for the DBG_VALUE.
-      unsigned Line = MI.getDebugLoc().getLine();
+      unsigned Line = MI.getFullDebugLoc().getLine();
       auto It = Line2Var.find(Line);
       if (It == Line2Var.end()) {
-        Line = EarliestDVR->getDebugLoc().getLine();
+        Line = EarliestDVR->getFullDebugLoc().getLine();
         It = Line2Var.find(Line);
         assert(It != Line2Var.end());
       }
@@ -124,13 +124,13 @@ bool llvm::applyDebugifyMetadataToMachineFunction(
         if (MO.getReg())
           RegDefs.push_back(&MO);
       for (MachineOperand *MO : RegDefs)
-        BuildMI(MBB, InsertBeforeIt, MI.getDebugLoc(), DbgValDesc,
+        BuildMI(MBB, InsertBeforeIt, MI.getFullDebugLoc(), DbgValDesc,
                 /*IsIndirect=*/false, *MO, LocalVar, Expr);
 
       // OK, failing that, emit a constant DBG_VALUE.
       if (RegDefs.empty()) {
         auto ImmOp = MachineOperand::CreateImm(NextImm++);
-        BuildMI(MBB, InsertBeforeIt, MI.getDebugLoc(), DbgValDesc,
+        BuildMI(MBB, InsertBeforeIt, MI.getFullDebugLoc(), DbgValDesc,
                 /*IsIndirect=*/false, ImmOp, LocalVar, Expr);
       }
     }

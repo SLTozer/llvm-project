@@ -1658,7 +1658,7 @@ static bool valueCoversEntireFragment(Type *ValTy, DbgVariableRecord *DVR) {
 static void insertDbgValueOrDbgVariableRecord(DIBuilder &Builder, Value *DV,
                                               DILocalVariable *DIVar,
                                               DIExpression *DIExpr,
-                                              const DebugLoc &NewLoc,
+                                              DebugLoc NewLoc,
                                               BasicBlock::iterator Instr) {
   ValueAsMetadata *DVAM = ValueAsMetadata::get(DV);
   DbgVariableRecord *DVRec =
@@ -1996,7 +1996,7 @@ bool llvm::replaceDbgDeclare(Value *Address, Value *NewAddress,
   return !DVRDeclares.empty();
 }
 
-static void updateOneDbgValueForAlloca(const DebugLoc &Loc,
+static void updateOneDbgValueForAlloca(DebugLoc Loc,
                                        DILocalVariable *DIVar,
                                        DIExpression *DIExpr, Value *NewAddress,
                                        DbgVariableRecord *DVR,
@@ -2025,7 +2025,7 @@ void llvm::replaceDbgValueForAlloca(AllocaInst *AI, Value *NewAllocaAddress,
 
   // Replace any DbgVariableRecords that use this alloca.
   for (DbgVariableRecord *DVR : DPUsers)
-    updateOneDbgValueForAlloca(DVR->getDebugLoc(), DVR->getVariable(),
+    updateOneDbgValueForAlloca(DVR->getFullDebugLoc(), DVR->getVariable(),
                                DVR->getExpression(), NewAllocaAddress, DVR,
                                Builder, Offset);
 }

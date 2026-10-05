@@ -3922,7 +3922,7 @@ void ModuleBitcodeWriter::writeFunction(
       NeedsMetadataAttachment |= I.hasMetadataOtherThanDebugLoc();
 
       // If the instruction has a debug location, emit it.
-      if (DebugLoc DL = I.getDebugLoc()) {
+      if (DebugLoc DL = I.getFullDebugLoc()) {
         if (DL == LastDL) {
           // Just repeat the same debug loc as last time.
           Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_LOC_AGAIN, Vals);
@@ -3989,7 +3989,7 @@ void ModuleBitcodeWriter::writeFunction(
             // DbgRecord would be costly - we're already emitting +1 field per
             // DbgRecord (although with the benefit that we don't have to lookup
             // metadata at all!)
-            uint64_t RawDL = DLR->getDebugLoc().getUnderlyingStorage().asRawInt();
+            uint64_t RawDL = DLR->getFullDebugLoc().getUnderlyingStorage().asRawInt();
             unsigned High = Hi_32(RawDL);
             unsigned Low = Lo_32(RawDL);
             Vals.push_back(High);
@@ -4015,7 +4015,7 @@ void ModuleBitcodeWriter::writeFunction(
           //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
           DbgVariableRecord &DVR = cast<DbgVariableRecord>(DR);
 #if LLVM_USE_FLMD_SOURCE_LOCS
-          uint64_t RawDL = DVR.getDebugLoc().getUnderlyingStorage().asRawInt();
+          uint64_t RawDL = DVR.getFullDebugLoc().getUnderlyingStorage().asRawInt();
           unsigned High = Hi_32(RawDL);
           unsigned Low = Lo_32(RawDL);
           Vals.push_back(High);

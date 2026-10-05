@@ -148,7 +148,7 @@ void DbgValueHistoryMap::trimLocationRanges(
     const DILocalVariable *LocalVar = cast<DILocalVariable>(Entity.first);
 
     LexicalScope *Scope = nullptr;
-    if (DebugLoc InlinedAt = Entity.second) {
+    if (DbgLocStorage InlinedAt = Entity.second) {
       Scope = LScopes.findInlinedScope(LocalVar->getScope(), InlinedAt);
     } else {
       Scope = LScopes.findLexicalScope(LocalVar->getScope());
@@ -478,20 +478,20 @@ void llvm::calculateDbgEntityHistory(const MachineFunction *MF,
       if (MI.isDebugValue()) {
         assert(MI.getNumOperands() > 1 && "Invalid DBG_VALUE instruction!");
         const DILocalVariable *RawVar = MI.getDebugVariable();
-        assert(RawVar->isValidLocationForIntrinsic(MI.getDebugLoc()) &&
+        assert(RawVar->isValidLocationForIntrinsic(MI.getFullDebugLoc()) &&
                "Expected inlined-at fields to agree");
-        InlinedEntity Var(RawVar, MI.getDebugLoc().getInlinedAt());
+        InlinedEntity Var(RawVar, MI.getDebugLoc().getInstrInlinedAt());
 
         handleNewDebugValue(Var, MI, RegVars, LiveEntries, DbgValues);
       } else if (MI.isDebugLabel()) {
         assert(MI.getNumOperands() == 1 && "Invalid DBG_LABEL instruction!");
         const DILabel *RawLabel = MI.getDebugLabel();
-        assert(RawLabel->isValidLocationForIntrinsic(MI.getDebugLoc()) &&
+        assert(RawLabel->isValidLocationForIntrinsic(MI.getFullDebugLoc()) &&
             "Expected inlined-at fields to agree");
         // When collecting debug information for labels, there is no MCSymbol
         // generated for it. So, we keep MachineInstr in DbgLabels in order
         // to query MCSymbol afterward.
-        InlinedEntity L(RawLabel, MI.getDebugLoc().getInlinedAt());
+        InlinedEntity L(RawLabel, MI.getDebugLoc().getInstrInlinedAt());
         DbgLabels.addInstr(L, MI);
       }
 
@@ -569,14 +569,14 @@ void llvm::calculateDbgEntityHistory(const MachineFunction *MF,
 }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
-LLVM_DUMP_METHOD void DbgValueHistoryMap::dump(StringRef FuncName) const {
-  dbgs() << "DbgValueHistoryMap('" << FuncName << "'):\n";
+LLVM_DUMP_METHOD void DbgValueHistoryMap::dump(const MachineFunction &MF) const {
+  dbgs() << "DbgValueHistoryMap('" << MF.getName() << "'):\n";
   for (const auto &VarRangePair : *this) {
     const InlinedEntity &Var = VarRangePair.first;
     const Entries &Entries = VarRangePair.second;
 
     const DILocalVariable *LocalVar = cast<DILocalVariable>(Var.first);
-    DebugLoc Location = Var.second;
+    DebugLoc Location = Var.second.withContext(&MF.getFunction());
 
     dbgs() << " - " << LocalVar->getName() << " at ";
 

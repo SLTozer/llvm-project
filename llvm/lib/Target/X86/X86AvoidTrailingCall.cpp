@@ -128,7 +128,7 @@ bool UpdatedOnX86AvoidTrailingCallPass(MachineFunction &MF) {
       DebugLoc DL;
       if (IsCall) {
         MBBI = std::next(LastRealInstr.getReverse());
-        DL = LastRealInstr->getDebugLoc();
+        DL = LastRealInstr->getFullDebugLoc();
       }
       BuildMI(MBB, MBBI, DL, TII.get(X86::INT3));
       Changed = true;

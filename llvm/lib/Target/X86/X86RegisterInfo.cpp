@@ -876,7 +876,7 @@ static bool tryOptimizeLEAtoMOV(MachineBasicBlock::iterator II) {
   Register NewDestReg = MI.getOperand(0).getReg();
   const X86InstrInfo *TII =
       MI.getParent()->getParent()->getSubtarget<X86Subtarget>().getInstrInfo();
-  TII->copyPhysReg(*MI.getParent(), II, MI.getDebugLoc(), NewDestReg, BasePtr,
+  TII->copyPhysReg(*MI.getParent(), II, MI.getFullDebugLoc(), NewDestReg, BasePtr,
                    MI.getOperand(1).isKill());
   MI.eraseFromParent();
   return true;
@@ -998,7 +998,7 @@ X86RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   if (MI.getOperand(FIOperandNum+3).isImm()) {
     const X86InstrInfo *TII = MF.getSubtarget<X86Subtarget>().getInstrInfo();
-    const DebugLoc &DL = MI.getDebugLoc();
+    DebugLoc DL = MI.getFullDebugLoc();
     int64_t Imm = MI.getOperand(FIOperandNum + 3).getImm();
     int64_t Offset = FIOffset + Imm;
     bool FitsIn32Bits = isInt<32>(Offset);

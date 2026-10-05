@@ -525,7 +525,7 @@ bool SIShrinkInstructions::shrinkMadFma(MachineInstr &MI) const {
 
   if (Swap) {
     // Swap Src0 and Src1 by building a new instruction.
-    BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), TII->get(NewOpcode),
+    BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(), TII->get(NewOpcode),
             MI.getOperand(0).getReg())
         .add(Src1)
         .add(Src0)
@@ -669,7 +669,7 @@ void SIShrinkInstructions::dropInstructionKeepingImpDefs(
     const MachineOperand &Op = MI.getOperand(i);
     if (!Op.isDef())
       continue;
-    BuildMI(*MI.getParent(), MI.getIterator(), MI.getDebugLoc(),
+    BuildMI(*MI.getParent(), MI.getIterator(), MI.getFullDebugLoc(),
             TII->get(AMDGPU::IMPLICIT_DEF), Op.getReg());
   }
 
@@ -798,7 +798,7 @@ MachineInstr *SIShrinkInstructions::matchSwap(MachineInstr &MovT) const {
     if (!InsertionPt)
       InsertionPt = MovY;
     if (Size == 2) {
-      auto *MIB = BuildMI(MBB, InsertionPt->getIterator(), MovT.getDebugLoc(),
+      auto *MIB = BuildMI(MBB, InsertionPt->getIterator(), MovT.getFullDebugLoc(),
                           TII->get(AMDGPU::V_SWAP_B16))
                       .addDef(X)
                       .addDef(Y)
@@ -812,7 +812,7 @@ MachineInstr *SIShrinkInstructions::matchSwap(MachineInstr &MovT) const {
         TargetInstrInfo::RegSubRegPair X1, Y1;
         X1 = getSubRegForIndex(X, Xsub, I);
         Y1 = getSubRegForIndex(Y, Ysub, I);
-        auto *MIB = BuildMI(MBB, InsertionPt->getIterator(), MovT.getDebugLoc(),
+        auto *MIB = BuildMI(MBB, InsertionPt->getIterator(), MovT.getFullDebugLoc(),
                             TII->get(AMDGPU::V_SWAP_B32))
                         .addDef(X1.Reg, {}, X1.SubReg)
                         .addDef(Y1.Reg, {}, Y1.SubReg)

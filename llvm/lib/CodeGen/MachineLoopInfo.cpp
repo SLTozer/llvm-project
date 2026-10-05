@@ -130,14 +130,14 @@ DebugLoc MachineLoop::getStartLoc() const {
   // Try the pre-header first.
   if (MachineBasicBlock *PHeadMBB = getLoopPreheader())
     if (const BasicBlock *PHeadBB = PHeadMBB->getBasicBlock())
-      if (DebugLoc DL = PHeadBB->getTerminator()->getDebugLoc())
+      if (DebugLoc DL = PHeadBB->getTerminator()->getFullDebugLoc())
         return DL;
 
   // If we have no pre-header or there are no instructions with debug
   // info in it, try the header.
   if (MachineBasicBlock *HeadMBB = getHeader())
     if (const BasicBlock *HeadBB = HeadMBB->getBasicBlock())
-      return HeadBB->getTerminator()->getDebugLoc();
+      return HeadBB->getTerminator()->getFullDebugLoc();
 
   return DebugLoc();
 }

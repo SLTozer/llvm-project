@@ -3988,7 +3988,7 @@ HexagonTargetLowering::EmitKCFICheck(MachineBasicBlock &MBB,
   assert(Target.isReg() && "Invalid target operand for an indirect call");
   Target.setIsRenamable(false);
 
-  return BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII->get(Hexagon::KCFI_CHECK))
+  return BuildMI(MBB, MBBI, MBBI->getFullDebugLoc(), TII->get(Hexagon::KCFI_CHECK))
       .addReg(Target.getReg())
       .addImm(MBBI->getCFIType())
       .getInstr();

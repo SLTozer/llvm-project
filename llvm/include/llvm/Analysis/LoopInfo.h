@@ -14,6 +14,7 @@
 #define LLVM_ANALYSIS_LOOPINFO_H
 
 #include "llvm/ADT/GraphTraits.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Pass.h"
@@ -41,17 +42,19 @@ class LLVM_ABI Loop : public LoopBase<BasicBlock, Loop> {
 public:
   /// A range representing the start and end location of a loop.
   class LocRange {
-    DebugLoc Start;
-    DebugLoc End;
+    DbgLocStorage Start;
+    DbgLocStorage End;
 
   public:
     LocRange() = default;
-    LocRange(DebugLoc Start) : Start(Start), End(Start) {}
-    LocRange(DebugLoc Start, DebugLoc End)
+    LocRange(DbgLocStorage Start) : Start(Start), End(Start) {}
+    LocRange(DbgLocStorage Start, DbgLocStorage End)
         : Start(std::move(Start)), End(std::move(End)) {}
 
-    const DebugLoc &getStart() const { return Start; }
-    const DebugLoc &getEnd() const { return End; }
+    DbgLocStorage getStart() const { return Start; }
+    DbgLocStorage getFullStart(DebugLoc::DebugLocContext Context) const { return Start; }
+    DbgLocStorage getEnd() const { return End; }
+    DbgLocStorage getFullEnd(DebugLoc::DebugLocContext Context) const { return End; }
 
     /// Check for null.
     ///
@@ -395,6 +398,9 @@ public:
   /// cannot find a terminating instruction with location information,
   /// it returns an unknown location.
   DebugLoc getStartLoc() const;
+  DebugLoc getFullStartLoc() const {
+    return DebugLoc(getStartLoc(), getHeader()->getParent());
+  }
 
   /// Return the source code span of the loop.
   LocRange getLocRange() const;

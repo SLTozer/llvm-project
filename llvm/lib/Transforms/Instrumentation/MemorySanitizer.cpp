@@ -1205,7 +1205,7 @@ namespace {
 class NextNodeIRBuilder : public IRBuilder<> {
 public:
   explicit NextNodeIRBuilder(Instruction *IP) : IRBuilder<>(IP->getNextNode()) {
-    SetCurrentDebugLocation(IP->getDebugLoc());
+    SetCurrentDebugLocation(IP->getFullDebugLoc());
   }
 };
 
@@ -1433,13 +1433,13 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
   }
 
   // Returns true if Debug Location corresponds to multiple warnings.
-  bool shouldDisambiguateWarningLocation(const DebugLoc &DebugLoc) {
+  bool shouldDisambiguateWarningLocation(DebugLoc DebugLoc) {
     if (MS.TrackOrigins < 2)
       return false;
 
     if (LazyWarningDebugLocationCount.empty())
       for (const auto &I : InstrumentationList)
-        ++LazyWarningDebugLocationCount[I.OrigIns->getDebugLoc()];
+        ++LazyWarningDebugLocationCount[I.OrigIns->getFullDebugLoc()];
 
     return LazyWarningDebugLocationCount[DebugLoc] >= ClDisambiguateWarning;
   }
@@ -1455,7 +1455,7 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
       // instruction. It may provide additional information to the user.
       if (Instruction *OI = dyn_cast_or_null<Instruction>(Origin)) {
         assert(MS.TrackOrigins);
-        auto NewDebugLoc = OI->getDebugLoc();
+        auto NewDebugLoc = OI->getFullDebugLoc();
         // Origin update with missing or the same debug location provides no
         // additional value.
         if (NewDebugLoc && NewDebugLoc != IRB.getCurrentDebugLocation()) {

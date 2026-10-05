@@ -314,8 +314,8 @@ DebugLoc::DebugLocContext::DebugLocContext(const Instruction *I) {
   assert(I->getParent() && I->getFunction() &&
     "Instruction cannot be used to get function context if not inserted in a "
     "function.");
-  if (I->getDebugLoc()) {
-    Context = I->getDebugLoc().getFLContext();
+  if (I->getFullDebugLoc()) {
+    Context = I->getFullDebugLoc().getFLContext();
     return;
   }
   const Function *F = I->getFunction();
@@ -564,6 +564,19 @@ DebugLoc DebugLoc::getMergedLocations(ArrayRef<DebugLoc> Locs) {
   DebugLoc Merged = Locs[0];
   for (const DebugLoc &DL : llvm::drop_begin(Locs)) {
     Merged = getMergedLocation(Merged, DL);
+    if (!Merged)
+      break;
+  }
+  return Merged;
+}
+DebugLoc DebugLoc::getMergedLocations(ArrayRef<DbgLocStorage> Locs, DebugLocContext Context) {
+  if (Locs.empty())
+    return DebugLoc();
+  if (Locs.size() == 1)
+    return Locs[0].withContext(Context);
+  DebugLoc Merged = Locs[0].withContext(Context);
+  for (DbgLocStorage DL : llvm::drop_begin(Locs)) {
+    Merged = getMergedLocation(Merged, DL, Context);
     if (!Merged)
       break;
   }
@@ -869,8 +882,14 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
     Result = Tmp;
   }
 
-  if (Result)
+  if (Result) {
+    // If we weren't able to fully reconcile the inlinedAt chain between LocA
+    // and LocB, the result may be an InlinedCall location; if that is the case,
+    // get the location of that inlined call.
+    if (Result.isInlinedCall())
+      return Result.getLocForInlinedCall();
     return Result;
+  }
 
   // We ended up with LocA and LocB as irreconsilable locations. Produce a
   // location at 0:0 with one of the locations' scope. The function has
@@ -899,6 +918,22 @@ DebugLoc DebugLoc::getMergedLocation(DebugLoc LocA, DebugLoc LocB) {
     return LocB;
   }
   return getMergedDebugLoc(LocA, LocB);
+}
+DebugLoc DebugLoc::getMergedLocation(DbgLocStorage LocA, DbgLocStorage LocB, DebugLocContext Context) {
+  if (!(PickMergedSourceLocations && (LocA || LocB)) && (!LocA || !LocB)) {
+    // If coverage tracking is enabled, prioritize returning empty non-annotated
+    // locations to empty annotated locations.
+#if LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
+    if (!LocA && LocA.getKind() == DebugLocKind::Normal)
+      return LocA;
+    if (!LocB && LocB.getKind() == DebugLocKind::Normal)
+      return LocB;
+#endif // LLVM_ENABLE_DEBUGLOC_TRACKING_COVERAGE
+    if (!LocA)
+      return LocA.withContext(Context);
+    return LocB.withContext(Context);
+  }
+  return getMergedDebugLoc(LocA.withContext(Context), LocB.withContext(Context));
 }
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)

@@ -161,7 +161,7 @@ void HexagonFixupHwLoops::useExtLoopInstr(MachineFunction &MF,
                                           MachineBasicBlock::iterator &MII) {
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
   MachineBasicBlock *MBB = MII->getParent();
-  DebugLoc DL = MII->getDebugLoc();
+  DebugLoc DL = MII->getFullDebugLoc();
   MachineInstrBuilder MIB;
   unsigned newOp;
   switch (MII->getOpcode()) {

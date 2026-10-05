@@ -62,7 +62,7 @@ void HexagonMask::replaceConstExtTransferImmWithMask(MachineFunction &MF) {
       if (!isUInt<5>(Idx) || !isUInt<5>(Len))
         continue;
 
-      BuildMI(MBB, MI, MI.getDebugLoc(), HII->get(Hexagon::S2_mask),
+      BuildMI(MBB, MI, MI.getFullDebugLoc(), HII->get(Hexagon::S2_mask),
               Op0.getReg())
           .addImm(Len)
           .addImm(Idx);

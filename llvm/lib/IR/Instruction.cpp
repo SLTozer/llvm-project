@@ -96,7 +96,7 @@ const DataLayout &Instruction::getDataLayout() const {
   return getModule()->getDataLayout();
 }
 
-DebugLoc Instruction::getDebugLoc() const {
+DebugLoc Instruction::getFullDebugLoc() const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
   if (!DbgLoc)
     return DebugLoc();
@@ -105,7 +105,7 @@ DebugLoc Instruction::getDebugLoc() const {
   return DebugLoc(DbgLoc);
 #endif
 }
-DebugLoc Instruction::getDebugLoc(const Function *ContextFunction) const {
+DebugLoc Instruction::getFullDebugLoc(const Function *ContextFunction) const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
   return DebugLoc(DbgLoc, getFLMDForFunction(ContextFunction));
 #else
@@ -1402,7 +1402,7 @@ bool Instruction::isDebugOrPseudoInst() const {
 }
 
 DebugLoc Instruction::getStableDebugLoc() const {
-  return getDebugLoc();
+  return getFullDebugLoc();
 }
 
 bool Instruction::isAssociative() const {

@@ -341,9 +341,9 @@ bool RISCVLoadStoreOpt::tryConvertToXqcilsmMultiLdSt(
     BaseKill |= MI->getOperand(1).isKill();
 
   // Build the new instruction.
-  DebugLoc DL = FirstMI.getDebugLoc();
+  DebugLoc DL = FirstMI.getFullDebugLoc();
   if (!DL)
-    DL = Group.back()->getDebugLoc();
+    DL = Group.back()->getFullDebugLoc();
   MachineInstrBuilder MIB = BuildMI(*MF, DL, TII->get(NewOpc));
   MIB.addReg(StartReg, StartRegState)
       .addReg(Base, getKillRegState(BaseKill))
@@ -461,7 +461,7 @@ bool RISCVLoadStoreOpt::tryConvertToXqcilsmLdStPair(
   }
 
   DebugLoc DL =
-      First->getDebugLoc() ? First->getDebugLoc() : Second->getDebugLoc();
+      First->getFullDebugLoc() ? First->getFullDebugLoc() : Second->getFullDebugLoc();
   MachineInstrBuilder MIB = BuildMI(*MF, DL, TII->get(XqciOpc));
   MIB.addReg(StartReg, StartRegState)
       .addReg(Base1, getKillRegState(FirstOp1.isKill() || SecondOp1.isKill()))
@@ -518,7 +518,7 @@ bool RISCVLoadStoreOpt::tryConvertToMIPSLdStPair(
     return false;
 
   MachineInstrBuilder MIB = BuildMI(
-      *MF, First->getDebugLoc() ? First->getDebugLoc() : Second->getDebugLoc(),
+      *MF, First->getFullDebugLoc() ? First->getFullDebugLoc() : Second->getFullDebugLoc(),
       TII->get(PairOpc));
   MIB.add(First->getOperand(0))
       .add(Second->getOperand(0))
@@ -788,7 +788,7 @@ void RISCVLoadStoreOpt::splitLdSdIntoTwo(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator &MBBI,
                                          bool IsLoad) {
   MachineInstr *MI = &*MBBI;
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
 
   const MachineOperand &FirstOp = MI->getOperand(0);
   const MachineOperand &SecondOp = MI->getOperand(1);
@@ -909,7 +909,7 @@ bool RISCVLoadStoreOpt::fixInvalidRegPairOp(MachineBasicBlock &MBB,
   // Registers are valid, convert to real LD/SD instruction
   const MachineOperand &BaseOp = MI->getOperand(2);
   Register BaseReg = BaseOp.getReg();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc DL = MI->getFullDebugLoc();
   // Handle both immediate and symbolic operands for offset
   const MachineOperand &OffsetOp = MI->getOperand(3);
 

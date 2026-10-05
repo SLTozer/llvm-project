@@ -136,7 +136,7 @@ Thumb2InstrInfo::optimizeSelect(MachineInstr &MI,
     if (!DestReg.isVirtual())
       return nullptr;
 
-    MachineInstrBuilder NewMI = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstrBuilder NewMI = BuildMI(*MI.getParent(), MI, MI.getFullDebugLoc(),
                                         get(ARM::t2CSEL), DestReg)
                                     .add(MI.getOperand(2))
                                     .add(MI.getOperand(1))
@@ -149,7 +149,7 @@ Thumb2InstrInfo::optimizeSelect(MachineInstr &MI,
 
 void Thumb2InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator I,
-                                  const DebugLoc &DL, Register DestReg,
+                                  DbgLocStorage DL, Register DestReg,
                                   Register SrcReg, bool KillSrc,
                                   bool RenamableDest, bool RenamableSrc) const {
   // Handle SPR, DPR, and QPR copies.
@@ -167,8 +167,8 @@ void Thumb2InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                           const TargetRegisterClass *RC,
                                           Register VReg,
                                           MachineInstr::MIFlag Flags) const {
-  DebugLoc DL;
-  if (I != MBB.end()) DL = I->getDebugLoc();
+  DbgLocStorage DL;
+  if (I != MBB.end()) DL = I->getFullDebugLoc();
 
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI = MF.getFrameInfo();
@@ -217,8 +217,8 @@ void Thumb2InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   MachineMemOperand *MMO = MF.getMachineMemOperand(
       MachinePointerInfo::getFixedStack(MF, FI), MachineMemOperand::MOLoad,
       MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
-  DebugLoc DL;
-  if (I != MBB.end()) DL = I->getDebugLoc();
+  DbgLocStorage DL;
+  if (I != MBB.end()) DL = I->getFullDebugLoc();
 
   if (ARM::GPRRegClass.hasSubClassEq(RC)) {
     BuildMI(MBB, I, DL, get(ARM::t2LDRi12), DestReg)
@@ -313,7 +313,7 @@ bool Thumb2InstrInfo::isSchedulingBoundary(const MachineInstr &MI,
 
 void llvm::emitT2RegPlusImmediate(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator &MBBI,
-                                  const DebugLoc &dl, Register DestReg,
+                                  DbgLocStorage dl, Register DestReg,
                                   Register BaseReg, int NumBytes,
                                   ARMCC::CondCodes Pred, Register PredReg,
                                   const ARMBaseInstrInfo &TII,

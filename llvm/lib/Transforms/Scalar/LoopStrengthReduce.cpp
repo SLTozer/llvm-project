@@ -3571,7 +3571,7 @@ void LSRInstance::GenerateIVChain(const IVChain &Chain,
       if (IVTy != PostIncTy) {
         assert(PostIncTy->isPointerTy() && "mixing int/ptr IV types");
         IRBuilder<> Builder(L->getLoopLatch()->getTerminator());
-        Builder.SetCurrentDebugLocation(PostIncV->getDebugLoc());
+        Builder.SetCurrentDebugLocation(PostIncV->getFullDebugLoc());
         IVOper = Builder.CreatePointerCast(IVSrc, PostIncTy, "lsr.chain");
       }
       Phi.replaceUsesOfWith(PostIncV, IVOper);

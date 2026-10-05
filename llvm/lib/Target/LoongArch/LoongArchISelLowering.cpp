@@ -8763,7 +8763,7 @@ static MachineBasicBlock *insertDivByZeroTrap(MachineInstr &MI,
   SinkMBB->transferSuccessorsAndUpdatePHIs(MBB);
 
   const TargetInstrInfo &TII = *MF->getSubtarget().getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineOperand &Divisor = MI.getOperand(2);
   Register DivisorReg = Divisor.getReg();
 
@@ -8858,7 +8858,7 @@ emitVecCondBranchPseudo(MachineInstr &MI, MachineBasicBlock *BB,
 
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
   MachineFunction::iterator It = ++BB->getIterator();
 
@@ -8935,7 +8935,7 @@ emitPseudoXVINSGR2VR(MachineInstr &MI, MachineBasicBlock *BB,
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const TargetRegisterClass *RC = &LoongArch::LASX256RegClass;
   const TargetRegisterClass *SubRC = &LoongArch::LSX128RegClass;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
   // XDst = vector_insert XSrc, Elt, Idx
   Register XDst = MI.getOperand(0).getReg();
@@ -8988,7 +8988,7 @@ static MachineBasicBlock *emitPseudoCTPOP(MachineInstr &MI,
   assert(Subtarget.hasExtLSX());
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
   const TargetRegisterClass *RC = &LoongArch::LSX128RegClass;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
   Register Dst = MI.getOperand(0).getReg();
   Register Src = MI.getOperand(1).getReg();
@@ -9040,7 +9040,7 @@ emitPseudoVMSKCOND(MachineInstr &MI, MachineBasicBlock *BB,
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
   Register Dst = MI.getOperand(0).getReg();
   Register Src = MI.getOperand(1).getReg();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   unsigned EleBits = 8;
   unsigned NotOpc = 0;
   unsigned MskOpc;
@@ -9152,7 +9152,7 @@ emitSplitPairF64Pseudo(MachineInstr &MI, MachineBasicBlock *BB,
          "Unexpected instruction");
 
   MachineFunction &MF = *BB->getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
   Register LoReg = MI.getOperand(0).getReg();
   Register HiReg = MI.getOperand(1).getReg();
@@ -9172,7 +9172,7 @@ emitBuildPairF64Pseudo(MachineInstr &MI, MachineBasicBlock *BB,
          "Unexpected instruction");
 
   MachineFunction &MF = *BB->getParent();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
   MachineRegisterInfo &MRI = BB->getParent()->getRegInfo();
   Register TmpReg = MRI.createVirtualRegister(&LoongArch::FPR64RegClass);
@@ -9267,7 +9267,7 @@ emitSelectPseudo(MachineInstr &MI, MachineBasicBlock *BB,
 
   const LoongArchInstrInfo &TII = *Subtarget.getInstrInfo();
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineFunction::iterator I = ++BB->getIterator();
 
   MachineBasicBlock *HeadMBB = BB;
@@ -9318,7 +9318,7 @@ emitSelectPseudo(MachineInstr &MI, MachineBasicBlock *BB,
     auto Next = std::next(SelectMBBI);
     if (isSelectPseudo(*SelectMBBI)) {
       // %Result = phi [ %TrueValue, HeadMBB ], [ %FalseValue, IfFalseMBB ]
-      BuildMI(*TailMBB, InsertionPoint, SelectMBBI->getDebugLoc(),
+      BuildMI(*TailMBB, InsertionPoint, SelectMBBI->getFullDebugLoc(),
               TII.get(LoongArch::PHI), SelectMBBI->getOperand(0).getReg())
           .addReg(SelectMBBI->getOperand(4).getReg())
           .addMBB(HeadMBB)
@@ -9336,7 +9336,7 @@ emitSelectPseudo(MachineInstr &MI, MachineBasicBlock *BB,
 MachineBasicBlock *LoongArchTargetLowering::EmitInstrWithCustomInserter(
     MachineInstr &MI, MachineBasicBlock *BB) const {
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   switch (MI.getOpcode()) {
   default:

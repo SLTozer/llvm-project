@@ -143,7 +143,7 @@ private:
   // use this function to provide a dummy definition of the register that
   // will simply be removed by DCE.
   void addDummyDef(MachineBasicBlock &MBB, MachineInstr *At, Register Reg) {
-    BuildMI(MBB, At, At->getDebugLoc(), TII->get(PPC::IMPLICIT_DEF), Reg);
+    BuildMI(MBB, At, At->getFullDebugLoc(), TII->get(PPC::IMPLICIT_DEF), Reg);
   }
   void addRegToUpdateWithLine(Register Reg, int Line);
   void convertUnprimedAccPHIs(const PPCInstrInfo *TII, MachineRegisterInfo *MRI,
@@ -414,7 +414,7 @@ void PPCMIPeephole::convertUnprimedAccPHIs(
         PHIOps.push_back({PHIInput->getOperand(1), PHI->getOperand(PHIOp + 1)});
       } else if (Opcode == PPC::IMPLICIT_DEF) {
         Register AccReg = MRI->createVirtualRegister(&PPC::ACCRCRegClass);
-        BuildMI(*PHIInput->getParent(), PHIInput, PHIInput->getDebugLoc(),
+        BuildMI(*PHIInput->getParent(), PHIInput, PHIInput->getFullDebugLoc(),
                 TII->get(PPC::IMPLICIT_DEF), AccReg);
         PHIOps.push_back({MachineOperand::CreateReg(AccReg, false),
                           PHI->getOperand(PHIOp + 1)});
@@ -439,7 +439,7 @@ void PPCMIPeephole::convertUnprimedAccPHIs(
     if (PHI != PHIs[0])
       AccReg = MRI->createVirtualRegister(&PPC::ACCRCRegClass);
     MachineInstrBuilder NewPHI = BuildMI(
-        *PHI->getParent(), PHI, PHI->getDebugLoc(), TII->get(PPC::PHI), AccReg);
+        *PHI->getParent(), PHI, PHI->getFullDebugLoc(), TII->get(PPC::PHI), AccReg);
     for (auto RegMBB : PHIOps) {
       NewPHI.add(RegMBB.first).add(RegMBB.second);
       if (MRI->isSSA())
@@ -672,7 +672,7 @@ bool PPCMIPeephole::simplifyCode() {
           LLVM_DEBUG(dbgs() << "Optimizing load-and-splat/splat "
                                "to load-and-splat/copy: ");
           LLVM_DEBUG(MI.dump());
-          BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::COPY),
+          BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::COPY),
                   MI.getOperand(0).getReg())
               .add(MI.getOperand(1));
           addRegToUpdate(MI.getOperand(1).getReg());
@@ -702,7 +702,7 @@ bool PPCMIPeephole::simplifyCode() {
             LLVM_DEBUG(dbgs() << "Optimizing splat/swap or splat/splat "
                                  "to splat/copy: ");
             LLVM_DEBUG(MI.dump());
-            BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::COPY),
+            BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::COPY),
                     MI.getOperand(0).getReg())
                 .add(MI.getOperand(1));
             addRegToUpdate(MI.getOperand(1).getReg());
@@ -733,7 +733,7 @@ bool PPCMIPeephole::simplifyCode() {
             LLVM_DEBUG(MI.dump());
             addRegToUpdate(MI.getOperand(1).getReg());
 
-            BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::COPY),
+            BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::COPY),
                     MI.getOperand(0).getReg())
                 .add(DefMI->getOperand(1));
             addRegToUpdate(DefMI->getOperand(0).getReg());
@@ -753,7 +753,7 @@ bool PPCMIPeephole::simplifyCode() {
           if (Immed == 2) {
             LLVM_DEBUG(dbgs() << "Optimizing swap(splat) => copy(splat): ");
             LLVM_DEBUG(MI.dump());
-            BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::COPY),
+            BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::COPY),
                     MI.getOperand(0).getReg())
                 .add(MI.getOperand(1));
             addRegToUpdate(MI.getOperand(1).getReg());
@@ -777,7 +777,7 @@ bool PPCMIPeephole::simplifyCode() {
           LLVM_DEBUG(dbgs() << "Optimizing swap(vsplt(is)?[b|h|w]|xxspltw) => "
                                "copy(vsplt(is)?[b|h|w]|xxspltw): ");
           LLVM_DEBUG(MI.dump());
-          BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::COPY),
+          BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::COPY),
                   MI.getOperand(0).getReg())
               .add(MI.getOperand(1));
           addRegToUpdate(MI.getOperand(1).getReg());
@@ -791,7 +791,7 @@ bool PPCMIPeephole::simplifyCode() {
                        << "Optimizing swap(splat pattern from constant-pool) "
                           "=> copy(splat pattern from constant-pool): ");
             LLVM_DEBUG(MI.dump());
-            BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::COPY),
+            BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::COPY),
                     MI.getOperand(0).getReg())
                 .add(MI.getOperand(1));
             addRegToUpdate(MI.getOperand(1).getReg());
@@ -836,7 +836,7 @@ bool PPCMIPeephole::simplifyCode() {
         if (AlreadySplat) {
           LLVM_DEBUG(dbgs() << "Changing redundant splat to a copy: ");
           LLVM_DEBUG(MI.dump());
-          BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::COPY),
+          BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::COPY),
                   MI.getOperand(0).getReg())
               .add(MI.getOperand(OpNo));
           addRegToUpdate(MI.getOperand(OpNo).getReg());
@@ -1095,9 +1095,9 @@ bool PPCMIPeephole::simplifyCode() {
           LLVM_DEBUG(dbgs() << "Removing redundant sign-extension\n");
           Register TmpReg =
               MF->getRegInfo().createVirtualRegister(&PPC::G8RCRegClass);
-          BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::IMPLICIT_DEF),
+          BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::IMPLICIT_DEF),
                   TmpReg);
-          BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::INSERT_SUBREG),
+          BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::INSERT_SUBREG),
                   MI.getOperand(0).getReg())
               .addReg(TmpReg)
               .addReg(NarrowReg)
@@ -1147,7 +1147,7 @@ bool PPCMIPeephole::simplifyCode() {
             getKnownLeadingZeroCount(SrcMI->getOperand(0).getReg(), TII, MRI);
         if (MI.getOperand(3).getImm() <= KnownZeroCount) {
           LLVM_DEBUG(dbgs() << "Removing redundant zero-extension\n");
-          BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::COPY),
+          BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::COPY),
                   MI.getOperand(0).getReg())
               .addReg(SrcReg);
           addRegToUpdate(SrcReg);
@@ -1238,7 +1238,7 @@ bool PPCMIPeephole::simplifyCode() {
         // Replace ADD with COPY
         LLVM_DEBUG(dbgs() << "Optimizing ADD to COPY: ");
         LLVM_DEBUG(MI.dump());
-        BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::COPY),
+        BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::COPY),
                 MI.getOperand(0).getReg())
             .add(Op1);
         addRegToUpdate(Op1.getReg());
@@ -1374,7 +1374,7 @@ bool PPCMIPeephole::simplifyCode() {
             ((ImmOperand0 & 0x1) &&
              ((uint64_t)ImmOperand1 > (uint64_t)ImmOperand2)) ||
             ((ImmOperand0 & 0x4) && (ImmOperand1 == ImmOperand2))) {
-          BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(PPC::TRAP));
+          BuildMI(MBB, &MI, MI.getFullDebugLoc(), TII->get(PPC::TRAP));
           TrapOpt = true;
         }
         // We will delete the MI if it will never trap.
@@ -1890,7 +1890,7 @@ bool PPCMIPeephole::eliminateRedundantCompare() {
       auto I = MachineBasicBlock::iterator(MBBtoMoveCmp->getFirstTerminator());
       MBBtoMoveCmp->splice(I, &MBB2, MachineBasicBlock::iterator(CMPI2));
 
-      DebugLoc DL = CMPI2->getDebugLoc();
+      DebugLoc DL = CMPI2->getFullDebugLoc();
       Register NewVReg = MRI->createVirtualRegister(&PPC::CRRCRegClass);
       BuildMI(MBB2, MBB2.begin(), DL,
               TII->get(PPC::PHI), NewVReg)
@@ -2049,7 +2049,7 @@ bool PPCMIPeephole::combineSEXTAndSHL(MachineInstr &MI,
   LLVM_DEBUG(MI.dump());
 
   MachineInstr *NewInstr =
-      BuildMI(*MI.getParent(), &MI, MI.getDebugLoc(),
+      BuildMI(*MI.getParent(), &MI, MI.getFullDebugLoc(),
               SrcMI->getOpcode() == PPC::EXTSW ? TII->get(PPC::EXTSWSLI)
                                                : TII->get(PPC::EXTSWSLI_32_64),
               MI.getOperand(0).getReg())

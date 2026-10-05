@@ -58,7 +58,7 @@ static void InsertFPImmInst(MachineBasicBlock::iterator II,
                             unsigned Reg, unsigned FrameReg, int Offset ) {
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
 
   switch (MI.getOpcode()) {
   case XCore::LDWFI:
@@ -91,7 +91,7 @@ static void InsertFPConstInst(MachineBasicBlock::iterator II,
   assert(RS && "requiresRegisterScavenging failed");
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   Register ScratchOffset =
       RS->scavengeRegisterBackwards(XCore::GRRegsRegClass, II, false, 0);
   RS->setRegUsed(ScratchOffset);
@@ -126,7 +126,7 @@ static void InsertSPImmInst(MachineBasicBlock::iterator II,
                             unsigned Reg, int Offset) {
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   bool isU6 = isImmU6(Offset);
 
   switch (MI.getOpcode()) {
@@ -160,7 +160,7 @@ static void InsertSPConstInst(MachineBasicBlock::iterator II,
   assert(RS && "requiresRegisterScavenging failed");
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   unsigned OpCode = MI.getOpcode();
 
   unsigned ScratchBase;

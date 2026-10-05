@@ -324,7 +324,7 @@ calculateFragment(DILocalVariable *Variable,
 
 static DebugVariable getAggregateVariable(DbgVariableRecord *DVR) {
   return DebugVariable(DVR->getVariable(), std::nullopt,
-                       DVR->getDebugLoc().getInlinedAt());
+                       DVR->getFullDebugLoc().getInlinedAt());
 }
 
 /// Find linked dbg.assign and generate a new one with the correct
@@ -443,7 +443,7 @@ static void migrateDebugInfo(AllocaInst *OldAlloca, bool IsSplit,
       NewAssign = cast<DbgVariableRecord>(cast<DbgRecord *>(
           DIB.insertDbgAssign(Inst, NewValue, DbgAssign->getVariable(), Expr,
                               Dest, DIExpression::get(Expr->getContext(), {}),
-                              DbgAssign->getDebugLoc())));
+                              DbgAssign->getFullDebugLoc())));
     } else {
       // The store is not split, simply steal the existing dbg_assign.
       NewAssign = DbgAssign;
@@ -2801,7 +2801,7 @@ public:
 
     Instruction *OldUserI = cast<Instruction>(OldUse->getUser());
     IRB.SetInsertPoint(OldUserI);
-    IRB.SetCurrentDebugLocation(OldUserI->getDebugLoc());
+    IRB.SetCurrentDebugLocation(OldUserI->getFullDebugLoc());
     // Avoid materializing the name prefix when it is discarded anyway.
     if (!IRB.getContext().shouldDiscardValueNames())
       IRB.getInserter().SetNamePrefix(Twine(NewAI.getName()) + "." +
@@ -4085,7 +4085,7 @@ private:
                          OldPtr->getParent()->getFirstInsertionPt());
     else
       IRB.SetInsertPoint(OldPtr);
-    IRB.SetCurrentDebugLocation(OldPtr->getDebugLoc());
+    IRB.SetCurrentDebugLocation(OldPtr->getFullDebugLoc());
 
     Value *NewPtr = getNewAllocaSlicePtr(IRB, OldPtr->getType());
     // Replace the operands which were using the old pointer.
@@ -5793,7 +5793,7 @@ insertNewDbgInst(DIBuilder &DIB, DbgVariableRecord *Orig, AllocaInst *NewAddr,
 
   if (Orig->isDbgDeclare()) {
     DbgVariableRecord *DVR = DbgVariableRecord::createDVRDeclare(
-        NewAddr, Orig->getVariable(), NewFragmentExpr, Orig->getDebugLoc());
+        NewAddr, Orig->getVariable(), NewFragmentExpr, Orig->getFullDebugLoc());
     BeforeInst->getParent()->insertDbgRecordBefore(DVR,
                                                    BeforeInst->getIterator());
     return;
@@ -5801,7 +5801,7 @@ insertNewDbgInst(DIBuilder &DIB, DbgVariableRecord *Orig, AllocaInst *NewAddr,
 
   if (Orig->isDbgValue()) {
     DbgVariableRecord *DVR = DbgVariableRecord::createDbgVariableRecord(
-        NewAddr, Orig->getVariable(), NewFragmentExpr, Orig->getDebugLoc());
+        NewAddr, Orig->getVariable(), NewFragmentExpr, Orig->getFullDebugLoc());
     // Drop debug information if the expression doesn't start with a
     // DW_OP_deref. This is because without a DW_OP_deref, the #dbg_value
     // describes the address of alloca rather than the value inside the alloca.
@@ -5820,7 +5820,7 @@ insertNewDbgInst(DIBuilder &DIB, DbgVariableRecord *Orig, AllocaInst *NewAddr,
 
   DbgVariableRecord *NewAssign = DbgVariableRecord::createLinkedDVRAssign(
       NewAddr, Orig->getValue(), Orig->getVariable(), NewFragmentExpr, NewAddr,
-      NewAddrExpr, Orig->getDebugLoc());
+      NewAddrExpr, Orig->getFullDebugLoc());
   LLVM_DEBUG(dbgs() << "Created new DVRAssign: " << *NewAssign << "\n");
   (void)NewAssign;
 }
@@ -6004,8 +6004,8 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
       auto RemoveOne = [DbgVariable](auto *OldDII) {
         auto SameVariableFragment = [](const auto *LHS, const auto *RHS) {
           return LHS->getVariable() == RHS->getVariable() &&
-                 LHS->getDebugLoc().getInlinedAt() ==
-                     RHS->getDebugLoc().getInlinedAt();
+                 LHS->getFullDebugLoc().getInlinedAt() ==
+                     RHS->getFullDebugLoc().getInlinedAt();
         };
         if (SameVariableFragment(OldDII, DbgVariable))
           OldDII->eraseFromParent();

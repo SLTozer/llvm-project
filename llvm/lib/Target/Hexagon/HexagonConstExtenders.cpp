@@ -1588,7 +1588,7 @@ bool HCE::replaceInstrExact(const ExtDesc &ED, Register ExtR) {
   MachineInstr &MI = *ED.UseMI;
   MachineBasicBlock &MBB = *MI.getParent();
   MachineBasicBlock::iterator At = MI.getIterator();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   unsigned ExtOpc = MI.getOpcode();
 
   // With a few exceptions, direct replacement amounts to creating an
@@ -1706,7 +1706,7 @@ bool HCE::replaceInstrExpr(const ExtDesc &ED, const ExtenderInit &ExtI,
   MachineInstr &MI = *ED.UseMI;
   MachineBasicBlock &MBB = *MI.getParent();
   MachineBasicBlock::iterator At = MI.getIterator();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc dl = MI.getFullDebugLoc();
   unsigned ExtOpc = MI.getOpcode();
 
   if (ExtOpc == Hexagon::A2_tfrsi) {

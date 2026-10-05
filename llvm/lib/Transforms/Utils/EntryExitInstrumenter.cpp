@@ -156,7 +156,7 @@ static bool runOnFunction(Function &F, bool PostInlining) {
         T = CI;
 
       DebugLoc DL;
-      if (DebugLoc TerminatorDL = T->getDebugLoc())
+      if (DebugLoc TerminatorDL = T->getFullDebugLoc())
         DL = TerminatorDL;
       else if (auto SP = F.getSubprogram())
         DL = DebugLoc::get(&F, 0, 0, SP);

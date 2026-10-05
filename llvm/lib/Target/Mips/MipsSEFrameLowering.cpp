@@ -173,7 +173,7 @@ void ExpandPseudo::expandLoadCCond(MachineBasicBlock &MBB, Iter I) {
   Register Dst = I->getOperand(0).getReg(), FI = I->getOperand(1).getIndex();
 
   TII.loadRegFromStack(MBB, I, VR, FI, RC, 0);
-  BuildMI(MBB, I, I->getDebugLoc(), TII.get(TargetOpcode::COPY), Dst)
+  BuildMI(MBB, I, I->getFullDebugLoc(), TII.get(TargetOpcode::COPY), Dst)
     .addReg(VR, RegState::Kill);
 }
 
@@ -187,7 +187,7 @@ void ExpandPseudo::expandStoreCCond(MachineBasicBlock &MBB, Iter I) {
   Register VR = MRI.createVirtualRegister(RC);
   Register Src = I->getOperand(0).getReg(), FI = I->getOperand(1).getIndex();
 
-  BuildMI(MBB, I, I->getDebugLoc(), TII.get(TargetOpcode::COPY), VR)
+  BuildMI(MBB, I, I->getFullDebugLoc(), TII.get(TargetOpcode::COPY), VR)
     .addReg(Src, getKillRegState(I->getOperand(0).isKill()));
   TII.storeRegToStack(MBB, I, VR, true, FI, RC, 0);
 }
@@ -207,7 +207,7 @@ void ExpandPseudo::expandLoadACC(MachineBasicBlock &MBB, Iter I,
   Register Dst = I->getOperand(0).getReg(), FI = I->getOperand(1).getIndex();
   Register Lo = RegInfo.getSubReg(Dst, Mips::sub_lo);
   Register Hi = RegInfo.getSubReg(Dst, Mips::sub_hi);
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
   const MCInstrDesc &Desc = TII.get(TargetOpcode::COPY);
 
   TII.loadRegFromStack(MBB, I, VR0, FI, RC, 0);
@@ -231,7 +231,7 @@ void ExpandPseudo::expandStoreACC(MachineBasicBlock &MBB, Iter I,
   Register VR1 = MRI.createVirtualRegister(RC);
   Register Src = I->getOperand(0).getReg(), FI = I->getOperand(1).getIndex();
   RegState SrcKill = getKillRegState(I->getOperand(0).isKill());
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
 
   BuildMI(MBB, I, DL, TII.get(MFLoOpc), VR0).addReg(Src);
   TII.storeRegToStack(MBB, I, VR0, true, FI, RC, 0);
@@ -265,7 +265,7 @@ bool ExpandPseudo::expandCopyACC(MachineBasicBlock &MBB, Iter I,
   RegState SrcKill = getKillRegState(I->getOperand(1).isKill());
   Register DstLo = RegInfo.getSubReg(Dst, Mips::sub_lo);
   Register DstHi = RegInfo.getSubReg(Dst, Mips::sub_hi);
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
 
   BuildMI(MBB, I, DL, TII.get(MFLoOpc), VR0).addReg(Src);
   BuildMI(MBB, I, DL, TII.get(TargetOpcode::COPY), DstLo)
@@ -343,7 +343,7 @@ bool ExpandPseudo::expandExtractElementF64(MachineBasicBlock &MBB,
 
   if ((Op1.isReg() && Op1.isUndef()) || (Op2.isReg() && Op2.isUndef())) {
     Register DstReg = I->getOperand(0).getReg();
-    BuildMI(MBB, I, I->getDebugLoc(), TII.get(Mips::IMPLICIT_DEF), DstReg);
+    BuildMI(MBB, I, I->getFullDebugLoc(), TII.get(Mips::IMPLICIT_DEF), DstReg);
     return true;
   }
 
@@ -522,7 +522,7 @@ void MipsSEFrameLowering::emitInterruptPrologueStub(
     MachineFunction &MF, MachineBasicBlock &MBB) const {
   MipsFunctionInfo *MipsFI = MF.getInfo<MipsFunctionInfo>();
   MachineBasicBlock::iterator MBBI = MBB.begin();
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
 
   // Report an error the target doesn't support Mips32r2 or later.
   // The epilogue relies on the use of the "ehb" to clear execution
@@ -653,7 +653,7 @@ void MipsSEFrameLowering::emitEpilogue(MachineFunction &MF,
   const MipsSEInstrInfo &TII =
       *static_cast<const MipsSEInstrInfo *>(STI.getInstrInfo());
 
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
   MipsABIInfo ABI = STI.getABI();
   unsigned SP = ABI.GetStackPtr();
   unsigned FP = ABI.GetFramePtr();
@@ -705,7 +705,7 @@ void MipsSEFrameLowering::emitInterruptEpilogueStub(
     MachineFunction &MF, MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
   MipsFunctionInfo *MipsFI = MF.getInfo<MipsFunctionInfo>();
-  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc DL = MBBI != MBB.end() ? MBBI->getFullDebugLoc() : DebugLoc();
 
   // Perform ISR handling like GCC
   const TargetRegisterClass *PtrRC = &Mips::GPR32RegClass;
@@ -769,7 +769,7 @@ bool MipsSEFrameLowering::spillCalleeSavedRegisters(
                    Reg == Mips::HI0 || Reg == Mips::HI0_64);
     const Function &Func = MBB.getParent()->getFunction();
     if (IsLOHI && Func.hasFnAttribute("interrupt")) {
-      DebugLoc DL = MI->getDebugLoc();
+      DebugLoc DL = MI->getFullDebugLoc();
 
       unsigned Op = 0;
       if (!STI.getABI().ArePtrs64bit()) {

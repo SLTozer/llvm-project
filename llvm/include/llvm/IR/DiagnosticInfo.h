@@ -327,22 +327,21 @@ private:
 };
 
 class DiagnosticLocation {
-  DIFile *File = nullptr;
-  unsigned Line = 0;
-  unsigned Column = 0;
+  DbgLocStorage DL;
 
 public:
   DiagnosticLocation() = default;
-  LLVM_ABI DiagnosticLocation(const DebugLoc &DL);
+  LLVM_ABI DiagnosticLocation(DebugLoc DL) : DL(DL) {}
+  LLVM_ABI DiagnosticLocation(DbgLocStorage DL) : DL(DL) {}
   LLVM_ABI DiagnosticLocation(const DISubprogram *SP);
 
-  bool isValid() const { return File; }
+  bool isValid() const { return (bool)DL; }
   /// Return the full path to the file.
-  LLVM_ABI std::string getAbsolutePath() const;
+  LLVM_ABI std::string getAbsolutePath(DebugLocContext Ctx) const;
   /// Return the file name relative to the compilation directory.
-  LLVM_ABI StringRef getRelativePath() const;
-  unsigned getLine() const { return Line; }
-  unsigned getColumn() const { return Column; }
+  LLVM_ABI StringRef getRelativePath(DebugLocContext Ctx) const;
+  unsigned getLine(DebugLocContext Ctx) const;
+  unsigned getColumn(DebugLocContext Ctx) const;
 };
 
 /// Common features for diagnostics with an associated location.

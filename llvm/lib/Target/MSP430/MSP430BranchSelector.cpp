@@ -185,7 +185,7 @@ bool MSP430BSelImpl::expandBranches(OffsetVector &BlockOffsets) {
       }
 
       MachineInstr &OldBranch = *MI;
-      DebugLoc dl = OldBranch.getDebugLoc();
+      DebugLoc dl = OldBranch.getFullDebugLoc();
       int InstrSizeDiff = -TII->getInstSizeInBytes(OldBranch);
 
       if (MI->getOpcode() == MSP430::JCC) {

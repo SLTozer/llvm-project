@@ -215,7 +215,7 @@ static bool isSimpleIf(const MachineInstr &MI, const MachineRegisterInfo *MRI) {
 
 void SILowerControlFlow::emitIf(MachineInstr &MI) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   MachineBasicBlock::iterator I(&MI);
   Register SaveExecReg = MI.getOperand(0).getReg();
   MachineOperand& Cond = MI.getOperand(1);
@@ -308,7 +308,7 @@ void SILowerControlFlow::emitIf(MachineInstr &MI) {
 
 void SILowerControlFlow::emitElse(MachineInstr &MI) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   Register DstReg = MI.getOperand(0).getReg();
   Register SrcReg = MI.getOperand(1).getReg();
@@ -368,7 +368,7 @@ void SILowerControlFlow::emitElse(MachineInstr &MI) {
 
 void SILowerControlFlow::emitIfBreak(MachineInstr &MI) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
   auto Dst = MI.getOperand(0).getReg();
 
   // Skip ANDing with exec if the break condition is already masked by exec
@@ -422,7 +422,7 @@ void SILowerControlFlow::emitIfBreak(MachineInstr &MI) {
 
 void SILowerControlFlow::emitLoop(MachineInstr &MI) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   MachineInstr *AndN2 =
       BuildMI(MBB, &MI, DL, TII->get(LMC.AndN2TermOpc), LMC.ExecReg)
@@ -477,7 +477,7 @@ SILowerControlFlow::skipIgnoreExecInstsTrivialSucc(
 
 MachineBasicBlock *SILowerControlFlow::emitEndCf(MachineInstr &MI) {
   MachineBasicBlock &MBB = *MI.getParent();
-  const DebugLoc &DL = MI.getDebugLoc();
+  DebugLoc DL = MI.getFullDebugLoc();
 
   MachineBasicBlock::iterator InsPt = MBB.begin();
 

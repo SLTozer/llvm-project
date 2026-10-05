@@ -1388,7 +1388,7 @@ void ValueMapper::scheduleRemapFunction(Function &F, unsigned MCID) {
 }
 
 void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
-  const DebugLoc &DL = I->getDebugLoc();
+  DebugLoc DL = I->getFullDebugLoc();
   if (!DL)
     return;
 
@@ -1415,7 +1415,7 @@ void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM) {
 }
 
 void llvm::RemapSourceAtom(Instruction *I, ValueToValueMapTy &VM, Function *F) {
-  const DebugLoc &DL = I->getDebugLoc(F);
+  DebugLoc DL = I->getFullDebugLoc(F);
   if (!DL)
     return;
 

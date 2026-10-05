@@ -719,7 +719,7 @@ MachineInstr *ImplicitNullChecks::insertFaultingInstr(
   else
     FK = FaultMaps::FaultingStore;
 
-  auto MIB = BuildMI(MBB, MI->getDebugLoc(),
+  auto MIB = BuildMI(MBB, MI->getFullDebugLoc(),
                      TII->get(TargetOpcode::FAULTING_OP), DefReg)
                  .addImm(FK)
                  .addMBB(HandlerMBB)
