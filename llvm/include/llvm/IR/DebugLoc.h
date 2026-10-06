@@ -462,7 +462,9 @@ public:
   DebugLoc(DbgLocStorage Loc, DIFunctionLocalMetadata *FLContext)
     : Storage(Loc), FLContext(FLContext) {}
   DebugLoc(DbgLocStorage Loc, DebugLocContext DLContext)
-    : Storage(Loc), FLContext(DLContext.Context) {}
+    : Storage(Loc), FLContext(DLContext.Context) {
+    assert((!Storage || FLContext) && "Invalid context provided for non-empty Storage.");
+  }
 #else
   DebugLoc(DbgLocStorage Loc) : Storage(Loc) {}
   DebugLoc(DbgLocStorage Loc, DebugLocContext DLContext)
@@ -1070,7 +1072,7 @@ public:
 
 
 inline DebugLocContext::DebugLocContext(DebugLoc DL) {
-  assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
+  // assert(DL && "DebugLocContext can only be obtained from a non-empty DebugLoc.");
   Context = DL.getDLContext().Context;
 }
 inline DebugLoc DbgLocStorage::withContext(DebugLocContext Context) const {

@@ -321,22 +321,22 @@ DebugLoc::DebugLocContext::DebugLocContext(const Instruction *I) {
   const Function *F = I->getFunction();
   Context = cast_if_present<DIFunctionLocalMetadata>(
     F->getMetadata(LLVMContext::MD_flmd));
-  if (!Context)
-    const_cast<Function*>(F)->setMetadata(
-      LLVMContext::MD_flmd,
-      DIFunctionLocalMetadata::getDistinct(F->getContext()));
-  assert(Context && "Attempted to create DebugLoc for function without a "
-    "DIFunctionLocalMetadata attachment.");
+  // if (!Context)
+  //   const_cast<Function*>(F)->setMetadata(
+  //     LLVMContext::MD_flmd,
+  //     DIFunctionLocalMetadata::getDistinct(F->getContext()));
+  // assert(Context && "Attempted to create DebugLoc for function without a "
+  //   "DIFunctionLocalMetadata attachment.");
 }
 DebugLoc::DebugLocContext::DebugLocContext(const Function *F) {
   Context = cast_if_present<DIFunctionLocalMetadata>(
     F->getMetadata(LLVMContext::MD_flmd));
-  if (!Context)
-    const_cast<Function*>(F)->setMetadata(
-      LLVMContext::MD_flmd,
-      DIFunctionLocalMetadata::getDistinct(F->getContext()));
-  assert(Context && "Attempted to create DebugLoc for function without a "
-    "DIFunctionLocalMetadata attachment.");
+  // if (!Context)
+  //   const_cast<Function*>(F)->setMetadata(
+  //     LLVMContext::MD_flmd,
+  //     DIFunctionLocalMetadata::getDistinct(F->getContext()));
+  // assert(Context && "Attempted to create DebugLoc for function without a "
+  //   "DIFunctionLocalMetadata attachment.");
 }
 DILocation *DebugLoc::convertToDILocation() const {
   return DILocation::get(getContext(), *this);

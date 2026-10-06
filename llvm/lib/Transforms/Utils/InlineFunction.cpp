@@ -2029,9 +2029,16 @@ static void fixupLineNumbers(Function *Caller, Function::iterator FI,
                              Instruction *TheCall, bool CalleeHasDebugInfo) {
   Function *Callee = cast<CallBase>(TheCall)->getCalledFunction();
   DIFunctionLocalMetadata *CalleeFL = getFLMDForFunction(Callee);
-  // If the callee contains no source locations, then we have nothing to do.
-  if (!CalleeFL)
+  if (CalleeHasDebugInfo && !CalleeFL) {
+    // In this case, the callee is a function with !dbg but without !flmd,
+    // meaning that it has no source locations to update, but is not nodebug;
+    // no instructions have source locations, and they should still have none
+    // post-inlining, so nothing left to do.
     return;
+  }
+  // From this point, CalleeHasDebugInfo implies CalleeFL, but the reverse is
+  // not true: !CalleeHasDebugInfo && CalleeFL may occur if a nodebug function
+  // had a debug function inlined into it.
 
   // When using FLMD, we still need to perform some update steps if we are
   // inlining from a call without debug info. Note that even if the caller
@@ -2039,11 +2046,20 @@ static void fixupLineNumbers(Function *Caller, Function::iterator FI,
   // inlined from a function with debug info), we can follow the normal inlining
   // procedure below.
   if (!TheCall->getFullDebugLoc()) {
-    assert(Caller->getSubprogram() &&
-      "Call in a function with debug info must have a debug location.");
+    // If the call doesn't have debug info, it must mean that either the caller
+    // or callee has no debug info. If the callee has no debug info and the call
+    // has no debug info, then there is nothing to do; otherwise, if the callee
+    // has debug info but the caller and call do not, then perform inlining
+    // to preserve the callee source information.
+    if (!Caller->getSubprogram()) {
+      return;
+    }
+    assert(!Callee->getSubprogram() &&
+      "Inlinable call without debug info, with caller and callee with debug info?");
     inlineIntoNodebug(Callee, Caller, FI, CalleeHasDebugInfo);
     return;
   }
+
 
   // With FLMD, the inlining process is fairly straightforward. We copy all
   // InlinedCalls from Callee to Caller, and update InlinedAt indexes from all
@@ -2074,12 +2090,57 @@ static void fixupLineNumbers(Function *Caller, Function::iterator FI,
       TheCallFLDL.SrcLocIdx, TheCallFLDL.InlinedAtIdx, CalleeFL,
       false, CalleeFL->MaxAtomGroup));
   }
-
   uint16_t InlinedCallOffset = CallerFL->InlinedCalls.size();
-  CallerFL->InlinedCalls.append(CalleeFL->InlinedCalls);
-  auto UpdateLoc = [TheCallFLDL, InlinedCallOffset, NewInlinedAt](auto &Loc) {
+  SmallDenseMap<uint16_t, uint16_t> InlinedCallMap;
+  auto GetNewInlinedAt = [&InlinedCallMap, CalleeFL, CallerFL, NewInlinedAt, TheCallFLDL](uint16_t InlinedAt) {
+    if (auto Existing = InlinedCallMap.find(InlinedAt); Existing != InlinedCallMap.end())
+      return Existing->second;
+    SmallVector<std::pair<uint16_t, FLInlinedCall>> InlinedCallChain;
+    // `Last` is the last inline call that has not been copied to the caller
+    // that we have seen; we will advance up the inline chain until either Last
+    // is not itself inlined, or until its own InlinedAt has been copied to the
+    // caller.
+    // CalleeFL->InlinedCalls[LastIdx] == Last
+    uint16_t LastIdx = InlinedAt;
+    FLInlinedCall Last = CalleeFL->getInlinedCall(LastIdx);
+    FLIndex<uint16_t> UpdatedInlinedAt;
+    while (Last.InlinedAtIdx) {
+      InlinedCallChain.push_back({LastIdx, Last});
+      if (auto Existing = InlinedCallMap.find(Last.InlinedAtIdx.get()); Existing != InlinedCallMap.end()) {
+        UpdatedInlinedAt = Existing->second;
+        break;
+      }
+      LastIdx = Last.InlinedAtIdx.get();
+      Last = CalleeFL->getInlinedCall(LastIdx);
+    }
+    // Last is now the last inline call in the current chain that has not
+    // already been copied to the caller. If Last is also the end of the inline
+    // chain, meaning it is not itself inlined, then it is not in
+    // InlinedCallChain and must be handled specifically here.
+    if (!Last.InlinedAtIdx) {
+      if (NewInlinedAt) {
+        Last.InlinedAtIdx = NewInlinedAt;
+      } else {
+        Last.SrcLocIdx = TheCallFLDL.SrcLocIdx;
+        Last.InlinedAtIdx = TheCallFLDL.InlinedAtIdx;
+      }
+      UpdatedInlinedAt = CallerFL->addInlinedCall(Last);
+      InlinedCallMap.insert({LastIdx, UpdatedInlinedAt.get()});
+    }
+    // UpdatedInlinedAt is now the remapped InlinedAt of the last element in
+    // InlinedCallChain; keep this invariant going as we remap every inlined
+    // call in the chain.
+    for (auto [OldIdx, InlinedCall] : reverse(InlinedCallChain)) {
+      InlinedCall.InlinedAtIdx = UpdatedInlinedAt;
+      UpdatedInlinedAt = CallerFL->addInlinedCall(InlinedCall);
+      InlinedCallMap.insert({OldIdx, UpdatedInlinedAt.get()});
+    }
+    // UpdatedInlinedAt is now the InlinedCallIdx of the remapped original call.
+    return UpdatedInlinedAt.get();
+  };
+  auto UpdateLoc = [TheCallFLDL, NewInlinedAt, &GetNewInlinedAt](auto &Loc) {
     if (Loc.InlinedAtIdx) {
-      Loc.InlinedAtIdx.addOffset(InlinedCallOffset);
+      Loc.InlinedAtIdx = GetNewInlinedAt(Loc.InlinedAtIdx.get());
     } else if (NewInlinedAt) {
       Loc.InlinedAtIdx = NewInlinedAt;
     } else {
@@ -2087,13 +2148,6 @@ static void fixupLineNumbers(Function *Caller, Function::iterator FI,
       Loc.InlinedAtIdx = TheCallFLDL.InlinedAtIdx;
     }
   };
-  for (auto &InlinedCall : drop_begin(CallerFL->InlinedCalls, InlinedCallOffset)) {
-    assert(
-      (CalleeHasDebugInfo || InlinedCall.InlinedAtIdx || !InlinedCall.SrcLocIdx)
-      && "Expected all non-inlined InlinedCalls in a nodebug function to have "
-         "no source location.");
-    UpdateLoc(InlinedCall);
-  }
   auto UpdateDebugLoc = [&UpdateLoc](FLDebugLoc DL) -> FLDebugLoc {
     UpdateLoc(DL);
     return DL;

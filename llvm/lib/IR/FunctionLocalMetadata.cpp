@@ -41,7 +41,11 @@ FLMDBuilder::FLMDBuilder(DIFunctionLocalMetadata *FLContext, const DISubprogram 
   assert(FLContext->Scopes.empty() && FLContext->SrcLocs.empty()
     && "Creating a builder for an already-exinst FLContext currently unsupported.");
   FLContext->Scopes.push_back(FLScope{ const_cast<DISubprogram*>(SP) });
+  ScopeMap.insert({FLScope{ const_cast<DISubprogram*>(SP) }, 0});
   FLContext->SrcLocs.push_back(FLSrcLoc(0, 0, 0));
   FLContext->SrcLocs.push_back(FLSrcLoc(SP->getLine(), 0, 0));
   FLContext->SrcLocs.push_back(FLSrcLoc(SP->getScopeLine(), 0, 0));
+  SrcLocMap.insert({FLSrcLoc(0, 0, 0), 0});
+  SrcLocMap.insert({FLSrcLoc(SP->getLine(), 0, 0), 1});
+  SrcLocMap.insert({FLSrcLoc(SP->getScopeLine(), 0, 0), 2});
 }

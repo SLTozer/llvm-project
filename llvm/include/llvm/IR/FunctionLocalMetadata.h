@@ -460,7 +460,9 @@ public:
     if (auto ScopeIt = ScopeMap.find(InsertedScope); ScopeIt != ScopeMap.end())
       return ScopeIt->second;
     FLContext->Scopes.push_back(InsertedScope);
-    return FLContext->Scopes.size() - 1;
+    uint16_t Index = FLContext->Scopes.size() - 1;
+    ScopeMap.insert({InsertedScope, Index});
+    return Index;
   }
   FLIndex<uint32_t> getSrcLoc(uint32_t Line, uint16_t Column, MDNode* Scope) {
     // TODO: This might be slightly faster if we store the Scope in the
@@ -471,7 +473,9 @@ public:
     if (auto SrcLocIt = SrcLocMap.find(InsertedSrcLoc); SrcLocIt != SrcLocMap.end())
       return SrcLocIt->second;
     FLContext->SrcLocs.push_back(InsertedSrcLoc);
-    return FLContext->SrcLocs.size() - 1;
+    uint32_t Index = FLContext->SrcLocs.size() - 1;
+    SrcLocMap.insert({InsertedSrcLoc, Index});
+    return Index;
   }
 
   FLMDBuilder(DIFunctionLocalMetadata *FLContext, const DISubprogram *SP);
