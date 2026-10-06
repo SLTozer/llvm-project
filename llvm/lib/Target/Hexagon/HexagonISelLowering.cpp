@@ -1907,8 +1907,8 @@ HexagonTargetLowering::validateConstPtrAlignment(SDValue Ptr, Align NeedAlign,
   O << "Misaligned constant address: " << format_hex(Addr, 10)
     << " has alignment " << HaveAlign.value()
     << ", but the memory access requires " << NeedAlign.value();
-  if (DebugLoc DL = dl.getDebugLoc())
-    DL.print(O << ", at ");
+  if (DbgLocStorage DL = dl.getDebugLoc())
+    O << ", at " << DL.get();
   O << ". The instruction has been replaced with a trap.";
 
   DAG.getContext()->diagnose(DiagnosticInfoMisalignedTrap(O.str()));

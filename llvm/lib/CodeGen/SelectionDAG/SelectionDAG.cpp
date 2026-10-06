@@ -1415,7 +1415,7 @@ Align SelectionDAG::getEVTAlign(EVT VT) const {
 
 // EntryNode could meaningfully have debug info if we can find it...
 SelectionDAG::SelectionDAG(const TargetMachine &tm, CodeGenOptLevel OL)
-    : TM(tm), OptLevel(OL), EntryNode(ISD::EntryToken, 0, DebugLoc(),
+    : TM(tm), OptLevel(OL), EntryNode(ISD::EntryToken, 0, DbgLocStorage(),
                                       getVTList(MVT::Other, MVT::Glue)),
       Root(getEntryNode()) {
   InsertNode(&EntryNode);
@@ -1491,7 +1491,7 @@ SDNode *SelectionDAG::FindNodeOrInsertPos(const FoldingSetNodeID &ID,
       // different places. Do not propagate one location to all uses as it
       // will cause a worse single stepping debugging experience.
       if (N->getDebugLoc() != DL.getDebugLoc())
-        N->setDebugLoc(DebugLoc());
+        N->setDebugLoc(DbgLocStorage());
       break;
     default:
       // When the node's point of use is located earlier in the instruction
@@ -12421,9 +12421,9 @@ SDNode *SelectionDAG::SelectNodeTo(SDNode *N, unsigned MachineOpc,
 ///
 /// For IROrder, we keep the smaller of the two
 SDNode *SelectionDAG::UpdateSDLocOnMergeSDNode(SDNode *N, const SDLoc &OLoc) {
-  DebugLoc NLoc = N->getDebugLoc();
+  DbgLocStorage NLoc = N->getDebugLoc();
   if (NLoc && OptLevel == CodeGenOptLevel::None && OLoc.getDebugLoc() != NLoc) {
-    N->setDebugLoc(DebugLoc());
+    N->setDebugLoc(DbgLocStorage());
   }
   unsigned Order = std::min(N->getIROrder(), OLoc.getIROrder());
   N->setIROrder(Order);
@@ -12739,7 +12739,7 @@ bool SelectionDAG::doesNodeExist(unsigned Opcode, SDVTList VTList,
 /// SDNode
 SDDbgValue *SelectionDAG::getDbgValue(DIVariable *Var, DIExpression *Expr,
                                       SDNode *N, unsigned R, bool IsIndirect,
-                                      DebugLoc DL, unsigned O) {
+                                      DbgLocStorage DL, unsigned O) {
   assert(cast<DILocalVariable>(Var)->isValidLocationForIntrinsic(DL) &&
          "Expected inlined-at fields to agree");
   return new (DbgInfo->getAlloc())
@@ -12752,7 +12752,7 @@ SDDbgValue *SelectionDAG::getDbgValue(DIVariable *Var, DIExpression *Expr,
 SDDbgValue *SelectionDAG::getConstantDbgValue(DIVariable *Var,
                                               DIExpression *Expr,
                                               const Value *C,
-                                              DebugLoc DL, unsigned O) {
+                                              DbgLocStorage DL, unsigned O) {
   assert(cast<DILocalVariable>(Var)->isValidLocationForIntrinsic(DL) &&
          "Expected inlined-at fields to agree");
   return new (DbgInfo->getAlloc())
@@ -12765,7 +12765,7 @@ SDDbgValue *SelectionDAG::getConstantDbgValue(DIVariable *Var,
 SDDbgValue *SelectionDAG::getFrameIndexDbgValue(DIVariable *Var,
                                                 DIExpression *Expr, unsigned FI,
                                                 bool IsIndirect,
-                                                DebugLoc DL,
+                                                DbgLocStorage DL,
                                                 unsigned O) {
   assert(cast<DILocalVariable>(Var)->isValidLocationForIntrinsic(DL) &&
          "Expected inlined-at fields to agree");
@@ -12777,7 +12777,7 @@ SDDbgValue *SelectionDAG::getFrameIndexDbgValue(DIVariable *Var,
                                                 DIExpression *Expr, unsigned FI,
                                                 ArrayRef<SDNode *> Dependencies,
                                                 bool IsIndirect,
-                                                DebugLoc DL,
+                                                DbgLocStorage DL,
                                                 unsigned O) {
   assert(cast<DILocalVariable>(Var)->isValidLocationForIntrinsic(DL) &&
          "Expected inlined-at fields to agree");
@@ -12790,7 +12790,7 @@ SDDbgValue *SelectionDAG::getFrameIndexDbgValue(DIVariable *Var,
 /// VReg
 SDDbgValue *SelectionDAG::getVRegDbgValue(DIVariable *Var, DIExpression *Expr,
                                           Register VReg, bool IsIndirect,
-                                          DebugLoc DL, unsigned O) {
+                                          DbgLocStorage DL, unsigned O) {
   assert(cast<DILocalVariable>(Var)->isValidLocationForIntrinsic(DL) &&
          "Expected inlined-at fields to agree");
   return new (DbgInfo->getAlloc())
@@ -12802,7 +12802,7 @@ SDDbgValue *SelectionDAG::getVRegDbgValue(DIVariable *Var, DIExpression *Expr,
 SDDbgValue *SelectionDAG::getDbgValueList(DIVariable *Var, DIExpression *Expr,
                                           ArrayRef<SDDbgOperand> Locs,
                                           ArrayRef<SDNode *> Dependencies,
-                                          bool IsIndirect, DebugLoc DL,
+                                          bool IsIndirect, DbgLocStorage DL,
                                           unsigned O, bool IsVariadic) {
   assert(cast<DILocalVariable>(Var)->isValidLocationForIntrinsic(DL) &&
          "Expected inlined-at fields to agree");
@@ -13028,7 +13028,7 @@ void SelectionDAG::salvageDebugInfo(SDNode &N) {
 
 /// Creates a SDDbgLabel node.
 SDDbgLabel *SelectionDAG::getDbgLabel(DILabel *Label,
-                                      DebugLoc DL, unsigned O) {
+                                      DbgLocStorage DL, unsigned O) {
   assert(cast<DILabel>(Label)->isValidLocationForIntrinsic(DL) &&
          "Expected inlined-at fields to agree");
   return new (DbgInfo->getAlloc()) SDDbgLabel(Label, DL, O);
@@ -13927,7 +13927,7 @@ HandleSDNode::~HandleSDNode() {
 }
 
 MemSDNode::MemSDNode(
-    unsigned Opc, unsigned Order, DebugLoc dl, SDVTList VTs, EVT memvt,
+    unsigned Opc, unsigned Order, DbgLocStorage dl, SDVTList VTs, EVT memvt,
     PointerUnion<MachineMemOperand *, MachineMemOperand **> memrefs)
     : SDNode(Opc, Order, dl, VTs), MemoryVT(memvt), MemRefs(memrefs) {
   bool IsVolatile = false;

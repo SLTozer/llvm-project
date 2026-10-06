@@ -25,6 +25,16 @@ using namespace llvm;
 
 namespace llvm {
 extern LLVM_ABI cl::opt<bool> PickMergedSourceLocations;
+
+raw_ostream &operator<<(raw_ostream &OS, const FLDebugLoc &DL) {
+  OS << "!!dbgLoc(" <<
+    "srcLoc: " << DL.SrcLocIdx.get();
+  if (DL.InlinedAtIdx)
+    OS << ", inlinedAt: " << DL.InlinedAtIdx.get();
+  if (DL.AtomGroup)
+    OS << ", atom: [" << DL.AtomGroup << ", " << DL.AtomRank << "]";
+  OS << ")";
+}
 } // namespace llvm
 
 #if LLVM_ENABLE_DEBUGLOC_TRACKING_ORIGIN

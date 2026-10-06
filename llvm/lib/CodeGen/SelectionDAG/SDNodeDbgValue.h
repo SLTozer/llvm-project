@@ -146,7 +146,7 @@ private:
   SDNode **AdditionalDependencies;
   DIVariable *Var;
   DIExpression *Expr;
-  DebugLoc DL;
+  DbgLocStorage DL;
   unsigned Order;
   bool IsIndirect;
   bool IsVariadic;
@@ -156,7 +156,7 @@ private:
 public:
   SDDbgValue(BumpPtrAllocator &Alloc, DIVariable *Var, DIExpression *Expr,
              ArrayRef<SDDbgOperand> L, ArrayRef<SDNode *> Dependencies,
-             bool IsIndirect, DebugLoc DL, unsigned O, bool IsVariadic)
+             bool IsIndirect, DbgLocStorage DL, unsigned O, bool IsVariadic)
       : NumLocationOps(L.size()),
         LocationOps(Alloc.Allocate<SDDbgOperand>(L.size())),
         NumAdditionalDependencies(Dependencies.size()),
@@ -212,7 +212,7 @@ public:
   bool isVariadic() const { return IsVariadic; }
 
   /// Returns the DebugLoc.
-  DebugLoc getDebugLoc() const { return DL; }
+  DbgLocStorage getDebugLoc() const { return DL; }
 
   /// Returns the SDNodeOrder.  This is the order of the preceding node in the
   /// input.
@@ -241,18 +241,18 @@ public:
 /// We do not use SDValue here to avoid including its header.
 class SDDbgLabel {
   MDNode *Label;
-  DebugLoc DL;
+  DbgLocStorage DL;
   unsigned Order;
 
 public:
-  SDDbgLabel(MDNode *Label, DebugLoc dl, unsigned O)
+  SDDbgLabel(MDNode *Label, DbgLocStorage dl, unsigned O)
       : Label(Label), DL(std::move(dl)), Order(O) {}
 
   /// Returns the MDNode pointer for the label.
   MDNode *getLabel() const { return Label; }
 
   /// Returns the DebugLoc.
-  DebugLoc getDebugLoc() const { return DL; }
+  DbgLocStorage getDebugLoc() const { return DL; }
 
   /// Returns the SDNodeOrder.  This is the order of the preceding node in the
   /// input.

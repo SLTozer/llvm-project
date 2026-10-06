@@ -434,7 +434,7 @@ private:
     // The compiler can reduce this expression to a constant iff we pass an
     // empty DebugLoc.  Thankfully, the debug location doesn't have any bearing
     // on the subclass data.
-    return SDNodeT(IROrder, DebugLoc(), std::forward<ArgTypes>(Args)...)
+    return SDNodeT(IROrder, DbgLocStorage(), std::forward<ArgTypes>(Args)...)
         .getRawSubclassData();
   }
 
@@ -442,7 +442,7 @@ private:
   static uint16_t getSyntheticNodeSubclassData(unsigned Opc, unsigned Order,
                                                SDVTList VTs, EVT MemoryVT,
                                                MachineMemOperand *MMO) {
-    return SDNodeTy(Opc, Order, DebugLoc(), VTs, MemoryVT, MMO)
+    return SDNodeTy(Opc, Order, DbgLocStorage(), VTs, MemoryVT, MMO)
         .getRawSubclassData();
   }
 
@@ -450,7 +450,7 @@ private:
   static uint16_t getSyntheticNodeSubclassData(
       unsigned Opc, unsigned Order, SDVTList VTs, EVT MemoryVT,
       PointerUnion<MachineMemOperand *, MachineMemOperand **> MemRefs) {
-    return SDNodeTy(Opc, Order, DebugLoc(), VTs, MemoryVT, MemRefs)
+    return SDNodeTy(Opc, Order, DbgLocStorage(), VTs, MemoryVT, MemRefs)
         .getRawSubclassData();
   }
 
@@ -1932,40 +1932,40 @@ public:
   /// Creates a SDDbgValue node.
   LLVM_ABI SDDbgValue *getDbgValue(DIVariable *Var, DIExpression *Expr,
                                    SDNode *N, unsigned R, bool IsIndirect,
-                                   DebugLoc DL, unsigned O);
+                                   DbgLocStorage DL, unsigned O);
 
   /// Creates a constant SDDbgValue node.
   LLVM_ABI SDDbgValue *getConstantDbgValue(DIVariable *Var, DIExpression *Expr,
-                                           const Value *C, DebugLoc DL,
+                                           const Value *C, DbgLocStorage DL,
                                            unsigned O);
 
   /// Creates a FrameIndex SDDbgValue node.
   LLVM_ABI SDDbgValue *getFrameIndexDbgValue(DIVariable *Var,
                                              DIExpression *Expr, unsigned FI,
                                              bool IsIndirect,
-                                             DebugLoc DL, unsigned O);
+                                             DbgLocStorage DL, unsigned O);
 
   /// Creates a FrameIndex SDDbgValue node.
   LLVM_ABI SDDbgValue *getFrameIndexDbgValue(DIVariable *Var,
                                              DIExpression *Expr, unsigned FI,
                                              ArrayRef<SDNode *> Dependencies,
                                              bool IsIndirect,
-                                             DebugLoc DL, unsigned O);
+                                             DbgLocStorage DL, unsigned O);
 
   /// Creates a VReg SDDbgValue node.
   LLVM_ABI SDDbgValue *getVRegDbgValue(DIVariable *Var, DIExpression *Expr,
                                        Register VReg, bool IsIndirect,
-                                       DebugLoc DL, unsigned O);
+                                       DbgLocStorage DL, unsigned O);
 
   /// Creates a SDDbgValue node from a list of locations.
   LLVM_ABI SDDbgValue *getDbgValueList(DIVariable *Var, DIExpression *Expr,
                                        ArrayRef<SDDbgOperand> Locs,
                                        ArrayRef<SDNode *> Dependencies,
-                                       bool IsIndirect, DebugLoc DL,
+                                       bool IsIndirect, DbgLocStorage DL,
                                        unsigned O, bool IsVariadic);
 
   /// Creates a SDDbgLabel node.
-  LLVM_ABI SDDbgLabel *getDbgLabel(DILabel *Label, DebugLoc DL,
+  LLVM_ABI SDDbgLabel *getDbgLabel(DILabel *Label, DbgLocStorage DL,
                                    unsigned O);
 
   /// Transfer debug values from one node to another, while optionally

@@ -26,6 +26,7 @@
 #include "llvm/CodeGen/TargetLowering.h"
 #include "llvm/CodeGen/TargetSubtargetInfo.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/PseudoProbe.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Target/TargetMachine.h"
@@ -475,7 +476,7 @@ void InstrEmitter::AddOperand(MachineInstrBuilder &MIB, SDValue Op,
 }
 
 Register InstrEmitter::ConstrainForSubReg(Register VReg, unsigned SubIdx,
-                                          MVT VT, bool isDivergent, DebugLoc DL) {
+                                          MVT VT, bool isDivergent, DbgLocStorage DL) {
   const TargetRegisterClass *VRC = MRI->getRegClass(VReg);
   const TargetRegisterClass *RC = TRI->getSubClassWithSubReg(VRC, SubIdx);
 
@@ -794,7 +795,7 @@ InstrEmitter::EmitDbgInstrRef(SDDbgValue *SD,
                               VRBaseMapType &VRBaseMap) {
   MDNode *Var = SD->getVariable();
   const DIExpression *Expr = SD->getExpression();
-  DebugLoc DL = SD->getDebugLoc();
+  DbgLocStorage DL = SD->getDebugLoc();
   const MCInstrDesc &RefII = TII->get(TargetOpcode::DBG_INSTR_REF);
 
   // Returns true if the given operand is not a legal debug operand for a
@@ -926,7 +927,7 @@ MachineInstr *InstrEmitter::EmitDbgNoLocation(SDDbgValue *SD) {
   DIVariable *Var = SD->getVariable();
   const DIExpression *Expr =
       DIExpression::convertToUndefExpression(SD->getExpression());
-  DebugLoc DL = SD->getDebugLoc();
+  DbgLocStorage DL = SD->getDebugLoc();
   const MCInstrDesc &Desc = TII->get(TargetOpcode::DBG_VALUE);
   return BuildMI(*MF, DL, Desc, false, 0U, Var, Expr);
 }
@@ -936,7 +937,7 @@ InstrEmitter::EmitDbgValueList(SDDbgValue *SD,
                                VRBaseMapType &VRBaseMap) {
   MDNode *Var = SD->getVariable();
   DIExpression *Expr = SD->getExpression();
-  DebugLoc DL = SD->getDebugLoc();
+  DbgLocStorage DL = SD->getDebugLoc();
   // DBG_VALUE_LIST := "DBG_VALUE_LIST" var, expression, loc (, loc)*
   const MCInstrDesc &DbgValDesc = TII->get(TargetOpcode::DBG_VALUE_LIST);
   // Build the DBG_VALUE_LIST instruction base.
@@ -952,7 +953,7 @@ InstrEmitter::EmitDbgValueFromSingleOp(SDDbgValue *SD,
                                        VRBaseMapType &VRBaseMap) {
   MDNode *Var = SD->getVariable();
   DIExpression *Expr = SD->getExpression();
-  DebugLoc DL = SD->getDebugLoc();
+  DbgLocStorage DL = SD->getDebugLoc();
   const MCInstrDesc &II = TII->get(TargetOpcode::DBG_VALUE);
 
   assert(SD->getLocationOps().size() == 1 &&
@@ -985,7 +986,7 @@ InstrEmitter::EmitDbgValueFromSingleOp(SDDbgValue *SD,
 MachineInstr *
 InstrEmitter::EmitDbgLabel(SDDbgLabel *SD) {
   MDNode *Label = SD->getLabel();
-  DebugLoc DL = SD->getDebugLoc();
+  DbgLocStorage DL = SD->getDebugLoc();
   assert(cast<DILabel>(Label)->isValidLocationForIntrinsic(DL) &&
          "Expected inlined-at fields to agree");
 
