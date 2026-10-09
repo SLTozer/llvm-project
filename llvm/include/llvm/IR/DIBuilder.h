@@ -66,15 +66,14 @@ namespace llvm {
     bool AllowUnresolvedNodes;
 
 #if LLVM_USE_FLMD_SOURCE_LOCS
+    /// Maps FLContexts to their associated FLMDBuilders.
     DenseMap<DIFunctionLocalMetadata *, FLMDBuilder> FunctionLocBuilders;
-    DenseMap<DIFunctionLocalMetadata *, Function*> NonInlinedFLContexts;
-    /// TODO: Figure out how to use this. Maybe we could actually just create a
-    /// separate FLMD for every inlined instance; it's unlikely that the number
-    /// of cases where a frontend creates repeated inlined instances that
-    /// *could* share a location is large enough for complicated/expensive
-    /// tracking here to be worth it.
-    DenseMap<DISubprogram *, DIFunctionLocalMetadata *> InlinedCallContexts;
-    DenseMap<DIFunctionLocalMetadata *, SmallVector<Function *>> InlinedFunctionContexts;
+    /// Maps Subprograms for inlined calls to their associated FLContext, and
+    /// a reference count: when we finalize a function containing inlined calls,
+    /// we decrease the reference count, and if it reaches 0 then we finalize
+    /// the inlined subprogram as well (but keep this map entry in case we reuse
+    /// the inlined function later).
+    DenseMap<DISubprogram *, std::pair<DIFunctionLocalMetadata *, unsigned>> InlinedCallContexts;
 #endif
 
     /// Each subprogram's preserved local variables, labels, imported entities,
@@ -140,9 +139,8 @@ namespace llvm {
     /// Returns the InlinedCall DebugLoc that should be used as the InlinedAt
     /// argument for source locations in this inlined function.
     DebugLoc addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc CallLoc);
-    /// Call after the last source location for a function has been emitted.
-    /// TODO: Figure out if we really care about normalizing/sorting source
-    /// locations or not; if not, then a lot of this can really be skipped.
+    /// Call after the last source location for a function has been emitted to
+    /// remove the expensive uniquing maps.
     void finalizeFunctionContext(Function *F);
     DebugLoc getLoc(
         DebugLoc::DebugLocContext Context, unsigned Line, unsigned Column,

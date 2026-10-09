@@ -137,6 +137,10 @@ void DIBuilder::finalize() {
 
   // Can't handle unresolved nodes anymore.
   AllowUnresolvedNodes = false;
+
+  // Also verify that we've finalized all function contexts, and then clear out the maps.
+  assert(FunctionLocBuilders.empty() && "Non-finalized functions remain!");
+  InlinedCallContexts.clear();
 }
 
 /// If N is compile unit return NULL otherwise return N.
@@ -1070,11 +1074,12 @@ DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc C
   DIFunctionLocalMetadata *CalleeContext;
   if (auto ExistingContextIt = InlinedCallContexts.find(CalleeSP);
       ExistingContextIt != InlinedCallContexts.end()) {
-    CalleeContext = ExistingContextIt->second;
+    CalleeContext = ExistingContextIt->second.first;
+    ExistingContextIt->second.second += 1;
   } else {
     CalleeContext = DIFunctionLocalMetadata::getDistinct(CalleeSP->getContext());
     FunctionLocBuilders.try_emplace(CalleeContext, CalleeContext, CalleeSP);
-    InlinedCallContexts.insert({CalleeSP, CalleeContext});
+    InlinedCallContexts.insert({CalleeSP, {CalleeContext, 1}});
   }
   // FIXME: If we use FLMDBuilder to create new Source Locations, do so here.
   DIFunctionLocalMetadata *CallerContext = CallLoc.getFLContext();
@@ -1086,8 +1091,19 @@ DebugLoc DIBuilder::addInlinedFunctionContext(DISubprogram *CalleeSP, DebugLoc C
 }
 
 void DIBuilder::finalizeFunctionContext(Function *F) {
-  // DIFunctionLocalMetadata *FLContext = cast<DIFunctionLocalMetadata>(F->getMetadata(LLVMContext::MD_flmd));
-  // FIXME: Determine whether we want to do a normalization step here.
+  DIFunctionLocalMetadata *FLContext = F->getFLContext();
+  FunctionLocBuilders.erase(FLContext);
+  for (auto &InlinedCall : FLContext->InlinedCalls) {
+    DIFunctionLocalMetadata *CalleeContext = InlinedCall.getInlinee();
+    DISubprogram *InlinedSP = cast<DISubprogram>(CalleeContext->Scopes[0].get());
+    auto CallContextIt = InlinedCallContexts.find(InlinedSP);
+    assert(CallContextIt != InlinedCallContexts.end() &&
+      "Inlined Call was not tracked by DIBuilder.");
+    CallContextIt->second.second -= 1;
+    assert(CallContextIt->second.second >= 0);
+    if (CallContextIt->second.second == 0)
+      FunctionLocBuilders.erase(CalleeContext);
+  }
 }
 DebugLoc DIBuilder::getLoc(
     DebugLoc::DebugLocContext Context, unsigned Line, unsigned Column,

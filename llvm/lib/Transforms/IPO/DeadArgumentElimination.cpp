@@ -865,6 +865,12 @@ bool DeadArgumentEliminationPass::removeDeadStuffFromFunction(Function *F) {
   F->getParent()->getFunctionList().insert(F->getIterator(), NF);
   NF->takeName(F);
 
+  // Clone metadata from the old function, including debug info descriptor.
+  SmallVector<std::pair<unsigned, MDNode *>, 1> MDs;
+  F->getAllMetadata(MDs);
+  for (auto [KindID, Node] : MDs)
+    NF->addMetadata(KindID, *Node);
+
   // Loop over all the callers of the function, transforming the call sites to
   // pass in a smaller number of arguments into the new function.
   std::vector<Value *> Args;
@@ -1059,12 +1065,6 @@ bool DeadArgumentEliminationPass::removeDeadStuffFromFunction(Function *F) {
         NewRet->copyDebugLocFrom(RI);
         RI->eraseFromParent();
       }
-
-  // Clone metadata from the old function, including debug info descriptor.
-  SmallVector<std::pair<unsigned, MDNode *>, 1> MDs;
-  F->getAllMetadata(MDs);
-  for (auto [KindID, Node] : MDs)
-    NF->addMetadata(KindID, *Node);
 
   // If either the return value(s) or argument(s) are removed, then probably the
   // function does not follow standard calling conventions anymore. Hence, add

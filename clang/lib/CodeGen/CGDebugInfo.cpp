@@ -5278,6 +5278,10 @@ void CGDebugInfo::EmitFunctionEnd(CGBuilderTy &Builder, llvm::Function *Fn) {
     DBuilder.finalizeSubprogram(Fn->getSubprogram());
 }
 
+void CGDebugInfo::FinalizeFunctionSourceLocs(llvm::Function *Fn) {
+    DBuilder.finalizeFunctionContext(Fn);
+}
+
 CGDebugInfo::BlockByRefType
 CGDebugInfo::EmitTypeForVarWithBlocksAttr(const VarDecl *VD,
                                           uint64_t *XOffset) {
