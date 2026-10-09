@@ -561,18 +561,43 @@ public:
   bool hasDebugLoc() const {
     return (bool)DbgLoc;
   }
+  DebugLocContext getDebugLocContext() const;
   DbgLocStorage getDebugLoc() const { return DbgLoc; }
-  DebugLoc getFullDebugLoc() const;
+  DebugLoc getFullDebugLoc() const {
+    #if LLVM_USE_FLMD_SOURCE_LOCS
+      if (!DbgLoc)
+        return DebugLoc();
+      return DebugLoc(DbgLoc, getDebugLocContext());
+    #else
+      return DebugLoc(DbgLoc);
+    #endif
+  }
   DbgLocStorage getDebugLocStorage() const { return DbgLoc; }
   /// Return the debug location for this node as a DebugLoc, using the provided
   /// Function's FLMD context for FLMD builds. This is only needed, and should
   /// only be used, for instructions that have not been inserted into a function
   /// yet.
-  DebugLoc getFullDebugLoc(const Function *ContextFunction) const;
+  DebugLoc getFullDebugLoc(const Function *ContextFunction) const {
+    #if LLVM_USE_FLMD_SOURCE_LOCS
+      if (!DbgLoc)
+        return DebugLoc();
+      return DebugLoc(DbgLoc, DebugLocContext(ContextFunction));
+    #else
+      return DebugLoc(DbgLoc);
+    #endif
+  };
 
   /// Fetch the debug location for this node, unless this is a debug intrinsic,
   /// in which case fetch the debug location of the next non-debug node.
-  LLVM_ABI DebugLoc getStableDebugLoc() const;
+  LLVM_ABI DebugLoc getStableDebugLoc() const {
+    #if LLVM_USE_FLMD_SOURCE_LOCS
+      if (!DbgLoc)
+        return DebugLoc();
+      return DebugLoc(DbgLoc, getDebugLocContext());
+    #else
+      return DebugLoc(DbgLoc);
+    #endif
+  };
 
   /// Set or clear the nuw flag on this instruction, which must be an operator
   /// which supports this flag. See LangRef.html for the meaning of this flag.

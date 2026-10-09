@@ -523,10 +523,21 @@ public:
   LLVM_ABI void unbundleFromSucc();
 
   /// Returns the debug location id of this MachineInstr.
+  DebugLocContext getDebugLocContext() const;
   DbgLocStorage getDebugLoc() const { return DbgLoc; }
-  DebugLoc getFullDebugLoc() const;
+  DebugLoc getFullDebugLoc() const {
+#if LLVM_USE_FLMD_SOURCE_LOCS
+    if (!DbgLoc)
+      return DebugLoc();
+    return DebugLoc(DbgLoc, getDebugLocContext());
+#else
+    return DebugLoc(DbgLoc);
+#endif
+  }
   DebugLoc getFullDebugLoc(Function *FunctionContext) const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
+    if (!DbgLoc)
+      return DebugLoc();
     return DebugLoc(DbgLoc, getFLMDForFunction(FunctionContext));
 #else
     return DebugLoc(DbgLoc);

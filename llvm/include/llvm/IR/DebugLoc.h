@@ -144,6 +144,7 @@ struct FLDebugLoc {
   FLDebugLoc() : SrcLocIdx(), InlinedAtIdx(), AtomGroup(0), AtomRank(0) {}
   FLDebugLoc(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx, uint16_t AtomGroup = 0, uint8_t AtomRank = 0)
       : SrcLocIdx(SrcLocIdx), InlinedAtIdx(InlinedAtIdx), AtomGroup(AtomGroup), AtomRank(AtomRank) {
+    assert((SrcLocIdx || !AtomGroup && !AtomRank) && "Only DebugLoc with a valid SrcLoc may have an atom.");
   }
 
   bool operator==(const FLDebugLoc& Other) const {

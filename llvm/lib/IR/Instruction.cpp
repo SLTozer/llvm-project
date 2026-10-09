@@ -96,20 +96,11 @@ const DataLayout &Instruction::getDataLayout() const {
   return getModule()->getDataLayout();
 }
 
-DebugLoc Instruction::getFullDebugLoc() const {
+DebugLocContext Instruction::getDebugLocContext() const {
 #if LLVM_USE_FLMD_SOURCE_LOCS
-  if (!DbgLoc)
-    return DebugLoc();
-  return DebugLoc(DbgLoc, getFLMDForInstruction(this));
+  return DebugLocContext(getFunction()->getFLContext());
 #else
-  return DebugLoc(DbgLoc);
-#endif
-}
-DebugLoc Instruction::getFullDebugLoc(const Function *ContextFunction) const {
-#if LLVM_USE_FLMD_SOURCE_LOCS
-  return DebugLoc(DbgLoc, getFLMDForFunction(ContextFunction));
-#else
-  return DebugLoc(DbgLoc);
+  return DebugLocContext(getContext());
 #endif
 }
 
@@ -1399,10 +1390,6 @@ bool Instruction::isLaunderOrStripInvariantGroup() const {
 
 bool Instruction::isDebugOrPseudoInst() const {
   return isa<DbgInfoIntrinsic>(this) || isa<PseudoProbeInst>(this);
-}
-
-DebugLoc Instruction::getStableDebugLoc() const {
-  return getFullDebugLoc();
 }
 
 bool Instruction::isAssociative() const {
