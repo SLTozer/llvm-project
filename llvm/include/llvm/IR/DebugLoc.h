@@ -159,7 +159,7 @@ struct FLDebugLoc {
   }
 
   /// An FLDebugLoc is empty iff it has no SrcLoc and no InlinedAtIdx.
-  explicit operator bool() const { return SrcLocIdx || InlinedAtIdx; }
+  explicit operator bool() const { return asRawInt(); }
   bool isValidLoc() const { return (bool)*this; }
   bool isInlinedInstrLoc() const { return InlinedAtIdx && SrcLocIdx; }
   bool isNonInlinedInstrLoc() const { return !InlinedAtIdx && SrcLocIdx; }
