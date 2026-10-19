@@ -1183,6 +1183,14 @@ static bool isDINode(const Metadata *MD) { return !MD || isa<DINode>(MD); }
 static bool isMDTuple(const Metadata *MD) { return !MD || isa<MDTuple>(MD); }
 
 void Verifier::visitMDFunctionLocalContext(const MDFunctionLocalContext &N) {
+  for (auto [Idx, Scope] : enumerate(N.getScopes()))
+    CheckDI(Scope.get(), "MDFunctionLocalContext contains invalid scope", &N,
+            Idx);
+  for (auto [Idx, InlinedCall] : enumerate(N.getInlinedCalls()))
+    CheckDI(InlinedCall.getInlinee(),
+            "MDFunctionLocalContext contains InlinedCall with invalid "
+            "InlineeContext",
+            &N, Idx);
   bool IsNonDebugFLContext = N.isNonDebug();
   if (IsNonDebugFLContext) {
     CheckDI(N.getScopes().empty(),
@@ -3617,7 +3625,7 @@ void Verifier::visitFunction(const Function &F) {
             "the function",
             FLContext, &F);
     CheckDI(!FLContext->getScopes().empty() &&
-                isa<DISubprogram>(FLContext->getScope(0).get()) &&
+                isa_and_nonnull<DISubprogram>(FLContext->getScope(0).get()) &&
                 cast<DISubprogram>(FLContext->getScope(0).get())->describes(&F),
             "First scope in function-local context should be subprogram "
             "pointing at the function",

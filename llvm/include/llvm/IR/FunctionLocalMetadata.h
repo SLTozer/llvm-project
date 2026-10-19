@@ -25,6 +25,7 @@ namespace llvm {
 
 class DILocalScope;
 class MDFunctionLocalContext;
+class ModuleSlotTracker;
 
 struct FLScope;
 struct FLSrcLoc;
@@ -147,6 +148,9 @@ struct FLInlinedCall {
     return hash_combine(IC.SrcLocIdx, IC.InlinedAtIdx, IC.Uniquable,
                         IC.InlineeContext);
   }
+  LLVM_ABI void print(raw_ostream &OS, const Module *M = nullptr) const;
+  LLVM_ABI void print(raw_ostream &OS, ModuleSlotTracker &MST,
+                      const Module *M = nullptr) const;
 };
 template <> struct DenseMapInfo<FLInlinedCall> {
   static unsigned getHashValue(FLInlinedCall IC) { return hash_value(IC); }
@@ -179,6 +183,9 @@ struct FLSrcLoc {
   friend inline hash_code hash_value(const FLSrcLoc &SrcLoc) {
     return hash_value(SrcLoc.asRawInt());
   }
+  LLVM_ABI void print(raw_ostream &OS, const Module *M = nullptr) const;
+  LLVM_ABI void print(raw_ostream &OS, ModuleSlotTracker &MST,
+                      const Module *M = nullptr) const;
 };
 template <> struct DenseMapInfo<FLSrcLoc> {
   static unsigned getHashValue(FLSrcLoc SrcLoc) { return hash_value(SrcLoc); }
@@ -199,6 +206,9 @@ struct FLScope {
   friend inline hash_code hash_value(const FLScope &Scope) {
     return hash_value(Scope.Scope);
   }
+  LLVM_ABI void print(raw_ostream &OS, const Module *M = nullptr) const;
+  LLVM_ABI void print(raw_ostream &OS, ModuleSlotTracker &MST,
+                      const Module *M = nullptr) const;
 };
 template <> struct DenseMapInfo<FLScope> {
   static unsigned getHashValue(FLScope Scope) { return hash_value(Scope); }
@@ -225,6 +235,7 @@ class MDFunctionLocalContext : public MDNode {
     setNonDebug(NonDebug);
     // MaxAtomGroup: Transient/non-serialized field, starts at 0 and mutates
     // in-place.
+    SubclassData16 = 0;
   }
   ~MDFunctionLocalContext() = default;
 
@@ -232,9 +243,16 @@ class MDFunctionLocalContext : public MDNode {
   SmallVector<FLSrcLoc, 0> SrcLocs;
   SmallVector<FLInlinedCall, 0> InlinedCalls;
 
+  // Should generally only be used for deferred construction of an
+  // MDFunctionLocalContext, i.e. when we want to construct an instance before
+  // we know whether or not it is a NonDebug context, which may be important (or
+  // at least convenient) for tracking forward references.
+  void setNonDebug(bool IsNonDebug) { SubclassData1 = IsNonDebug; }
+
 public:
   friend class LLVMContextImpl;
   friend class MDNode;
+  friend class LLParser;
   constexpr static uint16_t MaxAllowedAtomGroup =
       FLInlinedCall::MaxAllowedAtomGroup;
 
@@ -390,6 +408,13 @@ public:
     InlinedCalls.push_back(InlinedCall);
     return InlinedCalls.size() - 1;
   }
+
+  /// Prints a shortened version of this FLContext, where only the number of
+  /// entries in each storage array is printed; useful when the full contents
+  /// are not needed.
+  LLVM_ABI void printShort(raw_ostream &OS, const Module *M = nullptr) const;
+  LLVM_ABI void printShort(raw_ostream &OS, ModuleSlotTracker &MST,
+                           const Module *M = nullptr) const;
 };
 
 inline FLInlinedCall
