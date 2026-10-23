@@ -2182,6 +2182,10 @@ static void fixupLineNumbers(Function *Caller, Function::iterator FI,
       updateLoopMetadataDebugLocations(I, UpdateLoopInfoLoc);
       if (I.hasDebugLoc() && !NoInlineLineTables)
         I.setDebugLoc(UpdateDebugLoc(I.getDebugLocStorage().get()));
+      else if (CalleeHasDebugInfo && !NoInlineLineTables)
+        // Inlined instructions with no location in a function with debug info
+        // keep no location.
+        ;
       else if (InstCanUseCallLoc(I))
         I.setDebugLoc(TheCallFLDL);
       else if (I.hasDebugLoc()) {
