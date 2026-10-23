@@ -777,17 +777,17 @@ static DebugLoc getMergedDebugLoc(DebugLoc LocA, DebugLoc LocB) {
     if (L1.getScope()->getSubprogram() != L2.getScope()->getSubprogram())
       return DebugLoc();
 
-    // If both locations are inlined calls that point to different inlinees, we
-    // cannot produce a common location. If only one is an inlined call, this
-    // is the last pair in the chains, and we merge them as instruction
-    // locations, as DILocation::getMergedLocation does.
-    bool BothInlinedCalls = L1.isInlinedCall() && L2.isInlinedCall();
-    if (BothInlinedCalls && L1.getAsInlinedCall().getInlinee() != L2.getAsInlinedCall().getInlinee())
-      return DebugLoc();
-    DIFunctionLocalMetadata *Inlinee = BothInlinedCalls ?
+    // We can only produce a merged inlined call if both locations are inlined
+    // calls of the same inlinee. Otherwise, merge them as instruction
+    // locations, as DILocation::getMergedLocation does; no later pair in the
+    // chains can then be merged, as their subprograms differ, so the result
+    // is used directly.
+    bool SameInlinee = L1.isInlinedCall() && L2.isInlinedCall() &&
+      L1.getAsInlinedCall().getInlinee() == L2.getAsInlinedCall().getInlinee();
+    DIFunctionLocalMetadata *Inlinee = SameInlinee ?
       L1.getAsInlinedCall().getInlinee() :
       nullptr;
-    uint16_t MaxMergedAtomGroup = BothInlinedCalls ? std::max(L1.getAsInlinedCall().MaxAtomGroup, L2.getAsInlinedCall().MaxAtomGroup) : 0;
+    uint16_t MaxMergedAtomGroup = SameInlinee ? std::max(L1.getAsInlinedCall().MaxAtomGroup, L2.getAsInlinedCall().MaxAtomGroup) : 0;
     DebugLoc::DebugLocContext InlineeCtx(Inlinee);
 
     // Find nearest common scope inside subprogram.
