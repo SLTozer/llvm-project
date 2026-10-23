@@ -944,10 +944,11 @@ Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
   FLMDBuilder Builder(NewFLMD, NewSP);
 
   // Add SrcLocs, which are unchanged.
-  NewFLMD->SrcLocs.append(FLMD->SrcLocs.begin() + DIFunctionLocalMetadata::FirstNormalSrcLoxIdx, FLMD->SrcLocs.end());
+  for (const FLSrcLoc &SrcLoc : drop_begin(FLMD->SrcLocs, DIFunctionLocalMetadata::FirstNormalSrcLoxIdx))
+    NewFLMD->appendSrcLoc(SrcLoc);
   // Add FLScopes, which must each be remapped.
   for (FLScope Scope : drop_begin(FLMD->Scopes))
-    NewFLMD->Scopes.emplace_back(cast<DILocalScope>(mapMetadata(Scope.get())));
+    NewFLMD->appendScope(FLScope(cast<DILocalScope>(mapMetadata(Scope.get()))));
   // Add InlinedCalls, which probably don't need to be remapped at all.
   // TODO: We should be sure that we have the right principled approach. There
   // are potential advantages to keeping references to the old FLMD from the new
@@ -956,7 +957,8 @@ Metadata *Mapper::mapFLMetadata(const DIFunctionLocalMetadata *FLMD) {
   // up otherwise able to delete the old FLMD. This seems uncommon enough for
   // the performance concerns to be unimportant either way, so we just take the
   // simplest approach here.
-  NewFLMD->InlinedCalls.append(FLMD->InlinedCalls);
+  for (const FLInlinedCall &InlinedCall : FLMD->InlinedCalls)
+    NewFLMD->appendInlinedCall(InlinedCall);
   // FIXME: Loops contain MDOperands which may need remapping, revisit this
   // later.
   NewFLMD->Loops.append(FLMD->Loops);

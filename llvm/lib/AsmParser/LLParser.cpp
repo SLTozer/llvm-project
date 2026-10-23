@@ -5993,9 +5993,12 @@ bool LLParser::parseDIFunctionLocalMetadata(MDNode *&Result, bool IsDistinct) {
 #undef VISIT_MD_FIELDS
 
   DIFunctionLocalMetadata *FLMD = DIFunctionLocalMetadata::getDistinct(Context);
-  FLMD->SrcLocs = std::move(srcLocs.Val);
-  FLMD->Scopes = std::move(scopes.Val);
-  FLMD->InlinedCalls = std::move(inlinedCalls.Val);
+  for (const FLSrcLoc &SrcLoc : srcLocs.Val)
+    FLMD->appendSrcLoc(SrcLoc);
+  for (FLScope Scope : scopes.Val)
+    FLMD->appendScope(Scope);
+  for (const FLInlinedCall &InlinedCall : inlinedCalls.Val)
+    FLMD->appendInlinedCall(InlinedCall);
   FLMD->Loops = std::move(loops.Val);
   // Track forward refs now.
   SmallVector<std::pair<uint32_t, uint32_t>> ScopeFwdRefs;

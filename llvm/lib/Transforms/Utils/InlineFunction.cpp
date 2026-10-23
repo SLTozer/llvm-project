@@ -1991,15 +1991,18 @@ void inlineIntoNodebug(Function *Callee, Function *Caller, Function::iterator FI
   }
 
   uint16_t InlinedCallOffset = CallerFL->InlinedCalls.size();
-  CallerFL->InlinedCalls.append(CalleeFL->InlinedCalls);
   auto UpdateInlinedAt = [NewInlinedAt, InlinedCallOffset](FLIndex<uint16_t> &InlinedAt) {
     if (InlinedAt)
       InlinedAt.addOffset(InlinedCallOffset);
     else
       InlinedAt = NewInlinedAt;
   };
-  for (auto &InlinedCall : drop_begin(CallerFL->InlinedCalls, InlinedCallOffset))
+  // Index rather than iterate, as CalleeFL may be CallerFL.
+  for (size_t Idx = 0, E = CalleeFL->InlinedCalls.size(); Idx != E; ++Idx) {
+    FLInlinedCall InlinedCall = CalleeFL->InlinedCalls[Idx];
     UpdateInlinedAt(InlinedCall.InlinedAtIdx);
+    CallerFL->appendInlinedCall(InlinedCall);
+  }
   auto UpdateDebugLoc = [&UpdateInlinedAt](FLDebugLoc DL) {
     UpdateInlinedAt(DL.InlinedAtIdx);
     return DL;
