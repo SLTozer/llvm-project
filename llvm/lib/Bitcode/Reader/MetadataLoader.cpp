@@ -16,6 +16,7 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLFunctionalExtras.h"
 #include "llvm/ADT/SetVector.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
@@ -1291,7 +1292,11 @@ void MetadataLoader::MetadataLoaderImpl::resolveForwardRefsAndPlaceholders(
   // Now that we've flushed, we can resolve the awkward FLMD fwd refs too.
   // FIXME: This is a bit of a hack, but may not be too far off the final
   // implementation - think about it.
+  // Patching entries in place invalidates the FLMD's uniquing indexes, so
+  // rebuild them for every FLMD that had a forward reference.
+  SmallPtrSet<DIFunctionLocalMetadata *, 8> PatchedFLMDs;
   for (auto &[FLMD, ScopeFwdRefs] : FLMDScopeFwdRefs) {
+    PatchedFLMDs.insert(FLMD);
     while (!ScopeFwdRefs.empty()) {
       auto &[Idx, Ref] = ScopeFwdRefs.front();
       FLMD->Scopes[Idx].Scope = cast<DILocalScope>(Ref.get());
@@ -1299,6 +1304,7 @@ void MetadataLoader::MetadataLoaderImpl::resolveForwardRefsAndPlaceholders(
     }
   }
   for (auto &[FLMD, InlineeFwdRefs] : FLMDInlineeFwdRefs) {
+    PatchedFLMDs.insert(FLMD);
     while (!InlineeFwdRefs.empty()) {
       auto &[Idx, Ref] = InlineeFwdRefs.front();
       FLMD->InlinedCalls[Idx].InlineeFLMD = cast<DIFunctionLocalMetadata>(Ref.get());
@@ -1306,6 +1312,8 @@ void MetadataLoader::MetadataLoaderImpl::resolveForwardRefsAndPlaceholders(
       InlineeFwdRefs.pop_front();
     }
   }
+  for (DIFunctionLocalMetadata *FLMD : PatchedFLMDs)
+    FLMD->rebuildUniquingIndexes();
   FLMDScopeFwdRefs.clear();
   FLMDInlineeFwdRefs.clear();
 }
@@ -2561,18 +2569,18 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
       uint64_t Scope = Record[CurrentRecord++];
       auto *ScopeMD = getMD(Scope);
       if (auto *ScopeNode = dyn_cast<MDNode>(ScopeMD)) {
-        NewFLMD->Scopes.push_back(FLScope(ScopeNode));
+        NewFLMD->appendScope(FLScope(ScopeNode));
       } else {
         auto &ScopeFwdRefs = FLMDScopeFwdRefs.try_emplace(NewFLMD).first->getSecond();
         ScopeFwdRefs.emplace_back(ScopeIdx, ScopeMD);
-        NewFLMD->Scopes.push_back(FLScope((MDNode*)nullptr));
+        NewFLMD->appendScope(FLScope((MDNode*)nullptr));
       }
     }
     // SrcLocs
     uint64_t NumSrcLocs = Record[CurrentRecord++];
     for (uint64_t SrcLocIdx = 0; SrcLocIdx < NumSrcLocs; ++SrcLocIdx) {
       uint64_t RawInt = Record[CurrentRecord++];
-      NewFLMD->SrcLocs.push_back(FLSrcLoc::fromRawInt(RawInt));
+      NewFLMD->appendSrcLoc(FLSrcLoc::fromRawInt(RawInt));
     }
     // InlinedCalls
     uint64_t NumInlinedCalls = Record[CurrentRecord++];
@@ -2583,12 +2591,12 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
       auto *InlineeMD = getMD(RawInlineeID);
       if (DIFunctionLocalMetadata *InlineeFLMD = dyn_cast<DIFunctionLocalMetadata>(InlineeMD)) {
         // dbgs() << "Read 1 pre-loaded: " << RawInlineeID << " = " << InlineeFLMD << "\n";
-        NewFLMD->InlinedCalls.push_back(FLInlinedCall::fromRawParts(RawInt, InlineeFLMD));
+        NewFLMD->appendInlinedCall(FLInlinedCall::fromRawParts(RawInt, InlineeFLMD));
       } else {
         // dbgs() << "Read 1 fwd ref: " << RawInlineeID << " = " << InlineeFLMD << "\n";
         auto &InlineeFwdRefs = FLMDInlineeFwdRefs.try_emplace(NewFLMD).first->getSecond();
         InlineeFwdRefs.emplace_back(InlinedCallIdx, InlineeMD);
-        NewFLMD->InlinedCalls.push_back(FLInlinedCall::fromRawParts(RawInt, nullptr));
+        NewFLMD->appendInlinedCall(FLInlinedCall::fromRawParts(RawInt, nullptr));
       }
     }
     // Loops

@@ -14,7 +14,10 @@
 #ifndef LLVM_IR_FUNCTIONLOCALMETADATA_H
 #define LLVM_IR_FUNCTIONLOCALMETADATA_H
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/ModuleSlotTracker.h"
@@ -123,12 +126,18 @@ struct FLInlinedCall {
     assert(MaxAtomGroup < 0x7fff && "Atom group unexpectedly wrapped!");
     return ++MaxAtomGroup;
   }
-  // Equality check that ignores MaxAtomGroup.
-  bool isEquivalent(const FLInlinedCall &Other) {
+  // Equality check that ignores MaxAtomGroup, used for uniquing.
+  bool isEquivalent(const FLInlinedCall &Other) const {
     return SrcLocIdx == Other.SrcLocIdx
       && InlinedAtIdx == Other.InlinedAtIdx
       && Uniquable == Other.Uniquable
       && InlineeFLMD == Other.InlineeFLMD;
+  }
+  // Hash of the fields compared by isEquivalent.
+  unsigned getHash() const {
+    uint64_t Raw = (uint64_t)SrcLocIdx.asRaw() << 32 |
+                   (uint64_t)InlinedAtIdx.asRaw() << 16 | Uniquable;
+    return static_cast<unsigned>(size_t(hash_combine(Raw, InlineeFLMD)));
   }
   // FIXME: We should really ignore MaxAtomGroup for some/most/all equality
   //        comparisons, but exactly how we handle that field during e.g.
@@ -179,6 +188,12 @@ struct FLSrcLoc {
     FLSrcLoc Result;
     std::memcpy(&Result, &RawInt, sizeof(Result));
     return Result;
+  }
+  bool isEquivalent(const FLSrcLoc &Other) const {
+    return asRawInt() == Other.asRawInt();
+  }
+  unsigned getHash() const {
+    return static_cast<unsigned>(size_t(hash_value(asRawInt())));
   }
   friend inline hash_code hash_value(const FLSrcLoc &SrcLoc) {
     return hash_value(SrcLoc.asRawInt());
@@ -287,12 +302,42 @@ struct ResolvedFLInlinedCall {
 };
 
 
+/// Uniquing index for table entries: each bucket holds (hash << 32 | index) so
+/// the set needs no access to the table when it grows.
+template <typename EntryT> struct FLEntryIndexInfo {
+  struct Key {
+    const EntryT &Entry;
+    ArrayRef<EntryT> Table;
+    unsigned Hash;
+  };
+  static uint64_t getEmptyKey() { return ~0ULL; }
+  static uint64_t getTombstoneKey() { return ~0ULL - 1; }
+  static unsigned getHashValue(uint64_t V) { return V >> 32; }
+  static unsigned getHashValue(const Key &K) { return K.Hash; }
+  static bool isEqual(uint64_t LHS, uint64_t RHS) { return LHS == RHS; }
+  static bool isEqual(const Key &K, uint64_t V) {
+    if (V >= getTombstoneKey() || (V >> 32) != K.Hash)
+      return false;
+    return K.Table[uint32_t(V)].isEquivalent(K.Entry);
+  }
+};
+template <typename EntryT>
+using FLEntryIndex = DenseSet<uint64_t, FLEntryIndexInfo<EntryT>>;
+
 /// Storage class for function-local metadata objects.
 /// TODO: Figure out how to divide this class and the actual FLMD types up among
 /// existing headers.
 class DIFunctionLocalMetadata : public MDNode {
   DIFunctionLocalMetadata(LLVMContext &C, StorageType Storage) : MDNode(C, DIFunctionLocalMetadataKind, Storage, {}) {}
   ~DIFunctionLocalMetadata() = default;
+
+  // Uniquing indexes for Scopes, SrcLocs and InlinedCalls. If a table holds
+  // duplicate entries, the index refers to the first of them.
+  DenseMap<const MDNode *, uint16_t> ScopeIndex;
+  FLEntryIndex<FLSrcLoc> SrcLocIndex;
+  // Uniquable inlined calls only; distinct calls are never found by lookup.
+  FLEntryIndex<FLInlinedCall> UniquedInlinedCallIndex;
+
 public:
   // These are 3 fixed values inserted into every DIFunctionLocalMetadata with
   // source locations, corresponding to "special" locations that we might select
@@ -305,6 +350,10 @@ public:
   };
   friend class LLVMContextImpl;
   friend class MDNode;
+  // Scopes, SrcLocs and InlinedCalls must only be extended through the
+  // get/add/append methods below, which keep the uniquing indexes up to date.
+  // After changing the Scope or InlineeFLMD of an existing entry in place, call
+  // rebuildUniquingIndexes().
   SmallVector<FLScope, 0> Scopes;
   SmallVector<FLSrcLoc, 0> SrcLocs;
   SmallVector<FLInlinedCall, 0> InlinedCalls;
@@ -392,30 +441,25 @@ public:
 
   FLIndex<uint16_t> getFLScopeIdx(DILocalScope *Scope);
 
+  FLIndex<uint32_t> getFLSrcLocIdx(const FLSrcLoc &SrcLoc);
   FLIndex<uint32_t> getFLSrcLocIdx(uint32_t Line, uint16_t Column, FLIndex<uint16_t> ScopeIdx) {
-    for (uint32_t Idx = 0; Idx < SrcLocs.size(); ++Idx) {
-      FLSrcLoc &SrcLoc = SrcLocs[Idx];
-      if (SrcLoc.Line == Line && SrcLoc.Column == Column && SrcLoc.ScopeIdx == ScopeIdx)
-        return Idx;
-    }
-    SrcLocs.push_back(FLSrcLoc(Line, Column, ScopeIdx));
-    return SrcLocs.size() - 1;
+    return getFLSrcLocIdx(FLSrcLoc(Line, Column, ScopeIdx));
   }
   FLIndex<uint32_t> getFLSrcLocIdx(uint32_t Line, uint16_t Column, DILocalScope *Scope) {
     return getFLSrcLocIdx(Line, Column, getFLScopeIdx(Scope));
   }
-  FLIndex<uint16_t> addInlinedCall(FLInlinedCall InlinedCall) {
-    if (InlinedCall.Uniquable) {
-      for (uint16_t Idx = 0; Idx < InlinedCalls.size(); ++Idx) {
-        if (InlinedCall.isEquivalent(InlinedCalls[Idx])) {
-          InlinedCalls[Idx].MaxAtomGroup = std::max(InlinedCall.MaxAtomGroup, InlinedCalls[Idx].MaxAtomGroup);
-          return FLIndex<uint16_t>(Idx);
-        }
-      }
-    }
-    InlinedCalls.push_back(InlinedCall);
-    return InlinedCalls.size() - 1;
-  }
+  /// Returns the existing equivalent inlined call if \p InlinedCall is
+  /// uniquable, raising its MaxAtomGroup to that of \p InlinedCall; otherwise
+  /// appends a new inlined call.
+  FLIndex<uint16_t> addInlinedCall(FLInlinedCall InlinedCall);
+
+  /// Append an entry without uniquing it, so that an existing table can be
+  /// copied or loaded without changing its indexes.
+  void appendScope(FLScope Scope);
+  void appendSrcLoc(const FLSrcLoc &SrcLoc);
+  void appendInlinedCall(const FLInlinedCall &InlinedCall);
+  /// Recompute the uniquing indexes from the tables.
+  void rebuildUniquingIndexes();
 
   ResolvedFLSrcLoc getResolvedSrcLoc(FLIndex<uint32_t> SrcLocIdx, FLIndex<uint16_t> InlinedAtIdx = FLIndex<uint16_t>()) {
     if (InlinedAtIdx)
@@ -459,7 +503,7 @@ public:
     FLScope InsertedScope(Scope);
     if (auto ScopeIt = ScopeMap.find(InsertedScope); ScopeIt != ScopeMap.end())
       return ScopeIt->second;
-    FLContext->Scopes.push_back(InsertedScope);
+    FLContext->appendScope(InsertedScope);
     uint16_t Index = FLContext->Scopes.size() - 1;
     ScopeMap.insert({InsertedScope, Index});
     return Index;
@@ -472,7 +516,7 @@ public:
     FLSrcLoc InsertedSrcLoc(Line, Column, ScopeIdx);
     if (auto SrcLocIt = SrcLocMap.find(InsertedSrcLoc); SrcLocIt != SrcLocMap.end())
       return SrcLocIt->second;
-    FLContext->SrcLocs.push_back(InsertedSrcLoc);
+    FLContext->appendSrcLoc(InsertedSrcLoc);
     uint32_t Index = FLContext->SrcLocs.size() - 1;
     SrcLocMap.insert({InsertedSrcLoc, Index});
     return Index;
