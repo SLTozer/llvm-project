@@ -14,6 +14,8 @@
 ; CHECK-NEXT: !DIExpression(4101, 0, 1, 159)
 ; CHECK-NOT: #dbg record expression references nonexistent location operand
 ; CHECK-NOT: invalid expression
+; CHECK: #dbg record expression for DIArgList location is not variadic
+; CHECK-NEXT: #dbg_value(!DIArgList(i32 %a, i32 %b), ![[#]], !DIExpression(DW_OP_constu, 7, DW_OP_stack_value),
 ; CHECK: warning: ignoring invalid debug info
 
 define void @single_location(i32 %a) !dbg !4 {
@@ -59,6 +61,12 @@ entry:
   ret void, !dbg !15
 }
 
+define void @mismatched_arglist(i32 %a, i32 %b) !dbg !28 {
+entry:
+    #dbg_value(!DIArgList(i32 %a, i32 %b), !29, !DIExpression(DW_OP_constu, 7, DW_OP_stack_value), !30)
+  ret void, !dbg !30
+}
+
 !llvm.dbg.cu = !{!0}
 !llvm.module.flags = !{!3}
 
@@ -89,3 +97,6 @@ entry:
 !25 = distinct !DISubprogram(name: "extra_index", scope: !1, file: !1, line: 7, type: !5, scopeLine: 7, spFlags: DISPFlagDefinition, unit: !0)
 !26 = !DILocalVariable(name: "e", scope: !25, file: !1, line: 7, type: !6)
 !27 = !DILocation(line: 7, column: 1, scope: !25)
+!28 = distinct !DISubprogram(name: "mismatched_arglist", scope: !1, file: !1, line: 7, type: !5, scopeLine: 7, spFlags: DISPFlagDefinition, unit: !0)
+!29 = !DILocalVariable(name: "e", scope: !28, file: !1, line: 7, type: !6)
+!30 = !DILocation(line: 7, column: 1, scope: !28)

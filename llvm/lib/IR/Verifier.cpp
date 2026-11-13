@@ -7761,12 +7761,20 @@ void Verifier::visit(DbgVariableRecord &DVR) {
   if (Expr->isValid() && !DVR.isKillLocation() &&
       (isa<ValueAsMetadata>(MD) || isa<DIArgList>(MD))) {
     unsigned NumLocationOps = DVR.getNumVariableLocationOps();
+    bool HasAnyArgOps = false;
     for (DIExpression::ExprOperand Op : Expr->expr_ops()) {
       if (Op.getOp() != dwarf::DW_OP_LLVM_arg)
         continue;
+      HasAnyArgOps = true;
       CheckDI(Op.getArg(0) < NumLocationOps,
               "#dbg record expression references nonexistent location operand",
               &DVR, Expr, BB, F);
+    }
+    if (isa<DIArgList>(MD)) {
+      CheckDI(
+        HasAnyArgOps,
+        "#dbg record expression for DIArgList location is not variadic",
+        &DVR);
     }
   }
 
