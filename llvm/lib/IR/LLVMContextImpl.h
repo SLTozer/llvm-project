@@ -1951,6 +1951,10 @@ public:
   ///
   /// Start a 1 because 0 means the source location isn't part of an atom group.
   uint64_t NextAtomGroup = 1;
+
+  DenseMap<Module *, std::shared_ptr<DebugLocationStorage>> DebugLocConversionStorage;
+
+  std::shared_ptr<DebugLocationStorage> getModuleDLConversionStorage(Module *M);
 };
 
 } // end namespace llvm

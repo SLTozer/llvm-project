@@ -11,6 +11,7 @@
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/IR/DebugLocConversion.h"
 #include "llvm/Support/Compiler.h"
 #include <functional>
 #include <memory>
@@ -24,6 +25,7 @@ class SlotTracker;
 class Value;
 class DILocation;
 class MDNode;
+class DebugLocWriteConversionMap;
 
 /// Abstract interface of slot tracker storage.
 class LLVM_ABI AbstractSlotTrackerStorage {
@@ -89,6 +91,7 @@ public:
 
   /// Lazily creates a slot tracker.
   SlotTracker *getMachine();
+  DebugLocWriteConversionMap &getDLConversionMap();
 
   const Module *getModule() const { return M; }
   const Function *getCurrentFunction() const { return F; }
@@ -117,6 +120,7 @@ public:
   virtual bool shouldPrintDebugLocationInline(const DILocation *) const {
     return false;
   }
+  virtual bool shouldPrintFLDebugLocationInline(const Function *, FLDebugLoc) const;
 };
 
 } // end namespace llvm
