@@ -346,6 +346,9 @@ private:
                        unsigned Abbrev);
   void writeDILayerLocList(const DILayerLocList *N,
                            SmallVectorImpl<uint64_t> &Record, unsigned Abbrev);
+  void writeDIDbgLoc(const DIDbgLoc *N,
+                     SmallVectorImpl<uint64_t> &Record,
+                     unsigned &Abbrev);
   void writeMDFunctionLocalContext(const MDFunctionLocalContext *N,
                                    SmallVectorImpl<uint64_t> &Record,
                                    unsigned &Abbrev);
@@ -2020,6 +2023,13 @@ void ModuleBitcodeWriter::writeDILayerLocList(const DILayerLocList *N,
   Stream.EmitRecord(bitc::METADATA_LAYERLOCLIST, Record, Abbrev);
   Record.clear();
 }
+
+void ModuleBitcodeWriter::writeDIDbgLoc(const DIDbgLoc *N,
+                                        SmallVectorImpl<uint64_t> &Record,
+                                        unsigned &Abbrev) {
+  llvm_unreachable("not implemented");
+}
+
 
 unsigned ModuleBitcodeWriter::createGenericDINodeAbbrev() {
   // Assume the column is usually under 128, and always output the inlined-at
