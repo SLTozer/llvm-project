@@ -1,0 +1,13 @@
+# Verify that an IR value whose name starts with a '.' is still renamed to
+# derive a FileCheck variable name, while a '%.' inside a quoted metadata
+# string is left alone.
+# RUN: cp -f %S/Inputs/flmd-context.ll %t.ll && %update_test_checks %t.ll --version 6 --check-globals smart
+# RUN: diff -u %t.ll %S/Inputs/flmd-context.ll.expected
+
+# Verify script is idempotent
+# RUN: %update_test_checks %t.ll --version 6 --check-globals smart
+# RUN: diff -u %t.ll %S/Inputs/flmd-context.ll.expected
+
+# Verify it also works for check-globals all
+# RUN: cp -f %S/Inputs/flmd-context.ll %t.ll && %update_test_checks %t.ll --version 6 --check-globals all
+# RUN: diff -u %t.ll %S/Inputs/flmd-context.ll.all.expected
