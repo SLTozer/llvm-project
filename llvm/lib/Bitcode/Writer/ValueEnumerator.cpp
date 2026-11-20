@@ -17,6 +17,7 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/FunctionLocalMetadata.h"
@@ -46,6 +47,8 @@
 #include <tuple>
 
 using namespace llvm;
+
+extern cl::opt<bool> WriteFLBCLocations;
 
 namespace {
 
@@ -344,6 +347,16 @@ static bool isIntOrIntVectorValue(const std::pair<const Value*, unsigned> &V) {
 ValueEnumerator::ValueEnumerator(const Module &M,
                                  bool ShouldPreserveUseListOrder)
     : ShouldPreserveUseListOrder(ShouldPreserveUseListOrder) {
+
+  bool NeedsConversion = WriteFLBCLocations;
+  if (NeedsConversion) {
+    // If we need to convert between FLMD types, then we modify the module; we
+    // accept the costs of violating the const-ness of M, since FLMD conversion
+    // is to be used purely as a testing facility, and doesn't practically cause
+    // issues.
+    DLConversionMap.reset(new DebugLocWriteConversionMap(const_cast<Module *>(&M)));
+  }
+
   if (ShouldPreserveUseListOrder)
     UseListOrders = predictUseListOrder(M);
 
@@ -428,6 +441,8 @@ ValueEnumerator::ValueEnumerator(const Module &M,
     F.getAllMetadata(MDs);
     for (const auto &I : MDs)
       EnumerateMetadata(F.isDeclaration() ? nullptr : &F, I.second);
+
+    MDFunctionLocalContext *FLContext = F.getFLContext();
 
     for (const BasicBlock &BB : F)
       for (const Instruction &I : BB) {

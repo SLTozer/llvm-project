@@ -404,6 +404,8 @@ enum MetadataCodes {
   METADATA_LAYERLOC = 51, // [distinct, line, column, file, kind]
   METADATA_LAYERLOCLIST = 52, // [distinct, n x layerloc]
   METADATA_FLMD = 53, // [nonDebug, n x scopes, m x srcLocs, l x inlinedCalls]
+  METADATA_FL_DEBUGLOC = 54,       // [srcLocIdx, inlinedAtIdx, atomGroup, atomRank]
+  METADATA_DEBUGLOC = 55,       // [context, srcLocIdx, inlinedAtIdx, atomGroup, atomRank]
 };
 
 // The constants block (CONSTANTS_BLOCK_ID) describes emission for each
@@ -717,6 +719,7 @@ enum FunctionCodes {
       66, // [DILocation, DILocalVariable, DIExpression, ValueAsMetadata]
   FUNC_CODE_INST_BITINSERT = 67,  // BITINSERT: [opval, opval, opval]
   FUNC_CODE_INST_BITEXTRACT = 68, // BITEXTRACT: [ty, opval, opval]
+  FUNC_CODE_FL_DEBUG_LOC = 69, // [SrcLocIdx, InlinedAtIdx, AtomGroup, AtomRank]
 };
 
 enum UseListCodes {

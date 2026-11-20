@@ -17,9 +17,12 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/UniqueVector.h"
 #include "llvm/IR/Attributes.h"
+#include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/DebugLocConversion.h"
 #include "llvm/IR/UseListOrder.h"
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -137,6 +140,11 @@ private:
   unsigned FirstFuncConstantID;
   unsigned FirstInstID;
 
+  /// An optionally-created pointer to a conversion map, used when the bitcode
+  /// representation for DebugLocs is different to the representation used in
+  /// the current LLVM.
+  std::unique_ptr<DebugLocWriteConversionMap> DLConversionMap;
+
 public:
   ValueEnumerator(const Module &M, bool ShouldPreserveUseListOrder);
   ValueEnumerator(const ValueEnumerator &) = delete;
@@ -235,6 +243,10 @@ public:
 
   void purgeFunction();
   uint64_t computeBitsRequiredForTypeIndices() const;
+
+  DebugLocWriteConversionMap *getDLConversionMap() {
+    return DLConversionMap.get();
+  }
 
 private:
   void OptimizeConstants(unsigned CstStart, unsigned CstEnd);

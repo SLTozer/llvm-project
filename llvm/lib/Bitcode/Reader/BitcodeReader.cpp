@@ -38,6 +38,7 @@
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GVMaterializer.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
 #include "llvm/IR/GlobalAlias.h"
@@ -5098,7 +5099,8 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
   SmallMapVector<std::pair<BasicBlock *, BasicBlock *>, BasicBlock *, 4>
     ConstExprEdgeBBs;
 
-  DebugLoc LastLoc;
+  union { DILocation *DIL; FLDebugLoc FLDL; } LastLoc = { nullptr };
+  bool ReadingFLDL = false;
   auto getLastInstruction = [&]() -> Instruction * {
     if (CurBB && !CurBB->empty())
       return &CurBB->back();
@@ -5112,6 +5114,22 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
 
   // Read all the records.
   SmallVector<uint64_t, 64> Record;
+
+  auto readFLDebugLoc = [&](unsigned &Slot, FLDebugLoc &Result, bool AllowNonInstrLoc = false) -> Error {
+    // >2 records means we are reading FLDebugLocs.
+    uint32_t SrcLocIdx = Record[Slot++];
+    uint16_t InlinedAtIdx = Record[Slot++];
+    if (Record[Slot] >= (1 << 13))
+      return error("Invalid fl debug loc record: AtomGroup too large");
+    uint16_t AtomGroup = Record[Slot++];
+    if (Record[Slot] >= 8)
+      return error("Invalid fl debug loc record: AtomRank too large");
+    uint8_t AtomRank = Record[Slot++];
+    Result = FLDebugLoc(FLIndex<FLSrcLoc>::fromRaw(SrcLocIdx), FLIndex<FLInlinedCall>::fromRaw(InlinedAtIdx), AtomGroup, AtomRank);
+    if (!Result.SrcLocIdx && !AllowNonInstrLoc)
+      return error("Invalid FL debug loc record: missing source location");
+    return Error::success();
+  };
 
   while (true) {
     Expected<llvm::BitstreamEntry> MaybeEntry = Stream.advance();
@@ -5239,7 +5257,10 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
 
       if (!I)
         return error("Invalid debug_loc_again record");
-      I->setDebugLoc(LastLoc);
+      if (ReadingFLDL)
+        MDLoader->getDLConversionMap().addAttachment(F, I, LastLoc.FLDL);
+      else
+        I->setDebugLoc(LastLoc.DIL);
       I = nullptr;
       continue;
 
@@ -5271,10 +5292,23 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       if (Record.size() >= 8 && Record[7])
         IRLayers = MDLoader->getMetadataFwdRefOrLoad(Record[7] - 1);
 
-      LastLoc = DILocation::get(Scope->getContext(), Line, Col, Scope, IA,
+      LastLoc.DIL = DILocation::get(Scope->getContext(), Line, Col, Scope, IA,
                                 isImplicitCode, AtomGroup, AtomRank, IRLayers);
-      I->setDebugLoc(LastLoc);
+      I->setDebugLoc(LastLoc.DIL);
       I = nullptr;
+      continue;
+    }
+    case bitc::FUNC_CODE_FL_DEBUG_LOC: { 
+      // FL_DEBUG_LOC: [SrcLocIdx, InlinedAtIdx, AtomGroup, AtomRank]
+      ReadingFLDL = true;
+      I = getLastInstruction();
+      if (!I || Record.size() != 4)
+        return error("Invalid fl debug loc record");
+      unsigned Slot = 0;
+      if (Error Err = readFLDebugLoc(Slot, LastLoc.FLDL))
+        return Err;
+      assert(LastLoc.FLDL);
+      MDLoader->getDLConversionMap().addAttachment(F, I, LastLoc.FLDL);
       continue;
     }
     case bitc::FUNC_CODE_INST_UNOP: {    // UNOP: [opval, ty, opcode]
@@ -6863,10 +6897,25 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       Instruction *Inst = getLastInstruction();
       if (!Inst)
         return error("Invalid dbg record: missing instruction");
-      DILocation *DIL = cast<DILocation>(getFnMetadataByID(Record[0]));
-      DILabel *Label = cast<DILabel>(getFnMetadataByID(Record[1]));
-      Inst->getParent()->insertDbgRecordBefore(
-          new DbgLabelRecord(Label, DebugLoc(DIL)), Inst->getIterator());
+      unsigned Slot = 0;
+      DILocation *DIL = nullptr;
+      FLDebugLoc FLDL;
+      
+      if (Record.size() != 2 && Record.size() != 5)
+        return error("Invalid dbg label record: incorrect number of fields");
+      bool ReadingFLDL = Record.size() == 5;
+      if (ReadingFLDL) {
+        if (Error Err = readFLDebugLoc(Slot, FLDL))
+          return Err;
+      } else {
+        // 2 records means we are reading DILocations.
+        DIL = cast<DILocation>(getFnMetadataByID(Record[Slot++]));
+      }
+      DILabel *Label = cast<DILabel>(getFnMetadataByID(Record[Slot++]));
+      DbgRecord *DLR = new DbgLabelRecord(Label, DebugLoc(DIL));
+      if (ReadingFLDL)
+        MDLoader->getDLConversionMap().addAttachment(F, DLR, FLDL);
+      Inst->getParent()->insertDbgRecordBefore(DLR, Inst->getIterator());
       continue; // This isn't an instruction.
     }
     case bitc::FUNC_CODE_DEBUG_RECORD_VALUE_SIMPLE:
@@ -6894,8 +6943,22 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       // dbg_assign (FUNC_CODE_DEBUG_RECORD_ASSIGN)
       //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
       unsigned Slot = 0;
+      unsigned DILFields =
+        BitCode == bitc::FUNC_CODE_DEBUG_RECORD_ASSIGN ? 7 : 4;
+      unsigned FLDLFields = DILFields + 3;
+      if (Record.size() != DILFields && Record.size() != FLDLFields)
+        return error("Invalid dbg variable record: incorrect number of fields");
+      bool ReadingFLDL = Record.size() == FLDLFields;
+
       // Common fields (0-2).
-      DILocation *DIL = cast<DILocation>(getFnMetadataByID(Record[Slot++]));
+      DILocation *DIL = nullptr;
+      FLDebugLoc FLDL;
+      if (ReadingFLDL) {
+        if (Error Err = readFLDebugLoc(Slot, FLDL))
+          return Err;
+      } else {
+        DIL = cast<DILocation>(getFnMetadataByID(Record[Slot++]));
+      }
       DILocalVariable *Var =
           cast<DILocalVariable>(getFnMetadataByID(Record[Slot++]));
       DIExpression *Expr =
@@ -6949,6 +7012,8 @@ Error BitcodeReader::parseFunctionBody(Function *F) {
       default:
         llvm_unreachable("Unknown DbgVariableRecord bitcode");
       }
+      if (ReadingFLDL)
+        MDLoader->getDLConversionMap().addAttachment(F, (DbgRecord *)DVR, FLDL);
       Inst->getParent()->insertDbgRecordBefore(DVR, Inst->getIterator());
       continue; // This isn't an instruction.
     }
@@ -7245,6 +7310,10 @@ Error BitcodeReader::materialize(GlobalValue *GV) {
   if (Error Err = parseFunctionBody(F))
     return Err;
   F->setIsMaterializable(false);
+
+  if (MDLoader->isConvertingDebugLocs())
+    if (MDLoader->resolveDLConversions())
+      return error("Invalid function-local dbgLocs");
 
   // All parsed Functions should load into the debug info format dictated by the
   // Module.

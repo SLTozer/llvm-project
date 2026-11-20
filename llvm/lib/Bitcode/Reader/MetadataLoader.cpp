@@ -29,7 +29,9 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLocConversion.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/GlobalObject.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instruction.h"
@@ -42,8 +44,10 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/TimeProfiler.h"
+#include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
 #include <cassert>
@@ -52,6 +56,7 @@
 #include <deque>
 #include <iterator>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -470,6 +475,10 @@ class MetadataLoader::MetadataLoaderImpl {
       FLMDScopeMetadataIDs;
   SmallVector<std::pair<MDFunctionLocalContext *, SmallVector<uint64_t, 0>>, 0>
       FLMDInlineeMetadataIDs;
+  bool UsingFLDebugLocs = false;
+  bool UsingDILocations = false;
+
+  std::unique_ptr<DebugLocReadConversionMap> DLConversionMap;
 
   /// Cursor associated with the lazy-loading of Metadata. This is the easy way
   /// to keep around the right "context" (Abbrev list) to be able to jump in
@@ -866,6 +875,24 @@ public:
 
   DISubprogram *lookupSubprogramForFunction(Function *F) {
     return FunctionsWithSPs.lookup(F);
+  }
+
+  DebugLocReadConversionMap &getDLConversionMap() {
+    if (!DLConversionMap)
+      DLConversionMap.reset(new DebugLocReadConversionMap(&TheModule));
+    // It's assumed that we only initialize this map if we have seen a type that
+    // needs to be converted.
+    UsingFLDebugLocs = true;
+    return *DLConversionMap.get();
+  }
+  bool resolveDLConversions() {
+    bool Result = getDLConversionMap().resolveReferences();
+    DLConversionMap.reset();
+    return Result;
+  }
+
+  bool isConvertingDebugLocs() const {
+    return UsingFLDebugLocs;
   }
 
   bool hasSeenOldLoopTags() const { return HasSeenOldLoopTags; }
@@ -1601,6 +1628,7 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
     if (Record.size() < 5 || Record.size() == 7 || Record.size() > 9)
       return error("Invalid record");
 
+    UsingDILocations = true;
     IsDistinct = Record[0];
     unsigned Line = Record[1];
     unsigned Column = Record[2];
@@ -2771,6 +2799,20 @@ Error MetadataLoader::MetadataLoaderImpl::parseOneMetadata(
     NextMetadataNo++;
     break;
   }
+  case bitc::METADATA_DEBUGLOC: {
+    UsingFLDebugLocs = true;
+    Metadata *FLContext = getMD(Record[0]);
+    uint32_t RawSrcLocIdx = Record[1];
+    uint16_t RawInlinedAtIdx = Record[2];
+    uint16_t AtomGroup = Record[3];
+    uint8_t AtomRank = Record[4];
+    MetadataList.assignValue(
+      DIDbgLoc::get(Context, FLContext, FLIndex<FLSrcLoc>::fromRaw(RawSrcLocIdx), FLIndex<FLInlinedCall>::fromRaw(RawInlinedAtIdx), AtomGroup,
+                    AtomRank),
+      NextMetadataNo);
+    NextMetadataNo++;
+    break;
+  }
   }
   return Error::success();
 #undef GET_OR_DISTINCT
@@ -2905,8 +2947,14 @@ Error MetadataLoader::MetadataLoaderImpl::parseMetadataAttachment(
         if (!MD)
           return error("Invalid metadata attachment");
 
-        if (HasSeenOldLoopTags && I->second == LLVMContext::MD_loop)
-          MD = upgradeInstructionLoopAttachment(*MD);
+        if (I->second == LLVMContext::MD_loop) {
+          // If we are using FLDebugLocs, and this loop contains a !DIDbgLoc, we
+          // will have recorded UsingFLDebugLocs.
+          if (UsingFLDebugLocs)
+            getDLConversionMap().addLoopInstr(Inst, MD);
+          if (HasSeenOldLoopTags)
+            MD = upgradeInstructionLoopAttachment(*MD);
+        }
 
         if (I->second == LLVMContext::MD_tbaa) {
           assert(!MD->isTemporary() && "should load MDs before attachments");
@@ -3040,4 +3088,16 @@ void MetadataLoader::upgradeDebugIntrinsics(Function &F) {
 
 MDNode *MetadataLoader::upgradeAliasScopeList(MDNode *ScopeList) {
   return Pimpl->upgradeAliasScopeList(ScopeList);
+}
+
+DebugLocReadConversionMap &MetadataLoader::getDLConversionMap() {
+  return Pimpl->getDLConversionMap();
+}
+
+bool MetadataLoader::resolveDLConversions() {
+  return Pimpl->resolveDLConversions();
+}
+
+bool MetadataLoader::isConvertingDebugLocs() {
+  return Pimpl->isConvertingDebugLocs();
 }

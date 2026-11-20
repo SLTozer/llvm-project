@@ -39,6 +39,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/DebugLocConversion.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalAlias.h"
@@ -98,6 +99,10 @@ static cl::opt<uint32_t> FlushThreshold(
     "bitcode-flush-threshold", cl::Hidden, cl::init(512),
     cl::desc("The threshold (unit M) for flushing LLVM bitcode."));
 
+cl::opt<bool> WriteFLBCLocations("write-fl-bc-locations", cl::Hidden,
+  cl::init(false),
+  cl::desc("Write debug locations in function-local metadata representation"));
+
 // Since we only use the context information in the memprof summary records in
 // the LTO backends to do assertion checking, save time and space by only
 // serializing the context for non-NDEBUG builds.
@@ -156,6 +161,8 @@ enum {
   FUNCTION_DEBUG_RECORD_VALUE_ABBREV,
   FUNCTION_DEBUG_LOC_ABBREV,
   FUNCTION_DEBUG_LOC_LAYERS_ABBREV,
+  FUNCTION_FL_DEBUG_LOC_ABBREV,
+  FUNCTION_DEBUG_RECORD_VALUE_FL_ABBREV,
 };
 
 /// Abstract class to manage the bitcode writing, subclassed for each bitcode
@@ -288,6 +295,9 @@ private:
   }
 
   std::map<GlobalValue::GUID, unsigned> &valueIds() { return GUIDToValueIdMap; }
+
+  /// Lazily initializes the conversion map.
+  DebugLocWriteConversionMap* getDLConversionMap();
 };
 
 /// Class to manage the bitcode writing for a module.
@@ -339,6 +349,9 @@ private:
                             SmallVectorImpl<uint64_t> &Record);
   void writeMDTuple(const MDTuple *N, SmallVectorImpl<uint64_t> &Record,
                     unsigned Abbrev);
+  unsigned createFLDebugLocAbbrev();
+  void writeFLDebugLoc(FLDebugLoc DL, SmallVectorImpl<uint64_t> &Record,
+                       unsigned &Abbrev);
   unsigned createDILocationAbbrev(bool WithIRLayers);
   void writeDILocation(const DILocation *N, SmallVectorImpl<uint64_t> &Record,
                        unsigned &Abbrev);
@@ -346,6 +359,7 @@ private:
                        unsigned Abbrev);
   void writeDILayerLocList(const DILayerLocList *N,
                            SmallVectorImpl<uint64_t> &Record, unsigned Abbrev);
+  unsigned createDIDbgLocAbbrev();
   void writeDIDbgLoc(const DIDbgLoc *N,
                      SmallVectorImpl<uint64_t> &Record,
                      unsigned &Abbrev);
@@ -1954,6 +1968,31 @@ void ModuleBitcodeWriter::writeMDFunctionLocalContext(
   Record.clear();
 }
 
+unsigned ModuleBitcodeWriter::createFLDebugLocAbbrev() {
+  auto Abbv = std::make_shared<BitCodeAbbrev>();
+  Abbv->Add(BitCodeAbbrevOp(bitc::METADATA_FL_DEBUGLOC));
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6));   // srcLocIdx
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6));   // inlinedAtIdx
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6));   // atomGroup
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 3)); // atomRank
+  return Stream.EmitAbbrev(std::move(Abbv));
+}
+
+void ModuleBitcodeWriter::writeFLDebugLoc(FLDebugLoc DL,
+                                          SmallVectorImpl<uint64_t> &Record,
+                                          unsigned &Abbrev) {
+  if (!Abbrev)
+    Abbrev = createFLDebugLocAbbrev();
+
+  Record.push_back(DL.SrcLocIdx.asRaw());
+  Record.push_back(DL.InlinedAtIdx.asRaw());
+  Record.push_back(DL.AtomGroup);
+  Record.push_back(DL.AtomRank);
+
+  Stream.EmitRecord(bitc::METADATA_FL_DEBUGLOC, Record, Abbrev);
+  Record.clear();
+}
+
 unsigned ModuleBitcodeWriter::createDILocationAbbrev(bool WithIRLayers) {
   // Assume the column is usually under 128, and always output the inlined-at
   // location (it's never more expensive than building an array size 1).
@@ -2024,12 +2063,32 @@ void ModuleBitcodeWriter::writeDILayerLocList(const DILayerLocList *N,
   Record.clear();
 }
 
+unsigned ModuleBitcodeWriter::createDIDbgLocAbbrev() {
+  auto Abbv = std::make_shared<BitCodeAbbrev>();
+  Abbv->Add(BitCodeAbbrevOp(bitc::METADATA_DEBUGLOC));
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // context
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // srcLoc
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // inlinedAt
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // atomGroup
+  Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 3)); // atomRank
+  return Stream.EmitAbbrev(std::move(Abbv));
+}
+
 void ModuleBitcodeWriter::writeDIDbgLoc(const DIDbgLoc *N,
                                         SmallVectorImpl<uint64_t> &Record,
                                         unsigned &Abbrev) {
-  llvm_unreachable("not implemented");
-}
+  if (!Abbrev)
+    Abbrev = createDIDbgLocAbbrev();
 
+  Record.push_back(VE.getMetadataID(N->getFLContext()));
+  Record.push_back(N->getSrcLoc().asRaw());
+  Record.push_back(N->getInlinedAt().asRaw());
+  Record.push_back(N->getAtomGroup());
+  Record.push_back(N->getAtomRank());
+
+  Stream.EmitRecord(bitc::METADATA_DEBUGLOC, Record, Abbrev);
+  Record.clear();
+}
 
 unsigned ModuleBitcodeWriter::createGenericDINodeAbbrev() {
   // Assume the column is usually under 128, and always output the inlined-at
@@ -3984,7 +4043,13 @@ void ModuleBitcodeWriter::writeFunction(
 
   bool NeedsMetadataAttachment = F.hasMetadata();
 
-  DILocation *LastDL = nullptr;
+  // "LastDL" may be either a DILocation or an FLDebugLoc; we use a union here
+  // since we only need one of the two, selected by WriteFLBCLocations;
+  union { DILocation *DIL; FLDebugLoc FLDL; } LastDL = { nullptr };
+  // Ensure we've set the correct member to avoid technically triggering UB
+  // (even though in both cases the union has the value 0x0).
+  if (WriteFLBCLocations)
+    LastDL.FLDL = {};
   SmallSetVector<Function *, 4> BlockAddressUsers;
 
   // Finally, emit all the instructions, in order.
@@ -3999,8 +4064,25 @@ void ModuleBitcodeWriter::writeFunction(
       NeedsMetadataAttachment |= I.hasMetadataOtherThanDebugLoc();
 
       // If the instruction has a debug location, emit it.
-      if (DILocation *DL = I.getDebugLoc()) {
-        if (DL == LastDL) {
+      if (WriteFLBCLocations) {
+        FLDebugLoc DL = VE.getDLConversionMap()->getDebugLoc(&I);
+        if (DL) {
+          if (DL == LastDL.FLDL) {
+            Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_LOC_AGAIN, Vals);
+          } else {
+            Vals.push_back(DL.SrcLocIdx.asRaw());
+            Vals.push_back(DL.InlinedAtIdx.asRaw());
+            Vals.push_back(DL.AtomGroup);
+            Vals.push_back(DL.AtomRank);
+
+            Stream.EmitRecord(bitc::FUNC_CODE_FL_DEBUG_LOC, Vals, FUNCTION_FL_DEBUG_LOC_ABBREV);
+            Vals.clear();
+            LastDL.FLDL = DL;
+          }
+        }
+      }
+      else if (DILocation *DL = I.getDebugLoc()) {
+        if (DL == LastDL.DIL) {
           // Just repeat the same debug loc as last time.
           Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_LOC_AGAIN, Vals);
         } else {
@@ -4020,7 +4102,7 @@ void ModuleBitcodeWriter::writeFunction(
 
           Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_LOC, Vals, DLAbbrev);
           Vals.clear();
-          LastDL = DL;
+          LastDL.DIL = DL;
         }
       }
 
@@ -4056,8 +4138,16 @@ void ModuleBitcodeWriter::writeFunction(
         // instruction. Write it after the instruction so that it's easy to
         // re-attach to the instruction reading the records in.
         for (DbgRecord &DR : I.getDbgMarker()->getDbgRecordRange()) {
+          if (WriteFLBCLocations) {
+            FLDebugLoc DL = VE.getDLConversionMap()->getDebugLoc(&DR);
+            Vals.push_back(DL.SrcLocIdx.asRaw());
+            Vals.push_back(DL.InlinedAtIdx.asRaw());
+            Vals.push_back(DL.AtomGroup);
+            Vals.push_back(DL.AtomRank);
+          } else {
+            Vals.push_back(VE.getMetadataID(&*DR.getDebugLoc()));
+          }
           if (DbgLabelRecord *DLR = dyn_cast<DbgLabelRecord>(&DR)) {
-            Vals.push_back(VE.getMetadataID(&*DLR->getDebugLoc()));
             Vals.push_back(VE.getMetadataID(DLR->getLabel()));
             Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_RECORD_LABEL, Vals);
             Vals.clear();
@@ -4075,13 +4165,12 @@ void ModuleBitcodeWriter::writeFunction(
           // dbg_assign (FUNC_CODE_DEBUG_RECORD_ASSIGN)
           //   ..., LocationMetadata, DIAssignID, DIExpression, LocationMetadata
           DbgVariableRecord &DVR = cast<DbgVariableRecord>(DR);
-          Vals.push_back(VE.getMetadataID(&*DVR.getDebugLoc()));
           Vals.push_back(VE.getMetadataID(DVR.getVariable()));
           Vals.push_back(VE.getMetadataID(DVR.getExpression()));
           if (DVR.isDbgValue()) {
             if (PushValueOrMetadata(DVR.getRawLocation()))
               Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_RECORD_VALUE_SIMPLE, Vals,
-                                FUNCTION_DEBUG_RECORD_VALUE_ABBREV);
+                                WriteFLBCLocations ? FUNCTION_DEBUG_RECORD_VALUE_FL_ABBREV : FUNCTION_DEBUG_RECORD_VALUE_ABBREV);
             else
               Stream.EmitRecord(bitc::FUNC_CODE_DEBUG_RECORD_VALUE, Vals);
           } else if (DVR.isDbgDeclare()) {
@@ -4444,6 +4533,31 @@ void ModuleBitcodeWriter::writeBlockInfo() {
     Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // irlayers.
     if (Stream.EmitBlockInfoAbbrev(bitc::FUNCTION_BLOCK_ID, Abbv) !=
         FUNCTION_DEBUG_LOC_LAYERS_ABBREV)
+      llvm_unreachable("Unexpected abbrev ordering!");
+  }
+  {
+    auto Abbv = std::make_shared<BitCodeAbbrev>();
+    Abbv->Add(BitCodeAbbrevOp(bitc::FUNC_CODE_FL_DEBUG_LOC));
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // SrcLocIdx
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // InlinedAtIdx
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // AtomGroup
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 3)); // AtomRank
+    if (Stream.EmitBlockInfoAbbrev(bitc::FUNCTION_BLOCK_ID, Abbv) !=
+        FUNCTION_FL_DEBUG_LOC_ABBREV)
+      llvm_unreachable("Unexpected abbrev ordering!");
+  }
+  {
+    auto Abbv = std::make_shared<BitCodeAbbrev>();
+    Abbv->Add(BitCodeAbbrevOp(bitc::FUNC_CODE_DEBUG_RECORD_VALUE_SIMPLE));
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // SrcLocIdx
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // InlinedAtIdx
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 6)); // AtomGroup
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 3)); // AtomRank
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 7)); // var
+    Abbv->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::VBR, 7)); // expr
+    Abbv->Add(ValAbbrevOp); // val
+    if (Stream.EmitBlockInfoAbbrev(bitc::FUNCTION_BLOCK_ID, Abbv) !=
+        FUNCTION_DEBUG_RECORD_VALUE_FL_ABBREV)
       llvm_unreachable("Unexpected abbrev ordering!");
   }
   Stream.ExitBlock();

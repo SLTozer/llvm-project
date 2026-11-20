@@ -13,6 +13,7 @@
 #ifndef LLVM_LIB_BITCODE_READER_METADATALOADER_H
 #define LLVM_LIB_BITCODE_READER_METADATALOADER_H
 
+#include "llvm/IR/DebugLocConversion.h"
 #include "llvm/Support/Error.h"
 
 #include <functional>
@@ -22,6 +23,7 @@ namespace llvm {
 class BasicBlock;
 class BitcodeReaderValueList;
 class BitstreamCursor;
+class DebugLocReadConversionMap;
 class DISubprogram;
 class Function;
 class Instruction;
@@ -97,6 +99,13 @@ public:
   /// Mark any domains in \p ScopeList that don't have a disjointness
   /// flag as non-disjoint. Returns the original list if there are no changes.
   MDNode *upgradeAliasScopeList(MDNode *ScopeList);
+
+  /// Lazily initialize and return the map used for converting between
+  /// DILocation/FLDebugLoc debug locations. Must not be called unless the
+  /// location type that needs to be converted has actually been seen.
+  DebugLocReadConversionMap &getDLConversionMap();
+  bool resolveDLConversions();
+  bool isConvertingDebugLocs();
 };
 }
 
