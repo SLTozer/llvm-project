@@ -467,7 +467,9 @@ bool LLParser::validateEndOfModule(bool UpgradeDebugInfo) {
           dyn_cast<MDFunctionLocalContext>(TempFLContext);
   FLForwardRefFLMDs.clear();
 
-  bool ShouldResolveDbgLocs = needsDLConversion();
+  bool ShouldResolveDbgLocs = !PendingDbgInstExpandedLocs.empty()
+        || !PendingDbgRecordExpandedLocs.empty()
+        || needsDLConversion();
   if (ShouldResolveDbgLocs) {
     // Perform some quick checks to make sure we don't try to handle any invalid
     // FunctionLocalContexts, since we need to semantically handle them here
@@ -515,6 +517,52 @@ bool LLParser::validateEndOfModule(bool UpgradeDebugInfo) {
         return error(Loc, "!!dbgLoc has invalid indexes for !flmd");
     }
   }
+
+  // After resolving contexts, we can resolve any unresolved dbgLocs.
+  for (auto [Loc, DR, UDL] : PendingDbgRecordExpandedLocs) {
+    MDFunctionLocalContext *FnCtx = DR->getFunction()->getFLContext();
+    if (!FnCtx)
+      return error(Loc, "!!dbgLoc in function without context");
+    MDFunctionLocalContext *SrcCtx;
+    if (UDL.InlinedAtIdx) {
+      if (FnCtx->getInlinedCalls().size() <= UDL.InlinedAtIdx.get())
+        return error(Loc, "!!dbgLoc has invalid inlinedAt index");
+      SrcCtx = FnCtx->getInlinedCall(UDL.InlinedAtIdx).InlineeContext;
+    } else {
+      SrcCtx = FnCtx;
+    }
+    if (!isa_and_present<DILocalScope>(UDL.Scope))
+      return error(Loc, "invalid scope for !!dbgLoc");
+    auto Scope = SrcCtx->getOrInsertScope(dyn_cast_or_null<DILocalScope>(UDL.Scope));
+    auto SrcLoc = SrcCtx->getOrInsertSrcLoc(FLSrcLoc(UDL.Line, UDL.Column, Scope));
+    FLDebugLoc DL(SrcLoc, UDL.InlinedAtIdx, UDL.AtomGroup, UDL.AtomRank);
+    if (!DL.isValidInContext(FnCtx))
+      return error(Loc, "!!dbgLoc has invalid indexes for !flmd");
+    getDLConversionMap().addAttachment(DR->getFunction(), DR, DL);
+  }
+  PendingDbgRecordExpandedLocs.clear();
+  for (auto [Loc, I, UDL] : PendingDbgInstExpandedLocs) {
+    MDFunctionLocalContext *FnCtx = I->getFunction()->getFLContext();
+    if (!FnCtx)
+      return error(Loc, "!!dbgLoc in function without context");
+    MDFunctionLocalContext *SrcCtx;
+    if (UDL.InlinedAtIdx) {
+      if (FnCtx->getInlinedCalls().size() <= UDL.InlinedAtIdx.get())
+        return error(Loc, "!!dbgLoc has invalid inlinedAt index");
+      SrcCtx = FnCtx->getInlinedCall(UDL.InlinedAtIdx).InlineeContext;
+    } else {
+      SrcCtx = FnCtx;
+    }
+    if (!isa_and_present<DILocalScope>(UDL.Scope))
+      return error(Loc, "invalid scope for !!dbgLoc");
+    auto Scope = SrcCtx->getOrInsertScope(dyn_cast_or_null<DILocalScope>(UDL.Scope));
+    auto SrcLoc = SrcCtx->getOrInsertSrcLoc(FLSrcLoc(UDL.Line, UDL.Column, Scope));
+    FLDebugLoc DL(SrcLoc, UDL.InlinedAtIdx, UDL.AtomGroup, UDL.AtomRank);
+    if (!DL.isValidInContext(FnCtx))
+      return error(Loc, "!!dbgLoc has invalid indexes for !flmd");
+    getDLConversionMap().addAttachment(I->getFunction(), I, DL);
+  }
+  PendingDbgInstExpandedLocs.clear();
 
   // Finally, we can convert !!dbgLocs.
   if (needsDLConversion()) {
@@ -2625,7 +2673,9 @@ bool LLParser::parseInstructionMetadata(Instruction &Inst) {
         return true;
       assert(Attachment.index() != 0 &&
         "Attachment should have been set by a non-erroring parse");
-      if (auto *FLDL = std::get_if<FLDebugLoc>(&Attachment)) {
+      if (auto *Unresolved = std::get_if<ExpandedFLDebugLoc>(&Attachment)) {
+        PendingDbgInstExpandedLocs.emplace_back(Loc, &Inst, *Unresolved);
+      } else if (auto *FLDL = std::get_if<FLDebugLoc>(&Attachment)) {
         getDLConversionMap().addAttachment(Inst.getFunction(), &Inst, *FLDL);
         SeenFLDebugLocAttachments.emplace_back(Lex.getLoc(), Inst.getFunction(), *FLDL);
       } else {
@@ -6176,12 +6226,25 @@ bool LLParser::parseFLMDAttachment(FLMDAttachment &FLMD) {
   /// reserve until we can resolve it, since it cannot be directly attached.
 
 #define VISIT_MD_FIELDS(OPTIONAL, REQUIRED)                                    \
+  OPTIONAL(line, LineField, );                                                 \
+  OPTIONAL(column, ColumnField, );                                             \
+  OPTIONAL(scope, MDNodeField, );                                              \
   OPTIONAL(srcLoc, MDUnsignedField, );                                         \
   OPTIONAL(inlinedAt, MDUnsignedField, );                                      \
   OPTIONAL(atom, MDUnsignedArrayField, );
   PARSE_MD_FIELDS();
 #undef VISIT_MD_FIELDS
-  if (!srcLoc.Seen) {
+  bool IsFwdRef = line.Seen || column.Seen || scope.Seen;
+  if (IsFwdRef) {
+    if (srcLoc.Seen) {
+      return tokError(
+        "invalid dbgLoc containing both a srcLoc and line/column/scope");
+    }
+    // If this is a forward reference, then line and scope are required fields.
+    if (!line.Seen) return tokError("missing required field 'line'");
+    if (!scope.Seen) return tokError("missing required field 'scope'");
+  } else if (!srcLoc.Seen) {
+    // If this is not a forward reference, then srcLoc is a required field.
     return tokError("missing required field 'srcLoc'");
   }
   FLIndex<FLInlinedCall> InlinedAt;
@@ -6199,7 +6262,10 @@ bool LLParser::parseFLMDAttachment(FLMDAttachment &FLMD) {
     AtomGroup = atom.Val[0];
     AtomRank = atom.Val[1];
   }
-  FLMD = FLDebugLoc(srcLoc.Val, InlinedAt, AtomGroup, AtomRank);
+  if (IsFwdRef)
+    FLMD = ExpandedFLDebugLoc{(uint32_t)line.Val, (uint16_t)column.Val, TrackingMDRef(scope.Val), InlinedAt, AtomGroup, AtomRank};
+  else
+    FLMD = FLDebugLoc(srcLoc.Val, InlinedAt, AtomGroup, AtomRank);
 
   return false;
 }
@@ -8088,7 +8154,9 @@ bool LLParser::parseDebugRecord(DbgRecord *&DR, PerFunctionState &PFS) {
         return true;
       assert(Attachment.index() != 0 &&
         "Attachment should have been set by a non-erroring parse");
-      if (auto *FLDL = std::get_if<FLDebugLoc>(&Attachment)) {
+      if (auto *Unresolved = std::get_if<ExpandedFLDebugLoc>(&Attachment)) {
+        PendingDbgRecordExpandedLocs.emplace_back(DVRLoc, DR, *Unresolved);
+      } else if (auto *FLDL = std::get_if<FLDebugLoc>(&Attachment)) {
         getDLConversionMap().addAttachment(&PFS.getFunction(), DR, *FLDL);
         SeenFLDebugLocAttachments.emplace_back(StartLoc, &PFS.getFunction(), *FLDL);
       } else {
@@ -8174,7 +8242,9 @@ bool LLParser::parseDebugRecord(DbgRecord *&DR, PerFunctionState &PFS) {
       return true;
     assert(Attachment.index() != 0 &&
       "Attachment should have been set by a non-erroring parse");
-    if (auto *FLDL = std::get_if<FLDebugLoc>(&Attachment)) {
+    if (auto *Unresolved = std::get_if<ExpandedFLDebugLoc>(&Attachment)) {
+      PendingDbgRecordExpandedLocs.emplace_back(DVRLoc, DR, *Unresolved);
+    } else if (auto *FLDL = std::get_if<FLDebugLoc>(&Attachment)) {
       getDLConversionMap().addAttachment(&PFS.getFunction(), DR, *FLDL);
       SeenFLDebugLocAttachments.emplace_back(StartLoc, &PFS.getFunction(), *FLDL);
     } else {

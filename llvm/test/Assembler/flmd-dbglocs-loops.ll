@@ -2,6 +2,7 @@
 
 ; RUN: opt < %s -S --print-fl-debug-locs=off | FileCheck %s --check-prefix=FL-OFF
 ; RUN: opt < %s -S --print-fl-debug-locs=on | FileCheck %s --check-prefix=FL-ON
+; RUN: opt < %s -S --print-fl-debug-locs=expanded | FileCheck %s --check-prefix=FL-RES
 
 define void @simple(i32 %n) !dbg !4 !flmd !7 {
 ; FL-OFF-LABEL: define void @simple(
@@ -27,6 +28,18 @@ define void @simple(i32 %n) !dbg !4 !flmd !7 {
 ; FL-ON-NEXT:    br i1 [[C]], label %[[LOOP]], label %[[EXIT:.*]], !llvm.loop [[LOOP8:![0-9]+]], !!dbgLoc(srcLoc: 4)
 ; FL-ON:       [[EXIT]]:
 ; FL-ON-NEXT:    ret void, !!dbgLoc(srcLoc: 5)
+;
+; FL-RES-LABEL: define void @simple(
+; FL-RES-SAME: i32 [[N:%.*]]) !dbg [[DBG4:![0-9]+]] !flmd [[FLMD7:![0-9]+]] {
+; FL-RES-NEXT:  [[ENTRY:.*]]:
+; FL-RES-NEXT:    br label %[[LOOP:.*]], !!dbgLoc(line: 2, column: 3, scope: [[DBG4]])
+; FL-RES:       [[LOOP]]:
+; FL-RES-NEXT:    [[I:%.*]] = phi i32 [ 0, %[[ENTRY]] ], [ [[INC:%.*]], %[[LOOP]] ]
+; FL-RES-NEXT:    [[INC]] = add i32 [[I]], 1, !!dbgLoc(line: 3, column: 5, scope: [[DBG4]])
+; FL-RES-NEXT:    [[C:%.*]] = icmp slt i32 [[INC]], [[N]], !!dbgLoc(line: 3, column: 5, scope: [[DBG4]])
+; FL-RES-NEXT:    br i1 [[C]], label %[[LOOP]], label %[[EXIT:.*]], !llvm.loop [[LOOP8:![0-9]+]], !!dbgLoc(line: 4, column: 3, scope: [[DBG4]])
+; FL-RES:       [[EXIT]]:
+; FL-RES-NEXT:    ret void, !!dbgLoc(line: 6, scope: [[DBG4]])
 ;
 entry:
   br label %loop, !!dbgLoc(srcLoc: 2)
@@ -66,6 +79,18 @@ define void @shared_debug(i32 %n) !dbg !12 !flmd !13 {
 ; FL-ON:       [[EXIT]]:
 ; FL-ON-NEXT:    ret void
 ;
+; FL-RES-LABEL: define void @shared_debug(
+; FL-RES-SAME: i32 [[N:%.*]]) !dbg [[DBG12:![0-9]+]] {
+; FL-RES-NEXT:  [[ENTRY:.*]]:
+; FL-RES-NEXT:    br label %[[LOOP:.*]]
+; FL-RES:       [[LOOP]]:
+; FL-RES-NEXT:    [[I:%.*]] = phi i32 [ 0, %[[ENTRY]] ], [ [[INC:%.*]], %[[LOOP]] ]
+; FL-RES-NEXT:    [[INC]] = add i32 [[I]], 1
+; FL-RES-NEXT:    [[C:%.*]] = icmp slt i32 [[INC]], [[N]]
+; FL-RES-NEXT:    br i1 [[C]], label %[[LOOP]], label %[[EXIT:.*]], !llvm.loop [[LOOP13:![0-9]+]]
+; FL-RES:       [[EXIT]]:
+; FL-RES-NEXT:    ret void
+;
 entry:
   br label %loop
 
@@ -103,6 +128,18 @@ define void @shared_nodebug(i32 %n) !flmd !15 {
 ; FL-ON-NEXT:    br i1 [[C]], label %[[LOOP]], label %[[EXIT:.*]], !llvm.loop [[LOOP15:![0-9]+]]
 ; FL-ON:       [[EXIT]]:
 ; FL-ON-NEXT:    ret void
+;
+; FL-RES-LABEL: define void @shared_nodebug(
+; FL-RES-SAME: i32 [[N:%.*]]) !flmd [[FLMD14:![0-9]+]] {
+; FL-RES-NEXT:  [[ENTRY:.*]]:
+; FL-RES-NEXT:    br label %[[LOOP:.*]]
+; FL-RES:       [[LOOP]]:
+; FL-RES-NEXT:    [[I:%.*]] = phi i32 [ 0, %[[ENTRY]] ], [ [[INC:%.*]], %[[LOOP]] ]
+; FL-RES-NEXT:    [[INC]] = add i32 [[I]], 1
+; FL-RES-NEXT:    [[C:%.*]] = icmp slt i32 [[INC]], [[N]]
+; FL-RES-NEXT:    br i1 [[C]], label %[[LOOP]], label %[[EXIT:.*]], !llvm.loop [[LOOP15:![0-9]+]]
+; FL-RES:       [[EXIT]]:
+; FL-RES-NEXT:    ret void
 ;
 entry:
   br label %loop
@@ -142,6 +179,18 @@ define void @no_loop_locs(i32 %n) !dbg !19 {
 ; FL-ON:       [[EXIT]]:
 ; FL-ON-NEXT:    ret void
 ;
+; FL-RES-LABEL: define void @no_loop_locs(
+; FL-RES-SAME: i32 [[N:%.*]]) !dbg [[DBG18:![0-9]+]] {
+; FL-RES-NEXT:  [[ENTRY:.*]]:
+; FL-RES-NEXT:    br label %[[LOOP:.*]]
+; FL-RES:       [[LOOP]]:
+; FL-RES-NEXT:    [[I:%.*]] = phi i32 [ 0, %[[ENTRY]] ], [ [[INC:%.*]], %[[LOOP]] ]
+; FL-RES-NEXT:    [[INC]] = add i32 [[I]], 1
+; FL-RES-NEXT:    [[C:%.*]] = icmp slt i32 [[INC]], [[N]]
+; FL-RES-NEXT:    br i1 [[C]], label %[[LOOP]], label %[[EXIT:.*]], !llvm.loop [[LOOP19:![0-9]+]]
+; FL-RES:       [[EXIT]]:
+; FL-RES-NEXT:    ret void
+;
 entry:
   br label %loop
 
@@ -179,6 +228,18 @@ define void @inlined_loop(i32 %n) !dbg !21 !flmd !22 {
 ; FL-ON-NEXT:    br i1 [[C]], label %[[LOOP]], label %[[EXIT:.*]], !llvm.loop [[LOOP23:![0-9]+]]
 ; FL-ON:       [[EXIT]]:
 ; FL-ON-NEXT:    ret void
+;
+; FL-RES-LABEL: define void @inlined_loop(
+; FL-RES-SAME: i32 [[N:%.*]]) !dbg [[DBG20:![0-9]+]] !flmd [[FLMD21:![0-9]+]] {
+; FL-RES-NEXT:  [[ENTRY:.*]]:
+; FL-RES-NEXT:    br label %[[LOOP:.*]]
+; FL-RES:       [[LOOP]]:
+; FL-RES-NEXT:    [[I:%.*]] = phi i32 [ 0, %[[ENTRY]] ], [ [[INC:%.*]], %[[LOOP]] ]
+; FL-RES-NEXT:    [[INC]] = add i32 [[I]], 1
+; FL-RES-NEXT:    [[C:%.*]] = icmp slt i32 [[INC]], [[N]]
+; FL-RES-NEXT:    br i1 [[C]], label %[[LOOP]], label %[[EXIT:.*]], !llvm.loop [[LOOP23:![0-9]+]]
+; FL-RES:       [[EXIT]]:
+; FL-RES-NEXT:    ret void
 ;
 entry:
   br label %loop
@@ -327,4 +388,57 @@ exit:                                             ; preds = %loop
 ; FL-ON: [[LOOP23]] = distinct !{[[LOOP23]], [[META24:![0-9]+]], [[META25:![0-9]+]]}
 ; FL-ON: [[META24]] = !DIDbgLoc(context: [[FLMD21]], dbgLoc: !!dbgLoc(srcLoc: 3, inlinedAt: 0))
 ; FL-ON: [[META25]] = !DIDbgLoc(context: [[FLMD21]], dbgLoc: !!dbgLoc(srcLoc: 2, inlinedAt: 0))
+;.
+; FL-RES: [[META0:![0-9]+]] = distinct !DICompileUnit(language: DW_LANG_C11, file: [[META1:![0-9]+]], producer: "t", isOptimized: true, runtimeVersion: 0, emissionKind: FullDebug)
+; FL-RES: [[META1]] = !DIFile(filename: "{{.*}}loops.c", directory: {{.*}})
+; FL-RES: [[DBG4]] = distinct !DISubprogram(name: "simple", scope: [[META1]], file: [[META1]], line: 1, type: [[META5:![0-9]+]], scopeLine: 1, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: [[META0]])
+; FL-RES: [[META5]] = !DISubroutineType(types: [[META6:![0-9]+]])
+; FL-RES: [[META6]] = !{}
+; FL-RES: [[FLMD7]] = distinct !MDFunctionLocalContext(scopes: [
+; FL-RES-NEXT:   !!scope(scope: [[DBG4]]),
+; FL-RES-NEXT: ], srcLocs: [
+; FL-RES-NEXT:   !!srcLoc(line: 0, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 1, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 2, column: 3, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 3, column: 5, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 4, column: 3, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 6, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 5, column: 1, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 3, column: 1, scope: 0),
+; FL-RES-NEXT: ])
+; FL-RES: [[LOOP8]] = distinct !{[[LOOP8]], [[META9:![0-9]+]], [[META10:![0-9]+]], [[META11:![0-9]+]]}
+; FL-RES: [[META9]] = !DIDbgLoc(context: [[FLMD7]], dbgLoc: !!dbgLoc(srcLoc: 7))
+; FL-RES: [[META10]] = !DIDbgLoc(context: [[FLMD7]], dbgLoc: !!dbgLoc(srcLoc: 6))
+; FL-RES: [[META11]] = !{!"llvm.loop.mustprogress"}
+; FL-RES: [[DBG12]] = distinct !DISubprogram(name: "shared_debug", scope: [[META1]], file: [[META1]], line: 20, type: [[META5]], scopeLine: 20, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: [[META0]])
+; FL-RES: [[LOOP13]] = distinct !{[[LOOP13]], [[META11]]}
+; FL-RES: [[FLMD14]] = distinct !MDFunctionLocalContext(nonDebug: true, inlinedCalls: [
+; FL-RES-NEXT:   !!inlinedCall(uniquable: true, inlineeContext: [[FLMD7]]),
+; FL-RES-NEXT: ])
+; FL-RES: [[LOOP15]] = distinct !{[[LOOP15]], [[META16:![0-9]+]], [[META17:![0-9]+]], [[META11]]}
+; FL-RES: [[META16]] = !DIDbgLoc(context: [[FLMD14]], dbgLoc: !!dbgLoc(srcLoc: 7, inlinedAt: 0))
+; FL-RES: [[META17]] = !DIDbgLoc(context: [[FLMD14]], dbgLoc: !!dbgLoc(srcLoc: 6, inlinedAt: 0))
+; FL-RES: [[DBG18]] = distinct !DISubprogram(name: "no_loop_locs", scope: [[META1]], file: [[META1]], line: 60, type: [[META5]], scopeLine: 60, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: [[META0]])
+; FL-RES: [[LOOP19]] = distinct !{[[LOOP19]], [[META11]]}
+; FL-RES: [[DBG20]] = distinct !DISubprogram(name: "inlined_loop", scope: [[META1]], file: [[META1]], line: 80, type: [[META5]], scopeLine: 80, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: [[META0]])
+; FL-RES: [[FLMD21]] = distinct !MDFunctionLocalContext(scopes: [
+; FL-RES-NEXT:   !!scope(scope: [[DBG20]]),
+; FL-RES-NEXT: ], srcLocs: [
+; FL-RES-NEXT:   !!srcLoc(line: 0, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 80, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 25, column: 1, scope: 0),
+; FL-RES-NEXT: ], inlinedCalls: [
+; FL-RES-NEXT:   !!inlinedCall(srcLoc: 2, uniquable: true, inlineeContext: [[META22:![0-9]+]]),
+; FL-RES-NEXT: ])
+; FL-RES: [[META22]] = distinct !MDFunctionLocalContext(scopes: [
+; FL-RES-NEXT:   !!scope(scope: [[DBG12]]),
+; FL-RES-NEXT: ], srcLocs: [
+; FL-RES-NEXT:   !!srcLoc(line: 0, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 20, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 22, column: 3, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 21, column: 3, scope: 0),
+; FL-RES-NEXT: ])
+; FL-RES: [[LOOP23]] = distinct !{[[LOOP23]], [[META24:![0-9]+]], [[META25:![0-9]+]]}
+; FL-RES: [[META24]] = !DIDbgLoc(context: [[FLMD21]], dbgLoc: !!dbgLoc(srcLoc: 3, inlinedAt: 0))
+; FL-RES: [[META25]] = !DIDbgLoc(context: [[FLMD21]], dbgLoc: !!dbgLoc(srcLoc: 2, inlinedAt: 0))
 ;.

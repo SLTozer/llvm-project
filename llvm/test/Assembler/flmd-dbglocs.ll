@@ -4,6 +4,7 @@
 ;; inlining.
 ; RUN: opt < %s -S --print-fl-debug-locs=off | FileCheck %s --check-prefix=FL-OFF
 ; RUN: opt < %s -S --print-fl-debug-locs=on | FileCheck %s --check-prefix=FL-ON
+; RUN: opt < %s -S --print-fl-debug-locs=expanded | FileCheck %s --check-prefix=FL-RES
 
 ;; Also test roundtripping to DILocations and back again, and the verifier.
 ; RUN: opt < %s -S --print-fl-debug-locs=off | opt -S --print-fl-debug-locs=on | FileCheck %s --check-prefix=FL-ON
@@ -53,6 +54,25 @@ define i32 @basic(i32 %a, i32 %b) !dbg !4 !flmd !10 {
 ; FL-ON-NEXT:    [[Q:%.*]] = add i32 [[P]], 1
 ; FL-ON-NEXT:    ret i32 [[Q]], !!dbgLoc(srcLoc: 0)
 ;
+; FL-RES-LABEL: define i32 @basic(
+; FL-RES-SAME: i32 [[A:%.*]], i32 [[B:%.*]]) !dbg [[DBG4:![0-9]+]] !flmd [[FLMD10:![0-9]+]] {
+; FL-RES-NEXT:  [[ENTRY:.*:]]
+; FL-RES-NEXT:      #dbg_value(i32 [[A]], [[META8:![0-9]+]], !DIExpression(), !!dbgLoc(line: 1, column: 10, scope: [[DBG4]]))
+; FL-RES-NEXT:    [[ADD:%.*]] = add i32 [[A]], [[B]], !!dbgLoc(line: 2, column: 12, scope: [[DBG4]])
+; FL-RES-NEXT:    [[CMP:%.*]] = icmp slt i32 [[ADD]], 10, !!dbgLoc(line: 3, column: 7, scope: [[DBG4]])
+; FL-RES-NEXT:    br i1 [[CMP]], label %[[THEN:.*]], label %[[ELSE:.*]], !!dbgLoc(line: 3, column: 3, scope: [[DBG4]])
+; FL-RES:       [[THEN]]:
+; FL-RES-NEXT:    [[M:%.*]] = mul i32 [[ADD]], 2, !!dbgLoc(line: 6, column: 9, scope: [[META11:![0-9]+]])
+; FL-RES-NEXT:    br label %[[END:.*]], !!dbgLoc(line: 5, column: 3, scope: [[META12:![0-9]+]])
+; FL-RES:       [[ELSE]]:
+; FL-RES-NEXT:    [[S:%.*]] = sub i32 [[ADD]], 1, !!dbgLoc(line: 2, column: 14, scope: [[DBG4]], atom: [1, 2])
+; FL-RES-NEXT:    [[T:%.*]] = sub i32 [[S]], 1, !!dbgLoc(line: 8, column: 1, scope: [[META12]], atom: [1, 1])
+; FL-RES-NEXT:    br label %[[END]]
+; FL-RES:       [[END]]:
+; FL-RES-NEXT:    [[P:%.*]] = phi i32 [ [[M]], %[[THEN]] ], [ [[T]], %[[ELSE]] ]
+; FL-RES-NEXT:    [[Q:%.*]] = add i32 [[P]], 1
+; FL-RES-NEXT:    ret i32 [[Q]], !!dbgLoc(line: 0, scope: [[DBG4]])
+;
 entry:
     #dbg_value(i32 %a, !8, !DIExpression(), !!dbgLoc(srcLoc: 2))
   %add = add i32 %a, %b, !!dbgLoc(srcLoc: 3)
@@ -83,6 +103,10 @@ define void @no_locs() !dbg !13 {
 ; FL-ON-SAME: ) !dbg [[DBG13:![0-9]+]] {
 ; FL-ON-NEXT:    ret void
 ;
+; FL-RES-LABEL: define void @no_locs(
+; FL-RES-SAME: ) !dbg [[DBG13:![0-9]+]] {
+; FL-RES-NEXT:    ret void
+;
   ret void
 }
 
@@ -96,6 +120,11 @@ define i32 @nodebug(i32 %a) {
 ; FL-ON-SAME: i32 [[A:%.*]]) {
 ; FL-ON-NEXT:    [[R:%.*]] = add i32 [[A]], 1
 ; FL-ON-NEXT:    ret i32 [[R]]
+;
+; FL-RES-LABEL: define i32 @nodebug(
+; FL-RES-SAME: i32 [[A:%.*]]) {
+; FL-RES-NEXT:    [[R:%.*]] = add i32 [[A]], 1
+; FL-RES-NEXT:    ret i32 [[R]]
 ;
   %r = add i32 %a, 1
   ret i32 %r
@@ -183,4 +212,32 @@ define i32 @nodebug(i32 %a) {
 ; FL-ON: [[META11]] = distinct !DILexicalBlock(scope: [[META12]], file: [[META1]], line: 6, column: 5)
 ; FL-ON: [[META12]] = distinct !DILexicalBlock(scope: [[DBG4]], file: [[META1]], line: 5, column: 3)
 ; FL-ON: [[DBG13]] = distinct !DISubprogram(name: "no_locs", scope: [[META1]], file: [[META1]], line: 50, type: [[META5]], scopeLine: 50, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: [[META0]])
+;.
+; FL-RES: [[META0:![0-9]+]] = distinct !DICompileUnit(language: DW_LANG_C11, file: [[META1:![0-9]+]], producer: "t", isOptimized: true, runtimeVersion: 0, emissionKind: FullDebug)
+; FL-RES: [[META1]] = !DIFile(filename: "{{.*}}basic.c", directory: {{.*}})
+; FL-RES: [[DBG4]] = distinct !DISubprogram(name: "basic", scope: [[META1]], file: [[META1]], line: 1, type: [[META5:![0-9]+]], scopeLine: 1, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: [[META0]], retainedNodes: [[META7:![0-9]+]], keyInstructions: true)
+; FL-RES: [[META5]] = !DISubroutineType(types: [[META6:![0-9]+]])
+; FL-RES: [[META6]] = !{}
+; FL-RES: [[META7]] = !{[[META8]]}
+; FL-RES: [[META8]] = !DILocalVariable(name: "a", arg: 1, scope: [[DBG4]], file: [[META1]], line: 1, type: [[META9:![0-9]+]])
+; FL-RES: [[META9]] = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
+; FL-RES: [[FLMD10]] = distinct !MDFunctionLocalContext(scopes: [
+; FL-RES-NEXT:   !!scope(scope: [[DBG4]]),
+; FL-RES-NEXT:   !!scope(scope: [[META11]]),
+; FL-RES-NEXT:   !!scope(scope: [[META12]]),
+; FL-RES-NEXT: ], srcLocs: [
+; FL-RES-NEXT:   !!srcLoc(line: 0, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 1, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 1, column: 10, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 2, column: 12, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 3, column: 7, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 3, column: 3, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 6, column: 9, scope: 1),
+; FL-RES-NEXT:   !!srcLoc(line: 5, column: 3, scope: 2),
+; FL-RES-NEXT:   !!srcLoc(line: 2, column: 14, scope: 0),
+; FL-RES-NEXT:   !!srcLoc(line: 8, column: 1, scope: 2),
+; FL-RES-NEXT: ])
+; FL-RES: [[META11]] = distinct !DILexicalBlock(scope: [[META12]], file: [[META1]], line: 6, column: 5)
+; FL-RES: [[META12]] = distinct !DILexicalBlock(scope: [[DBG4]], file: [[META1]], line: 5, column: 3)
+; FL-RES: [[DBG13]] = distinct !DISubprogram(name: "no_locs", scope: [[META1]], file: [[META1]], line: 50, type: [[META5]], scopeLine: 50, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: [[META0]])
 ;.
