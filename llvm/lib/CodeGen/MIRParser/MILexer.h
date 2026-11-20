@@ -42,6 +42,8 @@ struct MIToken {
     rparen,
     lbrace,
     rbrace,
+    lsquare,
+    rsquare,
     plus,
     minus,
     less,
@@ -171,6 +173,9 @@ struct MIToken {
     md_mem_cache_hint,
     md_diexpr,
     md_dilocation,
+
+    // FL metadata keywords
+    flmd_dbgloc,
 
     // Identifier tokens
     Identifier,

@@ -2098,7 +2098,12 @@ void MachineInstr::print(raw_ostream &OS, ModuleSlotTracker &MST,
       if (!FirstOp)
         OS << ',';
       OS << " debug-location ";
-      DL->printAsOperand(OS, MST);
+      if (MST.needsDLConversion()) {
+        FLDebugLoc FLDL = MST.getDLConversionMap().getDebugLoc(this);
+        FLDL.printAsOperand(OS);
+      } else {
+        DL.printAsOperand(OS, MST, &getMF()->getFunction());
+      }
     }
   }
 

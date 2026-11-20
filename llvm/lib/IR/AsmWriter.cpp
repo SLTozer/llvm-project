@@ -988,6 +988,9 @@ void ModuleSlotTracker::setProcessHook(
   ProcessFunctionHookFn = std::move(Fn);
 }
 
+bool ModuleSlotTracker::needsDLConversion() const {
+  return getIROptions(M->getContext()).print_fl_debug_locs != PrintFLMDMode::Off;
+}
 bool ModuleSlotTracker::shouldPrintFLDebugLocationInline(const Function *, FLDebugLoc) const {
   return getIROptions(M->getContext()).print_fl_debug_locs == PrintFLMDMode::Expanded;
 }

@@ -12,6 +12,8 @@
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/MachineOperand.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/DebugLocConversion.h"
 #include "llvm/IR/Module.h"
 
 using namespace llvm;
@@ -19,6 +21,9 @@ using namespace llvm;
 bool MachineModuleSlotTracker::shouldPrintDebugLocationInline(
     const DILocation *DL) const {
   return InlineDebugLocations.contains(DL);
+}
+bool MachineModuleSlotTracker::shouldPrintFLDebugLocationInline(const Function *Fn, FLDebugLoc DL) const {
+  return ModuleSlotTracker::shouldPrintFLDebugLocationInline(Fn, DL) || InlineFLDebugLocs.contains({Fn, DL});
 }
 
 void MachineModuleSlotTracker::collectMachineFunctionMetadata(
@@ -108,6 +113,21 @@ MachineModuleSlotTracker::MachineModuleSlotTracker(MFGetterFnT Fn,
     if (isa<DILocation>(Entry.second) &&
         !MachineMetadata.contains(Entry.second))
       InlineDebugLocations.insert(cast<DILocation>(Entry.second));
+
+  if (needsDLConversion()) {
+    // Force initialization of the conversion map.
+    auto &ConversionMap = getDLConversionMap();
+    Function *F = const_cast<Function*>(&TheMF->getFunction());
+    for (const MachineBasicBlock &MBB : *TheMF) {
+      for (const MachineInstr &MI : MBB) {
+        if (DebugLoc DL = MI.getDebugLoc()) {
+          auto ConvDL = ConversionMap.getExtraDebugLoc(F, const_cast<MachineInstr *>(&MI), DL);
+          if (!InlineDebugLocations.contains(DL))
+            InlineFLDebugLocs.insert({F, ConvDL});
+        }
+      }
+    }
+  }
 }
 
 MachineModuleSlotTracker::~MachineModuleSlotTracker() = default;

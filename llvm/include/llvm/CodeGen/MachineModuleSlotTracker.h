@@ -12,6 +12,7 @@
 #include "llvm/ADT/STLFunctionalExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/ModuleSlotTracker.h"
 #include "llvm/Support/Compiler.h"
 
@@ -28,6 +29,7 @@ class LLVM_ABI MachineModuleSlotTracker : public ModuleSlotTracker {
   const MachineFunction *TheMF;
   MachineMDNodeListType MachineMDNodes;
   SmallPtrSet<const DILocation *, 4> InlineDebugLocations;
+  SmallSet<std::pair<const Function *, FLDebugLoc>, 4> InlineFLDebugLocs;
 
   void collectMachineFunctionMetadata(
       SmallVectorImpl<const MDNode *> &Metadata, const MachineFunction &MF,
@@ -41,6 +43,7 @@ public:
   void renumberMetadataForAssembly();
   void collectMachineMDNodes(MachineMDNodeListType &L) const;
   bool shouldPrintDebugLocationInline(const DILocation *DL) const override;
+  bool shouldPrintFLDebugLocationInline(const Function *Fn, FLDebugLoc DL) const override;
 };
 
 } // namespace llvm

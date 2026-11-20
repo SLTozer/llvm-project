@@ -79,9 +79,11 @@ struct MIRPrintingPass : public MachineFunctionPass {
     if (auto *W = getAnalysisIfAvailable<VirtRegMapWrapperLegacy>())
       VRM = &W->getVRM();
 
-    MachineModuleSlotTracker MST(
-        [&](const Function &F) { return MMI->getMachineFunction(F); }, &MF);
-    MST.renumberMetadataForAssembly();
+    {
+      MachineModuleSlotTracker MST(
+          [&](const Function &F) { return MMI->getMachineFunction(F); }, &MF);
+      MST.renumberMetadataForAssembly();
+    }
     printMIR(StrOS, *MMI, MF, VRM);
     MachineFunctions.append(Str);
     return false;

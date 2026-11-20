@@ -681,20 +681,33 @@ static MIToken::TokenKind getMetadataKeywordKind(StringRef Identifier) {
       .Default(MIToken::Error);
 }
 
+static MIToken::TokenKind getFLMetadataKeywordKind(StringRef Identifier) {
+  return StringSwitch<MIToken::TokenKind>(Identifier)
+      .Case("!!dbgLoc", MIToken::flmd_dbgloc)
+      .Default(MIToken::Error);
+}
+
 static Cursor maybeLexExclaim(Cursor C, MIToken &Token,
                               ErrorCallbackType ErrorCallback) {
   if (C.peek() != '!')
     return std::nullopt;
   auto Range = C;
   C.advance(1);
-  if (isdigit(C.peek()) || !isIdentifierChar(C.peek())) {
+  bool IsFLMD = false;
+  if (C.peek() == '!') {
+    IsFLMD = true;
+    C.advance(1);
+  } else if (isdigit(C.peek()) || !isIdentifierChar(C.peek())) {
     Token.reset(MIToken::exclaim, Range.upto(C));
     return C;
   }
   while (isIdentifierChar(C.peek()))
     C.advance();
   StringRef StrVal = Range.upto(C);
-  Token.reset(getMetadataKeywordKind(StrVal), StrVal);
+  if (IsFLMD)
+    Token.reset(getFLMetadataKeywordKind(StrVal), StrVal);
+  else
+    Token.reset(getMetadataKeywordKind(StrVal), StrVal);
   if (Token.isError())
     ErrorCallback(Token.location(),
                   "use of unknown metadata keyword '" + StrVal + "'");
@@ -719,6 +732,10 @@ static MIToken::TokenKind symbolToken(char C) {
     return MIToken::lbrace;
   case '}':
     return MIToken::rbrace;
+  case '[':
+    return MIToken::lsquare;
+  case ']':
+    return MIToken::rsquare;
   case '+':
     return MIToken::plus;
   case '-':

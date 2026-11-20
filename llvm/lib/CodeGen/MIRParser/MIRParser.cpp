@@ -653,6 +653,10 @@ MIRParserImpl::initializeMachineFunction(const yaml::MachineFunction &YamlMF,
   }
   PFS.SM = &SM;
 
+  // If we are converting DebugLoc types, resolve them now.
+  if (PFS.AnyConversions)
+    PFS.getDLConversionMap().resolveReferences();
+
   if (setupRegisterInfo(PFS, YamlMF))
     return true;
 

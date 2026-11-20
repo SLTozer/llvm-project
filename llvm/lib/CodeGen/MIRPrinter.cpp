@@ -961,7 +961,12 @@ static void printMI(raw_ostream &OS, MFPrintState &State,
   if (PrintLocations) {
     if (const DebugLoc &DL = MI.getDebugLoc()) {
       OS << LS << "debug-location ";
-      DL->printAsOperand(OS, State.MST);
+      if (State.MST.needsDLConversion()) {
+        FLDebugLoc FLDL = State.MST.getDLConversionMap().getDebugLoc(&MI);
+        FLDL.printAsOperand(OS, &MI.getMF()->getFunction(), State.MST);
+      } else {
+        DL.printAsOperand(OS, State.MST, &MI.getMF()->getFunction());
+      }
     }
   }
 

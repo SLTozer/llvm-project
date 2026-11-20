@@ -11,7 +11,6 @@
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/IR/DebugLocConversion.h"
 #include "llvm/Support/Compiler.h"
 #include <functional>
 #include <memory>
@@ -120,6 +119,8 @@ public:
   virtual bool shouldPrintDebugLocationInline(const DILocation *) const {
     return false;
   }
+
+  bool needsDLConversion() const;
   virtual bool shouldPrintFLDebugLocationInline(const Function *, FLDebugLoc) const;
 };
 

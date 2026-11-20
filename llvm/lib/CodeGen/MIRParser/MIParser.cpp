@@ -45,7 +45,9 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/DebugLocConversion.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/FunctionLocalMetadata.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
@@ -73,6 +75,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -477,6 +480,7 @@ public:
   [[nodiscard]] bool parseMDNode(MDNode *&Node);
   bool parseDIExpression(MDNode *&Expr);
   bool parseDILocation(MDNode *&Expr);
+  bool parseFLDebugLoc(FLDebugLoc &FLDL);
   bool parseMetadataOperand(MachineOperand &Dest);
   bool parseCFIOffset(int &Offset);
   bool parseCFIUnsigned(unsigned &Value);
@@ -1197,6 +1201,7 @@ bool MIParser::parse(MachineInstr *&MI) {
   }
 
   DebugLoc DebugLocation;
+  std::optional<FLDebugLoc> DeferredFLDL;
   if (Token.is(MIToken::kw_debug_location)) {
     lex();
     MDNode *Node = nullptr;
@@ -1206,12 +1211,19 @@ bool MIParser::parse(MachineInstr *&MI) {
     } else if (Token.is(MIToken::md_dilocation)) {
       if (parseDILocation(Node))
         return true;
+    } else if (Token.is(MIToken::flmd_dbgloc)) {
+      FLDebugLoc Loc;
+      if (parseFLDebugLoc(Loc))
+        return true;
+      DeferredFLDL = Loc;
     } else {
       return error("expected a metadata node after 'debug-location'");
     }
-    DebugLocation = DebugLoc(dyn_cast<DILocation>(Node));
-    if (!DebugLocation)
-      return error("referenced metadata is not a DILocation");
+    if (!DeferredFLDL) {
+      DebugLocation = DebugLoc(dyn_cast<DILocation>(Node));
+      if (!DebugLocation)
+        return error("referenced metadata is not a DILocation");
+    }
   }
 
   // Parse the machine memory operands.
@@ -1242,6 +1254,9 @@ bool MIParser::parse(MachineInstr *&MI) {
 
   MI = MF.CreateMachineInstr(MCID, DebugLocation, /*NoImplicit=*/true);
   MI->setFlags(Flags);
+
+  if (DeferredFLDL)
+    PFS.getDLConversionMap().addAttachment(&MF.getFunction(), MI, *DeferredFLDL);
 
   // Don't check the operands make sense, let the verifier catch any
   // improprieties.
@@ -2598,6 +2613,138 @@ bool MIParser::parseDILocation(MDNode *&Loc) {
 
   Loc = DILocation::get(MF.getFunction().getContext(), Line, Column, Scope,
                         InlinedAt, ImplicitCode, AtomGroup, AtomRank, IRLayers);
+  return false;
+}
+
+bool MIParser::parseFLDebugLoc(FLDebugLoc &Loc) {
+  assert(Token.is(MIToken::flmd_dbgloc));
+  lex();
+  
+  FLIndex<FLSrcLoc> SrcLocIdx;
+  FLIndex<FLInlinedCall> InlinedAtIdx;
+  uint16_t AtomGroup = 0;
+  uint8_t AtomRank = 0;
+  // For parsing a resolved SrcLoc.
+  bool SeenLine = false;
+  bool SeenAnyUnresolved = false;
+  uint32_t Line = 0;
+  uint16_t Column = 0;
+  MDNode *Scope = nullptr;
+
+  if (expectAndConsume(MIToken::lparen))
+    return true;
+
+  if (Token.isNot(MIToken::rparen)) {
+    do {
+      if (Token.is(MIToken::Identifier)) {
+        if (Token.stringValue() == "line") {
+          lex();
+          if (expectAndConsume(MIToken::colon))
+            return true;
+          if (Token.isNot(MIToken::IntegerLiteral) ||
+              Token.integerValue().isSigned())
+            return error("expected unsigned integer");
+          Line = Token.integerValue().getZExtValue();
+          SeenLine = true;
+          SeenAnyUnresolved = true;
+          lex();
+          continue;
+        }
+        if (Token.stringValue() == "column") {
+          lex();
+          if (expectAndConsume(MIToken::colon))
+            return true;
+          if (Token.isNot(MIToken::IntegerLiteral) ||
+              Token.integerValue().isSigned())
+            return error("expected unsigned integer");
+          Column = Token.integerValue().getZExtValue();
+          SeenAnyUnresolved = true;
+          lex();
+          continue;
+        }
+        if (Token.stringValue() == "scope") {
+          lex();
+          if (expectAndConsume(MIToken::colon))
+            return true;
+          if (parseMDNode(Scope))
+            return error("expected metadata node");
+          if (!isa<DILocalScope>(Scope))
+            return error("expected DILocalScope node");
+          SeenAnyUnresolved = true;
+          continue;
+        }
+        if (Token.stringValue() == "srcLoc") {
+          lex();
+          if (expectAndConsume(MIToken::colon))
+            return true;
+          if (Token.isNot(MIToken::IntegerLiteral) ||
+              Token.integerValue().isSigned())
+            return error("expected unsigned integer");
+          SrcLocIdx = Token.integerValue().getZExtValue();
+          lex();
+          continue;
+        }
+        if (Token.stringValue() == "inlinedAt") {
+          lex();
+          if (expectAndConsume(MIToken::colon))
+            return true;
+          if (Token.isNot(MIToken::IntegerLiteral) ||
+              Token.integerValue().isSigned())
+            return error("expected unsigned integer");
+          InlinedAtIdx = Token.integerValue().getZExtValue();
+          lex();
+          continue;
+        }
+        if (Token.stringValue() == "atom") {
+          lex();
+          if (expectAndConsume(MIToken::colon) || expectAndConsume(MIToken::lsquare))
+            return true;
+          if (Token.isNot(MIToken::IntegerLiteral) ||
+              Token.integerValue().isSigned())
+            return error("expected unsigned integer");
+          AtomGroup = Token.integerValue().getZExtValue();
+          lex();
+          if (expectAndConsume(MIToken::comma))
+            return true;
+          if (Token.isNot(MIToken::IntegerLiteral) ||
+              Token.integerValue().isSigned())
+            return error("expected unsigned integer");
+          AtomRank = Token.integerValue().getZExtValue();
+          lex();
+          if (expectAndConsume(MIToken::rsquare))
+            return true;
+          continue;
+        }
+      }
+      return error(Twine("invalid dbgLoc argument '") +
+                   Token.stringValue() + "'");
+    } while (consumeIfPresent(MIToken::comma));
+  }
+
+  if (expectAndConsume(MIToken::rparen))
+    return true;
+
+  if (SrcLocIdx && SeenAnyUnresolved)
+    return error("dbgLoc contains srcLoc and inlined srcLoc");
+  if (!SrcLocIdx && !SeenAnyUnresolved)
+    return error("dbgLoc requires a srcLoc");
+  if (SeenAnyUnresolved && !SeenLine)
+    return error("in-line dbgLoc requires a line");
+  if (SeenAnyUnresolved && !Scope)
+    return error("in-line dbgLoc requires a scope");
+
+  if (SeenAnyUnresolved) {
+    auto *FnCtx = PFS.getDLConversionMap().getFnContext(&MF.getFunction());
+    if (!FnCtx)
+      return error("dbgLoc in function without a function-local context");
+    auto *SrcCtx = InlinedAtIdx ?
+      FnCtx->getInlinedCall(InlinedAtIdx).getInlinee() : FnCtx;
+    auto ScopeIdx = SrcCtx->getOrInsertScope(cast<DILocalScope>(Scope));
+    SrcLocIdx = SrcCtx->getOrInsertSrcLoc(FLSrcLoc(Line, Column, ScopeIdx));
+  }
+  Loc = FLDebugLoc(SrcLocIdx, InlinedAtIdx, AtomGroup, AtomRank);
+  if (!Loc)
+    return error("expected a non-empty dbgLoc");
   return false;
 }
 

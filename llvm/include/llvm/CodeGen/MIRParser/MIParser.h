@@ -17,11 +17,13 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/CodeGen/MachineMemOperand.h"
 #include "llvm/CodeGen/Register.h"
+#include "llvm/IR/DebugLocConversion.h"
 #include "llvm/IR/TrackingMDRef.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/SMLoc.h"
 #include "llvm/Support/UniqueBBID.h"
 #include <map>
+#include <memory>
 #include <utility>
 
 namespace llvm {
@@ -172,6 +174,8 @@ struct PerFunctionMIParsingState {
   SourceMgr *SM;
   const SlotMapping &IRSlots;
   PerTargetMIParsingState &Target;
+  std::unique_ptr<DebugLocReadConversionMap> DLConversionMap;
+  bool AnyConversions = false;
 
   std::map<unsigned, TrackingMDNodeRef> MachineMetadataNodes;
 
@@ -193,6 +197,14 @@ struct PerFunctionMIParsingState {
   LLVM_ABI VRegInfo &getVRegInfo(Register Num);
   LLVM_ABI VRegInfo &getVRegInfoNamed(StringRef RegName);
   LLVM_ABI const Value *getIRValue(unsigned Slot);
+
+  // Lazy initialize the conversion map.
+  DebugLocReadConversionMap &getDLConversionMap() {
+    if (!DLConversionMap)
+      DLConversionMap.reset(new DebugLocReadConversionMap(MF.getFunction().getParent()));
+    AnyConversions = true;
+    return *DLConversionMap.get();
+  }
 };
 
 /// Parse the machine basic block definitions, and skip the machine
